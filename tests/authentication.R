@@ -14,19 +14,36 @@ authentication_acceptance <- function() {
         list(call = function(req) {
           count <<- count + 1L
           writeLines(as.character(count), count_file)
+          authorized <- switch(
+            req$PATH_INFO,
+            '/inherited' = identical(req$HTTP_X_API_KEY, 'fixture-key'),
+            '/bearer' = identical(
+              req$HTTP_AUTHORIZATION,
+              'Bearer fixture-bearer'
+            ),
+            '/either' = identical(req$HTTP_X_API_KEY, 'fixture-key') ||
+              identical(req$HTTP_AUTHORIZATION, 'Bearer fixture-bearer'),
+            '/both' = identical(req$HTTP_X_API_KEY, 'fixture-key') &&
+              identical(req$HTTP_AUTHORIZATION, 'Bearer fixture-bearer'),
+            TRUE
+          )
           list(
-            status = 200L,
+            status = if (authorized) 200L else 401L,
             headers = list('Content-Type' = 'application/json'),
-            body = jsonlite::toJSON(
-              list(
-                key = req$HTTP_X_API_KEY,
-                bearer = req$HTTP_AUTHORIZATION,
-                cookie = req$HTTP_COOKIE,
-                query = req$QUERY_STRING
-              ),
-              auto_unbox = TRUE,
-              null = 'null'
-            )
+            body = if (authorized) {
+              jsonlite::toJSON(
+                list(
+                  key = req$HTTP_X_API_KEY,
+                  bearer = req$HTTP_AUTHORIZATION,
+                  cookie = req$HTTP_COOKIE,
+                  query = req$QUERY_STRING
+                ),
+                auto_unbox = TRUE,
+                null = 'null'
+              )
+            } else {
+              '{"error":"unauthorized"}'
+            }
           )
         })
       )
@@ -163,6 +180,13 @@ authentication_acceptance <- function() {
     grepl('ctx_key', conditionMessage(error)),
     !file.exists(count_file)
   )
+  runtime$set_api_token('invalid-key', scheme = 'key')
+  error <- tryCatch(runtime$get_inherited(), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('401', conditionMessage(error)),
+    readLines(count_file) == '1'
+  )
   runtime$set_api_token('fixture-key', scheme = 'key')
   stopifnot(
     runtime$api_token('key') == 'fixture-key',
@@ -172,6 +196,20 @@ authentication_acceptance <- function() {
   stopifnot(is.null(response$key), is.null(response$bearer))
   stopifnot(is.null(runtime$get_optional()$key))
   Sys.unsetenv('ctx_key')
+  before <- readLines(count_file)
+  error <- tryCatch(runtime$get_bearer(), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('AUTHCLIENT_BEARER', conditionMessage(error)),
+    identical(before, readLines(count_file))
+  )
+  runtime$set_api_token('invalid-bearer', scheme = 'bearer')
+  error <- tryCatch(runtime$get_bearer(), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('401', conditionMessage(error)),
+    as.integer(readLines(count_file)) == as.integer(before) + 1L
+  )
   runtime$set_api_token('fixture-bearer', scheme = 'bearer')
   stopifnot(
     runtime$get_bearer()$bearer == 'Bearer fixture-bearer',
@@ -307,7 +345,7 @@ authentication_acceptance <- function() {
   )
   stopifnot(inherits(error, 'error'))
   cat(
-    'Authentication: API keys in headers/query/cookies, bearer, inheritance, public overrides, OR/AND, deferred OAuth, missing-token preflight and safe environment persistence passed.\n'
+    'Authentication: API keys and bearer tokens, server rejection, inheritance, public overrides, OR/AND, deferred OAuth, missing-token preflight and safe environment persistence passed.\n'
   )
 }
 if (sys.nframe() == 0L) {
