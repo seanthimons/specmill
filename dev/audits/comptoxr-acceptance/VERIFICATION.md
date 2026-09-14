@@ -41,4 +41,3 @@ was added. Extend the matrix only if one of these real workflows exposes a gap.
 source('dev/verify_comptoxr_acceptance.R')
 verify_comptoxr_acceptance()
 ```
-
