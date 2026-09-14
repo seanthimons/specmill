@@ -1,0 +1,5 @@
+"method","path","disposition","blocker"
+"POST","/api/amos/retrieve_fact_sheets/","excluded_from_acceptance_slice","Invalid input schema type"
+"POST","/api/amos/retrieve_product_declarations/","excluded_from_acceptance_slice","Invalid input schema type"
+"POST","/api/amos/retrieve_safety_data_sheets/","excluded_from_acceptance_slice","Invalid input schema type"
+"POST","/api/amos/search_for_document_ids/{record_type}","excluded_from_acceptance_slice","Invalid input schema type"
