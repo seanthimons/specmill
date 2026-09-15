@@ -92,6 +92,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     if (!base::is.numeric(limit) || base::length(limit) != 1L || base::is.na(limit) || !base::is.finite(limit) || limit < 1 || limit != base::floor(limit)) base::stop('Batch limits must be positive integers')
   }
   if (!base::is.null(batch$max_items) && !base::is.null(body)) {
+    # Split oversized input with specmill::batched(), or directly with:
+    # lapply(split(items, ceiling(seq_along(items) / size)), fn, ...)
     if (!base::is.list(body) || !base::is.null(base::names(body))) base::stop('Batch body must be an unnamed list of items')
     if (base::length(body) > batch$max_items) base::stop('Batch exceeds max_items (', batch$max_items, '); split the input into smaller requests')
   }
