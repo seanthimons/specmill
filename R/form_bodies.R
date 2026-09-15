@@ -26,7 +26,11 @@ request_body_media <- function(available, preferred = NULL, at = '#') {
       'body_media_type',
       'capability_gap',
       if (is.null(preferred)) {
-        'Unsupported body media type'
+        if (length(available)) {
+          'Unsupported body media type'
+        } else {
+          'Ambiguous body media type'
+        }
       } else {
         'Requested body media type is unavailable'
       },

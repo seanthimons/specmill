@@ -104,6 +104,7 @@ diagnostics_acceptance <- function() {
   swagger <- list(
     swagger = '2.0',
     info = document$info,
+    consumes = list('application/json'),
     paths = list(
       '/body' = list(
         post = list(
@@ -128,6 +129,7 @@ diagnostics_acceptance <- function() {
       '/file' = list(
         post = list(
           operationId = 'file',
+          consumes = list(),
           parameters = list(list(
             name = 'file',
             'in' = 'formData',
