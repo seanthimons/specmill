@@ -239,6 +239,22 @@ render_operation <- function(operation, spec) {
       '  params[changed] <- state$params[changed]'
     )
   }
+  for (i in seq_along(params)) {
+    if (
+      params[[i]]$location == 'query' &&
+        !isTRUE(params[[i]]$allow_empty_value)
+    ) {
+      lines <- c(lines, paste0(
+        '  if (base::is.character(params[[',
+        r_literal(formal_names[[i]]),
+        ']]) && base::any(!base::nzchar(params[[',
+        r_literal(formal_names[[i]]),
+        ']]))) base::stop(',
+        r_literal(paste('Empty query parameter:', input_names[[i]])),
+        ')'
+      ))
+    }
+  }
   request <- paste0(
     '  result <- ',
     helper,

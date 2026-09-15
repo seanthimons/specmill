@@ -72,7 +72,7 @@ and [3.1 style table](https://spec.openapis.org/oas/v3.1.1.html#style-values).
 | Opt-in `name[]=value` query arrays | **Customizable** | `query_array_style: brackets` is a deliberate non-OpenAPI extension, tested in [`bracket-transport.R`](../../../tests/bracket-transport.R#L1). It is not inferred from schema metadata. |
 | Parameter `content` and query `allowReserved: true` | **Unsupported (diagnosed)** | Both produce `parameter_encoding` diagnostics at [`parameter_shapes.R`](../../../R/parameter_shapes.R#L42); neither is silently approximated. |
 | Nested parameter objects, composed parameters, arrays of objects/arrays, and binary parameters | **Unsupported (diagnosed/review required)** | The bounded flat subset is enforced at [`parameter_shapes.R`](../../../R/parameter_shapes.R#L7). Binary source-contract review was completed in [GH #16](https://github.com/seanthimons/specmill/issues/16); native binary parameter transport remains unsupported. |
-| Parameter-contract integrity: route-template correspondence, uniqueness, reserved header names, and `allowEmptyValue` | **Unsupported (silent)** | The parser checks that a declared path parameter is required, but not that every `{token}` has exactly one matching parameter or that every path parameter appears in the route ([`operations.R`](../../../R/operations.R#L334)). Duplicate `(name, in)` entries are silently reduced to the last declaration ([`operations.R`](../../../R/operations.R#L210)); OAS 3 `Accept`, `Content-Type`, and `Authorization` definitions are not ignored as required; and `allowEmptyValue: false` does not prevent an empty query value ([3.1 Parameter Object](https://spec.openapis.org/oas/v3.1.1.html#parameter-object)). The fallback loop can send a literal placeholder or discard an unmatched value ([`request.R`](../../../inst/templates/request.R#L100)). Reproduced by [`parameter-contracts.json`](../../../tests/fixtures/capability-audit/parameter-contracts.json) and tracked in [GH #20](https://github.com/seanthimons/specmill/issues/20). |
+| Parameter-contract integrity: route-template correspondence, uniqueness, reserved header names, and `allowEmptyValue` | **Supported + tested** | [`read_operations()`](../../../R/operations.R) diagnoses missing/unmatched path parameters and same-array duplicates while preserving operation overrides, and ignores the three reserved OAS 3 header definitions. Generated wrappers reject empty query strings unless `allowEmptyValue` is true. The corrected parser and rendered-request contracts are exercised by [`parameter-contracts.json`](../../../tests/fixtures/capability-audit/parameter-contracts.json), [`capability-audit.R`](../../../tests/capability-audit.R), and [`parameter-transport.R`](../../../tests/parameter-transport.R). Swagger 2 header definitions remain valid because its Parameter Object has no reserved-header rule. |
 
 ### Request bodies and media types
 
@@ -126,13 +126,12 @@ and [Security Requirement](https://spec.openapis.org/oas/v2.0.html#security-requ
 
 ## Silent-misgeneration reproductions
 
-[`tests/capability-audit.R`](../../../tests/capability-audit.R#L1) executes five
-minimal checked-in schemas and proves that each currently parses without a
-diagnostic before capturing the incorrect generated-helper contract:
+[`tests/capability-audit.R`](../../../tests/capability-audit.R#L1) executes four
+unresolved silent-risk fixtures plus the corrected parameter-contract regression:
 
 | Fixture | Reproduced behavior | Follow-up |
 | --- | --- | --- |
-| [`parameter-contracts.json`](../../../tests/fixtures/capability-audit/parameter-contracts.json) | Five invalid contracts parse as ready: a missing route parameter leaves `{id}` in the URL; a mismatched one remains unused; reserved `Accept` is emitted; a duplicate `(name, in)` silently keeps the last schema; and `allowEmptyValue: false` accepts `''`. | [GH #20](https://github.com/seanthimons/specmill/issues/20) |
+| [`parameter-contracts.json`](../../../tests/fixtures/capability-audit/parameter-contracts.json) | Regression coverage verifies parser diagnostics, ignored OAS 3 reserved headers, valid operation-level overrides, and rejected/permitted empty query values. | Resolved by [GH #20](https://github.com/seanthimons/specmill/issues/20) |
 | [`read-only-request.json`](../../../tests/fixtures/capability-audit/read-only-request.json) | A valid request without the server-owned required/read-only `id` is rejected; including `id` is accepted. | [GH #22](https://github.com/seanthimons/specmill/issues/22) |
 | [`swagger-consumes.json`](../../../tests/fixtures/capability-audit/swagger-consumes.json) | `consumes: application/octet-stream` is retained only in raw source metadata; normalized `body_media` is JSON and the wrapper sends no nondefault media argument. | [GH #21](https://github.com/seanthimons/specmill/issues/21) |
 | [`operation-server.json`](../../../tests/fixtures/capability-audit/operation-server.json) | Direct initialization embeds the unresolved root `{region}` template; the operation server remains only in `source_operation`, and neither normalized operation nor helper arguments receive a server/base URL. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
@@ -182,18 +181,17 @@ media type, or request contract.
 
 | Rank | Work | Why it ranks here | Tracking |
 | ---: | --- | --- | --- |
-| 1 | Validate parameter contracts before rendering: route correspondence, duplicate identity, and reserved headers. | Small parser guards prevent wrong URLs, discarded inputs, and schema-invalid header parameters across every API version. | [GH #20](https://github.com/seanthimons/specmill/issues/20) |
-| 2 | Honor Swagger 2 effective `consumes` for body parameters even without an override. | One media-selection seam prevents valid binary/non-JSON bodies from being sent as JSON. | [GH #21](https://github.com/seanthimons/specmill/issues/21) |
-| 3 | Apply request-direction `readOnly` semantics recursively. | Prevents valid create/update requests from being rejected; common in generated CRUD schemas and composition. | [GH #22](https://github.com/seanthimons/specmill/issues/22) |
-| 4 | Respect versioned GET/HEAD/DELETE request-body semantics. | Prevents OAS 3.0 requests from emitting bodies that consumers are required to ignore while preserving reviewed 3.1 behavior. | [GH #24](https://github.com/seanthimons/specmill/issues/24) |
-| 5 | Carry effective root/path/operation server metadata or explicitly diagnose non-root precedence. | Wrong-host requests are high impact. Start with a diagnostic; runtime-selectable servers can remain a client-helper feature until demanded. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 6 | Harden response handling and add a decoder matrix for `application/*+json` and missing `Content-Type`. | Response status/headers and declared contracts are currently lost; the existing decoder also needs its remaining branches pinned down. | [GH #10](https://github.com/seanthimons/specmill/issues/10) |
-| 7 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
-| 8 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
-| 9 | Add catalogue tests for Swagger URL assembly, relative origin resolution, multiple servers, and server-variable defaults as part of server controls. | These paths are implemented and documented but currently supported only by inspection. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 10 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
+| 1 | Honor Swagger 2 effective `consumes` for body parameters even without an override. | One media-selection seam prevents valid binary/non-JSON bodies from being sent as JSON. | [GH #21](https://github.com/seanthimons/specmill/issues/21) |
+| 2 | Apply request-direction `readOnly` semantics recursively. | Prevents valid create/update requests from being rejected; common in generated CRUD schemas and composition. | [GH #22](https://github.com/seanthimons/specmill/issues/22) |
+| 3 | Respect versioned GET/HEAD/DELETE request-body semantics. | Prevents OAS 3.0 requests from emitting bodies that consumers are required to ignore while preserving reviewed 3.1 behavior. | [GH #24](https://github.com/seanthimons/specmill/issues/24) |
+| 4 | Carry effective root/path/operation server metadata or explicitly diagnose non-root precedence. | Wrong-host requests are high impact. Start with a diagnostic; runtime-selectable servers can remain a client-helper feature until demanded. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
+| 5 | Harden response handling and add a decoder matrix for `application/*+json` and missing `Content-Type`. | Response status/headers and declared contracts are currently lost; the existing decoder also needs its remaining branches pinned down. | [GH #10](https://github.com/seanthimons/specmill/issues/10) |
+| 6 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
+| 7 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
+| 8 | Add catalogue tests for Swagger URL assembly, relative origin resolution, multiple servers, and server-variable defaults as part of server controls. | These paths are implemented and documented but currently supported only by inspection. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
+| 9 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
 
-GH #20-#22, GH #24, and the existing GH #11 link the executable silent-risk
+GH #21-#22, GH #24, and the existing GH #11 link the executable silent-risk
 fixtures to bounded follow-up work. This audit does not implement those fixes.
 
 ## Verification commands

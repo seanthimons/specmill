@@ -26,6 +26,7 @@ parameter_transport_acceptance <- function() {
       expected,
       version = '3.0.3',
       collection = NULL,
+      allow_empty = NULL,
       omit = FALSE,
       invalid = FALSE
     ) {
@@ -40,6 +41,9 @@ parameter_transport_acceptance <- function() {
       }
       if (!is.null(explode)) {
         p$explode <- explode
+      }
+      if (!is.null(allow_empty)) {
+        p$allowEmptyValue <- allow_empty
       }
       if (version == '2.0') {
         p$schema <- NULL
@@ -273,7 +277,28 @@ parameter_transport_acceptance <- function() {
       omit = TRUE,
       expected = '?p=a&p=b'
     )
-    check(scalar, 'query', value = '', expected = '?p=')
+    check(
+      scalar,
+      'query',
+      value = '',
+      expected = 'Empty query parameter',
+      invalid = TRUE
+    )
+    check(
+      scalar,
+      'query',
+      value = '',
+      expected = '?p=',
+      allow_empty = TRUE
+    )
+    check(
+      scalar,
+      'query',
+      value = '',
+      expected = '?p=',
+      version = '2.0',
+      allow_empty = TRUE
+    )
     check(
       array,
       'query',

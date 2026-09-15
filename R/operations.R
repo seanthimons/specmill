@@ -207,11 +207,46 @@ read_operations <- function(files, policy = list()) {
                 source_location = parameter_locations[[i]]
               )
             })
+            parameter_groups <- c(
+              rep('path', length(item$parameters)),
+              rep('operation', length(op$parameters))
+            )
+            if (!identical(version, '2.0')) {
+              reserved <- vapply(params, function(p) {
+                identical(p[['in']], 'header') &&
+                  length(p$name) == 1L &&
+                  tolower(p$name) %in%
+                    c('accept', 'content-type', 'authorization')
+              }, logical(1))
+              params <- params[!reserved]
+              parameter_locations <- parameter_locations[!reserved]
+              parameter_groups <- parameter_groups[!reserved]
+            }
             ids <- vapply(
               params,
-              function(p) paste(p[['in']], p$name),
+              function(p) {
+                name <- if (
+                  !identical(version, '2.0') &&
+                    identical(p[['in']], 'header')
+                ) {
+                  tolower(p$name)
+                } else {
+                  p$name
+                }
+                paste(p[['in']], name)
+              },
               character(1)
             )
+            duplicate <- duplicated(paste(parameter_groups, ids))
+            if (any(duplicate)) {
+              i <- which(duplicate)[[1L]]
+              schema_problem(
+                'duplicate_parameter',
+                'schema_defect',
+                paste('Duplicate parameter:', ids[[i]]),
+                parameter_locations[[i]]
+              )
+            }
             keep <- !duplicated(ids, fromLast = TRUE)
             params <- params[keep]
             parameter_locations <- parameter_locations[keep]
@@ -393,12 +428,49 @@ read_operations <- function(files, policy = list()) {
                 name = p$name,
                 location = location,
                 required = isTRUE(p$required),
+                allow_empty_value = isTRUE(p$allowEmptyValue),
                 schema = schema,
                 style = encoding$style,
                 explode = encoding$explode,
                 collection_format = encoding$collection_format
               )
             })
+            templates <- unique(gsub(
+              '^\\{|\\}$',
+              '',
+              regmatches(path, gregexpr('\\{[^{}]+\\}', path))[[1L]]
+            ))
+            path_names <- vapply(
+              Filter(function(p) p$location == 'path', params),
+              `[[`,
+              character(1),
+              'name'
+            )
+            unmatched <- setdiff(path_names, templates)
+            if (length(unmatched)) {
+              i <- which(vapply(
+                params,
+                function(p) {
+                  p$location == 'path' && p$name == unmatched[[1L]]
+                },
+                logical(1)
+              ))[[1L]]
+              schema_problem(
+                'unmatched_path_parameter',
+                'schema_defect',
+                paste('Unmatched path parameter:', unmatched[[1L]]),
+                parameter_locations[[i]]
+              )
+            }
+            missing <- setdiff(templates, path_names)
+            if (length(missing)) {
+              schema_problem(
+                'missing_path_parameter',
+                'schema_defect',
+                paste('Missing path parameter:', missing[[1L]]),
+                schema_location('#/paths', path)
+              )
+            }
             if (body_present) {
               source_location <- body_location
               if (is.null(body)) {
