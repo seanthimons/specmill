@@ -69,16 +69,79 @@ capability_audit_acceptance <- function() {
     )) == 3L
   )
 
-  # Known gap #22: readOnly required fields are enforced on request bodies.
+  # GH #22: request validation and fixtures apply property direction recursively.
   read_only <- specmill::read_operations(fixture('read-only-request.json'))
-  stopifnot(!length(read_only$diagnostics))
-  create <- operation(read_only, 'create_item')
-  rejected <- tryCatch(invoke(create, list(name = 'Ada')), error = identity)
-  accepted <- invoke(create, list(id = 'server-owned', name = 'Ada'))
+  read_only_31_file <- tempfile(fileext = '.json')
+  on.exit(unlink(read_only_31_file), add = TRUE)
+  read_only_31_document <- jsonlite::fromJSON(
+    fixture('read-only-request.json'),
+    simplifyVector = FALSE
+  )
+  read_only_31_document$openapi <- '3.1.1'
+  jsonlite::write_json(
+    read_only_31_document,
+    read_only_31_file,
+    auto_unbox = TRUE
+  )
+  read_only_31 <- specmill::read_operations(read_only_31_file)
   stopifnot(
-    inherits(rejected, 'error'),
-    grepl('Missing required body fields', conditionMessage(rejected)),
-    identical(accepted$body$id, 'server-owned')
+    length(read_only$operations) == 3L,
+    length(read_only$diagnostics) == 1L,
+    read_only$diagnostics[[1L]]$key == 'POST /invalid',
+    read_only$diagnostics[[1L]]$code == 'invalid_property_direction'
+  )
+  create <- operation(read_only, 'create_item')
+  create_31 <- operation(read_only_31, 'create_item')
+  accepted <- invoke(create, list(name = 'Ada'))
+  accepted_31 <- invoke(create_31, list(name = 'Ada'))
+  missing_name <- tryCatch(invoke(create, list()), error = identity)
+  read_only_input <- tryCatch(
+    invoke(create, list(id = 'server-owned', name = 'Ada')),
+    error = identity
+  )
+  nested <- operation(read_only, 'create_nested_item')
+  nested_body <- list(audit = list(label = 'reviewed'), name = 'Ada')
+  accepted_nested <- invoke(nested, nested_body)
+  nested_read_only <- tryCatch(
+    invoke(
+      nested,
+      list(
+        audit = list(createdAt = 'server-owned', label = 'reviewed'),
+        name = 'Ada'
+      )
+    ),
+    error = identity
+  )
+  composed <- operation(read_only, 'create_composed_item')
+  composed_body <- c(list(secret = 'request-owned'), nested_body)
+  accepted_composed <- invoke(composed, composed_body)
+  missing_write_only <- tryCatch(
+    invoke(composed, nested_body),
+    error = identity
+  )
+  fixtures <- specmill::operation_fixtures(read_only$operations)
+  stopifnot(
+    identical(accepted$body, list(name = 'Ada')),
+    identical(accepted_31$body, accepted$body),
+    length(read_only_31$operations) == 3L,
+    read_only_31$diagnostics[[1L]]$code == 'invalid_property_direction',
+    inherits(missing_name, 'error'),
+    grepl('Missing required body fields', conditionMessage(missing_name)),
+    inherits(read_only_input, 'error'),
+    grepl('Read-only body fields', conditionMessage(read_only_input)),
+    identical(accepted_nested$body, nested_body),
+    inherits(nested_read_only, 'error'),
+    grepl('Read-only body fields', conditionMessage(nested_read_only)),
+    identical(accepted_composed$body, composed_body),
+    inherits(missing_write_only, 'error'),
+    grepl(
+      'Body allOf requires every branch',
+      conditionMessage(missing_write_only)
+    ),
+    !'id' %in% names(fixtures$create_item$body),
+    !'createdAt' %in% names(fixtures$create_nested_item$body$audit),
+    !'id' %in% names(fixtures$create_composed_item$body),
+    'secret' %in% names(fixtures$create_composed_item$body)
   )
 
   # GH #21: Swagger body media honors operation then document consumes.
@@ -144,7 +207,7 @@ capability_audit_acceptance <- function() {
   )
 
   cat(
-    'Capability audit: corrected parameter/media regressions and three silent-risk fixtures passed.\n'
+    'Capability audit: corrected parameter/request/media regressions and two silent-risk fixtures passed.\n'
   )
 }
 

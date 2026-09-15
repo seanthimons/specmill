@@ -91,6 +91,22 @@ input_schema <- function(
   if (startsWith(version, '3.1')) {
     schema$nullable <- NULL
   }
+  for (field in intersect(names(schema), c('readOnly', 'writeOnly'))) {
+    value <- schema[[field]]
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      fail(
+        'invalid_property_direction',
+        paste(field, 'must be a boolean'),
+        at = schema_location(source_location, field)
+      )
+    }
+  }
+  if (isTRUE(schema$readOnly) && isTRUE(schema$writeOnly)) {
+    fail(
+      'invalid_property_direction',
+      'A property cannot be both readOnly and writeOnly'
+    )
+  }
   if (
     identical(schema$type, 'array') &&
       is.null(schema$items) &&
@@ -134,6 +150,14 @@ input_schema <- function(
         any(!nzchar(required)))
   ) {
     fail('invalid_required', 'Invalid required input fields')
+  }
+  if (length(schema$properties) && length(required)) {
+    read_only <- names(schema$properties)[vapply(
+      schema$properties,
+      function(property) isTRUE(property$readOnly),
+      logical(1)
+    )]
+    schema$required <- schema$required[!required %in% read_only]
   }
   if (!is.null(schema$items)) {
     schema$items <- input_schema(
