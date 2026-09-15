@@ -75,6 +75,27 @@ media_type_acceptance <- function() {
       )
     }
   }
+  fixture_root <- if (dir.exists('tests/fixtures/capability-audit')) {
+    'tests/fixtures/capability-audit'
+  } else {
+    'fixtures/capability-audit'
+  }
+  swagger <- jsonlite::read_json(file.path(
+    fixture_root,
+    'swagger-consumes.json'
+  ))
+  swagger$paths[['/upload']]$post$consumes <- list('application/xml')
+  jsonlite::write_json(swagger, file, auto_unbox = TRUE)
+  unsupported <- specmill::read_operations(file)
+  swagger$paths[['/upload']]$post$consumes <- list()
+  jsonlite::write_json(swagger, file, auto_unbox = TRUE)
+  ambiguous <- specmill::read_operations(file)
+  stopifnot(
+    identical(unsupported$diagnostics[[1L]]$code, 'body_media_type'),
+    identical(unsupported$diagnostics[[1L]]$reason, 'Unsupported body media type'),
+    identical(ambiguous$diagnostics[[1L]]$code, 'body_media_type'),
+    identical(ambiguous$diagnostics[[1L]]$reason, 'Ambiguous body media type')
+  )
   root <- tempfile('media-config-')
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE), add = TRUE)

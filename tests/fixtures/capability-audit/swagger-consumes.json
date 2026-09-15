@@ -4,6 +4,7 @@
   "host": "root.example.invalid",
   "basePath": "/v1",
   "schemes": ["https"],
+  "consumes": ["application/json"],
   "paths": {
     "/upload": {
       "post": {
@@ -18,6 +19,24 @@
           }
         ],
         "responses": {"204": {"description": "Uploaded"}}
+      }
+    },
+    "/items": {
+      "post": {
+        "operationId": "create_item",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["name"],
+              "properties": {"name": {"type": "string"}}
+            }
+          }
+        ],
+        "responses": {"204": {"description": "Created"}}
       }
     }
   }

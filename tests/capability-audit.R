@@ -81,15 +81,22 @@ capability_audit_acceptance <- function() {
     identical(accepted$body$id, 'server-owned')
   )
 
-  # Known gap #21: Swagger body consumes is silently replaced by JSON.
+  # GH #21: Swagger body media honors operation then document consumes.
   consumes <- specmill::read_operations(fixture('swagger-consumes.json'))
   stopifnot(!length(consumes$diagnostics))
   upload <- operation(consumes, 'upload_binary')
-  sent <- invoke(upload, 'binary-content')
+  upload_bytes <- as.raw(c(0, 1, 127, 255))
+  sent <- invoke(upload, upload_bytes)
+  create <- operation(consumes, 'create_item')
+  created <- invoke(create, list(name = 'Ada'))
   stopifnot(
     identical(upload$source_operation$consumes, list('application/octet-stream')),
-    identical(upload$body_media, 'application/json'),
-    is.null(sent$body_media)
+    identical(upload$body_media, 'application/octet-stream'),
+    identical(sent$body_media, 'application/octet-stream'),
+    identical(sent$body, upload_bytes),
+    identical(create$body_media, 'application/json'),
+    is.null(created$body_media),
+    identical(created$body, list(name = 'Ada'))
   )
 
   # Known gap #11: operation servers do not reach wrappers or the fixed helper.
@@ -137,7 +144,7 @@ capability_audit_acceptance <- function() {
   )
 
   cat(
-    'Capability audit: parameter contracts and four silent-risk fixtures passed.\n'
+    'Capability audit: corrected parameter/media regressions and three silent-risk fixtures passed.\n'
   )
 }
 
