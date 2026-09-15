@@ -135,12 +135,21 @@ method/path names. Every proposed name is explicit in the YAML for editing.
 Multiple tags use the first, with a diagnostic; missing tags use `default`.
 `group_by = 'none'` creates a single default service instead.
 
+When generated names collide, `proposal$diagnostics` lists every contributing
+`METHOD /path`; multi-API diagnostics include the API-qualified proposed name.
+Edit the matching `names` entries in the existing service YAML, then rerun
+`configure_client()`. Matching reviewed names are reused across reruns and schema
+ordering, while unrelated service settings and deliberate operation overrides
+remain untouched. Noninteractive runs return these diagnostics and never prompt
+or silently rename a public function.
+
 `mode = 'apply'` writes absent configuration files only. If existing YAML or the
 schema copy differs, nothing is written: review the before/after text and make
 the desired edits yourself. Filename collisions block writing; function-name
-collisions must be resolved before wrapper generation. Unsupported operations
-remain included, with diagnostics. Configuration generation does not create
-custom transports or hide unsupported endpoints.
+collisions must be resolved in service YAML before wrapper generation. A later
+proposal carries forward matching reviewed names but never overwrites the YAML.
+Unsupported operations remain included, with diagnostics. Configuration
+generation does not create custom transports or hide unsupported endpoints.
 
 `load_project()` and maintenance commands use `specmill.yml` by default.
 Pass `config` explicitly to use a different project filename.
