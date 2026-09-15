@@ -1,5 +1,18 @@
 transport_arguments <- function(operation) {
   c(
+    if (any(vapply(operation$parameters, extended_parameter, logical(1)))) {
+      'parameter_serialization'
+    },
+    if (
+      any(vapply(
+        operation$parameters,
+        function(p) p$location == 'cookie',
+        logical(1)
+      ))
+    ) {
+      'cookies'
+    },
+    if (length(operation$batch)) 'batch',
     if (!is.null(operation$auth)) 'auth',
     if (
       any(vapply(
@@ -13,15 +26,23 @@ transport_arguments <- function(operation) {
     if (
       any(vapply(
         operation$parameters,
-        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        function(p) {
+          p$location == 'query' &&
+            identical(p$schema$type, 'array') &&
+            !extended_parameter(p)
+        },
         logical(1)
       ))
     ) {
       'query_serialization'
     },
-    if (identical(operation$body_media, 'application/octet-stream')) {
+    if (
+      !is.null(operation$body_media) &&
+        operation$body_media != 'application/json'
+    ) {
       'body_media'
-    }
+    },
+    if (form_media(operation$body_media)) c('body_encoding', 'form_schema')
   )
 }
 
@@ -57,6 +78,19 @@ render_operation <- function(operation, spec) {
           } else {
             params[[i]]$schema$default
           }
+          if (identical(params[[i]]$schema$type, 'array') && is.list(value)) {
+            value <- if (length(value)) {
+              unlist(value, use.names = FALSE)
+            } else {
+              switch(
+                params[[i]]$schema$items$type,
+                string = character(),
+                integer = integer(),
+                number = numeric(),
+                boolean = logical()
+              )
+            }
+          }
           paste0(' = ', r_literal(value))
         } else {
           ''
@@ -75,7 +109,7 @@ render_operation <- function(operation, spec) {
   refs <- function(location) {
     selected <- Filter(function(p) p$location == location, params)
     paste0(
-      'list(',
+      'base::list(',
       paste(
         vapply(
           selected,
@@ -103,7 +137,7 @@ render_operation <- function(operation, spec) {
       ') {'
     ),
     paste0(
-      '  params <- list(',
+      '  params <- base::list(',
       paste(
         vapply(
           formal_names,
@@ -122,7 +156,7 @@ render_operation <- function(operation, spec) {
       lines <- c(
         lines,
         paste0(
-          '  if (missing(',
+          '  if (base::missing(',
           formal_names[[i]],
           ')) ',
           formal_names[[i]],
@@ -137,9 +171,9 @@ render_operation <- function(operation, spec) {
       lines <- c(
         lines,
         paste0(
-          '  if (is.null(',
+          '  if (base::is.null(',
           formal_names[[i]],
-          ')) stop(',
+          ')) base::stop(',
           r_literal(paste('Required input:', input_names[[i]])),
           ')'
         )
@@ -150,23 +184,38 @@ render_operation <- function(operation, spec) {
     if (operation$body_required) {
       lines <- c(
         lines,
-        paste0('  if (is.null(', body_name, ')) stop("Required body")')
+        paste0(
+          '  if (base::missing(',
+          body_name,
+          ')) base::stop("Required body")'
+        )
       )
     }
     checks <- if (identical(operation$body_media, 'application/octet-stream')) {
       paste0(
-        'if (!is.raw(',
+        'if (!base::is.raw(',
         body_name,
-        ')) stop("Binary body must be a raw vector")'
+        ')) base::stop("Binary body must be a raw vector")'
       )
+    } else if (form_media(operation$body_media)) {
+      form_checks(operation$body, body_name, operation$body_media)
     } else {
       body_checks(operation$body, body_name)
     }
     if (length(checks)) {
       lines <- c(
         lines,
-        paste0('  if (!is.null(', body_name, ')) {'),
+        paste0('  if (!base::missing(', body_name, ')) {'),
         paste0('    ', checks),
+        if (identical(operation$body_media, 'application/json')) {
+          paste0(
+            '    if (base::is.null(',
+            body_name,
+            ')) ',
+            body_name,
+            ' <- jsonlite::unbox(NA)'
+          )
+        },
         '  }'
       )
     }
@@ -181,14 +230,30 @@ render_operation <- function(operation, spec) {
         callback,
         '(',
         r_literal(operation$name),
-        ', "pre_request", list(params = params))'
+        ', "pre_request", base::list(params = params))'
       ),
       if (!isTRUE(spec$post_on_skip)) {
-        '  if (isTRUE(state$skip_request)) return(state$result)'
+        '  if (base::isTRUE(state$skip_request)) base::return(state$result)'
       },
-      '  changed <- intersect(names(params), names(state$params))',
+      '  changed <- base::intersect(base::names(params), base::names(state$params))',
       '  params[changed] <- state$params[changed]'
     )
+  }
+  for (i in seq_along(params)) {
+    if (
+      params[[i]]$location == 'query' &&
+        !isTRUE(params[[i]]$allow_empty_value)
+    ) {
+      lines <- c(lines, paste0(
+        '  if (base::is.character(params[[',
+        r_literal(formal_names[[i]]),
+        ']]) && base::any(!base::nzchar(params[[',
+        r_literal(formal_names[[i]]),
+        ']]))) base::stop(',
+        r_literal(paste('Empty query parameter:', input_names[[i]])),
+        ')'
+      ))
+    }
   }
   request <- paste0(
     '  result <- ',
@@ -213,9 +278,31 @@ render_operation <- function(operation, spec) {
     if ('headers' %in% transport_arguments(operation)) {
       paste0(', headers = ', refs('header'))
     },
+    if ('cookies' %in% transport_arguments(operation)) {
+      paste0(', cookies = ', refs('cookie'))
+    },
+    if ('parameter_serialization' %in% transport_arguments(operation)) {
+      metadata <- lapply(Filter(extended_parameter, params), function(p) {
+        p$required <- isTRUE(p$public_required %or% p$required)
+        p[c(
+          'name',
+          'location',
+          'schema',
+          'style',
+          'explode',
+          'collection_format',
+          'required'
+        )]
+      })
+      paste0(', parameter_serialization = ', r_literal(metadata))
+    },
     if ('query_serialization' %in% transport_arguments(operation)) {
       arrays <- Filter(
-        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        function(p) {
+          p$location == 'query' &&
+            identical(p$schema$type, 'array') &&
+            !extended_parameter(p)
+        },
         params
       )
       paste0(
@@ -229,7 +316,18 @@ render_operation <- function(operation, spec) {
       )
     },
     if ('body_media' %in% transport_arguments(operation)) {
-      ', body_media = "application/octet-stream"'
+      paste0(', body_media = ', r_literal(operation$body_media))
+    },
+    if (form_media(operation$body_media)) {
+      paste0(
+        ', body_encoding = ',
+        r_literal(operation$body_encoding),
+        ', form_schema = ',
+        r_literal(operation$body)
+      )
+    },
+    if ('batch' %in% transport_arguments(operation)) {
+      paste0(', batch = ', r_literal(operation$batch))
     },
     ')'
   )
@@ -267,7 +365,7 @@ render_operation <- function(operation, spec) {
       stop('post_on_skip requires a pre-request hook')
     }
     request <- c(
-      '  if (isTRUE(state$skip_request)) {',
+      '  if (base::isTRUE(state$skip_request)) {',
       '    result <- state$result',
       '  } else {',
       paste0('  ', request),
@@ -280,7 +378,7 @@ render_operation <- function(operation, spec) {
       if (!length(hooks$pre_request)) {
         stop('post_state hook_state requires a pre-request hook')
       }
-      lines <- c(lines, '  state["result"] <- list(result)')
+      lines <- c(lines, '  state["result"] <- base::list(result)')
     }
     lines <- c(
       lines,
@@ -292,7 +390,7 @@ render_operation <- function(operation, spec) {
         if (identical(spec$post_state, 'hook_state')) {
           ', "post_response", state)'
         } else {
-          ', "post_response", list(result = result, params = params))'
+          ', "post_response", base::list(result = result, params = params))'
         }
       )
     )
@@ -453,8 +551,45 @@ generate_client <- function(
       configured <- configure_operation(op, service)
       op <- configured$operation
       operation_spec <- configured$spec
+      op$batch <- if (is.null(op$body)) {
+        list()
+      } else {
+        Filter(Negate(is.null), operation_spec$batch %or% list())
+      }
+      if (!is.null(op$batch$max_items) && !identical(op$body$type, 'array')) {
+        if (!is.null(service$operations[[op$key]]$batch$max_items)) {
+          stop('max_items requires a top-level array request body: ', op$id)
+        }
+        op$batch$max_items <- NULL
+      }
+      if (
+        length(op$batch) &&
+          (is.null(op$body) ||
+            !op$body_media %in%
+              c('application/json', 'application/octet-stream'))
+      ) {
+        stop('Batch limits require a supported request body: ', op$id)
+      }
       if (!is.null(authentication) && is.null(operation_spec$request)) {
-        op$auth <- operation_authentication(op, authentication)
+        credential_map <- service$authentication
+        envvars <- if (is.null(credential_map)) {
+          authentication
+        } else {
+          setNames(
+            authentication[unlist(credential_map)],
+            names(credential_map)
+          )
+        }
+        op$auth <- operation_authentication(op, envvars)
+        if (!is.null(credential_map)) {
+          op$auth <- lapply(op$auth, function(requirement) {
+            lapply(requirement, function(scheme) {
+              scheme$scheme <- credential_map[[scheme$scheme]] %or%
+                scheme$scheme
+              scheme
+            })
+          })
+        }
       }
       if (!is.null(service$prepare)) {
         prepared <- service$prepare(op)
@@ -566,7 +701,16 @@ generate_client <- function(
           !'...' %in% names(helper_formals) &&
             length(setdiff(sent_arguments, names(helper_formals)))
         ) {
-          stop('Unknown helper arguments for ', op$id)
+          stop(
+            'Unknown helper arguments for ',
+            op$id,
+            ': ',
+            paste(
+              setdiff(sent_arguments, names(helper_formals)),
+              collapse = ', '
+            ),
+            '. Review and update the client-owned helper or use a complete request mapping.'
+          )
         }
       }
       if (op$name %in% names(service$contracts)) {
@@ -957,7 +1101,31 @@ print.specmill_generation <- function(x, ...) {
   }
   if (length(x$diagnostics)) {
     cat('\nDiagnostics\n')
-    print(x$diagnostics)
+    for (diagnostic in x$diagnostics) {
+      cat(
+        '  [',
+        diagnostic$classification %or% 'review_required',
+        '] ',
+        diagnostic$service,
+        ': ',
+        diagnostic$key,
+        ' - ',
+        diagnostic$reason,
+        '\n',
+        sep = ''
+      )
+      if (!is.null(diagnostic$source_location)) {
+        cat(
+          '    ',
+          diagnostic$source,
+          ' ',
+          diagnostic$source_location,
+          '\n',
+          sep = ''
+        )
+        cat('    ', diagnostic$guidance, '\n', sep = '')
+      }
+    }
   }
   protected <- Filter(
     function(file) file$action %in% c('protected', 'retained'),

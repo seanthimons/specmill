@@ -254,14 +254,31 @@ load_project <- function(
     )
     if (!all(file.exists(inputs))) stop('Missing callback input file')
   }
-  services <- lapply(service_files, function(file) {
-    path <- project_path(root, file)
-    service <- read_config_yaml(path)
-    inputs <<- c(inputs, path)
+  entries <- do.call(
+    c,
+    lapply(service_files, function(file) {
+      path <- project_path(root, file)
+      inputs <<- c(inputs, path)
+      expand_api_configuration(read_config_yaml(path), file, callbacks)
+    })
+  )
+  api_files <- unique(vapply(
+    Filter(function(x) !is.null(x$api), entries),
+    function(x) paste(x$api, x$file),
+    character(1)
+  ))
+  api_names <- sub(' .*', '', api_files)
+  if (anyDuplicated(api_names)) {
+    stop('Duplicate API name')
+  }
+  services <- lapply(entries, function(entry) {
+    file <- entry$file
+    service <- entry$service
     config_fields(
       service,
       c(
         'id',
+        'authentication',
         'schemas',
         'selection',
         'helper',
@@ -281,6 +298,19 @@ load_project <- function(
       file
     )
     id <- config_string(service$id, paste(file, 'id'))
+    if (!is.null(service$authentication)) {
+      config_fields(
+        service$authentication,
+        names(service$authentication),
+        'service authentication'
+      )
+      for (credential in service$authentication) {
+        config_string(credential, 'credential reference')
+        if (!credential %in% names(project$authentication)) {
+          stop('Unknown project credential: ', credential)
+        }
+      }
+    }
     config_fields(
       service$schemas,
       c('files', 'patterns', 'exclude'),
@@ -322,7 +352,17 @@ load_project <- function(
     if (!length(schema_files)) {
       stop(id, ': no schemas selected')
     }
-    inputs <<- c(inputs, schema_files)
+    reference_inputs <- unlist(
+      lapply(schema_files, function(path) {
+        names(attr(
+          read_schema_document(path),
+          'specmill_reference_dependencies'
+        )) %or%
+          character()
+      }),
+      use.names = FALSE
+    )
+    inputs <<- c(inputs, schema_files, reference_inputs)
     selection <- service$selection %or% list()
     config_fields(
       selection,
@@ -450,6 +490,7 @@ load_project <- function(
     }
     list(
       id = id,
+      authentication = service$authentication,
       files = schema_files,
       helper = helper,
       hooks = hooks,
@@ -457,13 +498,26 @@ load_project <- function(
       hook_callback = hook_callback,
       policy = list(
         service = id,
-        methods = intersect(project_methods, methods),
-        exclude = union(project_exclude, exclude),
+        methods = intersect(
+          intersect(project_methods, entry$methods %or% project_methods),
+          methods
+        ),
+        exclude = union(union(project_exclude, entry$exclude), exclude),
         project_methods = project_methods,
         project_exclude = project_exclude,
+        api = entry$api,
+        api_methods = entry$methods,
+        api_exclude = entry$exclude,
         include = include,
         names = names,
-        override_keys = names(overrides)
+        override_keys = names(overrides),
+        body_media = defaults$body_media,
+        body_media_overrides = lapply(overrides, function(x) x$body_media),
+        query_array_style = defaults$query_array_style,
+        query_array_style_overrides = lapply(
+          overrides,
+          function(x) x$query_array_style
+        )
       ),
       policy_version = service$policy_version %or% '1',
       package = package,

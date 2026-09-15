@@ -9,10 +9,22 @@ initialize_client <- function(
   naming = c('operation_id', 'tag_prefix'),
   group_by = c('tag', 'none')
 ) {
+  if (is.data.frame(schema)) {
+    return(initialize_apis(
+      root,
+      schema,
+      package,
+      title,
+      author,
+      license,
+      match.arg(naming),
+      match.arg(group_by)
+    ))
+  }
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
   naming <- match.arg(naming)
   group_by <- match.arg(group_by)
-  document <- jsonlite::read_json(schema)
+  document <- read_schema_document(schema)
   if (is.null(base_url) && length(document$servers)) {
     base_url <- document$servers[[1L]]$url
   }
@@ -56,7 +68,7 @@ initialize_client <- function(
       Description = paste(title, 'Client generated from a local API schema.'),
       License = license,
       Encoding = 'UTF-8',
-      Imports = 'httr2, jsonlite',
+      Imports = 'httr2, jsonlite, curl',
       Suggests = 'testthat'
     )
   }
@@ -72,9 +84,15 @@ initialize_client <- function(
       fixed = TRUE
     )[[1L]]
   ))
+  needs_helper <- !file.exists(file.path(root, 'R', 'api_request.R'))
   if (existing && !all(c('httr2', 'jsonlite') %in% imports)) {
     stop(
       'Existing DESCRIPTION must declare httr2 and jsonlite before adding the default transport'
+    )
+  }
+  if (existing && needs_helper && !'curl' %in% imports) {
+    stop(
+      'Existing DESCRIPTION must declare curl before adding the default transport'
     )
   }
   helper <- readLines(

@@ -1,0 +1,4 @@
+"workflow","method","path","query","content_type","body","generated_contract_passed","http_result_matches_recorded_response"
+"ct_chemical_detail_search","GET","/ctx-api/chemical/detail/search/by-dtxsid/DTXSID7020182","?projection=chemicaldetailall","","",TRUE,TRUE
+"ct_chemical_detail_search_bulk","POST","/ctx-api/chemical/detail/search/by-dtxsid/","?projection=chemicaldetailall","application/json","[""DTXSID7020182""]",TRUE,TRUE
+"ct_hazard_toxval_search","GET","/ctx-api/hazard/toxval/search/by-dtxsid/DTXSID7020182","","","",TRUE,TRUE

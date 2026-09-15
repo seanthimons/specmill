@@ -52,15 +52,20 @@ mapped_schema_acceptance <- function() {
   for (schema in list(
     list(type = 'object', additionalProperties = TRUE),
     stats::setNames(list(), character()),
-    list(oneOf = list(list(type = 'string'), list(type = 'number')))
+    list(oneOf = list(list(type = 'string'), list(type = 'number'))),
+    list(
+      oneOf = list(list(type = 'string', not = list(enum = list('blocked'))))
+    )
   )) {
     put(schema)
     native <- specmill::read_operations(file)
+    unsupported <- !is.null(schema$oneOf[[1L]]$not)
     stopifnot(
-      length(native$operations) == 0L,
-      length(native$unsupported_operations) == 1L,
-      length(native$diagnostics) == 1L,
-      native$inventory[[1L]]$status == 'unsupported'
+      length(native$operations) == as.integer(!unsupported),
+      length(native$unsupported_operations) == as.integer(unsupported),
+      length(native$diagnostics) == as.integer(unsupported),
+      native$inventory[[1L]]$status ==
+        if (unsupported) 'unsupported' else 'selected'
     )
     result <- specmill::generate_client(
       root,
@@ -69,11 +74,21 @@ mapped_schema_acceptance <- function() {
     )
     stopifnot(
       length(result$operations) == 1L,
-      !length(result$diagnostics),
-      length(result$mapping_diagnostics) == 1L,
-      result$inventory[[1L]]$status == 'client-mapped',
-      nzchar(result$inventory[[1L]]$reason)
+      !length(result$diagnostics)
     )
+    if (unsupported) {
+      stopifnot(
+        length(result$mapping_diagnostics) == 1L,
+        result$mapping_diagnostics[[1L]]$classification == 'capability_gap',
+        nzchar(result$mapping_diagnostics[[1L]]$source_location),
+        result$inventory[[1L]]$classification == 'capability_gap',
+        result$inventory[[1L]]$status == 'client-mapped',
+        nzchar(result$inventory[[1L]]$reason)
+      )
+    }
+    if (!unsupported) {
+      stopifnot(!length(result$mapping_diagnostics))
+    }
     env <- new.env(parent = baseenv())
     sys.source(file.path(root, 'R/helper.R'), env)
     sys.source(file.path(root, 'R/submit_records.R'), env)

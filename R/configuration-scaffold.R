@@ -5,14 +5,38 @@ configuration_words <- function(x) {
   gsub('^_+|_+$', '', x)
 }
 
-configuration_proposal <- function(schema, package, naming, group_by) {
+configuration_name_diagnostics <- function(operations) {
+  public_names <- vapply(operations, `[[`, character(1), 'name')
+  collisions <- duplicated(tolower(public_names)) |
+    duplicated(tolower(public_names), fromLast = TRUE) |
+    public_names %in% c('api_request', 'run_hook')
+  lapply(which(collisions), function(i) {
+    diagnostic <- list(
+      key = operations[[i]]$key,
+      code = 'name_collision',
+      message = paste('Choose a distinct public name for:', public_names[[i]])
+    )
+    if (!is.null(operations[[i]]$api)) {
+      diagnostic$api <- operations[[i]]$api
+    }
+    diagnostic
+  })
+}
+
+configuration_proposal <- function(
+  schema,
+  package,
+  naming,
+  group_by,
+  reviewed_names = list()
+) {
   naming <- match.arg(naming, c('operation_id', 'tag_prefix'))
   group_by <- match.arg(group_by, c('tag', 'none'))
   config_string(package, 'package')
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {
     stop('Invalid R package name')
   }
-  document <- jsonlite::read_json(schema)
+  document <- read_schema_document(schema)
   version <- document$openapi %or% document$swagger
   if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
     stop('Unsupported schema version')
@@ -30,13 +54,38 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     )
   }
   for (path in sort(names(document$paths), method = 'radix')) {
-    item <- document$paths[[path]]
+    item <- tryCatch(
+      local_ref(
+        document$paths[[path]],
+        document,
+        source_location = schema_location('#/paths', path)
+      ),
+      error = identity
+    )
+    if (inherits(item, 'error')) {
+      report(paste('PATH', path), 'unsupported', conditionMessage(item))
+      next
+    }
     for (method in intersect(
       c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'),
       names(item)
     )) {
-      operation <- item[[method]]
       key <- paste(toupper(method), path)
+      operation <- tryCatch(
+        local_ref(
+          item[[method]],
+          document,
+          source_location = schema_location(
+            schema_location('#/paths', path),
+            method
+          )
+        ),
+        error = identity
+      )
+      if (inherits(operation, 'error')) {
+        report(key, 'unsupported', conditionMessage(operation))
+        next
+      }
       tags <- operation$tags
       if (
         !is.null(tags) &&
@@ -47,14 +96,14 @@ configuration_proposal <- function(schema, package, naming, group_by) {
               function(x) {
                 is.character(x) &&
                   length(x) == 1L &&
-                  !is.na(x) &&
-                  nzchar(trimws(x))
+                  !is.na(x)
               },
               logical(1)
             )))
       ) {
         stop('Invalid tags for ', key)
       }
+      tags <- Filter(function(tag) nzchar(trimws(tag)), tags)
       tag <- if (length(tags)) tags[[1L]] else 'default'
       if (!length(tags)) {
         report(key, 'missing_tag', 'Assigned to default')
@@ -110,6 +159,14 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   groups <- vapply(records, `[[`, character(1), 'group')
   tags <- vapply(records, `[[`, character(1), 'tag')
   public_names <- vapply(records, `[[`, character(1), 'name')
+  for (key in intersect(names(reviewed_names), keys)) {
+    name <- config_string(reviewed_names[[key]], paste(key, 'reviewed name'))
+    if (!identical(make.names(name), name) || name == '...') {
+      stop('Invalid reviewed operation name: ', key)
+    }
+    public_names[[match(key, keys)]] <- name
+    records[[match(key, keys)]]$name <- name
+  }
   members <- split(seq_along(groups), groups)
   for (group in names(members)) {
     if (group_by == 'tag' && length(unique(tags[members[[group]]])) > 1L) {
@@ -120,16 +177,7 @@ configuration_proposal <- function(schema, package, naming, group_by) {
       )
     }
   }
-  collisions <- duplicated(tolower(public_names)) |
-    duplicated(tolower(public_names), fromLast = TRUE) |
-    public_names %in% c('api_request', 'run_hook')
-  for (i in which(collisions)) {
-    report(
-      keys[[i]],
-      'name_collision',
-      paste('Review public name:', public_names[[i]])
-    )
-  }
+  diagnostics <- c(diagnostics, configuration_name_diagnostics(records))
   # Diagnostic parsing must not fail early on the very name collisions we report.
   parsed <- read_operations(
     schema,
@@ -137,6 +185,9 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   )
   for (diagnostic in parsed$diagnostics) {
     report(diagnostic$key, 'unsupported', diagnostic$reason)
+    fields <- c('classification', 'source_location', 'guidance')
+    diagnostics[[length(diagnostics)]][fields] <- diagnostic[fields]
+    diagnostics[[length(diagnostics)]]$diagnostic_code <- diagnostic$code
   }
   encode <- function(x, comments = list()) {
     text <- sub('\n$', '', yaml::as.yaml(x))
@@ -151,7 +202,33 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     text
   }
   services <- sort(unique(groups), method = 'radix')
-  files <- list('schema/openapi.json' = file_text(schema))
+  extension <- tolower(tools::file_ext(schema))
+  if (!extension %in% c('yaml', 'yml')) {
+    extension <- 'json'
+  }
+  schema_file <- paste0('schema/openapi.', extension)
+  schema_text <- if (
+    !is.null(attr(document, 'specmill_reference_dependencies'))
+  ) {
+    plain <- function(x) {
+      if (!is.list(x)) {
+        return(x)
+      }
+      output <- lapply(unclass(x), plain)
+      names(output) <- names(x)
+      output
+    }
+    as.character(jsonlite::toJSON(
+      plain(document),
+      auto_unbox = TRUE,
+      pretty = TRUE,
+      digits = NA,
+      null = 'null'
+    ))
+  } else {
+    file_text(schema)
+  }
+  files <- setNames(list(schema_text), schema_file)
   project <- list(
     config_version = 1L,
     package = package,
@@ -171,7 +248,10 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     ),
     helper = 'api_request',
     documentation = TRUE,
-    defaults = list(implementation = 'generated')
+    defaults = list(
+      implementation = 'generated',
+      batch = list(max_items = NULL, max_bytes = NULL)
+    )
   )
   if (
     length(
@@ -217,7 +297,7 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     service <- list(
       id = if (group == 'default' && length(services) == 1L) package else group,
       schemas = list(
-        files = list('schema/openapi.json'),
+        files = list(schema_file),
         patterns = list(),
         exclude = list()
       ),
@@ -251,6 +331,18 @@ configuration_proposal <- function(schema, package, naming, group_by) {
       )
     }
     service$operations <- setNames(list(), character())
+    for (op in parsed$operations) {
+      if (
+        op$key %in%
+          keys[selected] &&
+          identical(op$body$type, 'array') &&
+          !is.null(op$body$maxItems)
+      ) {
+        service$operations[[op$key]] <- list(
+          batch = list(max_items = op$body$maxItems)
+        )
+      }
+    }
     files[[paste0('apis/', group, '.yml')]] <- paste(
       encode(
         service,
@@ -309,6 +401,44 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   list(files = files, operations = records, diagnostics = diagnostics)
 }
 
+reviewed_configuration_names <- function(root, proposal) {
+  reviewed <- list()
+  add <- function(api, service) {
+    mappings <- service$names %or% list()
+    for (key in names(service$operations %or% list())) {
+      name <- service$operations[[key]]$name
+      if (!is.null(name)) {
+        mappings[[key]] <- name
+      }
+    }
+    for (key in names(mappings)) {
+      id <- if (nzchar(api)) paste(api, key) else key
+      if (
+        !is.null(reviewed[[id]]) &&
+          !identical(reviewed[[id]], mappings[[key]])
+      ) {
+        stop('Conflicting reviewed operation name: ', id)
+      }
+      reviewed[[id]] <<- mappings[[key]]
+    }
+  }
+  for (file in grep('^apis/', names(proposal$files), value = TRUE)) {
+    path <- file.path(root, file)
+    if (!file.exists(path)) {
+      next
+    }
+    config <- read_config_yaml(path)
+    if ('groups' %in% names(config)) {
+      for (group in config$groups) {
+        add(config$api, group)
+      }
+    } else {
+      add('', config)
+    }
+  }
+  reviewed
+}
+
 configure_client <- function(
   root,
   schema,
@@ -328,7 +458,19 @@ configure_client <- function(
     }
     package <- existing
   }
-  proposal <- configuration_proposal(schema, package, naming, group_by)
+  proposal <- if (is.data.frame(schema)) {
+    multi_api_proposal(root, schema, package, naming, group_by)
+  } else {
+    configuration_proposal(schema, package, naming, group_by)
+  }
+  reviewed <- reviewed_configuration_names(root, proposal)
+  if (length(reviewed)) {
+    proposal <- if (is.data.frame(schema)) {
+      multi_api_proposal(root, schema, package, naming, group_by, reviewed)
+    } else {
+      configuration_proposal(schema, package, naming, group_by, reviewed)
+    }
+  }
   proposal$changes <- lapply(names(proposal$files), function(file) {
     path <- if (dir.exists(root)) {
       project_path(root, file)
