@@ -1,0 +1,24 @@
+{
+  "swagger": "2.0",
+  "info": {"title": "Swagger consumes audit", "version": "1"},
+  "host": "root.example.invalid",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "paths": {
+    "/upload": {
+      "post": {
+        "operationId": "upload_binary",
+        "consumes": ["application/octet-stream"],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {"type": "string", "format": "binary"}
+          }
+        ],
+        "responses": {"204": {"description": "Uploaded"}}
+      }
+    }
+  }
+}

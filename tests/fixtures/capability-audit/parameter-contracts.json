@@ -1,0 +1,58 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Parameter contract audit", "version": "1"},
+  "paths": {
+    "/missing/{id}": {
+      "get": {
+        "operationId": "missing_path_parameter",
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/mismatched/{id}": {
+      "get": {
+        "operationId": "mismatched_path_parameter",
+        "parameters": [
+          {
+            "name": "other",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/reserved-header": {
+      "get": {
+        "operationId": "reserved_header_parameter",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/duplicate": {
+      "get": {
+        "operationId": "duplicate_parameter",
+        "parameters": [
+          {"name": "value", "in": "query", "schema": {"type": "string"}},
+          {"name": "value", "in": "query", "schema": {"type": "integer"}}
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/empty-value": {
+      "get": {
+        "operationId": "empty_value_parameter",
+        "parameters": [
+          {"name": "value", "in": "query", "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}
