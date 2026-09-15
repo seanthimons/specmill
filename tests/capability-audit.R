@@ -21,29 +21,52 @@ capability_audit_acceptance <- function() {
     do.call(runtime[[op$name]], list(...))
   }
 
-  # Known gap #20: invalid parameter contracts are currently reported ready.
+  # GH #20: invalid contracts are diagnosed before wrapper generation.
   parameters <- specmill::read_operations(fixture('parameter-contracts.json'))
-  stopifnot(!length(parameters$diagnostics), length(parameters$operations) == 5L)
-  missing <- invoke(operation(parameters, 'missing_path_parameter'))
-  mismatch <- invoke(
-    operation(parameters, 'mismatched_path_parameter'),
-    'discarded'
+  diagnostics <- setNames(
+    parameters$diagnostics,
+    vapply(parameters$diagnostics, `[[`, character(1), 'key')
   )
-  reserved <- invoke(
-    operation(parameters, 'reserved_header_parameter'),
-    'application/json'
+  rejected_empty <- lapply(
+    c('empty_value_parameter', 'explicit_empty_value_parameter'),
+    function(name) {
+      tryCatch(invoke(operation(parameters, name), ''), error = identity)
+    }
   )
-  duplicate <- operation(parameters, 'duplicate_parameter')
-  empty <- invoke(operation(parameters, 'empty_value_parameter'), '')
+  reserved <- invoke(operation(parameters, 'reserved_header_parameter'))
+  allowed_empty <- invoke(
+    operation(parameters, 'allowed_empty_value_parameter'),
+    ''
+  )
+  override <- operation(parameters, 'override_path_parameter')
   stopifnot(
-    identical(missing$path, '/missing/{id}'),
-    !length(missing$path_params),
-    identical(mismatch$path, '/mismatched/{id}'),
-    identical(mismatch$path_params, list(other = 'discarded')),
-    identical(reserved$headers, list(Accept = 'application/json')),
-    length(duplicate$parameters) == 1L,
-    identical(duplicate$parameters[[1L]]$schema$type, 'integer'),
-    identical(empty$query, list(value = ''))
+    length(parameters$operations) == 5L,
+    length(parameters$diagnostics) == 3L,
+    diagnostics[['GET /missing/{id}']]$code == 'missing_path_parameter',
+    diagnostics[['GET /missing/{id}']]$source_location ==
+      '#/paths/~1missing~1{id}',
+    diagnostics[['GET /mismatched/{id}']]$code ==
+      'unmatched_path_parameter',
+    diagnostics[['GET /mismatched/{id}']]$source_location ==
+      '#/paths/~1mismatched~1{id}/get/parameters/0',
+    diagnostics[['GET /duplicate']]$code == 'duplicate_parameter',
+    diagnostics[['GET /duplicate']]$source_location ==
+      '#/paths/~1duplicate/get/parameters/1',
+    all(vapply(rejected_empty, inherits, logical(1), 'error')),
+    all(vapply(
+      rejected_empty,
+      function(e) grepl('Empty query parameter', conditionMessage(e)),
+      logical(1)
+    )),
+    is.null(reserved$headers),
+    identical(allowed_empty$query, list(value = '')),
+    length(override$parameters) == 1L,
+    identical(override$parameters[[1L]]$schema$type, 'integer'),
+    sum(vapply(
+      parameters$inventory,
+      function(x) x$status == 'unsupported',
+      logical(1)
+    )) == 3L
   )
 
   # Known gap #22: readOnly required fields are enforced on request bodies.
@@ -113,7 +136,9 @@ capability_audit_acceptance <- function() {
     identical(sent$body, list(term = 'audit'))
   )
 
-  cat('Capability audit: five reproducible silent-risk fixtures passed.\n')
+  cat(
+    'Capability audit: parameter contracts and four silent-risk fixtures passed.\n'
+  )
 }
 
 if (sys.nframe() == 0L) {

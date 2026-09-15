@@ -30,6 +30,16 @@
             "name": "Accept",
             "in": "header",
             "schema": {"type": "string"}
+          },
+          {
+            "name": "content-type",
+            "in": "header",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "AUTHORIZATION",
+            "in": "header",
+            "schema": {"type": "string"}
           }
         ],
         "responses": {"200": {"description": "OK"}}
@@ -50,6 +60,56 @@
         "operationId": "empty_value_parameter",
         "parameters": [
           {"name": "value", "in": "query", "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/explicit-empty-value": {
+      "get": {
+        "operationId": "explicit_empty_value_parameter",
+        "parameters": [
+          {
+            "name": "value",
+            "in": "query",
+            "allowEmptyValue": false,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/allowed-empty-value": {
+      "get": {
+        "operationId": "allowed_empty_value_parameter",
+        "parameters": [
+          {
+            "name": "value",
+            "in": "query",
+            "allowEmptyValue": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/override/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {"type": "string"}
+        }
+      ],
+      "get": {
+        "operationId": "override_path_parameter",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "integer"}
+          }
         ],
         "responses": {"200": {"description": "OK"}}
       }
