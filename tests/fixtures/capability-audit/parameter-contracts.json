@@ -1,0 +1,118 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Parameter contract audit", "version": "1"},
+  "paths": {
+    "/missing/{id}": {
+      "get": {
+        "operationId": "missing_path_parameter",
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/mismatched/{id}": {
+      "get": {
+        "operationId": "mismatched_path_parameter",
+        "parameters": [
+          {
+            "name": "other",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/reserved-header": {
+      "get": {
+        "operationId": "reserved_header_parameter",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "content-type",
+            "in": "header",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "AUTHORIZATION",
+            "in": "header",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/duplicate": {
+      "get": {
+        "operationId": "duplicate_parameter",
+        "parameters": [
+          {"name": "value", "in": "query", "schema": {"type": "string"}},
+          {"name": "value", "in": "query", "schema": {"type": "integer"}}
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/empty-value": {
+      "get": {
+        "operationId": "empty_value_parameter",
+        "parameters": [
+          {"name": "value", "in": "query", "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/explicit-empty-value": {
+      "get": {
+        "operationId": "explicit_empty_value_parameter",
+        "parameters": [
+          {
+            "name": "value",
+            "in": "query",
+            "allowEmptyValue": false,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/allowed-empty-value": {
+      "get": {
+        "operationId": "allowed_empty_value_parameter",
+        "parameters": [
+          {
+            "name": "value",
+            "in": "query",
+            "allowEmptyValue": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/override/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {"type": "string"}
+        }
+      ],
+      "get": {
+        "operationId": "override_path_parameter",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}

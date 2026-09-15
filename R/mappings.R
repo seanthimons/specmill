@@ -46,15 +46,51 @@ validate_settings <- function(
       'post_on_skip',
       'post_state',
       'parameter_order',
-      'docs'
+      'docs',
+      'batch',
+      'body_media',
+      'query_array_style'
     ),
     label
   )
+  if (!is.null(settings$body_media)) {
+    config_string(settings$body_media, paste(label, 'body_media'))
+    if (
+      !settings$body_media %in%
+        c(
+          'application/json',
+          'application/octet-stream',
+          'application/x-www-form-urlencoded',
+          'multipart/form-data'
+        )
+    ) {
+      stop('Unsupported body_media')
+    }
+  }
+  if (!is.null(settings$query_array_style)) {
+    query_array_style(settings$query_array_style, paste(label, 'query_array_style'))
+  }
   for (name in intersect(
     c('name', 'helper', 'file', 'implementation', 'post_state'),
     names(settings)
   )) {
     config_string(settings[[name]], paste(label, name))
+  }
+  if ('batch' %in% names(settings)) {
+    config_fields(settings$batch, c('max_items', 'max_bytes'), 'batch')
+    for (limit in settings$batch) {
+      if (
+        !is.null(limit) &&
+          (!is.numeric(limit) ||
+            length(limit) != 1L ||
+            is.na(limit) ||
+            !is.finite(limit) ||
+            limit < 1 ||
+            limit != floor(limit))
+      ) {
+        stop('Batch limits must be positive integers or null')
+      }
+    }
   }
   if (
     'implementation' %in%
@@ -359,7 +395,7 @@ request_binding <- function(
   }
   if ('array' %in% names(binding)) {
     return(paste0(
-      'list(',
+      'base::list(',
       paste(
         vapply(
           binding$array,
@@ -380,11 +416,11 @@ request_binding <- function(
     values <- binding[[field]]
     return(paste0(
       if (field == 'vector') {
-        'c('
+        'base::c('
       } else if (field == 'compact_object') {
-        'local({ .body <- Filter(Negate(is.null), list('
+        'base::local({ .body <- base::Filter(base::Negate(base::is.null), base::list('
       } else {
-        'list('
+        'base::list('
       },
       paste(
         vapply(
@@ -407,7 +443,7 @@ request_binding <- function(
         collapse = ', '
       ),
       if (field == 'compact_object') {
-        ')); if (length(.body)) .body else list() })'
+        ')); if (base::length(.body)) .body else base::list() })'
       } else {
         ')'
       }

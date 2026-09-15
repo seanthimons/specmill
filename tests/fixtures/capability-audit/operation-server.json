@@ -1,0 +1,19 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Operation server audit", "version": "1"},
+  "servers": [
+    {
+      "url": "https://{region}.root.example.invalid/v1",
+      "variables": {"region": {"default": "us"}}
+    }
+  ],
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "get_items",
+        "servers": [{"url": "https://operation.example.invalid/v2"}],
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}

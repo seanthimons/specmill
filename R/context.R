@@ -54,33 +54,111 @@ bind_tools <- function(group, envir) {
 `%or%` <- function(x, y) if (is.null(x)) y else x
 
 # Escape schema strings as R literals. No remote text is evaluated as code.
-r_literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = '\n')
+r_literal <- function(x) {
+  text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
+  # Data constructors must not resolve through generated functions named list/c.
+  # Language objects remain caller-owned expressions (development callbacks).
+  if (!is.language(x) && !is.function(x) && is.call(str2lang(text))) {
+    paste0('base::evalq(', text, ', envir = base::baseenv())')
+  } else {
+    text
+  }
+}
 
-local_ref <- function(node, document, seen = character()) {
+local_ref <- function(
+  node,
+  document,
+  seen = character(),
+  source_location = '#',
+  schema_context = FALSE
+) {
+  fail <- function(code, message, classification = 'schema_defect') {
+    schema_problem(code, classification, message, source_location)
+  }
   if (!is.list(node)) {
-    stop('Reference target must be an object')
+    fail('invalid_reference_target', 'Reference target must be an object')
+  }
+  reference_error <- node[['x-specmill-reference-error']]
+  if (!is.null(reference_error)) {
+    fail(
+      reference_error$code %or% 'external_reference',
+      reference_error$message %or% 'Unresolved reference',
+      'capability_gap'
+    )
   }
   ref <- node[['$ref']]
   if (is.null(ref)) {
     return(node)
   }
-  if (length(ref) != 1L || !startsWith(ref, '#/') || ref %in% seen) {
-    stop('Unsupported external or cyclic reference: ', ref, call. = FALSE)
+  if (!is.character(ref) || length(ref) != 1L || is.na(ref)) {
+    fail('invalid_reference', 'Reference must be a string')
+  }
+  if (!startsWith(ref, '#/')) {
+    fail(
+      if (startsWith(ref, '#')) 'local_reference' else 'external_reference',
+      paste(
+        if (startsWith(ref, '#')) {
+          'Unsupported local reference fragment:'
+        } else {
+          'Unsupported external reference:'
+        },
+        ref
+      ),
+      'capability_gap'
+    )
+  }
+  if (ref %in% seen) {
+    fail(
+      'recursive_reference',
+      paste('Unsupported local recursive reference:', ref),
+      'capability_gap'
+    )
+  }
+  if (length(seen) >= 100L) {
+    fail(
+      'reference_depth',
+      'Reference nesting exceeds 100 levels',
+      'capability_gap'
+    )
   }
   parts <- strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1]]
   if (any(grepl('~([^01]|$)', parts))) {
-    stop('Invalid reference escape: ', ref)
+    fail('invalid_reference', paste('Invalid reference escape:', ref))
   }
   parts <- gsub('~0', '~', gsub('~1', '/', parts, fixed = TRUE), fixed = TRUE)
   value <- document
   for (part in parts) {
     if (!is.list(value)) {
-      stop('Missing reference: ', ref, call. = FALSE)
+      fail('unresolved_reference', paste('Missing reference:', ref))
     }
     value <- value[[part]]
   }
   if (is.null(value)) {
-    stop('Missing reference: ', ref, call. = FALSE)
+    fail('unresolved_reference', paste('Missing reference:', ref))
   }
-  local_ref(value, document, c(seen, ref))
+  value <- local_ref(value, document, c(seen, ref), ref, schema_context)
+  siblings <- node[setdiff(names(node), '$ref')]
+  if (
+    schema_context &&
+      startsWith(document$openapi %or% '', '3.1') &&
+      length(siblings)
+  ) {
+    annotations <- names(siblings) %in%
+      c(
+        'title',
+        'description',
+        'summary',
+        'example',
+        'examples',
+        'default',
+        'deprecated'
+      ) |
+      startsWith(names(siblings), 'x-')
+    assertions <- siblings[!annotations]
+    if (length(assertions)) {
+      value <- list(allOf = list(value, assertions))
+    }
+    value[names(siblings)[annotations]] <- siblings[annotations]
+  }
+  value
 }
