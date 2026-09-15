@@ -5,7 +5,31 @@ configuration_words <- function(x) {
   gsub('^_+|_+$', '', x)
 }
 
-configuration_proposal <- function(schema, package, naming, group_by) {
+configuration_name_diagnostics <- function(operations) {
+  public_names <- vapply(operations, `[[`, character(1), 'name')
+  collisions <- duplicated(tolower(public_names)) |
+    duplicated(tolower(public_names), fromLast = TRUE) |
+    public_names %in% c('api_request', 'run_hook')
+  lapply(which(collisions), function(i) {
+    diagnostic <- list(
+      key = operations[[i]]$key,
+      code = 'name_collision',
+      message = paste('Choose a distinct public name for:', public_names[[i]])
+    )
+    if (!is.null(operations[[i]]$api)) {
+      diagnostic$api <- operations[[i]]$api
+    }
+    diagnostic
+  })
+}
+
+configuration_proposal <- function(
+  schema,
+  package,
+  naming,
+  group_by,
+  reviewed_names = list()
+) {
   naming <- match.arg(naming, c('operation_id', 'tag_prefix'))
   group_by <- match.arg(group_by, c('tag', 'none'))
   config_string(package, 'package')
@@ -135,6 +159,14 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   groups <- vapply(records, `[[`, character(1), 'group')
   tags <- vapply(records, `[[`, character(1), 'tag')
   public_names <- vapply(records, `[[`, character(1), 'name')
+  for (key in intersect(names(reviewed_names), keys)) {
+    name <- config_string(reviewed_names[[key]], paste(key, 'reviewed name'))
+    if (!identical(make.names(name), name) || name == '...') {
+      stop('Invalid reviewed operation name: ', key)
+    }
+    public_names[[match(key, keys)]] <- name
+    records[[match(key, keys)]]$name <- name
+  }
   members <- split(seq_along(groups), groups)
   for (group in names(members)) {
     if (group_by == 'tag' && length(unique(tags[members[[group]]])) > 1L) {
@@ -145,16 +177,7 @@ configuration_proposal <- function(schema, package, naming, group_by) {
       )
     }
   }
-  collisions <- duplicated(tolower(public_names)) |
-    duplicated(tolower(public_names), fromLast = TRUE) |
-    public_names %in% c('api_request', 'run_hook')
-  for (i in which(collisions)) {
-    report(
-      keys[[i]],
-      'name_collision',
-      paste('Review public name:', public_names[[i]])
-    )
-  }
+  diagnostics <- c(diagnostics, configuration_name_diagnostics(records))
   # Diagnostic parsing must not fail early on the very name collisions we report.
   parsed <- read_operations(
     schema,
@@ -378,6 +401,44 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   list(files = files, operations = records, diagnostics = diagnostics)
 }
 
+reviewed_configuration_names <- function(root, proposal) {
+  reviewed <- list()
+  add <- function(api, service) {
+    mappings <- service$names %or% list()
+    for (key in names(service$operations %or% list())) {
+      name <- service$operations[[key]]$name
+      if (!is.null(name)) {
+        mappings[[key]] <- name
+      }
+    }
+    for (key in names(mappings)) {
+      id <- if (nzchar(api)) paste(api, key) else key
+      if (
+        !is.null(reviewed[[id]]) &&
+          !identical(reviewed[[id]], mappings[[key]])
+      ) {
+        stop('Conflicting reviewed operation name: ', id)
+      }
+      reviewed[[id]] <<- mappings[[key]]
+    }
+  }
+  for (file in grep('^apis/', names(proposal$files), value = TRUE)) {
+    path <- file.path(root, file)
+    if (!file.exists(path)) {
+      next
+    }
+    config <- read_config_yaml(path)
+    if ('groups' %in% names(config)) {
+      for (group in config$groups) {
+        add(config$api, group)
+      }
+    } else {
+      add('', config)
+    }
+  }
+  reviewed
+}
+
 configure_client <- function(
   root,
   schema,
@@ -401,6 +462,14 @@ configure_client <- function(
     multi_api_proposal(root, schema, package, naming, group_by)
   } else {
     configuration_proposal(schema, package, naming, group_by)
+  }
+  reviewed <- reviewed_configuration_names(root, proposal)
+  if (length(reviewed)) {
+    proposal <- if (is.data.frame(schema)) {
+      multi_api_proposal(root, schema, package, naming, group_by, reviewed)
+    } else {
+      configuration_proposal(schema, package, naming, group_by, reviewed)
+    }
   }
   proposal$changes <- lapply(names(proposal$files), function(file) {
     path <- if (dir.exists(root)) {

@@ -1,4 +1,11 @@
-multi_api_proposal <- function(root, apis, package, naming, group_by) {
+multi_api_proposal <- function(
+  root,
+  apis,
+  package,
+  naming,
+  group_by,
+  reviewed_names = list()
+) {
   required <- c('schema', 'api', 'base_url', 'include')
   if (
     !all(required %in% names(apis)) ||
@@ -32,7 +39,20 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
   for (i in seq_len(nrow(apis))) {
     api <- apis$api[[i]]
     schema <- project_path(root, apis$schema[[i]])
-    proposal <- configuration_proposal(schema, package, naming, group_by)
+    prefix <- paste0(api, ' ')
+    reviewed_ids <- names(reviewed_names)
+    if (is.null(reviewed_ids)) {
+      reviewed_ids <- character()
+    }
+    api_reviewed <- reviewed_names[startsWith(reviewed_ids, prefix)]
+    names(api_reviewed) <- substring(names(api_reviewed), nchar(prefix) + 1L)
+    proposal <- configuration_proposal(
+      schema,
+      package,
+      naming,
+      group_by,
+      api_reviewed
+    )
     project <- yaml::yaml.load(proposal$files[['specmill.yml']])
     local_auth <- project$authentication
     credentials <- if (length(local_auth)) {
@@ -81,10 +101,14 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
       text <- sub('(?m)^id: [^\n]+', paste0('id: ', id), text, perl = TRUE)
       for (key in names(config$names)) {
         old <- config$names[[key]]
-        new <- paste(api, old, sep = '_')
-        text <- gsub(
-          paste0(': ', old, '\n'),
-          paste0(': ', new, '\n'),
+        reviewed <- api_reviewed[[key]]
+        new <- reviewed %or% paste(api, old, sep = '_')
+        if (!identical(make.names(new), new) || new == '...') {
+          stop('Invalid reviewed operation name: ', paste(api, key))
+        }
+        text <- sub(
+          paste0('  ', key, ': ', old, '\n'),
+          paste0('  ', key, ': ', new, '\n'),
           text,
           fixed = TRUE
         )
@@ -119,11 +143,14 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
     files[[destination]] <- api_configuration_text(api_config)
     services <- c(services, destination)
     for (op in proposal$operations) {
-      op$name <- paste(api, op$name, sep = '_')
+      op$name <- api_reviewed[[op$key]] %or% paste(api, op$name, sep = '_')
       op$api <- api
       operations[[length(operations) + 1L]] <- op
     }
-    for (diagnostic in proposal$diagnostics) {
+    for (diagnostic in Filter(
+      function(x) x$code != 'name_collision',
+      proposal$diagnostics
+    )) {
       diagnostic$api <- api
       diagnostics[[length(diagnostics) + 1L]] <- diagnostic
     }
@@ -144,6 +171,7 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
     sub('\n$', '', yaml::as.yaml(root_config)),
     sep = '\n'
   )
+  diagnostics <- c(diagnostics, configuration_name_diagnostics(operations))
   list(
     files = files,
     helpers = helpers,
