@@ -116,6 +116,30 @@ native_transport_acceptance <- function(extra_checks = NULL) {
     try(runtime$pet_upload_file(10, body = 'not bytes'), silent = TRUE),
     'try-error'
   ))
+  fixture_root <- if (dir.exists('tests/fixtures/capability-audit')) {
+    'tests/fixtures/capability-audit'
+  } else {
+    'fixtures/capability-audit'
+  }
+  swagger <- specmill::read_operations(file.path(
+    fixture_root,
+    'swagger-consumes.json'
+  ))
+  for (op in swagger$operations) {
+    eval(
+      parse(text = specmill::render_operation(op, list(helper = 'api_request'))),
+      runtime
+    )
+  }
+  swagger_bytes <- as.raw(c(0, 1, 127, 255))
+  swagger_binary <- runtime$upload_binary(swagger_bytes)
+  swagger_json <- runtime$create_item(list(name = 'Ada'))
+  stopifnot(
+    identical(swagger_binary$type, 'application/octet-stream'),
+    identical(unlist(swagger_binary$bytes), as.integer(swagger_bytes)),
+    identical(swagger_json$type, 'application/json'),
+    identical(rawToChar(as.raw(unlist(swagger_json$bytes))), '{"name":"Ada"}')
+  )
   stopifnot(inherits(
     try(runtime$pet_find_by_tags(c('a', NA_character_)), silent = TRUE),
     'try-error'

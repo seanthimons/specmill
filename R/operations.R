@@ -331,9 +331,9 @@ read_operations <- function(files, policy = list()) {
                   }),
                   names(fields)
                 )
-              } else if (body_present && !is.null(preferred_media)) {
+              } else if (body_present) {
                 body_media <- request_body_media(
-                  op$consumes %or% document$consumes %or% 'application/json',
+                  op$consumes %or% document$consumes %or% character(),
                   preferred_media,
                   body_location
                 )
