@@ -1,0 +1,28 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Read-only request audit", "version": "1"},
+  "paths": {
+    "/items": {
+      "post": {
+        "operationId": "create_item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id", "name"],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {"type": "string", "readOnly": true},
+                  "name": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {"201": {"description": "Created"}}
+      }
+    }
+  }
+}

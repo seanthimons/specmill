@@ -1,0 +1,24 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "OpenAPI 3.0 GET body audit", "version": "1"},
+  "paths": {
+    "/search": {
+      "get": {
+        "operationId": "search_with_body",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["term"],
+                "properties": {"term": {"type": "string"}}
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}
