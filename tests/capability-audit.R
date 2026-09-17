@@ -197,13 +197,71 @@ capability_audit_acceptance <- function() {
     )
   )
 
-  # Known gap #24: OAS 3.0 request bodies are emitted for GET operations.
-  get_body <- specmill::read_operations(fixture('oas30-get-body.json'))
-  stopifnot(!length(get_body$diagnostics))
-  sent <- invoke(operation(get_body, 'search_with_body'), list(term = 'audit'))
+  # GH #24: body semantics follow the OAS version and HTTP method.
+  body_file <- tempfile(fileext = '.json')
+  on.exit(unlink(body_file), add = TRUE)
+  body_document <- jsonlite::fromJSON(
+    fixture('oas30-get-body.json'),
+    simplifyVector = FALSE
+  )
+  template <- body_document$paths[['/search']]$get
+  body_document$paths[['/head']] <- list(head = template)
+  body_document$paths[['/head']]$head$operationId <- 'head_with_body'
+  body_document$paths[['/delete']] <- list(delete = template)
+  body_document$paths[['/delete']]$delete$operationId <- 'delete_with_body'
+  body_document$paths[['/create']] <- list(post = template)
+  body_document$paths[['/create']]$post$operationId <- 'create_with_body'
+  jsonlite::write_json(body_document, body_file, auto_unbox = TRUE)
+  body_30 <- specmill::read_operations(body_file)
+  sent <- invoke(operation(body_30, 'search_with_body'))
+  created <- invoke(
+    operation(body_30, 'create_with_body'),
+    list(term = 'audit')
+  )
+  body_document$paths[['/create']] <- NULL
+  body_document$openapi <- '3.1.1'
+  jsonlite::write_json(body_document, body_file, auto_unbox = TRUE)
+  body_31 <- specmill::read_operations(body_file)
+  risk <- NULL
+  body_31_reviewed <- withCallingHandlers(
+    specmill::read_operations(
+      body_file,
+      list(
+        body_media_overrides = list(
+          'GET /search' = 'application/json'
+        )
+      )
+    ),
+    warning = function(w) {
+      risk <<- conditionMessage(w)
+      invokeRestart('muffleWarning')
+    }
+  )
+  reviewed <- invoke(
+    operation(body_31_reviewed, 'search_with_body'),
+    list(term = 'audit')
+  )
   stopifnot(
     identical(sent$method, 'GET'),
-    identical(sent$body, list(term = 'audit'))
+    is.null(sent$body),
+    all(vapply(
+      Filter(
+        function(x) x$method %in% c('GET', 'HEAD', 'DELETE'),
+        body_30$operations
+      ),
+      function(x) is.null(x$body),
+      logical(1)
+    )),
+    identical(created$body, list(term = 'audit')),
+    length(body_31$diagnostics) == 3L,
+    all(vapply(
+      body_31$diagnostics,
+      function(x) identical(x$code, 'request_body_method'),
+      logical(1)
+    )),
+    length(body_31_reviewed$diagnostics) == 2L,
+    grepl('undefined interoperability semantics', risk, fixed = TRUE),
+    identical(reviewed$body, list(term = 'audit'))
   )
 
   cat(
