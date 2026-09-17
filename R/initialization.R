@@ -25,8 +25,8 @@ initialize_client <- function(
   naming <- match.arg(naming)
   group_by <- match.arg(group_by)
   document <- read_schema_document(schema)
-  if (is.null(base_url) && length(document$servers)) {
-    base_url <- document$servers[[1L]]$url
+  if (is.null(base_url)) {
+    base_url <- schema_server(document)
   }
   config_string(base_url, 'base_url')
   if (!grepl('^https?://[^/]+', base_url)) {
