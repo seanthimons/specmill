@@ -308,8 +308,13 @@ body_fixture_plain <- function(schema) {
     })))
   }
   if ('object' %in% type) {
-    keys <- union(names(schema$properties), unlist(schema$required)) %or%
-      character()
+    properties <- names(schema$properties)
+    properties <- properties[!vapply(
+      schema$properties,
+      function(property) isTRUE(property$readOnly),
+      logical(1)
+    )]
+    keys <- union(properties, unlist(schema$required)) %or% character()
     return(list(stats::setNames(
       lapply(keys, function(name) {
         body_fixture_value(
@@ -422,6 +427,13 @@ body_value <- function(value, schema) {
       }
       if (!all(unlist(schema$required) %in% keys)) {
         stop('Missing required body fields')
+      }
+      if (any(vapply(
+        schema$properties[intersect(keys, names(schema$properties))],
+        function(property) isTRUE(property$readOnly),
+        logical(1)
+      ))) {
+        stop('Read-only body fields are not allowed')
       }
       unknown <- setdiff(keys, names(schema$properties))
       if (length(unknown) && isFALSE(schema$additionalProperties)) {
