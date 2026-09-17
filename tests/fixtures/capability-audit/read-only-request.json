@@ -1,6 +1,40 @@
 {
   "openapi": "3.0.3",
   "info": {"title": "Read-only request audit", "version": "1"},
+  "components": {
+    "schemas": {
+      "Ownership": {
+        "type": "object",
+        "required": ["id", "secret"],
+        "properties": {
+          "id": {"type": "string", "readOnly": true},
+          "secret": {"type": "string", "writeOnly": true}
+        }
+      },
+      "NestedItem": {
+        "type": "object",
+        "required": ["audit", "name"],
+        "properties": {
+          "audit": {
+            "type": "object",
+            "required": ["createdAt", "label"],
+            "properties": {
+              "createdAt": {"type": "string", "readOnly": true},
+              "label": {"type": "string"}
+            }
+          },
+          "name": {"type": "string"}
+        }
+      },
+      "ComposedItem": {
+        "type": "object",
+        "allOf": [
+          {"$ref": "#/components/schemas/Ownership"},
+          {"$ref": "#/components/schemas/NestedItem"}
+        ]
+      }
+    }
+  },
   "paths": {
     "/items": {
       "post": {
@@ -22,6 +56,56 @@
           }
         },
         "responses": {"201": {"description": "Created"}}
+      }
+    },
+    "/nested": {
+      "post": {
+        "operationId": "create_nested_item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/NestedItem"}
+            }
+          }
+        },
+        "responses": {"201": {"description": "Created"}}
+      }
+    },
+    "/composed": {
+      "post": {
+        "operationId": "create_composed_item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/ComposedItem"}
+            }
+          }
+        },
+        "responses": {"201": {"description": "Created"}}
+      }
+    },
+    "/invalid": {
+      "post": {
+        "operationId": "invalid_direction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "readOnly": true,
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {"204": {"description": "No content"}}
       }
     }
   }
