@@ -178,11 +178,7 @@ source_layout_acceptance <- function() {
   )
   put(c(policy, 'names:', '  GET /items/{item_id}: get_item'))
   schema <- jsonlite::read_json(file.path(root, 'schema.json'))
-  schema$paths[['/items/{item_id}']]$get$requestBody <- list(
-    content = list(
-      'application/json' = list(schema = list(type = 'dict'))
-    )
-  )
+  schema$paths[['/items/{item_id}']]$get$parameters[[1L]]$schema$type <- 'dict'
   jsonlite::write_json(
     schema,
     file.path(root, 'schema.json'),
