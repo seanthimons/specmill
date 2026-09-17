@@ -40,6 +40,8 @@ reconciliation_acceptance <- function() {
       method = 'GET',
       body = NULL,
       body_required = FALSE,
+      servers = list(list(url = 'https://api.example.invalid')),
+      server_source = 'root',
       parameters = list(list(
         name = 'limit',
         location = 'query',
@@ -55,6 +57,15 @@ reconciliation_acceptance <- function() {
   )
   delta <- specmill::compare_operations(before, after)
   stopifnot(length(delta) == 1L, delta[[1L]]$key == 'second GET /items')
+  server_after <- before
+  server_after$operations[[1L]]$servers[[1L]]$url <-
+    'https://new.example.invalid'
+  server_delta <- specmill::compare_operations(before, server_after)
+  stopifnot(
+    length(server_delta) == 1L,
+    server_delta[[1L]]$status == 'review',
+    server_delta[[1L]]$reason == 'Server selection changed'
+  )
   op <- operation('sample')
   op$name <- 'request_helper'
   fails(

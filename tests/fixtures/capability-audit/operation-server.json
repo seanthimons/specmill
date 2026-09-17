@@ -8,10 +8,21 @@
     }
   ],
   "paths": {
+    "/root": {
+      "get": {
+        "operationId": "get_root_items",
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
     "/items": {
+      "servers": [{"url": "https://path.example.invalid/v2"}],
       "get": {
         "operationId": "get_items",
-        "servers": [{"url": "https://operation.example.invalid/v2"}],
+        "servers": [{"url": "https://operation.example.invalid/v3"}],
+        "responses": {"200": {"description": "OK"}}
+      },
+      "post": {
+        "operationId": "create_item",
         "responses": {"200": {"description": "OK"}}
       }
     }

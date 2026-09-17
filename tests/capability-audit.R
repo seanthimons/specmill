@@ -162,11 +162,17 @@ capability_audit_acceptance <- function() {
     identical(created$body, list(name = 'Ada'))
   )
 
-  # Known gap #11: operation servers do not reach wrappers or the fixed helper.
+  # GH #11: server precedence is retained and unsupported selection is explicit.
   servers <- specmill::read_operations(fixture('operation-server.json'))
-  stopifnot(!length(servers$diagnostics))
-  get_items <- operation(servers, 'get_items')
-  sent <- invoke(get_items)
+  get_root_items <- operation(servers, 'get_root_items')
+  unsupported_servers <- setNames(
+    servers$unsupported_operations,
+    vapply(servers$unsupported_operations, `[[`, character(1), 'name')
+  )
+  server_diagnostics <- setNames(
+    servers$diagnostics,
+    vapply(servers$diagnostics, `[[`, character(1), 'key')
+  )
   client <- tempfile('capability-server-')
   on.exit(unlink(client, recursive = TRUE), add = TRUE)
   specmill::initialize_client(
@@ -181,17 +187,56 @@ capability_audit_acceptance <- function() {
     ),
     license = 'MIT + file LICENSE'
   )
-  helper <- paste(readLines(file.path(client, 'R/api_request.R')), collapse = '\n')
+  helper <- paste(
+    readLines(file.path(client, 'R/api_request.R')),
+    collapse = '\n'
+  )
+  multiple_server_file <- tempfile(fileext = '.json')
+  on.exit(unlink(multiple_server_file), add = TRUE)
+  multiple_server_document <- jsonlite::read_json(
+    fixture('operation-server.json')
+  )
+  multiple_server_document$servers[[2L]] <- list(
+    url = 'https://backup.example.invalid/v1'
+  )
+  multiple_server_document$paths[['/items']] <- NULL
+  jsonlite::write_json(
+    multiple_server_document,
+    multiple_server_file,
+    auto_unbox = TRUE
+  )
+  multiple_servers <- specmill::read_operations(multiple_server_file)
   stopifnot(
     identical(
-      get_items$source_operation$servers[[1L]]$url,
-      'https://operation.example.invalid/v2'
+      get_root_items$servers[[1L]]$url,
+      'https://{region}.root.example.invalid/v1'
     ),
-    is.null(get_items$servers),
-    is.null(sent$server),
-    is.null(sent$base_url),
+    identical(get_root_items$server_source, 'root'),
+    identical(
+      unsupported_servers$get_items$servers[[1L]]$url,
+      'https://operation.example.invalid/v3'
+    ),
+    identical(unsupported_servers$get_items$server_source, 'operation'),
+    identical(
+      unsupported_servers$create_item$servers[[1L]]$url,
+      'https://path.example.invalid/v2'
+    ),
+    identical(unsupported_servers$create_item$server_source, 'path'),
+    length(server_diagnostics) == 2L,
+    all(vapply(
+      server_diagnostics,
+      function(x) identical(x$code, 'server_selection'),
+      logical(1)
+    )),
+    server_diagnostics[['GET /items']]$source_location ==
+      '#/paths/~1items/get/servers',
+    server_diagnostics[['POST /items']]$source_location ==
+      '#/paths/~1items/servers',
+    length(multiple_servers$diagnostics) == 1L,
+    multiple_servers$diagnostics[[1L]]$code == 'server_selection',
+    multiple_servers$diagnostics[[1L]]$source_location == '#/servers',
     grepl(
-      'https://{region}.root.example.invalid/v1',
+      'https://us.root.example.invalid/v1',
       helper,
       fixed = TRUE
     )

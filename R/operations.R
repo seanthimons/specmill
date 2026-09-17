@@ -174,6 +174,47 @@ read_operations <- function(files, policy = list()) {
                   )
               }
             }
+            server_source <- if ('servers' %in% names(op)) {
+              'operation'
+            } else if ('servers' %in% names(item)) {
+              'path'
+            } else {
+              'root'
+            }
+            servers <- if (identical(server_source, 'operation')) {
+              op$servers
+            } else if (identical(server_source, 'path')) {
+              item$servers
+            } else {
+              document$servers
+            }
+            if (!identical(version, '2.0') && server_source != 'root') {
+              server_location <- if (identical(server_source, 'operation')) {
+                schema_location(operation_location, 'servers')
+              } else {
+                schema_location(schema_location('#/paths', path), 'servers')
+              }
+              unsupported(
+                paste0(
+                  tools::toTitleCase(server_source),
+                  '-level server selection requires a reviewed base URL'
+                ),
+                list(
+                  classification = 'capability_gap',
+                  code = 'server_selection',
+                  source_location = server_location
+                )
+              )
+            } else if (!identical(version, '2.0') && length(servers) > 1L) {
+              unsupported(
+                'Multiple root servers require a reviewed base URL',
+                list(
+                  classification = 'capability_gap',
+                  code = 'server_selection',
+                  source_location = '#/servers'
+                )
+              )
+            }
             raw_params <- c(item$parameters, op$parameters)
             parameter_locations <- c(
               vapply(
@@ -587,6 +628,8 @@ read_operations <- function(files, policy = list()) {
               body_required = body_required,
               body_media = body_media,
               body_encoding = body_encoding,
+              servers = servers,
+              server_source = server_source,
               security = if ('security' %in% names(op)) {
                 op$security
               } else {
@@ -793,6 +836,12 @@ compare_operations <- function(old, new) {
         !identical(a$security_schemes, b$security_schemes)
     ) {
       add(key, 'review', 'Authentication requirements changed')
+    }
+    if (
+      !identical(a$servers, b$servers) ||
+        !identical(a$server_source, b$server_source)
+    ) {
+      add(key, 'review', 'Server selection changed')
     }
   }
   out
