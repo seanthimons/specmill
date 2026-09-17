@@ -121,6 +121,45 @@ native_transport_acceptance <- function(extra_checks = NULL) {
   } else {
     'fixtures/capability-audit'
   }
+  body_document <- jsonlite::read_json(file.path(
+    fixture_root,
+    'oas30-get-body.json'
+  ))
+  jsonlite::write_json(body_document, schema, auto_unbox = TRUE)
+  body_30 <- specmill::read_operations(schema)
+  eval(
+    parse(
+      text = specmill::render_operation(
+        body_30$operations$search_with_body,
+        list(helper = 'api_request')
+      )
+    ),
+    runtime
+  )
+  body_30_wire <- runtime$search_with_body()
+  body_document$openapi <- '3.1.1'
+  jsonlite::write_json(body_document, schema, auto_unbox = TRUE)
+  body_31 <- suppressWarnings(specmill::read_operations(
+    schema,
+    list(body_media_overrides = list('GET /search' = 'application/json'))
+  ))
+  eval(
+    parse(
+      text = specmill::render_operation(
+        body_31$operations$search_with_body,
+        list(helper = 'api_request')
+      )
+    ),
+    runtime
+  )
+  body_31_wire <- runtime$search_with_body(list(term = 'audit'))
+  stopifnot(
+    length(unlist(body_30_wire$bytes)) == 0L,
+    identical(
+      rawToChar(as.raw(unlist(body_31_wire$bytes))),
+      '{"term":"audit"}'
+    )
+  )
   swagger <- specmill::read_operations(file.path(
     fixture_root,
     'swagger-consumes.json'
