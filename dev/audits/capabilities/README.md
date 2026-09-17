@@ -90,7 +90,7 @@ Normative objects are the [2.0 Operation/consumes rules](https://spec.openapis.o
 | Explicit supported-media selection per service/operation | **Supported + tested** | `body_media` accepts the four native media types and is checked against operation availability ([`mappings.R`](../../../R/mappings.R#L56)); inheritance, overrides, unavailable choices, and old-helper compatibility are tested in [`media-types.R`](../../../tests/media-types.R#L93). |
 | Swagger 2 body `consumes`, including operation-over-document precedence | **Supported + tested** | Body parameters use [`request_body_media()`](../../../R/form_bodies.R#L7) with operation-level then document-level `consumes`; missing, empty, and unsupported effective media are diagnosed. JSON inheritance and octet-stream override are covered by [`swagger-consumes.json`](../../../tests/fixtures/capability-audit/swagger-consumes.json), [`media-types.R`](../../../tests/media-types.R), and exact localhost bytes in [`native-transport.R`](../../../tests/native-transport.R). Resolved by [GH #21](https://github.com/seanthimons/specmill/issues/21). |
 | Other request media types/ranges, including XML and text | **Unsupported (diagnosed)** | The native allowlist is four exact types ([`form_bodies.R`](../../../R/form_bodies.R#L7)). A complete request mapping to another helper can implement them. |
-| Request bodies on OAS 3.0 GET/HEAD/DELETE versus OAS 3.1 | **Unsupported (silent version mismatch)** | The parser treats bodies uniformly. OAS 3.0 says consumers SHALL ignore `requestBody` on these methods ([3.0 Operation Object](https://spec.openapis.org/oas/v3.0.4.html#operation-object)); OAS 3.1 permits them but says semantics are not well-defined and they SHOULD be avoided ([3.1 Operation Object](https://spec.openapis.org/oas/v3.1.1.html#operation-object)). The 3.0 wrong-method request is reproduced by [`oas30-get-body.json`](../../../tests/fixtures/capability-audit/oas30-get-body.json) and tracked in [GH #24](https://github.com/seanthimons/specmill/issues/24). |
+| Request bodies on OAS 3.0 GET/HEAD/DELETE versus OAS 3.1 | **Supported + tested** | OAS 3.0 bodies on these methods are ignored as required by the [3.0 Operation Object](https://spec.openapis.org/oas/v3.0.4.html#operation-object). OAS 3.1 bodies are rejected unless the exact operation has a `body_media` override; that override records review acknowledgment, and parsing warns that interoperability semantics remain undefined per the [3.1 Operation Object](https://spec.openapis.org/oas/v3.1.1.html#operation-object). Parser and exact localhost-byte regressions use [`oas30-get-body.json`](../../../tests/fixtures/capability-audit/oas30-get-body.json). Resolved by [GH #24](https://github.com/seanthimons/specmill/issues/24). |
 
 ### Authentication and request controls
 
@@ -136,7 +136,7 @@ and media regressions:
 | [`read-only-request.json`](../../../tests/fixtures/capability-audit/read-only-request.json) | Regression coverage verifies omitted/rejected read-only fields, preserved writable requirements, recursive referenced/composed schemas, fixture direction, and conflicting-direction diagnostics. | Resolved by [GH #22](https://github.com/seanthimons/specmill/issues/22) |
 | [`swagger-consumes.json`](../../../tests/fixtures/capability-audit/swagger-consumes.json) | Regression coverage verifies inherited document JSON and operation-level octet-stream selection through the generated wrapper. | Resolved by [GH #21](https://github.com/seanthimons/specmill/issues/21) |
 | [`operation-server.json`](../../../tests/fixtures/capability-audit/operation-server.json) | Direct initialization embeds the unresolved root `{region}` template; the operation server remains only in `source_operation`, and neither normalized operation nor helper arguments receive a server/base URL. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| [`oas30-get-body.json`](../../../tests/fixtures/capability-audit/oas30-get-body.json) | An OAS 3.0 GET `requestBody`, which consumers must ignore, is normalized and emitted to the helper. | [GH #24](https://github.com/seanthimons/specmill/issues/24) |
+| [`oas30-get-body.json`](../../../tests/fixtures/capability-audit/oas30-get-body.json) | An OAS 3.0 GET `requestBody`, which consumers must ignore, is omitted before wrapper generation and exercised against localhost transport. | Resolved by [GH #24](https://github.com/seanthimons/specmill/issues/24). |
 
 Run the common proof with:
 
@@ -182,16 +182,15 @@ media type, or request contract.
 
 | Rank | Work | Why it ranks here | Tracking |
 | ---: | --- | --- | --- |
-| 1 | Respect versioned GET/HEAD/DELETE request-body semantics. | Prevents OAS 3.0 requests from emitting bodies that consumers are required to ignore while preserving reviewed 3.1 behavior. | [GH #24](https://github.com/seanthimons/specmill/issues/24) |
-| 2 | Carry effective root/path/operation server metadata or explicitly diagnose non-root precedence. | Wrong-host requests are high impact. Start with a diagnostic; runtime-selectable servers can remain a client-helper feature until demanded. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 3 | Harden response handling and add a decoder matrix for `application/*+json` and missing `Content-Type`. | Response status/headers and declared contracts are currently lost; the existing decoder also needs its remaining branches pinned down. | [GH #10](https://github.com/seanthimons/specmill/issues/10) |
-| 4 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
-| 5 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
-| 6 | Add catalogue tests for Swagger URL assembly, relative origin resolution, multiple servers, and server-variable defaults as part of server controls. | These paths are implemented and documented but currently supported only by inspection. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 7 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
+| 1 | Carry effective root/path/operation server metadata or explicitly diagnose non-root precedence. | Wrong-host requests are high impact. Start with a diagnostic; runtime-selectable servers can remain a client-helper feature until demanded. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
+| 2 | Harden response handling and add a decoder matrix for `application/*+json` and missing `Content-Type`. | Response status/headers and declared contracts are currently lost; the existing decoder also needs its remaining branches pinned down. | [GH #10](https://github.com/seanthimons/specmill/issues/10) |
+| 3 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
+| 4 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
+| 5 | Add catalogue tests for Swagger URL assembly, relative origin resolution, multiple servers, and server-variable defaults as part of server controls. | These paths are implemented and documented but currently supported only by inspection. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
+| 6 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
 
-GH #24 and the existing GH #11 link the remaining executable silent-risk
-fixtures to bounded follow-up work.
+GH #11 links the remaining executable silent-risk fixture to bounded follow-up
+work.
 
 ## Verification commands
 

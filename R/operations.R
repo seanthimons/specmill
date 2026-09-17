@@ -258,6 +258,34 @@ read_operations <- function(files, policy = list()) {
             body_encoding <- list()
             preferred_media <- policy$body_media_overrides[[key]] %or%
               policy$body_media
+            undefined_body_method <- body_present &&
+              !identical(version, '2.0') &&
+              toupper(method) %in% c('GET', 'HEAD', 'DELETE')
+            if (undefined_body_method && startsWith(version, '3.0')) {
+              body <- NULL
+              body_present <- FALSE
+            } else if (
+              undefined_body_method &&
+                is.null(policy$body_media_overrides[[key]])
+            ) {
+              schema_problem(
+                'request_body_method',
+                'review_required',
+                paste(
+                  'OAS 3.1',
+                  toupper(method),
+                  'request body requires an explicit operation body_media review'
+                ),
+                body_location
+              )
+            } else if (undefined_body_method) {
+              warning(
+                'OAS 3.1 ',
+                toupper(method),
+                ' request body has undefined interoperability semantics',
+                call. = FALSE
+              )
+            }
             if (startsWith(version, '2.')) {
               bodies <- Filter(function(p) identical(p[['in']], 'body'), params)
               if (length(bodies) > 1L) {
