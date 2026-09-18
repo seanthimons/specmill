@@ -100,6 +100,12 @@ initialize_client <- function(
     warn = FALSE
   )
   helper <- gsub('BASE_URL', r_literal(base_url), helper, fixed = TRUE)
+  helper <- gsub(
+    'REQUEST_OPTIONS',
+    r_literal(paste0(package, '.request')),
+    helper,
+    fixed = TRUE
+  )
   proposal <- configuration_proposal(schema, package, naming, group_by)
   if (
     any(vapply(

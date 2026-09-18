@@ -728,6 +728,30 @@ The default helper contract is:
 api_request(method, path, path_params, query, body)
 ```
 
+Newly initialized clients read package-scoped transport controls from the
+`<package>.request` option. For a package named `catalogueclient`:
+
+```r
+options(catalogueclient.request = list(
+  timeout = 30,
+  max_tries = 3L,
+  retry_non_idempotent = FALSE
+))
+```
+
+Defaults are a 60-second timeout, three total attempts, and no replay of POST
+or PATCH requests. GET, HEAD, OPTIONS, PUT, and DELETE requests retry transport
+failures and HTTP 429/503 responses; httr2 honors `Retry-After`. Set
+`retry_non_idempotent = TRUE` only when the API makes replay safe. The option
+overrides these helper defaults for the current R process. The reviewed service
+`base_url` remains the target and is embedded during initialization; transport
+options do not override it.
+
+specmill does not overwrite a client-owned helper. Existing clients can adopt
+these controls by copying the `req_timeout()` and guarded `req_retry()` block
+from `inst/templates/request.R` into their helper and changing the option name
+to their package name. Endpoint functions need no changes.
+
 To preserve a different helper interface, explicitly replace its argument map:
 
 ```yaml
