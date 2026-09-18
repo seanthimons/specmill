@@ -206,10 +206,20 @@ catalogueclient::get_item(item_id = 'a-real-id', language = 'en')
 ```
 
 The last call sends a real request. The default helper performs one request,
-including when an argument is named `page`. It returns JSON as R lists, text/SVG
-as strings, binary as raw bytes, and empty response bodies as `NULL`. It raises
-errors for HTTP failures or malformed nonempty JSON. Credentials, pagination,
-retry decisions, batching, and service-specific validation belong in the client.
+including when an argument is named `page`. It returns JSON objects and arrays
+as R lists, JSON scalars as their corresponding R scalars, text/SVG as strings,
+binary as raw bytes, and empty bodies or JSON `null` as `NULL`. It raises
+errors for HTTP failures or malformed nonempty JSON. Those errors report the
+status and response media type without including the request URL, response body,
+or credential values. A missing or unrecognized `Content-Type` returns raw bytes.
+A JSON `Content-Type` with a non-JSON body is a decode error, while a text type
+always returns text even if its body happens to contain JSON. The parser records
+declared response media and schema metadata, but runtime decoding follows the
+actual `Content-Type`. The generator does not pass declared response schemas to
+the helper or validate response bodies against them. Such validation would need
+an explicit generated helper argument and remains unsupported. Credentials,
+pagination, retry decisions, batching, and service-specific validation belong
+in the client.
 
 ## 9. Save the project and maintain it
 

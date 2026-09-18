@@ -53,6 +53,11 @@ bind_tools <- function(group, envir) {
 
 `%or%` <- function(x, y) if (is.null(x)) y else x
 
+# Per-package dry-run environment variable name, e.g. requestclient -> REQUESTCLIENT_DRY_RUN.
+dry_run_env <- function(package) {
+  paste0(toupper(gsub('[^A-Za-z0-9]', '_', package)), '_DRY_RUN')
+}
+
 # Escape schema strings as R literals. No remote text is evaluated as code.
 r_literal <- function(x) {
   text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
