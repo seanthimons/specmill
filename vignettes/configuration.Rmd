@@ -367,6 +367,26 @@ Existing helpers need optional `headers`, `query_serialization`, `body_media`, `
 arguments when an operation uses these features. Generation validates helper
 compatibility and does not overwrite client-owned helpers.
 
+### Dry run
+
+Generated wrappers honour a per-package dry-run environment variable. The name
+is the package name uppercased with every non-alphanumeric character replaced by
+`_`, then suffixed `_DRY_RUN`; for example package `requestclient` uses
+`REQUESTCLIENT_DRY_RUN`. When its value is truthy (`true`, `1`, or `yes`, any
+case), the wrapper builds the fully-formed `httr2` request—authentication,
+query, and body included—then returns that `httr2_request` object instead of
+calling `httr2::req_perform()`. Empty, unset, or any other value performs the
+request normally.
+
+```r
+Sys.setenv(REQUESTCLIENT_DRY_RUN = 'true')
+req <- some_operation(id = 42)   # returns the unexecuted httr2_request
+Sys.unsetenv('REQUESTCLIENT_DRY_RUN')
+```
+
+This is useful for inspecting the exact request a wrapper would send without
+touching the network.
+
 ### Form bodies and file uploads
 
 Generated form operations take a named `body` list. Omit optional fields by

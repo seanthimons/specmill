@@ -100,6 +100,12 @@ initialize_client <- function(
     warn = FALSE
   )
   helper <- gsub('BASE_URL', r_literal(base_url), helper, fixed = TRUE)
+  helper <- gsub(
+    'DRY_RUN_ENV',
+    r_literal(dry_run_env(package)),
+    helper,
+    fixed = TRUE
+  )
   proposal <- configuration_proposal(schema, package, naming, group_by)
   if (
     any(vapply(

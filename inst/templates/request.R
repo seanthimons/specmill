@@ -190,14 +190,23 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (base::length(encoded_cookies)) request <- httr2::req_headers(request, .redact = 'Cookie')
   # Append encoded tokens last: query authentication must not decode/re-encode them.
   if (base::length(encoded_query)) request <- httr2::req_url(request, base::paste0(request$url, if (base::grepl('?', request$url, fixed = TRUE)) '&' else '?', base::paste(encoded_query, collapse = '&')))
+  if (base::tolower(base::Sys.getenv(DRY_RUN_ENV)) %in% base::c('true', '1', 'yes')) base::return(request)
+  request <- httr2::req_error(request, is_error = function(response) FALSE)
   response <- httr2::req_perform(request)
+  status <- httr2::resp_status(response)
+  media <- httr2::resp_header(response, 'content-type')
+  if (base::is.null(media)) media <- ''
+  media <- base::tolower(base::trimws(base::sub(';.*$', '', media)))
+  context <- base::paste0('HTTP ', status, if (base::nzchar(media)) base::paste0(' ', media) else '')
+  if (status >= 400L) base::stop(context, ' response', call. = FALSE)
   if (!httr2::resp_has_body(response)) base::return(NULL)
   bytes <- httr2::resp_body_raw(response)
   if (!base::length(bytes)) base::return(NULL)
-  media <- httr2::resp_header(response, 'content-type')
-  if (base::is.null(media)) media <- ''
-  media <- base::tolower(base::sub(';.*$', '', media))
-  if (base::grepl('(/json|\\+json)$', media)) base::return(jsonlite::fromJSON(httr2::resp_body_string(response), simplifyVector = FALSE))
+  if (base::grepl('(/json|\\+json)$', media)) {
+    decoded <- base::tryCatch(jsonlite::fromJSON(httr2::resp_body_string(response), simplifyVector = FALSE), error = base::identity)
+    if (base::inherits(decoded, 'error')) base::stop('Cannot decode ', context, ' response as JSON', call. = FALSE)
+    base::return(decoded)
+  }
   if (base::startsWith(media, 'text/') || media == 'image/svg+xml') base::return(httr2::resp_body_string(response))
   bytes
 }

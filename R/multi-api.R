@@ -86,9 +86,14 @@ multi_api_proposal <- function(
     ))
     code <- sub('api_request <-', paste0(helper, ' <-'), code, fixed = TRUE)
     helpers[[paste0('R/', helper, '.R')]] <- gsub(
-      'BASE_URL',
-      r_literal(apis$base_url[[i]]),
-      code,
+      'DRY_RUN_ENV',
+      r_literal(dry_run_env(package)),
+      gsub(
+        'BASE_URL',
+        r_literal(apis$base_url[[i]]),
+        code,
+        fixed = TRUE
+      ),
       fixed = TRUE
     )
     api_groups <- list()
