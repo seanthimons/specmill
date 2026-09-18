@@ -154,8 +154,9 @@ media type, or request contract.
   `R/api_request.R` only during initial scaffolding and refuses a conflicting file
   ([`initialization.R`](../../../R/initialization.R#L87)). Normal generation discovers
   the helper and validates its formals; it does not place the helper in generated
-  output. Edit it for retries, timeouts, response objects, extra media types, or
-  server selection.
+  output. New helpers use package-scoped timeout and bounded retry controls;
+  existing helpers opt in by adopting the corresponding template block. Edit the
+  helper for response objects, extra media types, or runtime server selection.
 - **Use a named helper or a complete request mapping.** `helper` can select another
   client function. Per-operation `inputs` plus `request.arguments` replaces the
   schema-derived facade and can build literals, objects, compact objects, arrays,
@@ -182,12 +183,11 @@ media type, or request contract.
 
 | Rank | Work | Why it ranks here | Tracking |
 | ---: | --- | --- | --- |
-| 1 | Add documented timeout and bounded safe-retry controls to the client-owned helper. | The wrong-host risk is now diagnosed; transport hangs and unsafe replay are the next highest request risks. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 2 | Harden response handling and add a decoder matrix for `application/*+json` and missing `Content-Type`. | Response status/headers and declared contracts are currently lost; the existing decoder also needs its remaining branches pinned down. | [GH #10](https://github.com/seanthimons/specmill/issues/10) |
-| 3 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
-| 4 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
-| 5 | Add catalogue tests for Swagger URL assembly, relative origin resolution, multiple servers, and server-variable defaults as part of server controls. | These paths are implemented and documented but currently supported only by inspection. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 6 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
+| 1 | Harden response handling and add a decoder matrix for `application/*+json` and missing `Content-Type`. | Response status/headers and declared contracts are currently lost; the existing decoder also needs its remaining branches pinned down. | [GH #10](https://github.com/seanthimons/specmill/issues/10) |
+| 2 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
+| 3 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
+| 4 | Add catalogue tests for Swagger URL assembly, relative origin resolution, multiple servers, and server-variable defaults as part of server controls. | These paths are implemented and documented but currently supported only by inspection. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
+| 5 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
 
 GH #11 links the remaining executable silent-risk fixture to bounded follow-up
 work.
@@ -203,6 +203,7 @@ source('tests/bracket-transport.R'); bracket_transport_acceptance()
 source('tests/media-types.R'); media_type_acceptance()
 source('tests/form-transport.R'); form_transport_acceptance()
 source('tests/authentication.R'); authentication_acceptance()
+source('tests/request-controls.R'); request_controls_acceptance()
 source('tests/native-transport.R'); native_transport_acceptance()
 source('tests/composition-transport.R'); composition_transport_acceptance()
 source('tests/composition-constraints.R'); composition_constraints_acceptance()

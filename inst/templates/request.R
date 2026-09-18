@@ -102,6 +102,17 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   }
   request <- httr2::request(BASE_URL)
   request <- httr2::req_method(request, method)
+  controls <- base::getOption(REQUEST_OPTIONS, base::list())
+  if (!base::is.list(controls) || base::length(base::setdiff(base::names(controls), base::c('timeout', 'max_tries', 'retry_non_idempotent')))) base::stop('Request controls must be a list containing timeout, max_tries, or retry_non_idempotent')
+  timeout <- controls$timeout
+  if (base::is.null(timeout)) timeout <- 60
+  max_tries <- controls$max_tries
+  if (base::is.null(max_tries)) max_tries <- 3L
+  retry_non_idempotent <- base::isTRUE(controls$retry_non_idempotent)
+  if (!base::is.numeric(timeout) || base::length(timeout) != 1L || base::is.na(timeout) || !base::is.finite(timeout) || timeout <= 0) base::stop('Request timeout must be one positive finite number')
+  if (!base::is.numeric(max_tries) || base::length(max_tries) != 1L || base::is.na(max_tries) || !base::is.finite(max_tries) || max_tries < 1 || max_tries != base::floor(max_tries)) base::stop('Request max_tries must be a positive integer')
+  request <- httr2::req_timeout(request, timeout)
+  if (max_tries > 1L && (method %in% base::c('GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE') || retry_non_idempotent)) request <- httr2::req_retry(request, max_tries = max_tries, retry_on_failure = TRUE)
   query <- base::Filter(base::Negate(base::is.null), query)
   for (name in base::names(query)) {
     serialization <- query_serialization[[name]]
