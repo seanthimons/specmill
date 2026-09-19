@@ -13,7 +13,8 @@ endpoint_records <- function(document, operations) {
     'patch',
     'delete',
     'head',
-    'options'
+    'options',
+    'trace'
   )
   context$PAGINATION_REGISTRY <- list()
   context$body_requires_resolution <- function(...) FALSE

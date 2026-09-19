@@ -383,9 +383,7 @@ openapi_to_spec <- function(
 
   purrr::imap_dfr(paths, function(path_item, route) {
     path_level_params <- path_item$parameters %||% list()
-    # only support GET and POST, so OPTIONS/PUT/PATCH/DELETE endpoints can never
-    # be wrapped. Dropping them here keeps stub generation, schema diffs, and
-    # coverage counts consistent.
+    # The calling context supplies the supported method set.
     meths <- intersect(names(path_item), supported_methods)
 
     purrr::map_dfr(meths, function(method) {
