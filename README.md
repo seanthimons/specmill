@@ -39,6 +39,89 @@ specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
 specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 ```
 
+## Generated client request controls
+
+The baseline `specmill.yml` includes:
+
+```yaml
+defaults:
+  request_controls:
+    timeout: 30
+    max_retries: 0
+    retry_writes: false
+```
+
+Edit these values and run `generate_client()` to update the generated helper
+calls. `max_retries` counts retries after the initial attempt, so `2` allows
+three total attempts. Defaults inherit through project, API/service/group, and
+operation settings, with later settings overriding individual fields. Values
+are validated when loading YAML. Timeout must be finite and positive; retries
+must be a nonnegative integer; write permission must be a boolean.
+
+New helpers also read one package-scoped R option on every call. Runtime options
+override the YAML defaults per field. For a package named `catalogueclient`:
+
+```r
+options(catalogueclient.request = list(
+  base_url = 'https://staging.example.org/v1',
+  timeout = 30,
+  max_retries = 2,
+  retry_writes = FALSE
+))
+```
+
+The option prefix is the lowercase dry-run prefix: punctuation in package names
+becomes `_`. All helpers in a multi-API package share this option; setting
+`base_url` overrides every API, so omit it unless that is intended. Omitted fields
+use the generated YAML defaults, falling back to 30 seconds per attempt, zero
+retries, and no permission to retry non-idempotent writes when YAML controls are
+absent. Base URL overrides remain runtime options or initialization settings. Reset with
+`options(catalogueclient.request = NULL)`. Invalid controls fail before HTTP.
+
+URL precedence is runtime `base_url`, then the explicit initialization
+`base_url` or reviewed multi-API catalogue URL, then operation, path, and root
+schema servers. An inferred root URL is only the direct helper-call default;
+generated wrappers carry their effective server. Server-variable string defaults
+are substituted. One distinct absolute HTTP(S) URL is required; credentials,
+query strings, fragments, invalid ports, and unresolved templates are rejected.
+
+Ambiguous servers, missing variable defaults, unsupported schemes, and relative
+URLs without an origin produce `server_diagnostics` in `read_operations()` and
+generation plans. The generated helper refuses those calls unless an explicit
+URL override resolves selection. These diagnostics do not block generation,
+since the override is chosen at runtime. An empty server array selects the
+OpenAPI default `/`, which also needs an origin or override. Catalogue discovery
+can resolve relative root URLs against its recorded origin and assemble Swagger
+`schemes`, `host`, and `basePath`; multiple schemes need a reviewed URL. Missing
+Swagger host/scheme fields need a recorded origin or explicit override. Direct
+local-schema parsing does not infer a download origin. Named server selection
+and runtime variable substitutions require a client-owned helper.
+
+When enabled, retries apply to GET, HEAD, OPTIONS, PUT, and DELETE. POST, PATCH,
+and other methods require `retry_writes = TRUE`; enable it only when the API can
+safely replay the request, for example with its own idempotency key. The helper
+retries HTTP 408, 429, 500, 502, 503, and 504, with at most `max_retries + 1`
+attempts. It uses [httr2 retry support](https://httr2.r-lib.org/reference/req_retry.html)
+for Retry-After and jittered exponential backoff. Connection/TLS failures and
+JSON decode errors are not retried. Timeout limits each attempt, not the total
+call including Retry-After waits. Exhausted HTTP and JSON errors retain status
+and media type without response bodies or credentials; connection errors use a
+fixed credential-safe message.
+
+Existing `R/api_request.R` files remain client-owned and are never refreshed by
+normal generation. To adopt these controls, merge the `server` and
+`request_controls` arguments, YAML-default fallback, URL selection/validation,
+option validation, and `req_timeout()`/`req_retry()` setup
+from [`inst/templates/request.R`](inst/templates/request.R) into your helper.
+Replace its `BASE_URL` and `DRY_RUN_ENV` placeholders with your client's defaults;
+set the initialization override only if you intend it to beat schema servers.
+Keep your authentication and response handling. Generation checks that custom
+helpers accept the `server` and configured `request_controls` arguments or `...`; accepting and ignoring it is
+not an implementation of server selection. Complete request mappings retain
+control of their own helper arguments. Proxy/TLS settings, streaming,
+cancellation, custom retry predicates, and per-API runtime controls still require
+a custom helper.
+
 ## Learn the workflow
 
 | Guide | What it covers |

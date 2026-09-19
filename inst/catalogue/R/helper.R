@@ -2,9 +2,10 @@
 .calls$values <- list()
 captured <- function() .calls$values
 clear_calls <- function() { .calls$values <- list(); invisible(NULL) }
-catalogue_request <- function(method, path, path_params, query, body) {
+catalogue_request <- function(method, path, path_params, query, body, server = NULL) {
   .calls$values[[length(.calls$values) + 1L]] <- list(method = method, path = path,
     path_params = path_params, query = query, body = body)
+  if (!missing(server)) .calls$values[[length(.calls$values)]]$server <- server
   list(data = 'ok')
 }
 normalize_input <- function(state) {

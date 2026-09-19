@@ -52,8 +52,9 @@ The normative comparison is the [OpenAPI 2.0 specification](https://spec.openapi
 | PUT, PATCH, HEAD, and OPTIONS operations | **Supported, untested** | They are selected by [`operations.R`](../../../R/operations.R#L78), flow through generic `req_method()`, and are accepted by the compatibility boundary, but no focused wire test invokes them. |
 | TRACE operations | **Unsupported (diagnosed)** | The outer reader selects TRACE, but the compatibility parser's method list omits it ([`endpoint_records.R`](../../../R/endpoint_records.R#L9)); the resulting `parser_failure` removes it. The generated configuration nevertheless advertises TRACE ([`configuration-scaffold.R`](../../../R/configuration-scaffold.R#L237)). |
 | One reviewed absolute base URL per API/helper | **Supported + tested** | Initialization embeds the reviewed URL in the client helper ([`initialization.R`](../../../R/initialization.R#L27)); multi-API generation creates one helper per reviewed URL ([`multi-api.R`](../../../R/multi-api.R#L84)). Localhost and multi-API checks exercise those helpers. |
-| Catalogue discovery of Swagger `schemes` + `host` + `basePath`, relative root URLs, and OAS 3 server-variable defaults | **Supported, untested** | The reviewed catalogue/multi-API path resolves these through [`schema_server()`](../../../R/api-catalogue.R#L14), but there is no focused test for Swagger assembly or variable substitution. Multiple distinct candidates and unresolved variables intentionally require a reviewed `base_url`. |
-| Direct single-schema server inference, path/operation `servers`, and runtime server choice | **Unsupported (silent)** | Direct `initialize_client()` copies the first root server URL literally and does not substitute variable defaults ([`initialization.R`](../../../R/initialization.R#L27)). The reader also retains no effective path/operation server despite OAS precedence being operation > path > root ([3.0 Operation Object](https://spec.openapis.org/oas/v3.0.4.html#operation-object), [3.1 Operation Object](https://spec.openapis.org/oas/v3.1.1.html#operation-object)); the helper always uses embedded `BASE_URL` ([`request.R`](../../../inst/templates/request.R#L103)). Server-only schema changes are absent from [`compare_operations()`](../../../R/operations.R#L628). Reproduced by [`operation-server.json`](../../../tests/fixtures/capability-audit/operation-server.json) and tracked in [GH #11](https://github.com/seanthimons/specmill/issues/11). |
+| Catalogue discovery of Swagger URLs, relative root URLs, and server-variable defaults | **Supported + tested** | Shared resolution in [`api-catalogue.R`](../../../R/api-catalogue.R), exercised by [`request-controls.R`](../../../tests/request-controls.R). Multiple distinct candidates require a reviewed override. |
+| Effective operation > path > root servers and explicit URL overrides | **Supported + tested** | The reader carries a resolved `server` through endpoint records and wrappers. Runtime options override explicit initialization/catalogue URLs, which override schema metadata. Variable defaults, exact localhost paths, and helper ownership are tested in [`request-controls.R`](../../../tests/request-controls.R); [`capability-audit.R`](../../../tests/capability-audit.R) covers the original operation-server regression. |
+| Ambiguous servers, unresolved variables, relative servers without origins, unsupported URLs | **Unsupported (diagnosed before HTTP)** | `server_diagnostics` appears in reader results and plans; each wrapper carries its selection diagnostic. Generation is allowed, but HTTP is blocked until an explicit override resolves selection. Named server choice and runtime variable substitutions require a custom helper. |
 | OAS 3 callbacks and OAS 3.1 top-level webhooks | **Unsupported (silent omission)** | The reader iterates only `document$paths` ([`operations.R`](../../../R/operations.R#L45)). Schema callbacks and webhooks are unrelated to specmill's client runtime hooks. Normative objects: [3.0 Callback Object](https://spec.openapis.org/oas/v3.0.4.html#callback-object), [3.1 Callback Object](https://spec.openapis.org/oas/v3.1.1.html#callback-object), and [3.1 OpenAPI Object](https://spec.openapis.org/oas/v3.1.1.html#openapi-object). |
 
 ### Parameters
@@ -106,7 +107,8 @@ and [Security Requirement](https://spec.openapis.org/oas/v2.0.html#security-requ
 | Caller-selected security alternative or per-call credential override | **Customizable** | Native auth chooses the first satisfiable declared alternative from configured environment variables. A complete request mapping or client helper can expose a different policy. Tokens are never written into tracked configuration. |
 | Batch `max_items` and serialized `max_bytes` guards | **Supported + tested** | Wrapper eligibility is checked in [`generation.R`](../../../R/generation.R#L538), transport guards in [`request.R`](../../../inst/templates/request.R#L91), and pre-HTTP failures in [`native-transport.R`](../../../tests/native-transport.R#L244). This validates limits; it does not automatically split calls. |
 | Automatic pagination across multiple requests | **Customizable** | Generated wrappers perform one request. Pagination-like metadata is only advisory/legacy parser metadata; a client helper or retained wrapper must loop and merge results. Configurable pagination is tracked in [GH #13](https://github.com/seanthimons/specmill/issues/13). |
-| Timeouts, retries/backoff, proxy/TLS options, redirects, arbitrary per-call headers, streaming, cancellation, and custom error policy | **Customizable** | The default helper calls bare `httr2::req_perform()` ([`request.R`](../../../inst/templates/request.R#L193)) and wrappers expose only schema-derived values. Edit/replace the client-owned helper, or use explicit `inputs` + `request.arguments` to pass controls. |
+| Timeout and bounded transient HTTP retries | **Supported + tested** | Baseline YAML `defaults.request_controls` sets timeout, maximum retries, and write replay permission through normal settings inheritance. Package-scoped `.request` options override those defaults and can set a URL override. Defaults are 30 seconds per attempt and zero retries. httr2 handles Retry-After and backoff; localhost counters verify GET retries, 429, exhausted retries, timeout, write policy, and safe errors in [`request-controls.R`](../../../tests/request-controls.R). |
+| Proxy/TLS options, redirects, arbitrary per-call headers, streaming, cancellation, custom retry predicates, and per-API runtime controls | **Customizable** | Edit the client-owned helper or use a complete request mapping. Connection/TLS failures are not retried by the default helper. |
 | Pre-request and post-response client hooks | **Supported + tested** | Wrapper ordering is emitted at [`generation.R`](../../../R/generation.R#L224) and mapping/hook state is exercised in [`mappings.R`](../../../tests/mappings.R#L27). Hooks see public parameters and the decoded result, not the raw `httr2_response`. |
 | Per-package dry-run env flag returning the unexecuted request | **Supported + tested** | A truthy `<PACKAGE>_DRY_RUN` variable makes the helper return the fully-formed `httr2_request` before [`req_perform()`](../../../inst/templates/request.R#L193); the token is substituted at [`initialization.R`](../../../R/initialization.R#L103) and [`multi-api.R`](../../../R/multi-api.R#L88), and the return-and-skip contract is exercised in [`dry-run.R`](../../../tests/dry-run.R#L1). |
 
@@ -114,8 +116,8 @@ and [Security Requirement](https://spec.openapis.org/oas/v2.0.html#security-requ
 
 | Capability | Status | Evidence and limits |
 | --- | --- | --- |
-| Runtime decoding from actual response `Content-Type`: JSON, text, SVG text, raw bytes, empty body; HTTP error propagation | **Supported + tested** | Dispatch is at [`request.R`](../../../inst/templates/request.R#L193). JSON, text, SVG, octet bytes, empty 204, invalid JSON, and 503 are tested in [`new-client.R`](../../../tests/new-client.R#L285). |
-| Structured-suffix `application/*+json` response decoding | **Supported, untested** | The branch exists at [`request.R`](../../../inst/templates/request.R#L200), but no focused response contract exercises it. |
+| Runtime decoding from actual response `Content-Type`: JSON objects, arrays and scalars; encoded text and SVG; raw bytes; empty bodies; safe HTTP/decode errors | **Supported + tested** | Dispatch and credential-safe failures are at [`request.R`](../../../inst/templates/request.R#L194). The localhost matrix covers declared encodings, missing, unexpected and misleading media types, malformed JSON, empty/204 responses, HTTP failures, and credential redaction in [`response-handling.R`](../../../tests/response-handling.R#L1). Resolved by [GH #10](https://github.com/seanthimons/specmill/issues/10). |
+| Structured-suffix `application/*+json` response decoding | **Supported + tested** | The decoder recognizes the structured suffix, and [`response-handling.R`](../../../tests/response-handling.R#L23) verifies `application/problem+json`. Resolved by [GH #10](https://github.com/seanthimons/specmill/issues/10). |
 | Declared response media/schema used for `Accept`, status-specific decoding, or output validation | **Customizable** | Raw response metadata is retained for documentation/diffing ([`operations.R`](../../../R/operations.R#L501)), but the wrapper passes none of it to the helper. The default helper returns only the decoded body. A custom helper/mapping must retain status/headers or validate response schemas. |
 | JSON body primitives, nested objects/arrays/maps, required fields, and `additionalProperties` | **Supported + tested** | Recursive validation is in [`body_value()`](../../../R/body_shapes.R#L338); nested and open-shape transport is covered by [`nested-bodies.R`](../../../tests/nested-bodies.R#L1) and [`native-transport.R`](../../../tests/native-transport.R#L142). |
 | `oneOf`, `anyOf`, `allOf`, OAS 3.0 `nullable`, and OAS 3.1 null/type unions | **Supported + tested** | Exact branch-count validation is at [`body_shapes.R`](../../../R/body_shapes.R#L528), with generated transport in [`composition-transport.R`](../../../tests/composition-transport.R#L1) and version semantics in [`schema-versions.R`](../../../tests/schema-versions.R#L1). Composition is not supported for form bodies or parameters. |
@@ -127,8 +129,7 @@ and [Security Requirement](https://spec.openapis.org/oas/v2.0.html#security-requ
 
 ## Silent-misgeneration reproductions
 
-[`tests/capability-audit.R`](../../../tests/capability-audit.R#L1) executes two
-unresolved silent-risk fixtures plus the corrected parameter, request-direction,
+[`tests/capability-audit.R`](../../../tests/capability-audit.R#L1) executes the corrected server, parameter, request-direction,
 and media regressions:
 
 | Fixture | Reproduced behavior | Follow-up |
@@ -136,13 +137,14 @@ and media regressions:
 | [`parameter-contracts.json`](../../../tests/fixtures/capability-audit/parameter-contracts.json) | Regression coverage verifies parser diagnostics, ignored OAS 3 reserved headers, valid operation-level overrides, and rejected/permitted empty query values. | Resolved by [GH #20](https://github.com/seanthimons/specmill/issues/20) |
 | [`read-only-request.json`](../../../tests/fixtures/capability-audit/read-only-request.json) | Regression coverage verifies omitted/rejected read-only fields, preserved writable requirements, recursive referenced/composed schemas, fixture direction, and conflicting-direction diagnostics. | Resolved by [GH #22](https://github.com/seanthimons/specmill/issues/22) |
 | [`swagger-consumes.json`](../../../tests/fixtures/capability-audit/swagger-consumes.json) | Regression coverage verifies inherited document JSON and operation-level octet-stream selection through the generated wrapper. | Resolved by [GH #21](https://github.com/seanthimons/specmill/issues/21) |
-| [`operation-server.json`](../../../tests/fixtures/capability-audit/operation-server.json) | Direct initialization embeds the unresolved root `{region}` template; the operation server remains only in `source_operation`, and neither normalized operation nor helper arguments receive a server/base URL. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
+| [`operation-server.json`](../../../tests/fixtures/capability-audit/operation-server.json) | Root variable defaults resolve and the operation URL reaches the helper; localhost precedence and override assertions live in request-controls.R. | Implemented for [GH #11](https://github.com/seanthimons/specmill/issues/11) |
 | [`oas30-get-body.json`](../../../tests/fixtures/capability-audit/oas30-get-body.json) | An OAS 3.0 GET `requestBody`, which consumers must ignore, is omitted before wrapper generation and exercised against localhost transport. | Resolved by [GH #24](https://github.com/seanthimons/specmill/issues/24). |
 
 Run the common proof with:
 
 ```r
 source('tests/capability-audit.R'); capability_audit_acceptance()
+source('tests/request-controls.R'); request_controls_acceptance()
 ```
 
 Callbacks and webhooks are also silently omitted.
@@ -155,8 +157,8 @@ media type, or request contract.
   `R/api_request.R` only during initial scaffolding and refuses a conflicting file
   ([`initialization.R`](../../../R/initialization.R#L87)). Normal generation discovers
   the helper and validates its formals; it does not place the helper in generated
-  output. Edit it for retries, timeouts, response objects, extra media types, or
-  server selection.
+  output. Merge the updated template to adopt request controls; normal generation
+  never refreshes it. Custom response objects and transport policies still belong here.
 - **Use a named helper or a complete request mapping.** `helper` can select another
   client function. Per-operation `inputs` plus `request.arguments` replaces the
   schema-derived facade and can build literals, objects, compact objects, arrays,
@@ -183,15 +185,11 @@ media type, or request contract.
 
 | Rank | Work | Why it ranks here | Tracking |
 | ---: | --- | --- | --- |
-| 1 | Carry effective root/path/operation server metadata or explicitly diagnose non-root precedence. | Wrong-host requests are high impact. Start with a diagnostic; runtime-selectable servers can remain a client-helper feature until demanded. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 2 | Harden response handling and add a decoder matrix for `application/*+json` and missing `Content-Type`. | Response status/headers and declared contracts are currently lost; the existing decoder also needs its remaining branches pinned down. | [GH #10](https://github.com/seanthimons/specmill/issues/10) |
-| 3 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
-| 4 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
-| 5 | Add catalogue tests for Swagger URL assembly, relative origin resolution, multiple servers, and server-variable defaults as part of server controls. | These paths are implemented and documented but currently supported only by inspection. | [GH #11](https://github.com/seanthimons/specmill/issues/11) |
-| 6 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
+| 1 | Add configurable pagination while preserving the single-request default. | Broad usability gain for collection APIs, but less immediate correctness risk than silently wrong single requests. | [GH #13](https://github.com/seanthimons/specmill/issues/13) |
+| 2 | Remove the TRACE compatibility-parser mismatch and add one method matrix wire check. | The advertised method set currently overstates support; the narrow fix also proves PUT/PATCH/HEAD/OPTIONS. | [GH #23](https://github.com/seanthimons/specmill/issues/23) |
+| 3 | Add OAuth lifecycle only when GH #4's contract is settled. | Broad authentication value, but intentionally separate from this audit and substantially larger than the correctness fixes above. | [GH #4](https://github.com/seanthimons/specmill/issues/4) |
 
-GH #11 links the remaining executable silent-risk fixture to bounded follow-up
-work.
+The server regression now passes; remaining server-selection limits are explicitly diagnosed.
 
 ## Verification commands
 
@@ -212,6 +210,7 @@ source('tests/local-references.R'); local_references_acceptance()
 source('tests/mappings.R'); mappings_acceptance()
 source('tests/source-layout.R'); source_layout_acceptance()
 source('tests/capability-audit.R'); capability_audit_acceptance()
+source('tests/request-controls.R'); request_controls_acceptance()
 ```
 
-The audit changes no production code.
+The linked regression tests verify the implemented capabilities.

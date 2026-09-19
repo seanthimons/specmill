@@ -11,52 +11,145 @@ schema_identity <- function(document) {
   digest::digest(canonical(document), algo = 'sha256')
 }
 
-schema_server <- function(document, origin = '') {
-  urls <- if (identical(document$swagger, '2.0')) {
-    if (!is.null(document$host)) {
-      paste0(
-        (document$schemes %or% list('https'))[[1L]],
-        '://',
-        document$host,
-        document$basePath %or% '/'
-      )
-    } else {
-      document$basePath %or% ''
-    }
-  } else {
-    vapply(
-      document$servers %or% list(),
-      function(server) {
-        url <- server$url %or% ''
-        for (name in names(server$variables)) {
-          value <- server$variables[[name]]$default
-          if (!is.null(value)) {
-            url <- gsub(paste0('{', name, '}'), value, url, fixed = TRUE)
+# Conservative base URLs: no credentials, query, fragment, or URI templates.
+valid_server_url <- function(url) {
+  is.character(url) &&
+    length(url) == 1L &&
+    !is.na(url) &&
+    grepl(
+      '^https?://([A-Za-z0-9.-]+|\\[[0-9A-Fa-f:]+\\])(:[0-9]+)?(/[^?#]*)?$',
+      url
+    ) &&
+    !grepl('[[:space:]{}\\\\]', url) &&
+    !grepl('%(?![0-9A-Fa-f]{2})', url, perl = TRUE) &&
+    !is.null(tryCatch(curl::curl_parse_url(url), error = function(e) NULL)) &&
+    !grepl(':0(/|$)', sub('^https?://([^/]+).*$', '\\1', url))
+}
+
+# Return a diagnostic with the operation instead of silently choosing a host.
+# Runtime overrides can resolve these cases without changing endpoint signatures.
+effective_server <- function(
+  document,
+  item = list(),
+  operation = list(),
+  origin = ''
+) {
+  tryCatch(
+    {
+      if (identical(document$swagger, '2.0')) {
+        schemes <- operation$schemes %or% document$schemes
+        host <- document$host
+        if (is.null(schemes) || !length(schemes) || is.null(host)) {
+          if (!valid_server_url(origin)) {
+            stop(
+              'Swagger host/scheme requires a recorded origin or explicit base URL override'
+            )
           }
+          if (is.null(schemes) || !length(schemes)) {
+            schemes <- sub('://.*$', '', origin)
+          }
+          if (is.null(host)) host <- sub('^https?://([^/]+).*$', '\\1', origin)
         }
-        url
-      },
-      character(1)
-    )
-  }
-  urls <- unique(urls)
-  if (!length(urls)) {
-    urls <- ''
-  }
-  if (nzchar(origin)) {
-    if (!requireNamespace('httr2', quietly = TRUE)) {
-      stop('Install httr2 to resolve schema origins')
-    }
-    urls <- vapply(
-      urls,
-      function(url) {
-        httr2::url_build(httr2::url_parse(url, base_url = origin))
-      },
-      character(1)
-    )
-  }
-  valid <- grepl('^https?://[^/]+', urls) & !grepl('[{}]', urls)
-  if (length(urls) == 1L && valid[[1L]]) urls[[1L]] else ''
+        schemes <- unique(unlist(schemes))
+        if (length(schemes) != 1L) {
+          stop('Ambiguous Swagger schemes')
+        }
+        base_path <- document$basePath %or% '/'
+        if (
+          !is.character(base_path) ||
+            length(base_path) != 1L ||
+            is.na(base_path) ||
+            !startsWith(base_path, '/')
+        ) {
+          stop('Invalid Swagger basePath')
+        }
+        urls <- paste0(schemes, '://', host, base_path)
+      } else {
+        servers <- if ('servers' %in% names(operation)) {
+          operation$servers
+        } else if ('servers' %in% names(item)) {
+          item$servers
+        } else {
+          document$servers
+        }
+        if (!is.list(servers) && !is.null(servers)) {
+          stop('Invalid server array')
+        }
+        urls <- vapply(
+          servers,
+          function(server) {
+            if (!is.list(server)) {
+              stop('Invalid server object')
+            }
+            url <- server$url
+            if (!is.character(url) || length(url) != 1L || is.na(url)) {
+              stop('Invalid server URL')
+            }
+            for (name in names(server$variables)) {
+              variable <- server$variables[[name]]
+              if (!is.list(variable)) {
+                stop('Invalid server variable')
+              }
+              value <- variable$default
+              if (!is.character(value) || length(value) != 1L || is.na(value)) {
+                stop('Unresolved server variable default')
+              }
+              if (
+                !is.null(variable$enum) && !value %in% unlist(variable$enum)
+              ) {
+                stop('Server variable default is outside its enum')
+              }
+              url <- gsub(paste0('{', name, '}'), value, url, fixed = TRUE)
+            }
+            url
+          },
+          character(1)
+        )
+        if (!length(urls)) urls <- '/'
+      }
+      if (any(grepl('[{}]', urls))) {
+        stop('Unresolved server variables')
+      }
+      if (any(!grepl('^[A-Za-z][A-Za-z0-9+.-]*:', urls))) {
+        if (!nzchar(origin)) {
+          stop(
+            'Relative server URL requires a recorded origin or explicit base URL override'
+          )
+        }
+        if (!valid_server_url(origin)) {
+          stop('Invalid server origin')
+        }
+        if (!requireNamespace('httr2', quietly = TRUE)) {
+          stop('Install httr2 to resolve schema origins')
+        }
+        urls <- tryCatch(
+          vapply(
+            urls,
+            function(url) {
+              httr2::url_build(httr2::url_parse(url, base_url = origin))
+            },
+            character(1)
+          ),
+          error = function(e) stop('Unsupported relative server URL')
+        )
+      }
+      urls <- unique(urls)
+      if (length(urls) != 1L) {
+        stop('Ambiguous server selection: supply an explicit base URL override')
+      }
+      if (!valid_server_url(urls)) {
+        stop(
+          'Unsupported server URL: expected absolute HTTP(S) without credentials, query, or fragment'
+        )
+      }
+      list(url = urls)
+    },
+    error = function(e) list(diagnostic = conditionMessage(e))
+  )
+}
+
+schema_server <- function(document, origin = '') {
+  effective_server(document, origin = origin)$url %or% ''
 }
 
 configure_apis <- function(

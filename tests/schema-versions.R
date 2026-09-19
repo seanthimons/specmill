@@ -74,7 +74,12 @@ schema_version_acceptance <- function() {
         path = '/items',
         path_params = list(),
         query = list(),
-        body = body
+        body = body,
+        server = list(diagnostic = if (version == '2.0') {
+          'Swagger host/scheme requires a recorded origin or explicit base URL override'
+        } else {
+          'Relative server URL requires a recorded origin or explicit base URL override'
+        })
       )
       stopifnot(identical(context$submit_items(body), expected))
       if (shape$items$type == 'object') {

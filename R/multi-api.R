@@ -84,6 +84,16 @@ multi_api_proposal <- function(
       package = 'specmill',
       mustWork = TRUE
     ))
+    code <- sub(
+      'base_url_override <- NULL # Initialization override',
+      paste0(
+        'base_url_override <- ',
+        r_literal(apis$base_url[[i]]),
+        ' # Initialization override'
+      ),
+      code,
+      fixed = TRUE
+    )
     code <- sub('api_request <-', paste0(helper, ' <-'), code, fixed = TRUE)
     helpers[[paste0('R/', helper, '.R')]] <- gsub(
       'DRY_RUN_ENV',

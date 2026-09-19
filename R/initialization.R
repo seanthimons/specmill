@@ -25,14 +25,14 @@ initialize_client <- function(
   naming <- match.arg(naming)
   group_by <- match.arg(group_by)
   document <- read_schema_document(schema)
-  if (is.null(base_url) && length(document$servers)) {
-    base_url <- document$servers[[1L]]$url
-  }
-  config_string(base_url, 'base_url')
-  if (!grepl('^https?://[^/]+', base_url)) {
+  base_url_override <- base_url
+  if (!is.null(base_url) && !valid_server_url(base_url)) {
     stop(
-      'Supply an absolute HTTP base_url; relative servers need a recorded origin'
+      'Supply an absolute HTTP(S) base_url without credentials, query, or fragment'
     )
+  }
+  if (is.null(base_url)) {
+    base_url <- effective_server(document)$url
   }
   description <- file.path(root, 'DESCRIPTION')
   existing <- file.exists(description)
@@ -98,6 +98,16 @@ initialize_client <- function(
   helper <- readLines(
     system.file('templates/request.R', package = 'specmill', mustWork = TRUE),
     warn = FALSE
+  )
+  helper <- sub(
+    'base_url_override <- NULL # Initialization override',
+    paste0(
+      'base_url_override <- ',
+      r_literal(base_url_override),
+      ' # Initialization override'
+    ),
+    helper,
+    fixed = TRUE
   )
   helper <- gsub('BASE_URL', r_literal(base_url), helper, fixed = TRUE)
   helper <- gsub(

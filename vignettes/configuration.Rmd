@@ -94,6 +94,25 @@ refer to these project credential names. Set a credential with
 
 ### Batch limits
 
+Generated project YAML also includes request defaults:
+
+```yaml
+defaults:
+  request_controls:
+    timeout: 30
+    max_retries: 0
+    retry_writes: false
+```
+
+Timeout is seconds per attempt. `max_retries: 2` permits three total attempts.
+These values use the same inheritance as other defaults: project, API, group or
+service, then operation. After editing YAML, regenerate wrappers to update their
+helper calls. Runtime `<package>.request` options override individual YAML fields.
+The client-owned helper must accept `request_controls` and apply those defaults;
+normal generation never overwrites it. Complete request mappings own their helper
+arguments and must pass any controls explicitly. Write retries still require
+`retry_writes: true`; use that only when replay is safe for the API.
+
 Generated defaults expose `batch.max_items` and `batch.max_bytes` as null
 (unconfigured). A top-level array request schema's `maxItems` becomes an
 operation-specific default. Set limits under service defaults or individual

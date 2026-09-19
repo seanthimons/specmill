@@ -32,7 +32,10 @@ commands_acceptance <- function() {
             path = '/refresh',
             path_params = list(),
             query = list(),
-            body = NULL
+            body = NULL,
+            server = list(
+              diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override'
+            )
           ),
           response = list(data = 'ok')
         )),

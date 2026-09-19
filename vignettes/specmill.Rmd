@@ -178,7 +178,9 @@ stopifnot(
   identical(result, list(id = 'item-1')),
   identical(captured, list(
     method = 'GET', path = '/items/{item_id}',
-    path_params = list(item_id = 'item-1'), query = list(language = 'en'), body = NULL
+    path_params = list(item_id = 'item-1'), query = list(language = 'en'), body = NULL,
+        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE),
+        server = list(diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override')
   ))
 )
 result
@@ -218,8 +220,10 @@ declared response media and schema metadata, but runtime decoding follows the
 actual `Content-Type`. The generator does not pass declared response schemas to
 the helper or validate response bodies against them. Such validation would need
 an explicit generated helper argument and remains unsupported. Credentials,
-pagination, retry decisions, batching, and service-specific validation belong
-in the client.
+pagination, batching, and service-specific validation belong in the client.
+New helpers expose timeout, URL override, and bounded safe retries through one
+package-scoped R option; see the [request controls guide](https://github.com/seanthimons/specmill#generated-client-request-controls).
+Existing client-owned helpers require an explicit update to adopt these controls.
 
 ## 9. Save the project and maintain it
 

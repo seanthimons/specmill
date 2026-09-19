@@ -1,5 +1,7 @@
 transport_arguments <- function(operation) {
   c(
+    if (!is.null(operation$server)) 'server',
+    if (length(operation$request_controls)) 'request_controls',
     if (any(vapply(operation$parameters, extended_parameter, logical(1)))) {
       'parameter_serialization'
     },
@@ -272,6 +274,12 @@ render_operation <- function(operation, spec) {
     } else {
       paste0('params[[', r_literal(body_name), ']]')
     },
+    if ('request_controls' %in% transport_arguments(operation)) {
+      paste0(', request_controls = ', r_literal(operation$request_controls))
+    },
+    if ('server' %in% transport_arguments(operation)) {
+      paste0(', server = ', r_literal(operation$server))
+    },
     if ('auth' %in% transport_arguments(operation)) {
       paste0(', auth = ', r_literal(operation$auth))
     },
@@ -331,8 +339,8 @@ render_operation <- function(operation, spec) {
     },
     ')'
   )
-  if (!is.null(spec$request)) {
-    arguments <- spec$request$arguments
+  if (!is.null(spec[['request']])) {
+    arguments <- spec[['request']]$arguments
     request <- paste0(
       '  result <- ',
       helper,
@@ -570,7 +578,7 @@ generate_client <- function(
       ) {
         stop('Batch limits require a supported request body: ', op$id)
       }
-      if (!is.null(authentication) && is.null(operation_spec$request)) {
+      if (!is.null(authentication) && is.null(operation_spec[['request']])) {
         credential_map <- service$authentication
         envvars <- if (is.null(credential_map)) {
           authentication
@@ -676,7 +684,7 @@ generate_client <- function(
           function(x) isTRUE(x$required),
           helper_formals
         ))
-        sent_arguments <- if (is.null(operation_spec$request)) {
+        sent_arguments <- if (is.null(operation_spec[['request']])) {
           c(
             'method',
             'path',
@@ -686,7 +694,7 @@ generate_client <- function(
             transport_arguments(op)
           )
         } else {
-          names(operation_spec$request$arguments)
+          names(operation_spec[['request']]$arguments)
         }
         missing_arguments <- setdiff(required_arguments, sent_arguments)
         if (length(missing_arguments)) {
@@ -1061,6 +1069,10 @@ generate_client <- function(
       operations = configured_operations,
       drift = drift,
       diagnostics = diagnostics,
+      server_diagnostics = do.call(
+        c,
+        unname(lapply(parsed, `[[`, 'server_diagnostics'))
+      ),
       mapping_diagnostics = do.call(
         c,
         unname(lapply(parsed, `[[`, 'mapping_diagnostics'))
@@ -1098,6 +1110,12 @@ print.specmill_generation <- function(x, ...) {
   cat('\nFiles to remove\n')
   for (file in Filter(function(file) file$action == 'remove', x$files)) {
     cat('  ', file$file, '\n', sep = '')
+  }
+  if (length(x$server_diagnostics)) {
+    cat('Server selection requires an explicit override at runtime:\n')
+    for (diagnostic in x$server_diagnostics) {
+      cat('  ', diagnostic$key, ': ', diagnostic$reason, '\n', sep = '')
+    }
   }
   if (length(x$diagnostics)) {
     cat('\nDiagnostics\n')
