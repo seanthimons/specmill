@@ -162,7 +162,7 @@ capability_audit_acceptance <- function() {
     identical(created$body, list(name = 'Ada'))
   )
 
-  # Known gap #11: operation servers do not reach wrappers or the fixed helper.
+  # GH #11: effective operation servers reach wrappers; root defaults resolve.
   servers <- specmill::read_operations(fixture('operation-server.json'))
   stopifnot(!length(servers$diagnostics))
   get_items <- operation(servers, 'get_items')
@@ -187,11 +187,11 @@ capability_audit_acceptance <- function() {
       get_items$source_operation$servers[[1L]]$url,
       'https://operation.example.invalid/v2'
     ),
-    is.null(get_items$servers),
-    is.null(sent$server),
+    identical(get_items$server$url, 'https://operation.example.invalid/v2'),
+    identical(sent$server, get_items$server),
     is.null(sent$base_url),
     grepl(
-      'https://{region}.root.example.invalid/v1',
+      'https://us.root.example.invalid/v1',
       helper,
       fixed = TRUE
     )

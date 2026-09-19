@@ -582,6 +582,7 @@ read_operations <- function(files, policy = list()) {
               name = name,
               method = toupper(method),
               path = path,
+              server = effective_server(document, item, op),
               parameters = params,
               body = body,
               body_required = body_required,
@@ -721,6 +722,15 @@ read_operations <- function(files, policy = list()) {
     operations = operations[supported],
     unsupported_operations = operations[!supported],
     diagnostics = diagnostics,
+    server_diagnostics = lapply(
+      Filter(function(op) !is.null(op$server$diagnostic), operations),
+      function(op) {
+        c(
+          op[c('id', 'key', 'source')],
+          list(code = 'server_selection', reason = op$server$diagnostic)
+        )
+      }
+    ),
     inventory = inventory
   )
 }
@@ -784,6 +794,9 @@ compare_operations <- function(old, new) {
         !identical(a$body_encoding, b$body_encoding)
     ) {
       add(key, 'review', 'Body changed')
+    }
+    if (!identical(a$server, b$server)) {
+      add(key, 'review', 'Effective server changed')
     }
     if (!identical(a$response, b$response)) {
       add(key, 'unknown', 'Response compatibility is not classified')

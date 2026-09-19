@@ -250,6 +250,11 @@ configuration_proposal <- function(
     documentation = TRUE,
     defaults = list(
       implementation = 'generated',
+      request_controls = list(
+        timeout = 30L,
+        max_retries = 0L,
+        retry_writes = FALSE
+      ),
       batch = list(max_items = NULL, max_bytes = NULL)
     )
   )
@@ -275,7 +280,7 @@ configuration_proposal <- function(
         selection = '# Package-wide limits: services cannot re-enable these excluded methods or paths.',
         helper = '# Default runtime helper; services may override it.',
         documentation = '# Generate help and exports unless a service overrides this setting.',
-        defaults = '# Shared settings; service defaults and individual overrides take precedence.\n# Keep function names and output files in service YAML.',
+        defaults = '# Shared settings; service defaults and individual overrides take precedence.\n# Request controls: seconds per attempt, retries after the first attempt, and explicit write replay permission.\n# Runtime package.request options override these generated defaults.\n# Keep function names and output files in service YAML.',
         authentication = paste(
           '# Schema security scheme -> environment variable name. Never put tokens here.',
           '# API keys and bearer tokens are supported; OAuth login/refresh is deferred.',

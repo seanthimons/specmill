@@ -65,6 +65,11 @@ catalogue_acceptance <- function() {
       result = list(data = 'ok')
     )
   )
+  for (name in names(spec$contracts)) {
+    spec$contracts[[name]]$request$server <- list(
+      diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override'
+    )
+  }
   manual <- tools::md5sum(file.path(root, 'R/helper.R'))
   first <- specmill::generate_client(root, spec, 'apply')
   stopifnot(length(first$operations) == 4L, length(first$diagnostics) == 0L)
@@ -234,7 +239,10 @@ catalogue_acceptance <- function() {
       path = path,
       path_params = path_params,
       query = query,
-      body = body
+      body = body,
+      server = list(
+        diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override'
+      )
     ))
   }
   check <- function(call, expected, result) {

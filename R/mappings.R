@@ -48,6 +48,7 @@ validate_settings <- function(
       'parameter_order',
       'docs',
       'batch',
+      'request_controls',
       'body_media',
       'query_array_style'
     ),
@@ -75,6 +76,42 @@ validate_settings <- function(
     names(settings)
   )) {
     config_string(settings[[name]], paste(label, name))
+  }
+  if ('request_controls' %in% names(settings)) {
+    controls <- settings$request_controls
+    config_fields(
+      controls,
+      c('timeout', 'max_retries', 'retry_writes'),
+      paste(label, 'request_controls')
+    )
+    for (field in intersect(names(controls), c('timeout', 'max_retries'))) {
+      value <- controls[[field]]
+      if (
+        !is.numeric(value) ||
+          length(value) != 1L ||
+          !is.finite(value) ||
+          (field == 'timeout' && value <= 0) ||
+          (field == 'max_retries' &&
+            (value < 0 ||
+              value != trunc(value) ||
+              value >= .Machine$integer.max))
+      ) {
+        stop(
+          'Invalid request_controls.',
+          field,
+          ': timeout must be positive; max_retries must be a nonnegative integer below .Machine$integer.max'
+        )
+      }
+    }
+    if (
+      'retry_writes' %in%
+        names(controls) &&
+        (!is.logical(controls$retry_writes) ||
+          length(controls$retry_writes) != 1L ||
+          is.na(controls$retry_writes))
+    ) {
+      stop('request_controls.retry_writes must be true or false')
+    }
   }
   if ('batch' %in% names(settings)) {
     config_fields(settings$batch, c('max_items', 'max_bytes'), 'batch')
@@ -172,13 +209,13 @@ validate_settings <- function(
     validate_documentation(settings$docs)
   }
   if ('request' %in% names(settings)) {
-    config_fields(settings$request, c('arguments'), 'request')
+    config_fields(settings[['request']], c('arguments'), 'request')
     config_fields(
-      settings$request$arguments,
-      names(settings$request$arguments),
+      settings[['request']]$arguments,
+      names(settings[['request']]$arguments),
       'request arguments'
     )
-    for (binding in settings$request$arguments) {
+    for (binding in settings[['request']]$arguments) {
       validate_binding(binding, callbacks)
     }
   }
@@ -236,7 +273,7 @@ configure_operation <- function(operation, service) {
   extra_parameters <- settings$extra_parameters
   if ('inputs' %in% names(settings)) {
     if (
-      is.null(settings$request) ||
+      is.null(settings[['request']]) ||
         length(settings$parameters) ||
         length(extra_parameters)
     ) {
@@ -314,6 +351,7 @@ configure_operation <- function(operation, service) {
       public_names
     )]
   }
+  operation$request_controls <- config_data(settings$request_controls)
   operation$parameters <- parameters
   spec <- merge_settings(service, settings)
   list(operation = operation, spec = spec)

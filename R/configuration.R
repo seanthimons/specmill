@@ -109,7 +109,7 @@ read_service_operations <- function(service) {
     # Complete mappings own the public facade and helper serialization. Schema
     # limitations remain in the inventory; malformed metadata never reaches here.
     configure_operation(operation, service)
-    request <- settings$request$arguments
+    request <- settings[['request']]$arguments
     if (!length(request)) {
       stop('Explicit mapping requires helper arguments: ', operation$id)
     }

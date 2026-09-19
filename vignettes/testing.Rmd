@@ -55,7 +55,9 @@ contracts <- list(
       arguments = list(
         method = 'GET', path = '/items/{item_id}',
         path_params = list(item_id = 'item-1'),
-        query = list(language = 'en'), body = NULL
+        query = list(language = 'en'), body = NULL,
+        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE),
+        server = list(diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override')
       ),
       response = list(id = 'item-1', title = 'Example item')
     )),
@@ -146,6 +148,9 @@ contracts:
       path_params: {item_id: item-1}
       query: {language: en}
       body: null
+      request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+      server:
+        diagnostic: Relative server URL requires a recorded origin or explicit base URL override
     result: {id: item-1}
 ```
 

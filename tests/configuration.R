@@ -122,7 +122,10 @@ configuration_acceptance <- function() {
           path = '/items',
           path_params = list(),
           query = list(page = 2L),
-          body = NULL
+          body = NULL,
+          server = list(
+            diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override'
+          )
         ),
         response = tibble::tibble(count = 0L)
       )),
