@@ -914,6 +914,8 @@ generate_client <- function(
       }
     }
   }
+  # Documentation can recreate NAMESPACE after all its previous owners are excluded.
+  removals <- setdiff(removals, names(desired))
   selected_artifact <- function(paths) {
     kind <- ifelse(
       startsWith(paths, 'R/'),
