@@ -1,0 +1,23 @@
+{
+  "environment": "development",
+  "origin": "https://cim-dev.sciencedataexperts.com",
+  "checked_at": "2026-09-19 18:08:12 UTC",
+  "schema_url": "https://cim-dev.sciencedataexperts.com/api/amos/swagger.json",
+  "schema_sha256": "11bbfa8b6fcf943db4ea17c8d9b4a8ef9696064abc3d92fc0065c6d8ec2cd6a4",
+  "endpoint": "/api/amos/method_keyset_pagination/{limit}",
+  "response_fields": ["pagination", "results"],
+  "pagination_fields": ["hasNext", "limit", "nextCursor"],
+  "single_request_items": 2,
+  "bounded_get": {
+    "requests": 3,
+    "item_count": 5,
+    "stop_reason": "max_items"
+  },
+  "filtered_post": {
+    "requests": 1,
+    "item_count": 1,
+    "stop_reason": "no_next_cursor"
+  },
+  "unique_ids": 5,
+  "note": "Generated GET and filtered read-only POST wrappers. No credentials, no production requests. AMOS validates cursor mode; next-link behavior is covered by localhost tests."
+}

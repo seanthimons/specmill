@@ -44,4 +44,7 @@ reference:
   - apply_files
   - render_operation
   - bind_tools
+  - batched
+  - paginated
+  - paginated_links
   - specmill

@@ -1,0 +1,9 @@
+{
+  "environment": "staging",
+  "checked_at": "2026-09-19 18:10:25 UTC",
+  "schema_url": "https://cim.sciencedataexperts.com/api/amos/swagger.json",
+  "schema_status": 503,
+  "endpoint_url": "https://cim.sciencedataexperts.com/api/amos/method_keyset_pagination/2",
+  "endpoint_status": 503,
+  "outcome": "blocked: no successful staging pagination validation"
+}

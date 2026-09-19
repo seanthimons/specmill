@@ -221,6 +221,8 @@ actual `Content-Type`. The generator does not pass declared response schemas to
 the helper or validate response bodies against them. Such validation would need
 an explicit generated helper argument and remains unsupported. Credentials,
 pagination, batching, and service-specific validation belong in the client.
+Optional `paginated()` companions support explicitly configured page/offset
+and cursor retrieval, with `paginated_links()` for next links; see [pagination configuration](configuration.html#pagination).
 New helpers expose timeout, URL override, and bounded safe retries through one
 package-scoped R option; see the [request controls guide](https://github.com/seanthimons/specmill#generated-client-request-controls).
 Existing client-owned helpers require an explicit update to adopt these controls.
