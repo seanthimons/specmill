@@ -855,3 +855,171 @@ uses your explicit serializer mapping and keeps its original parser limitations
 visible; it does not acquire native schema support.
 
 Apply only reviewed changes, then run `check` and [the client's tests](testing.html).
+
+
+## Pagination
+
+Pagination configuration is explicit R code per operation, kept in a companion
+function outside generated files. There is no pagination YAML field in this
+first implementation. `paginated()` follows the existing `batched()` pattern of
+calling an ordinary function; it does not change wrapper generation or transport.
+
+The convention inventory used for this implementation is:
+
+| Convention | Inputs and response | Support |
+|---|---|---|
+| Page number | A zero- or one-based page, a page size, and a collection, possibly nested | Explicit starting page; increment by one |
+| Offset | An offset, a limit, and a collection | Explicit starting offset; increment by requested size |
+| Cursor | An opaque token in a response body and a token argument on the next request | Explicit token argument and extractor; repeated tokens rejected |
+| Next link | A response body URL or an HTTP Link header | `paginated_links()` with a bodyless httr2 GET request; same origin only |
+
+The bundled catalogue's `list_items(page)` demonstrates why parameter names are
+insufficient: its schema supplies neither a size parameter nor an end condition.
+It is not automatically pageable. Existing extension points include public input
+and request mappings, pre-request and post-response hooks, custom request helpers,
+and retained `implementation: existing` functions. Hooks can normalize a response;
+a separate companion can orchestrate repeated calls without changing the public
+single-request contract. The helper and companion are client-owned R files.
+
+For an operation with public arguments `page`, `per_page`, and `category`:
+
+```{r pagination-page, eval=FALSE}
+list_all_items <- function(category, max_pages = 100, max_items = 10000) {
+  specmill::paginated(
+    list_items, category = category,
+    mode = 'page', parameter = 'page', size_parameter = 'per_page',
+    start = 1, page_size = 50, items = function(response) response$data,
+    max_pages = max_pages, max_items = max_items
+  )
+}
+result <- list_all_items('books')
+result$stop_reason
+result$pages
+```
+
+For a top-level collection and offset/limit arguments:
+
+```{r pagination-offset, eval=FALSE}
+search_all <- function(query, max_pages = 100, max_items = 10000) {
+  specmill::paginated(
+    search_items, query = query,
+    mode = 'offset', parameter = 'offset', size_parameter = 'limit',
+    start = 0, page_size = 50, items = identity,
+    max_pages = max_pages, max_items = max_items
+  )
+}
+```
+
+Use exact public argument names, including any configured renames. Fixed arguments
+must be named and cannot override the pagination arguments. If an operation's
+argument collides with a `paginated()` control such as `items` or `start`, use a
+small adapter function that closes over that fixed value. Add specmill to Imports
+if shipping these companions in a client package. Existing generated functions
+remain independent of specmill at runtime.
+
+The extractor must return a list, atomic vector, or data frame. Data frames count
+rows. NULL is rejected to catch missing response fields; explicitly convert a
+known null/204 end response to an empty collection in the extractor if the API
+uses that convention. Extracted pages retain their collection type and are not
+merged. Empty pages are omitted and produce `stop_reason = 'empty_page'`.
+Short pages continue; a full final page therefore requires another call to discover
+an empty page. Page numbers advance by one, offsets by the fixed requested size.
+Offset APIs that cap or change the stride require custom orchestration.
+
+`max_pages` and `max_items` must be finite positive integers. Their defaults are
+100 and 10000. The last collection is sliced to meet the item limit without
+changing the request size. Limits bound calls and retained items, not response
+bytes or total time. Transport retries can make multiple HTTP attempts per call.
+A limit produces `max_pages` or `max_items`, with the item limit taking precedence
+when both are reached. Neither means that all available items were fetched.
+Repeated nonempty pages terminate at these limits without deduplication. Request,
+decode, and extraction errors propagate immediately; no partial result is returned.
+
+### Cursor responses, including AMOS
+
+`mode = 'cursor'` takes the exact public cursor argument name and a `next_cursor`
+function. The default `start = NULL` is passed explicitly on the first call. Use
+`start = ''` if the operation requires an empty string instead. Supply a resume
+token explicitly when resuming. `size_parameter` and `page_size` may both be NULL
+when the companion fixes the size itself. Cursor values must be strings or NULL;
+they are never decoded, modified, inferred from item IDs, or treated as URLs.
+
+AMOS development and staging return a `results` array and a `pagination` object
+containing `hasNext`, `limit`, and `nextCursor`. Configure a generated GET wrapper
+for `/api/amos/method_keyset_pagination/{limit}` as follows:
+
+```{r pagination-cursor, eval=FALSE}
+all_methods <- function(max_pages = 10, max_items = 500) {
+  specmill::paginated(
+    amos_page, mode = 'cursor', parameter = 'cursor',
+    size_parameter = 'limit', page_size = 50,
+    items = function(x) x$results,
+    next_cursor = function(x) {
+      if (isTRUE(x$pagination$hasNext)) x$pagination$nextCursor else NULL
+    },
+    max_pages = max_pages, max_items = max_items
+  )
+}
+```
+
+For the filtered POST form, put the cursor in the body through a companion:
+
+```{r pagination-cursor-body, eval=FALSE}
+filtered_page <- function(cursor, limit) {
+  amos_filtered(limit = limit, body = list(
+    cursor = if (is.null(cursor)) '' else cursor,
+    filters = list(internal_id = list(
+      filterType = 'text', type = 'startsWith', filter = 'GJ-'
+    ))
+  ))
+}
+```
+
+Pass `filtered_page` in place of `amos_page`. Keep filters and sort order fixed
+throughout retrieval. The generated functions retain their one-request behavior.
+NULL or an empty next token ends with `no_next_cursor`. Repeated tokens, including
+cycles back to the initial token, raise an error before another request. Empty
+pages stop even if a token is present; limits stop before token extraction. These
+stops take precedence over detecting repetition in an unused next token.
+
+### Next links in bodies or headers
+
+Generated wrappers return decoded bodies, so they do not expose HTTP headers.
+`paginated_links()` instead takes an httr2 request; its extractors receive the
+full httr2 response. It requires httr2 1.3.0 or later and a bodyless GET request.
+
+```{r pagination-link, eval=FALSE}
+request <- httr2::request('https://example.org/items?limit=50') %>%
+  httr2::req_timeout(20)
+
+# HTTP Link header, rel="next", is the default next-link extractor.
+result <- specmill::paginated_links(
+  request, items = function(response) httr2::resp_body_json(response)$data,
+  max_pages = 10, max_items = 500
+)
+
+# A body-provided next URL uses the same retrieval and origin checks.
+result <- specmill::paginated_links(
+  request, items = function(response) httr2::resp_body_json(response)$data,
+  next_link = function(response) httr2::resp_body_json(response)$next,
+  max_pages = 10, max_items = 500
+)
+```
+
+Configure authentication on the original request. Each link must match its scheme,
+hostname, and effective port before that request's credentials are used. Relative
+links resolve against the current response URL. URL userinfo and fragments are
+rejected. All redirects are disabled, including same-origin redirects; a redirect
+response is an error. The next URL supplies its complete query string, so initial
+query arguments are not automatically appended. NULL or an empty link ends with
+`no_next_link`. Repeated resolved links are errors; finite limits also bound cycles
+that change their URL spelling. Error messages for invalid/repeated links do not
+include their values.
+
+Cross-origin links, redirect traversal, link-based POSTs, and composite/non-string
+cursor objects are unsupported. Use a client-owned helper for such contracts;
+never edit generated wrappers. AMOS validates cursor behavior, not next-link
+behavior. The localhost tests exercise body and header links, relative resolution,
+cycles, and credential isolation. The opt-in `dev/verify_amos_pagination.R` script
+checks generated GET and filtered POST wrappers against dev or staging without
+production access or credentials.

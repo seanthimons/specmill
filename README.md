@@ -122,6 +122,62 @@ control of their own helper arguments. Proxy/TLS settings, streaming,
 cancellation, custom retry predicates, and per-API runtime controls still require
 a custom helper.
 
+## Explicit pagination
+
+Keep the generated single-request function and put per-operation pagination
+settings in a separate, client-owned R function:
+
+```r
+list_all_items <- function(category, max_pages = 100, max_items = 10000) {
+  specmill::paginated(
+    list_items, category = category,
+    mode = 'page', parameter = 'page', size_parameter = 'per_page',
+    start = 1, page_size = 50, items = function(response) response$data,
+    max_pages = max_pages, max_items = max_items
+  )
+}
+```
+
+Use the actual public argument names and collection extractor for your operation.
+For an offset API, configure `mode = 'offset'`, `parameter = 'offset'`,
+`size_parameter = 'limit'`, and `start = 0`. Offsets advance by `page_size`;
+page numbers advance by one. No pagination is inferred from a schema or a name.
+
+The result contains unmerged extracted `pages`, `requests`, `item_count`, and
+`stop_reason`. Empty pages stop retrieval and are omitted. Short pages continue.
+Finite page and item limits are mandatory, with defaults of 100 and 10000.
+The item limit slices the last collection; it bounds retained items, not response
+bytes. Request size stays fixed, so the server must honor the configured offset
+stride. Check `stop_reason`: reaching a limit does not prove retrieval is complete.
+Errors propagate immediately without returning partial results. Repeated pages
+are not deduplicated and stop at the configured limits. Each call retains its
+transport timeout and retry policy; there is no total elapsed-time limit.
+
+This companion uses specmill at runtime; add it to the client package's Imports
+if you include the companion there. Ordinary generated functions still need no
+specmill runtime dependency and retain their signatures and return types.
+Cursor mode uses an explicit `next_cursor` extractor and rejects repeated tokens.
+For AMOS dev/staging keyset responses:
+
+```r
+specmill::paginated(
+  amos_page, mode = 'cursor', parameter = 'cursor',
+  size_parameter = 'limit', page_size = 50,
+  items = function(x) x$results,
+  next_cursor = function(x) {
+    if (isTRUE(x$pagination$hasNext)) x$pagination$nextCursor else NULL
+  },
+  max_pages = 10, max_items = 500
+)
+```
+
+`amos_page` is a single-request wrapper for the keyset endpoint. Cursor tokens
+remain opaque; NULL or an empty next token ends retrieval. `paginated_links()`
+accepts an httr2 GET request and extracts body or HTTP Link-header URLs. It checks
+every link against the initial origin and disables redirects before sending
+credentials. See [pagination configuration](vignettes/configuration.Rmd#pagination)
+and the [AMOS live validation report](dev/audits/pagination/README.md).
+
 ## Learn the workflow
 
 | Guide | What it covers |
