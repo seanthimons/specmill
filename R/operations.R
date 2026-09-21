@@ -524,7 +524,8 @@ read_operations <- function(files, policy = list()) {
               body <- input_schema(
                 body,
                 document,
-                source_location = body_location
+                source_location = body_location,
+                recursive_body = identical(body_media, 'application/json')
               )
               if (
                 body_media == 'application/octet-stream' &&

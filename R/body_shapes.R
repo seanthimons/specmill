@@ -17,6 +17,9 @@ supported_body <- function(
   if (!is.list(body)) {
     fail('body_shape', 'Unsupported body shape')
   }
+  if (!is.null(attr(body, 'specmill_ref'))) {
+    return(body)
+  }
   ref <- body[['$ref']]
   body <- local_ref(body, document, seen, source_location)
   if (!is.null(ref)) {
@@ -295,6 +298,9 @@ body_fixture_candidates <- function(schema) {
 }
 
 body_fixture_plain <- function(schema) {
+  if (!is.null(attr(schema, 'specmill_ref'))) {
+    stop('Recursive fixture requires a finite value')
+  }
   type <- unlist(schema$type, use.names = FALSE)
   if (!length(type)) {
     return(list(list()))
@@ -309,11 +315,16 @@ body_fixture_plain <- function(schema) {
   }
   if ('object' %in% type) {
     properties <- names(schema$properties)
-    properties <- properties[!vapply(
-      schema$properties,
-      function(property) isTRUE(property$readOnly),
-      logical(1)
-    )]
+    properties <- properties[
+      !vapply(
+        schema$properties,
+        function(property) {
+          isTRUE(property$readOnly) ||
+            !is.null(attr(property, 'specmill_ref'))
+        },
+        logical(1)
+      )
+    ]
     keys <- union(properties, unlist(schema$required)) %or% character()
     return(list(stats::setNames(
       lapply(keys, function(name) {
@@ -341,6 +352,48 @@ body_fixture_value <- function(schema, override = NULL) {
 
 # Self-contained: generated clients need no specmill runtime or new helper argument.
 body_value <- function(value, schema) {
+  # Check all supplied content, including unconstrained fields, before equality
+  # or schema validation can recurse. R environments are not JSON objects.
+  nodes <- 0L
+  check_json <- function(value, depth = 0L) {
+    nodes <<- nodes + 1L
+    if (depth > 32L) {
+      stop('Body depth limit exceeded (32); possible cycle')
+    }
+    if (nodes > 20000L) {
+      stop('Body node limit exceeded (20000)')
+    }
+    if (is.environment(value)) {
+      stop('Body contains an environment or cycle')
+    }
+    if (is.list(value)) {
+      for (child in value) {
+        check_json(child, depth + 1L)
+      }
+    }
+  }
+  check_json(value)
+  definitions <- list()
+  collect <- function(node) {
+    id <- attr(node, 'specmill_id')
+    if (!is.null(id)) {
+      definitions[[id]] <<- node
+    }
+    for (child in node$properties) {
+      collect(child)
+    }
+    for (field in c('items', 'additionalProperties')) {
+      if (is.list(node[[field]])) collect(node[[field]])
+    }
+    for (field in c('allOf', 'anyOf', 'oneOf')) {
+      for (child in node[[field]]) {
+        collect(child)
+      }
+    }
+  }
+  collect(schema)
+  validations <- 0L
+
   equal_json <- function(x, y) {
     if (is.list(x) || is.list(y)) {
       if (
@@ -370,6 +423,15 @@ body_value <- function(value, schema) {
     identical(x, y)
   }
   validate <- function(value, schema, strict = FALSE) {
+    validations <<- validations + 1L
+    if (validations > 20000L) {
+      stop('Body validation node limit exceeded (20000)')
+    }
+    ref <- attr(schema, 'specmill_ref')
+    if (!is.null(ref)) {
+      schema <- definitions[[ref]]
+      if (is.null(schema)) stop('Missing recursive body definition')
+    }
     type <- unlist(schema$type, use.names = FALSE)
     strict <- strict ||
       length(type) > 1L ||

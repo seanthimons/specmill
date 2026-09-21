@@ -50,6 +50,7 @@ diagnostics_acceptance <- function() {
       schemas = list(
         Node = list(
           type = 'object',
+          required = list('child'),
           properties = list(
             child = list('$ref' = '#/components/schemas/Node')
           )

@@ -1,0 +1,10 @@
+{
+  "source": "https://classifier.dev/openapi.json",
+  "retrieved_at": "2026-09-19T18:02:49Z",
+  "sha256": "5271f4d6ce136581424be7cbb2908aa087f8bdf3f505dde02871e444350099ce",
+  "openapi": "3.1.0",
+  "api_title": "classifier.dev",
+  "api_version": "1.0.0",
+  "path_count": 18,
+  "operation_count": 20
+}

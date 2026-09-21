@@ -80,6 +80,24 @@ fixture_value <- function(schema, override = NULL) {
       number = 1,
       boolean = TRUE
     )
+    if (schema$type %in% c('integer', 'number')) {
+      lower <- schema$minimum %or% -Inf
+      upper <- schema$maximum %or% Inf
+      if (schema$type == 'integer') {
+        lower <- ceiling(lower)
+        upper <- floor(upper)
+      }
+      if (lower > upper) {
+        stop(
+          'No valid fixture: numeric interval has no solution',
+          call. = FALSE
+        )
+      }
+      if (value < lower) {
+        value <- lower
+      }
+      if (value > upper) value <- upper
+    }
   }
   valid <- length(value) == 1L &&
     !is.na(value) &&
