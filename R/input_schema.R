@@ -6,7 +6,9 @@ input_schema <- function(
   document,
   seen = character(),
   source_location = '#',
-  parameter_items = FALSE
+  parameter_items = FALSE,
+  recursive_body = FALSE,
+  optional = FALSE
 ) {
   fail <- function(
     code,
@@ -34,6 +36,21 @@ input_schema <- function(
     fail('invalid_schema', 'Input schema must be an object')
   }
   ref <- schema[['$ref']]
+  # Only optional property back-edges belong to the finite request-body slice.
+  if (
+    recursive_body &&
+      optional &&
+      length(ref) == 1L &&
+      ref %in% seen &&
+      identical(names(schema), '$ref')
+  ) {
+    target <- local_ref(schema, document, schema_context = TRUE)
+    marker <- target[intersect(names(target), c('readOnly', 'writeOnly'))]
+    return(structure(marker, specmill_ref = ref))
+  }
+  if (!is.null(ref) && !identical(names(schema), '$ref')) {
+    recursive_body <- FALSE
+  }
   schema <- local_ref(
     schema,
     document,
@@ -134,7 +151,9 @@ input_schema <- function(
             schema_location(
               schema_location(source_location, 'properties'),
               name
-            )
+            ),
+            recursive_body = recursive_body,
+            optional = !name %in% unlist(schema$required)
           )
         }
       ),
@@ -165,7 +184,8 @@ input_schema <- function(
       document,
       seen,
       schema_location(source_location, 'items'),
-      parameter_items
+      parameter_items,
+      recursive_body = recursive_body
     )
   }
   for (field in intersect(names(schema), c('oneOf', 'anyOf', 'allOf'))) {
@@ -180,7 +200,8 @@ input_schema <- function(
           branches[[i]],
           document,
           seen,
-          schema_location(schema_location(source_location, field), i - 1L)
+          schema_location(schema_location(source_location, field), i - 1L),
+          recursive_body = recursive_body
         )
       }
     )
@@ -203,8 +224,12 @@ input_schema <- function(
       schema$additionalProperties,
       document,
       seen,
-      schema_location(source_location, 'additionalProperties')
+      schema_location(source_location, 'additionalProperties'),
+      recursive_body = recursive_body
     )
+  }
+  if (recursive_body && !is.null(ref)) {
+    attr(schema, 'specmill_id') <- ref
   }
   schema
 }
