@@ -178,7 +178,9 @@ the rebuild script. The completed rerun is retained under
 | Unresolved contracts and newly visible fixture evidence | `2fb077e`, `0a6ba35` |
 | Rebuild and stable-key comparison scripts | `4521a33` |
 
-#32–#40 meet their implementation and integration acceptance criteria. #26–#28
+#25, #30 and #32–#40 are closed with verification evidence.
+[Final GitHub status](github-status.json). #32–#40 meet their implementation and
+integration acceptance criteria. #26–#28
 and #31 retain the unresolved dependencies above; #4 was not changed.
 
 #25 and #30 reuse the existing `c30e66f` implementation. Their acceptance criteria
