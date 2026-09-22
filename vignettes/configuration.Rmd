@@ -820,8 +820,10 @@ are sent only when explicitly bound. Each binding has exactly one form:
 
 For JSON, use named lists for objects and unnamed lists for arrays, including
 one-element arrays. `NULL`, `false`, zero, and one-element lists are distinct.
-Do not turn arrays into scalar values for convenience. The helper owns the final
-serialization and full runtime value validation.
+Do not turn arrays into scalar values for convenience. The helper owns final
+serialization and transport checks. Schema-derived public parameters and bodies
+are validated before request mapping and runtime hooks. Complete client `inputs`
+maps retain their documented client-owned validation.
 
 ## Development callbacks versus runtime hooks
 
@@ -844,6 +846,19 @@ preserve its identity. These functions run during planning too: keep them
 deterministic and free of filesystem/network side effects.
 
 Runtime hooks execute when a user calls the generated wrapper:
+
+Hooks are client-owned request-shaping code. They may intentionally change a
+validated public value's type, remove values, or build a different request body
+and options under their returned state. Existing `hook_state` mappings select
+which state reaches the helper. Hook authors own these transformations and any
+validation they require; specmill adds no mandatory post-hook schema gate or
+outgoing-contract declaration. Generic helpers retain their transport checks.
+Hook exceptions propagate without calling a fallback request.
+
+Schema-derived public inputs, including empty-query restrictions, are checked
+before `pre_request`. An empty query created by a hook is therefore the hook
+author's responsibility. Explicit client `inputs` preserve their existing
+missing/NULL behavior described above.
 
 ```yaml
 hook_callback: run_hook

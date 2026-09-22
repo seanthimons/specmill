@@ -311,7 +311,7 @@ parameter_transport_acceptance <- function() {
       'query',
       value = list(R = list(1L)),
       invalid = TRUE,
-      expected = 'scalars'
+      expected = 'Invalid public input'
     )
     check(
       array,
@@ -332,7 +332,7 @@ parameter_transport_acceptance <- function() {
       'query',
       value = c(1, NA),
       invalid = TRUE,
-      expected = 'scalars'
+      expected = 'Invalid public input'
     )
     for (format in c('csv', 'ssv', 'tsv', 'pipes', 'multi')) {
       expected <- switch(
