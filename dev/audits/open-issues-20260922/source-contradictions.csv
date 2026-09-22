@@ -1,0 +1,7 @@
+key,source,parameter,location,classification,code,source_location,required,reason
+GET /echo_rest_services.get_facilities,additional-schemas/epa/echo-all-data.swagger.json,p_cs,query,schema_defect,type_enum_contradiction,#/parameters/q.p_cs/enum,FALSE,Enum has no value matching declared type; optional input may be omitted
+POST /echo_rest_services.get_facilities,additional-schemas/epa/echo-all-data.swagger.json,p_cs,body,schema_defect,type_enum_contradiction,#/parameters/f.p_cs/enum,FALSE,Enum has no value matching declared type; optional input may be omitted
+GET /echo_rest_services.get_facility_info,additional-schemas/epa/echo-all-data.swagger.json,p_cs,query,schema_defect,type_enum_contradiction,#/parameters/q.p_cs/enum,FALSE,Enum has no value matching declared type; optional input may be omitted
+POST /echo_rest_services.get_facility_info,additional-schemas/epa/echo-all-data.swagger.json,p_cs,body,schema_defect,type_enum_contradiction,#/parameters/f.p_cs/enum,FALSE,Enum has no value matching declared type; optional input may be omitted
+GET /ecatt_ems_rest_services.get_ems,additional-schemas/epa/echo-emission-screener.swagger.json,p_ysly,query,schema_defect,type_enum_contradiction,#/parameters/q.p_ysly/enum,FALSE,Enum has no value matching declared type; optional input may be omitted
+POST /ecatt_ems_rest_services.get_ems,additional-schemas/epa/echo-emission-screener.swagger.json,p_ysly,body,schema_defect,type_enum_contradiction,#/parameters/f.p_ysly/enum,FALSE,Enum has no value matching declared type; optional input may be omitted

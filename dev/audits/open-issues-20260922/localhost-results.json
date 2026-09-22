@@ -1,0 +1,36 @@
+{
+  "specmill": {
+    "version": "0.1.4",
+    "library": "/tmp/specmill-validation-lib/specmill",
+    "source_commit": "b053cda80e91dd33ae2e8215a41640b652da632f",
+    "installed_renderer_matches_source": true,
+    "installed_code_sha256": "6828b11d2e13f1d572ef59d2f9a8c0eb663532302008e5241f6eeacbbf0fe0bb"
+  },
+  "packages": {
+    "hardpublic": {
+      "authentication": false,
+      "operations": 6,
+      "exact_wire_checks": 4,
+      "rejected_without_http": 6,
+      "invalid_public_inputs_without_http": 5,
+      "hook_exceptions_without_http": 1,
+      "hook_skip_without_http": true,
+      "freshness": "passed",
+      "package_check": "OK",
+      "schema_sha256": "0c4882106726944eb071927bdbc499085727e7cf3ffac672c8a17e031b11d123"
+    },
+    "hardauth": {
+      "authentication": true,
+      "operations": 6,
+      "exact_wire_checks": 4,
+      "rejected_without_http": 6,
+      "invalid_public_inputs_without_http": 5,
+      "hook_exceptions_without_http": 1,
+      "hook_skip_without_http": true,
+      "freshness": "passed",
+      "package_check": "OK",
+      "schema_sha256": "5d83bab905130f8bc3017b8870ab01b2024cb36a7b5ed56f4821d669247986bc"
+    }
+  },
+  "live_behavior": "unverified; localhost only"
+}

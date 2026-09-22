@@ -1,0 +1,224 @@
+{
+  "scripts": [
+    {
+      "file": "tests/api-configuration.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/authentication.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/batching.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/boundaries.R",
+      "exit": 0,
+      "verification_log": "artifacts/hardening-tests/boundaries-final.log"
+    },
+    {
+      "file": "tests/bracket-transport.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/capability-audit.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/catalogue.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/commands.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/composition-constraints.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/composition-transport.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/configuration-scaffold.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/configuration.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/diagnostics.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/dry-run.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/fixture-evidence.R",
+      "exit": 0,
+      "verification_log": "artifacts/hardening-tests/fixture-evidence-final.log"
+    },
+    {
+      "file": "tests/form-transport.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/formatting.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/function-name-styles.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/generated-names.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/grouped-renames.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/helper-provenance.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/http-methods.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/loading.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/local-references.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/maintenance.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/mapped-schemas.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/mappings.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/media-types.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/method-selection.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/multi-api.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/name-collision-review.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/native-transport.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/nested-bodies.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/new-client.R",
+      "exit": 0,
+      "verification_log": "artifacts/hardening-tests/new-client-final.log"
+    },
+    {
+      "file": "tests/numeric-fixtures.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/pagination-cursors.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/pagination.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/parameter-diagnostics.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/parameter-transport.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/portable-output.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/public-input-validation.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/readiness.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/reconciliation.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/request-controls.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/response-handling.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/schema-document.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/schema-loading.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/schema-reports.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/schema-stress.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/schema-versions.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/source-layout.R",
+      "exit": 0
+    },
+    {
+      "file": "tests/type-handling.R",
+      "exit": 0
+    }
+  ],
+  "extra_final_checks": [
+    "tests/helper-provenance.R",
+    "dev/verify_hardened_clients.R",
+    "dev/verify_open_contracts.R"
+  ],
+  "baseline_recheck": {
+    "operations": 986,
+    "identical_outcomes": true
+  }
+}
