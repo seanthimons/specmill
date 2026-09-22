@@ -1,3 +1,74 @@
+fixture_type_matches <- function(value, schema) {
+  if (is.null(value)) {
+    return(isTRUE(schema$nullable) || 'null' %in% schema$type)
+  }
+  any(vapply(
+    schema$type,
+    function(type) {
+      switch(
+        type,
+        string = is.character(value) && length(value) == 1L && !is.na(value),
+        integer = is.numeric(value) &&
+          length(value) == 1L &&
+          is.finite(value) &&
+          value == trunc(value),
+        number = is.numeric(value) && length(value) == 1L && is.finite(value),
+        boolean = is.logical(value) && length(value) == 1L && !is.na(value),
+        object = is.list(value) && !is.null(names(value)),
+        array = is.list(value) && is.null(names(value)),
+        FALSE
+      )
+    },
+    logical(1)
+  ))
+}
+
+fixture_diagnostics <- function(op) {
+  inspect <- function(schema, name, location, required) {
+    result <- list()
+    at <- attr(schema, 'specmill_enum_location')
+    if (!is.null(at)) {
+      result <- list(list(
+        key = op$key,
+        source = op$source,
+        parameter = name,
+        location = location,
+        classification = 'schema_defect',
+        code = 'type_enum_contradiction',
+        source_location = at,
+        required = required,
+        reason = paste(
+          'Enum has no value matching declared type;',
+          if (required) {
+            'required input is unsatisfiable'
+          } else {
+            'optional input may be omitted'
+          }
+        )
+      ))
+    }
+    for (child in names(schema$properties)) {
+      result <- c(
+        result,
+        inspect(
+          schema$properties[[child]],
+          child,
+          location,
+          required && child %in% unlist(schema$required)
+        )
+      )
+    }
+    result
+  }
+  result <- unlist(
+    lapply(op$parameters, function(p) {
+      inspect(p$schema, p$name, p$location, p$required)
+    }),
+    recursive = FALSE
+  )
+  c(result, inspect(op$body, 'body', 'body', isTRUE(op$body_required)))
+}
+
 fixture_value <- function(schema, override = NULL) {
   if (identical(schema$type, 'object')) {
     if (
@@ -59,6 +130,15 @@ fixture_value <- function(schema, override = NULL) {
       boolean = as.logical(value)
     ))
   }
+  selected <- intersect(c('example', 'default', 'enum'), names(schema))
+  if (missing(override) && length(selected)) {
+    value <- schema[[selected[[1L]]]]
+    if (selected[[1L]] == 'enum') {
+      candidates <- Filter(function(x) fixture_type_matches(x, schema), value)
+      value <- if (length(candidates)) candidates[[1L]] else value[[1L]]
+    }
+    override <- value
+  }
   if (!missing(override) && is.null(override)) {
     if (isTRUE(schema$nullable) || 'null' %in% schema$type) {
       return(NULL)
@@ -110,7 +190,14 @@ fixture_value <- function(schema, override = NULL) {
       FALSE
     )
   if (valid && !is.null(schema$enum)) {
-    valid <- value %in% unlist(schema$enum)
+    valid <- any(vapply(
+      schema$enum,
+      function(candidate) {
+        fixture_type_matches(candidate, schema) &&
+          isTRUE(all.equal(value, candidate, check.attributes = FALSE))
+      },
+      logical(1)
+    ))
   }
   if (valid && !is.null(schema$minimum)) {
     valid <- value >= schema$minimum
@@ -133,55 +220,205 @@ fixture_value <- function(schema, override = NULL) {
   value
 }
 
-operation_fixtures <- function(operations, overrides = list()) {
-  lapply(operations, function(op) {
-    inputs <- setNames(
-      lapply(op$parameters, function(p) {
-        if (p$name %in% names(overrides[[op$name]])) {
-          fixture_value(p$schema, overrides[[op$name]][[p$name]])
-        } else {
-          fixture_value(p$schema)
-        }
-      }),
-      parameter_names(op$parameters)
+minimal_fixture_schema <- function(schema) {
+  if (length(schema$properties)) {
+    schema$properties <- lapply(
+      schema$properties[intersect(
+        names(schema$properties),
+        unlist(schema$required)
+      )],
+      minimal_fixture_schema
     )
-    if (!is.null(op$body)) {
-      if (form_media(op$body_media)) {
-        allow_empty <- identical(
-          op$body_media,
-          'application/x-www-form-urlencoded'
-        )
-        inputs['body'] <- list(
-          if ('body' %in% names(overrides[[op$name]])) {
-            form_value(
-              overrides[[op$name]]$body,
-              op$body,
-              body_value,
-              allow_empty
+  }
+  if (is.list(schema$items)) {
+    schema$items <- minimal_fixture_schema(schema$items)
+  }
+  schema
+}
+
+operation_fixtures <- function(
+  operations,
+  overrides = list(),
+  mode = c('default', 'minimal')
+) {
+  mode <- match.arg(mode)
+  lapply(operations, function(op) {
+    omitted <- character()
+    parameters <- Filter(
+      function(p) {
+        keep <- mode != 'minimal' ||
+          p$required ||
+          p$name %in% names(overrides[[op$name]])
+        if (!keep) {
+          omitted <<- c(omitted, p$name)
+        }
+        keep
+      },
+      op$parameters
+    )
+    inputs <- setNames(
+      lapply(parameters, function(p) {
+        tryCatch(
+          {
+            if (p$name %in% names(overrides[[op$name]])) {
+              fixture_value(p$schema, overrides[[op$name]][[p$name]])
+            } else if ('example' %in% names(p$example)) {
+              fixture_value(p$schema, p$example$example)
+            } else {
+              fixture_value(p$schema)
+            }
+          },
+          error = function(e) {
+            problem <- Filter(
+              function(d) {
+                identical(d$parameter, p$name) &&
+                  identical(d$location, p$location)
+              },
+              fixture_diagnostics(op)
             )
-          } else {
-            form_fixture(op$body, allow_empty)
+            classification <- if (length(problem)) {
+              'schema_defect'
+            } else {
+              'review_required'
+            }
+            code <- if (length(problem)) {
+              'type_enum_contradiction'
+            } else {
+              'fixture_synthesis'
+            }
+            at <- if (length(problem)) {
+              problem[[1L]]$source_location
+            } else {
+              p$source_location
+            }
+            schema_problem(
+              code,
+              classification,
+              paste(
+                op$key,
+                p$location,
+                p$name,
+                if (p$required) {
+                  '(required input)'
+                } else {
+                  '(optional input; minimal mode reduces coverage)'
+                },
+                if (length(problem)) {
+                  problem[[1L]]$reason
+                } else {
+                  conditionMessage(e)
+                }
+              ),
+              at
+            )
           }
         )
-      } else if (identical(op$body_media, 'application/octet-stream')) {
-        value <- if ('body' %in% names(overrides[[op$name]])) {
-          overrides[[op$name]]$body
-        } else {
-          as.raw(0L)
-        }
-        if (!is.raw(value)) {
-          stop('Binary fixture must be a raw vector')
-        }
-        inputs['body'] <- list(value)
-      } else {
-        inputs['body'] <- list(
-          if ('body' %in% names(overrides[[op$name]])) {
-            body_fixture(op$body, overrides[[op$name]]$body)
-          } else {
-            body_fixture(op$body)
+      }),
+      parameter_names(parameters)
+    )
+    if (
+      mode == 'minimal' &&
+        !isTRUE(op$body_required) &&
+        !'body' %in% names(overrides[[op$name]]) &&
+        !is.null(op$body)
+    ) {
+      omitted <- c(omitted, 'body')
+    } else if (!is.null(op$body)) {
+      tryCatch(
+        {
+          if (
+            mode == 'minimal' &&
+              !'body' %in% names(overrides[[op$name]]) &&
+              !any(c('example', 'default', 'enum') %in% names(op$body)) &&
+              !length(op$body_example)
+          ) {
+            omitted <- c(
+              omitted,
+              paste0(
+                'body.',
+                setdiff(names(op$body$properties), unlist(op$body$required))
+              )
+            )
+            op$body <- minimal_fixture_schema(op$body)
           }
-        )
-      }
+          if (
+            !'body' %in% names(overrides[[op$name]]) &&
+              'example' %in% names(op$body_example)
+          ) {
+            overrides[[op$name]]['body'] <- list(op$body_example$example)
+          }
+          if (form_media(op$body_media)) {
+            allow_empty <- identical(
+              op$body_media,
+              'application/x-www-form-urlencoded'
+            )
+            inputs['body'] <- list(
+              if ('body' %in% names(overrides[[op$name]])) {
+                form_value(
+                  overrides[[op$name]]$body,
+                  op$body,
+                  body_value,
+                  allow_empty
+                )
+              } else {
+                form_fixture(op$body, allow_empty)
+              }
+            )
+          } else if (identical(op$body_media, 'application/octet-stream')) {
+            value <- if ('body' %in% names(overrides[[op$name]])) {
+              overrides[[op$name]]$body
+            } else {
+              as.raw(0L)
+            }
+            if (!is.raw(value)) {
+              stop('Binary fixture must be a raw vector')
+            }
+            inputs['body'] <- list(value)
+          } else {
+            inputs['body'] <- list(
+              if ('body' %in% names(overrides[[op$name]])) {
+                body_fixture(op$body, overrides[[op$name]]$body)
+              } else {
+                body_fixture(op$body)
+              }
+            )
+          }
+        },
+        error = function(e) {
+          problem <- Filter(
+            function(d) identical(d$location, 'body'),
+            fixture_diagnostics(op)
+          )
+          if (length(problem)) {
+            d <- problem[[1L]]
+            schema_problem(
+              d$code,
+              d$classification,
+              paste(
+                op$key,
+                d$location,
+                d$parameter,
+                d$reason,
+                conditionMessage(e)
+              ),
+              d$source_location
+            )
+          }
+          schema_problem(
+            'fixture_synthesis',
+            'review_required',
+            paste(
+              op$key,
+              if (op$body_required) '(required body)' else '(optional body)',
+              conditionMessage(e)
+            ),
+            '#/requestBody'
+          )
+        }
+      )
+    }
+    if (mode == 'minimal') {
+      attr(inputs, 'omitted_inputs') <- omitted
     }
     inputs
   })

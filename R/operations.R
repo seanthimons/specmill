@@ -207,17 +207,28 @@ read_operations <- function(files, policy = list()) {
                 source_location = parameter_locations[[i]]
               )
             })
+            parameter_locations <- vapply(
+              seq_along(raw_params),
+              function(i) {
+                raw_params[[i]][['$ref']] %or% parameter_locations[[i]]
+              },
+              character(1)
+            )
             parameter_groups <- c(
               rep('path', length(item$parameters)),
               rep('operation', length(op$parameters))
             )
             if (!identical(version, '2.0')) {
-              reserved <- vapply(params, function(p) {
-                identical(p[['in']], 'header') &&
-                  length(p$name) == 1L &&
-                  tolower(p$name) %in%
-                    c('accept', 'content-type', 'authorization')
-              }, logical(1))
+              reserved <- vapply(
+                params,
+                function(p) {
+                  identical(p[['in']], 'header') &&
+                    length(p$name) == 1L &&
+                    tolower(p$name) %in%
+                      c('accept', 'content-type', 'authorization')
+                },
+                logical(1)
+              )
               params <- params[!reserved]
               parameter_locations <- parameter_locations[!reserved]
               parameter_groups <- parameter_groups[!reserved]
@@ -256,6 +267,7 @@ read_operations <- function(files, policy = list()) {
             body_required <- FALSE
             body_media <- 'application/json'
             body_encoding <- list()
+            body_example <- list()
             preferred_media <- policy$body_media_overrides[[key]] %or%
               policy$body_media
             undefined_body_method <- body_present &&
@@ -334,6 +346,26 @@ read_operations <- function(files, policy = list()) {
                     field$items$type <- 'string'
                     field$items$format <- 'binary'
                   }
+                  if (
+                    length(field$enum) &&
+                      length(field$type) &&
+                      !any(vapply(
+                        field$enum,
+                        fixture_type_matches,
+                        logical(1),
+                        schema = field
+                      ))
+                  ) {
+                    index <- which(vapply(
+                      params,
+                      function(candidate) identical(candidate, p),
+                      logical(1)
+                    ))[[1L]]
+                    attr(field, 'specmill_enum_location') <- schema_location(
+                      parameter_locations[[index]],
+                      'enum'
+                    )
+                  }
                   field
                 })
                 names(fields) <- vapply(forms, `[[`, character(1), 'name')
@@ -385,6 +417,10 @@ read_operations <- function(files, policy = list()) {
                 body_location
               )
               body_encoding <- body$content[[body_media]]$encoding %or% list()
+              body_example <- body$content[[body_media]][intersect(
+                'example',
+                names(body$content[[body_media]])
+              )]
               body_location <- schema_location(
                 schema_location(
                   schema_location(body_location, 'content'),
@@ -458,6 +494,8 @@ read_operations <- function(files, policy = list()) {
                 required = isTRUE(p$required),
                 allow_empty_value = isTRUE(p$allowEmptyValue),
                 schema = schema,
+                example = p[intersect('example', names(p))],
+                source_location = source_location,
                 style = encoding$style,
                 explode = encoding$explode,
                 collection_format = encoding$collection_format
@@ -589,6 +627,7 @@ read_operations <- function(files, policy = list()) {
               body_required = body_required,
               body_media = body_media,
               body_encoding = body_encoding,
+              body_example = body_example,
               security = if ('security' %in% names(op)) {
                 op$security
               } else {
@@ -723,6 +762,10 @@ read_operations <- function(files, policy = list()) {
     operations = operations[supported],
     unsupported_operations = operations[!supported],
     diagnostics = diagnostics,
+    fixture_diagnostics = unlist(
+      lapply(operations, fixture_diagnostics),
+      recursive = FALSE
+    ),
     server_diagnostics = lapply(
       Filter(function(op) !is.null(op$server$diagnostic), operations),
       function(op) {
