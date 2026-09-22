@@ -23,6 +23,7 @@ reference:
   contents:
   - initialize_client
   - configure_client
+  - configure_apis
   - load_project
   - generate_client
 - title: Inspect and verify
