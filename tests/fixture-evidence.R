@@ -110,6 +110,8 @@ fixture_evidence_acceptance <- function() {
     is.null(inputs(read(parameter))$value)
   )
   fails(inputs(read(parameter, version = '3.1.0')))
+  parameter$schema$enum <- list('nonnull')
+  fails(inputs(read(parameter)))
   # Swagger reference and inline contradictions retain their source location.
   for (ref in c(FALSE, TRUE)) {
     p <- list(

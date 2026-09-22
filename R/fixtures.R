@@ -140,7 +140,10 @@ fixture_value <- function(schema, override = NULL) {
     override <- value
   }
   if (!missing(override) && is.null(override)) {
-    if (isTRUE(schema$nullable) || 'null' %in% schema$type) {
+    if (
+      (isTRUE(schema$nullable) || 'null' %in% schema$type) &&
+        (is.null(schema$enum) || any(vapply(schema$enum, is.null, logical(1))))
+    ) {
       return(NULL)
     }
     stop('Explicit null fixture is not nullable')
