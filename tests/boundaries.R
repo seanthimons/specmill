@@ -57,10 +57,10 @@ boundary_acceptance <- function() {
     ),
     context
   )
-  duplicate_call <- context$get_item(item_id = 'path', item_id.1 = 'query')
+  duplicate_call <- context$get_item(item_id = 'path', item_id.1 = 'en')
   stopifnot(
     duplicate_call$path_params$item_id == 'path',
-    duplicate_call$query$item_id == 'query'
+    duplicate_call$query$item_id == 'en'
   )
   inputs <- specmill::operation_fixtures(original$operations)
   stopifnot(inputs$get_item$language == 'en', inputs$list_items$page == 1L)

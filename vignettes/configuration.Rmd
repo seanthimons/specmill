@@ -825,6 +825,13 @@ serialization and transport checks. Schema-derived public parameters and bodies
 are validated before request mapping and runtime hooks. Complete client `inputs`
 maps retain their documented client-owned validation.
 
+Parameter transports use optional `NULL` for omission and reject required `NULL`;
+they do not encode JSON null. Empty parameter containers have no unambiguous wire
+representation. Form fields likewise reject null and empty arrays. JSON bodies
+retain their declared nullability and container constraints. Ordinary scalar
+query/path/header booleans retain R's `TRUE`/`FALSE` spelling; structured parameter
+serialization, JSON, and forms use `true`/`false`.
+
 ## Development callbacks versus runtime hooks
 
 A development binding callback receives one operation while generating source:
