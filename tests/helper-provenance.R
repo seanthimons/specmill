@@ -153,6 +153,62 @@ helper_provenance_acceptance <- function() {
         'retained'
     )
   }
+  # A selected addition cannot disappear inside an intentionally retained group.
+  settings$defaults$file <- 'R/group.R'
+  yaml::write_yaml(settings, api_file)
+  run <- function(mode) {
+    specmill::generate_client(
+      root,
+      config = 'specmill.yml',
+      mode = mode,
+      artifacts = 'wrappers'
+    )
+  }
+  run('apply')
+  group_file <- file.path(root, 'R/group.R')
+  write('# lifecycle::badge("stable")', group_file, append = TRUE)
+  schema_file <- file.path(root, 'schema/openapi.json')
+  document <- jsonlite::read_json(schema_file, simplifyVector = FALSE)
+  original_document <- document
+  document$paths[['/items/{item_id}']]$get$parameters[[
+    2L
+  ]]$schema$default <- 'fr'
+  jsonlite::write_json(document, schema_file, auto_unbox = TRUE)
+  failure <- tryCatch(run('apply'), error = identity)
+  stopifnot(
+    inherits(failure, 'error'),
+    grepl(
+      'Protected implementation public contract differs',
+      conditionMessage(failure)
+    )
+  )
+  document <- original_document
+  document$paths[['/new']] <- list(
+    get = list(
+      operationId = 'new_operation',
+      responses = list('200' = list(description = 'OK'))
+    )
+  )
+  jsonlite::write_json(document, schema_file, auto_unbox = TRUE)
+  settings$selection$include <- c(settings$selection$include, 'GET /new')
+  yaml::write_yaml(settings, api_file)
+  hashes <- function() {
+    tools::md5sum(list.files(
+      root,
+      recursive = TRUE,
+      all.files = TRUE,
+      full.names = TRUE
+    ))
+  }
+  before <- hashes()
+  for (mode in c('apply', 'check')) {
+    failure <- tryCatch(run(mode), error = identity)
+    stopifnot(
+      inherits(failure, 'error'),
+      grepl('Protected grouped source cannot add', conditionMessage(failure)),
+      identical(before, hashes())
+    )
+  }
   cat(
     'Helper provenance, read-only comparison, manual adoption, authentication and lifecycle retention passed.\n'
   )
