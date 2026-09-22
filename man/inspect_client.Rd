@@ -13,3 +13,12 @@ inspect_client(root, config = "specmill.yml", callbacks = new.env(parent = empty
 \value{A list with operations, inventory, diagnostics, manual_exports, and coverage. Coverage is keyed by service ID and contains total selected operations, implemented exported definitions, and declared contracts with test files.}
 \details{This is a read-only structural inspection. Unsupported selections remain in coverage totals. Manual exports are listed separately. A present test file is not evidence that tests ran or passed.}
 \seealso{\href{https://seanthimons.github.io/specmill/articles/testing.html}{Step-by-step guide}.}
+\section{Client-owned helpers}{Newly initialized helpers retain their substituted
+baseline and template hash under \file{.specmill/helpers/}. The \code{helpers}
+result includes baseline, local and proposed current source for read-only review,
+local/upstream change flags, and missing explicit helper arguments. Legacy helpers
+have unknown baselines. Argument compatibility does not establish behavior.
+Manually merge selected improvements and run request/transport checks; inspection
+never adopts or overwrites a helper. \code{protected_sources} lists discovered
+lifecycle-protected R files. Each operation includes specialization evidence,
+configured helper/mapping/hooks and ownership separately.}

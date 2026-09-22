@@ -105,26 +105,11 @@ initialize_client <- function(
       'Existing DESCRIPTION must declare curl before adding the default transport'
     )
   }
-  helper <- readLines(
-    system.file('templates/request.R', package = 'specmill', mustWork = TRUE),
-    warn = FALSE
-  )
-  helper <- sub(
-    'base_url_override <- NULL # Initialization override',
-    paste0(
-      'base_url_override <- ',
-      r_literal(base_url_override),
-      ' # Initialization override'
-    ),
-    helper,
-    fixed = TRUE
-  )
-  helper <- gsub('BASE_URL', r_literal(base_url), helper, fixed = TRUE)
-  helper <- gsub(
-    'DRY_RUN_ENV',
-    r_literal(dry_run_env(package)),
-    helper,
-    fixed = TRUE
+  scaffold <- request_helper_scaffold(
+    'api_request',
+    base_url,
+    base_url_override,
+    dry_run_env(package)
   )
   proposal <- configuration_proposal(
     schema,
@@ -145,7 +130,8 @@ initialize_client <- function(
   output <- c(
     proposal$files,
     list(
-      'R/api_request.R' = paste(helper, collapse = '\n'),
+      'R/api_request.R' = scaffold$code,
+      '.specmill/helpers/api_request.json' = scaffold$provenance,
       '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
     )
   )
