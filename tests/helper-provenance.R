@@ -60,11 +60,20 @@ helper_provenance_acceptance <- function() {
   )
   writeLines(old, path)
   stopifnot(inspect()$upstream_changed, !inspect()$customized)
-  custom <- paste(
-    old,
-    '# Client-owned plain-text extension is retained.',
-    sep = '\n'
-  )
+  customize <- function(code) {
+    sub(
+      "if (base::identical(body_media, 'application/octet-stream')) {",
+      paste0(
+        "if (base::identical(body_media, 'text/plain')) {\n",
+        "      # Client-owned plain-text extension is retained.\n",
+        "      request <- httr2::req_body_raw(request, base::paste(body, collapse = '\\n'), type = body_media)\n",
+        "    } else if (base::identical(body_media, 'application/octet-stream')) {"
+      ),
+      code,
+      fixed = TRUE
+    )
+  }
+  custom <- customize(old)
   writeLines(custom, path)
   before <- readBin(path, 'raw', file.info(path)$size)
   comparison <- inspect()
@@ -77,14 +86,7 @@ helper_provenance_acceptance <- function() {
     grepl('authenticate <-', comparison$comparison$proposed, fixed = TRUE)
   )
   # Manual adoption preserves the extension; comparisons remain read-only.
-  writeLines(
-    paste(
-      comparison$comparison$proposed,
-      '# Client-owned plain-text extension is retained.',
-      sep = '\n'
-    ),
-    path
-  )
+  writeLines(customize(comparison$comparison$proposed), path)
   stopifnot(identical(inspect(), inspect()))
   unlink(provenance)
   stopifnot(inspect()$baseline == 'unknown')
@@ -96,6 +98,18 @@ helper_provenance_acceptance <- function() {
   stopifnot(
     inherits(request, 'httr2_request'),
     request$url == 'https://example.invalid/probe'
+  )
+  text_request <- env$api_request(
+    'POST',
+    '/probe',
+    list(),
+    list(),
+    c('one', 'two'),
+    body_media = 'text/plain'
+  )
+  stopifnot(
+    identical(charToRaw(text_request$body$data), charToRaw('one\ntwo')),
+    identical(text_request$body$content_type, 'text/plain')
   )
   failure <- tryCatch(
     env$api_request('GET', '/probe', list(), list(), NULL, auth = list()),
