@@ -6,6 +6,8 @@
   : Initialize a new client package
 - [`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
   : Propose editable configuration from a schema
+- [`configure_apis()`](https://seanthimons.github.io/specmill/reference/configure_apis.md)
+  : Review and save names and servers for multiple APIs
 - [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)
   : Load and validate a YAML project
 - [`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md)
@@ -54,6 +56,12 @@
   : Render one wrapper as R source text
 - [`bind_tools()`](https://seanthimons.github.io/specmill/reference/bind_tools.md)
   : Bind legacy maintenance tools to a client context
+- [`batched()`](https://seanthimons.github.io/specmill/reference/batched.md)
+  : Call a function in batches
+- [`paginated()`](https://seanthimons.github.io/specmill/reference/paginated.md)
+  : Retrieve bounded pages from a single-request function
+- [`paginated_links()`](https://seanthimons.github.io/specmill/reference/paginated_links.md)
+  : Retrieve bounded pages through same-origin next links
 - [`specmill`](https://seanthimons.github.io/specmill/reference/specmill.md)
   [`specmill-package`](https://seanthimons.github.io/specmill/reference/specmill.md)
   : Generate and maintain R API clients

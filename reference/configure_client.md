@@ -8,7 +8,10 @@ and service YAML without generating endpoint functions.
 ``` r
 configure_client(root, schema, package = NULL,
     naming = c("operation_id", "tag_prefix"),
-    group_by = c("tag", "none"), mode = c("plan", "apply"))
+    group_by = c("tag", "none"),
+    mode = c("plan", "apply"),
+    name_case = c("asis", "snake_case", "camel_case", "pascal_case",
+        "screaming_snake_case", "dot_case"))
 ```
 
 ## Arguments
@@ -19,7 +22,8 @@ configure_client(root, schema, package = NULL,
 
 - schema:
 
-  Local OpenAPI 3.0/3.1 or Swagger 2.0 JSON file.
+  Local OpenAPI 3.0/3.1 or Swagger 2.0 JSON, YAML, or YML file, or a
+  reviewed configure_apis data frame for multiple APIs.
 
 - package:
 
@@ -37,6 +41,12 @@ configure_client(root, schema, package = NULL,
   Group by first operation tag, or keep one default service. Missing
   tags use default. Untagged/default services keep per-function source
   files; other groups configure a shared R file and help family.
+
+- name_case:
+
+  Case convention applied to proposed names: preserve them as-is, or use
+  snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, or dot.case.
+  Exact names already reviewed in service YAML are preserved.
 
 - mode:
 
@@ -59,17 +69,34 @@ The proposal includes a schema copy, specmill.yml, and apis/\*.yml. Each
 service selects exact METHOD /path pairs through selection.include.
 Multiple tags use the first tag with a diagnostic. Names and tag
 filenames are checked for collisions; reserved runtime names are
-diagnosed. Name collisions may be written for manual correction but
-block subsequent wrapper generation. Unsupported operations stay in the
+diagnosed. Name-collision diagnostics identify every contributing METHOD
+/path and use API-qualified names for multi-API proposals. Name
+collisions may be written for manual correction but block subsequent
+wrapper generation. Edit matching names entries in existing service YAML
+and rerun this function; reviewed names are reused across reruns and
+schema ordering. Noninteractive runs return diagnostics and never prompt
+or silently rename public functions. Unsupported operations stay in the
 configuration with their diagnostics. This does not supply transport
 implementations or resolve unsupported schema features.
 
-Existing files are never overwritten, even if originally generated.
-Review changes and manually incorporate the desired YAML edits. Apply
-with no new files is a no-op. This is initial scaffolding, not automatic
-schema-refresh reconciliation. No helper, package metadata, wrappers, or
-tests are created by this function; use initialize_client for a new
-package.
+Existing files are never overwritten, even if originally generated. Only
+matching reviewed names, including deliberate operation-level name
+overrides, are carried into the proposal; other existing settings remain
+untouched. Review changes and manually incorporate the desired YAML
+edits. Apply with no new files is a no-op. This is initial scaffolding,
+not automatic schema-refresh reconciliation. No helper, package
+metadata, wrappers, or tests are created by this function; use
+initialize_client for a new package.
+
+## Note
+
+Schema copies retain the source format and extension; YAML inputs do not
+create converted JSON sidecars. For a reviewed multi-API data frame, the
+proposal contains one apis/\<api\>.yml per included API. Each file holds
+shared schema, selection, helper, authentication and default settings
+plus nested tag groups. Groups inherit API settings and cannot re-enable
+project- or API-excluded methods or paths. Existing flat service files
+remain supported.
 
 ## See also
 

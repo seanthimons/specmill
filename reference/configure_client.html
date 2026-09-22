@@ -53,7 +53,10 @@
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">configure_client</span><span class="op">(</span><span class="va">root</span>, <span class="va">schema</span>, package <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>    naming <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"operation_id"</span>, <span class="st">"tag_prefix"</span><span class="op">)</span>,</span>
-<span>    group_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tag"</span>, <span class="st">"none"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"plan"</span>, <span class="st">"apply"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>    group_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tag"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>    mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"plan"</span>, <span class="st">"apply"</span><span class="op">)</span>,</span>
+<span>    name_case <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"asis"</span>, <span class="st">"snake_case"</span>, <span class="st">"camel_case"</span>, <span class="st">"pascal_case"</span>,</span>
+<span>        <span class="st">"screaming_snake_case"</span>, <span class="st">"dot_case"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -64,7 +67,7 @@
 <dd><p>Client directory. Planning does not create it.</p></dd>
 
 <dt id="arg-schema">schema<a class="anchor" aria-label="anchor" href="#arg-schema"></a></dt>
-<dd><p>Local OpenAPI 3.0/3.1 or Swagger 2.0 JSON file.</p></dd>
+<dd><p>Local OpenAPI 3.0/3.1 or Swagger 2.0 JSON, YAML, or YML file, or a reviewed configure_apis data frame for multiple APIs.</p></dd>
 
 <dt id="arg-package">package<a class="anchor" aria-label="anchor" href="#arg-package"></a></dt>
 <dd><p>R package name; read from DESCRIPTION when present. A supplied name must agree with existing metadata.</p></dd>
@@ -74,6 +77,9 @@
 
 <dt id="arg-group-by">group_by<a class="anchor" aria-label="anchor" href="#arg-group-by"></a></dt>
 <dd><p>Group by first operation tag, or keep one default service. Missing tags use default. Untagged/default services keep per-function source files; other groups configure a shared R file and help family.</p></dd>
+
+<dt id="arg-name-case">name_case<a class="anchor" aria-label="anchor" href="#arg-name-case"></a></dt>
+<dd><p>Case convention applied to proposed names: preserve them as-is, or use snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, or dot.case. Exact names already reviewed in service YAML are preserved.</p></dd>
 
 <dt id="arg-mode">mode<a class="anchor" aria-label="anchor" href="#arg-mode"></a></dt>
 <dd><p>Preview by default. Apply creates absent files only; differing existing files or colliding tag filenames stop the entire write.</p></dd>
@@ -85,8 +91,12 @@
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The proposal includes a schema copy, specmill.yml, and apis/*.yml. Each service selects exact METHOD /path pairs through selection.include. Multiple tags use the first tag with a diagnostic. Names and tag filenames are checked for collisions; reserved runtime names are diagnosed. Name collisions may be written for manual correction but block subsequent wrapper generation. Unsupported operations stay in the configuration with their diagnostics. This does not supply transport implementations or resolve unsupported schema features.</p>
-<p>Existing files are never overwritten, even if originally generated. Review changes and manually incorporate the desired YAML edits. Apply with no new files is a no-op. This is initial scaffolding, not automatic schema-refresh reconciliation. No helper, package metadata, wrappers, or tests are created by this function; use initialize_client for a new package.</p>
+    <p>The proposal includes a schema copy, specmill.yml, and apis/*.yml. Each service selects exact METHOD /path pairs through selection.include. Multiple tags use the first tag with a diagnostic. Names and tag filenames are checked for collisions; reserved runtime names are diagnosed. Name-collision diagnostics identify every contributing METHOD /path and use API-qualified names for multi-API proposals. Name collisions may be written for manual correction but block subsequent wrapper generation. Edit matching names entries in existing service YAML and rerun this function; reviewed names are reused across reruns and schema ordering. Noninteractive runs return diagnostics and never prompt or silently rename public functions. Unsupported operations stay in the configuration with their diagnostics. This does not supply transport implementations or resolve unsupported schema features.</p>
+<p>Existing files are never overwritten, even if originally generated. Only matching reviewed names, including deliberate operation-level name overrides, are carried into the proposal; other existing settings remain untouched. Review changes and manually incorporate the desired YAML edits. Apply with no new files is a no-op. This is initial scaffolding, not automatic schema-refresh reconciliation. No helper, package metadata, wrappers, or tests are created by this function; use initialize_client for a new package.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="note">Note<a class="anchor" aria-label="anchor" href="#note"></a></h2>
+    <p>Schema copies retain the source format and extension; YAML inputs do not create converted JSON sidecars. For a reviewed multi-API data frame, the proposal contains one apis/&lt;api&gt;.yml per included API. Each file holds shared schema, selection, helper, authentication and default settings plus nested tag groups. Groups inherit API settings and cannot re-enable project- or API-excluded methods or paths. Existing flat service files remain supported.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

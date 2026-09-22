@@ -134,7 +134,7 @@ Filter(function(x) x$action == 'protected', plan$files)
 #> [1] "R/get_item.R"
 #> 
 #> [[1]]$path
-#> [1] "/tmp/RtmpD5zobV/existing-client-1faa3055914b/R/get_item.R"
+#> [1] "/tmp/RtmpgIgBjL/existing-client-204e3d52ff6b/R/get_item.R"
 #> 
 #> [[1]]$action
 #> [1] "protected"
@@ -212,6 +212,15 @@ formatter before generation. The project selects CTX, EPI, and separate
 Chemi service files. `dev/specmill_callbacks.R` supplies development
 callbacks; `inst/hook_config.yml` remains the runtime hook policy. Keep
 these rather than substituting the simplified examples above.
+
+Routine regeneration does not apply a naming convention again.
+ComptoxR’s reviewed `names` maps keep public functions such as
+`ct_chemical_detail_search` unchanged. When previewing configuration for
+newly catalogued endpoints, pass `name_case = 'snake_case'` to
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md).
+Multi-API proposals apply the API prefix first, so an API named `ct`
+proposes names beginning with `ct_`. Review and copy new mappings into
+the existing service YAML before regeneration.
 
 Preview and check from a terminal:
 

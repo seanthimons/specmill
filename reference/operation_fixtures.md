@@ -1,12 +1,12 @@
 # Choose candidate operation inputs
 
-Choose fixture values using reviewed overrides followed by schema
-examples, defaults, enums, and type fixtures.
+Choose fixture values using reviewed overrides followed by parameter or
+media examples, schema examples, defaults, enums, and type fixtures.
 
 ## Usage
 
 ``` r
-operation_fixtures(operations, overrides = list())
+operation_fixtures(operations, overrides = list(), mode = c("default", "minimal"))
 ```
 
 ## Arguments
@@ -19,6 +19,12 @@ operation_fixtures(operations, overrides = list())
 
   Reviewed per-operation fixture input values.
 
+- mode:
+
+  Default exercises optional inputs. Explicit minimal mode omits
+  optional parameters and optional bodies unless overridden, and records
+  their names in each input list's `omitted_inputs` attribute.
+
 ## Value
 
 A named list of per-operation input lists. Stops when a fixture cannot
@@ -29,8 +35,15 @@ be selected or fails supported constraints.
 The selected value must satisfy supported type, enum, numeric,
 string-length, and pattern constraints. An invalid selected candidate
 raises an error rather than falling through to a lower-priority source.
-Schema examples are never executed. Candidate inputs are not independent
-expected request or response contracts.
+Examples never become public function defaults. Minimal mode reduces
+coverage; omission can activate a wrapper default and does not guarantee
+wire omission. Explicit NULL, empty strings, FALSE, and zero are
+selected values and remain subject to validation. Contradictory
+declarations are separately available from
+[`read_operations()`](https://seanthimons.github.io/specmill/reference/read_operations.md)
+as `fixture_diagnostics`; optional contradictions do not prevent
+rendering. Schema examples are never executed. Candidate inputs are not
+independent expected request or response contracts.
 
 ## See also
 

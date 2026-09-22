@@ -133,14 +133,15 @@ URL below is a placeholder and is never contacted in this guide.</p>
 <span>  title <span class="op">=</span> <span class="st">'Catalogue API Client'</span>,</span>
 <span>  author <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>given <span class="op">=</span> <span class="st">'Example'</span>, family <span class="op">=</span> <span class="st">'Maintainer'</span>, email <span class="op">=</span> <span class="st">'you@example.org'</span><span class="op">)</span>,</span>
 <span>  license <span class="op">=</span> <span class="st">'MIT + file LICENSE'</span>,</span>
-<span>  base_url <span class="op">=</span> <span class="st">'https://api.example.org'</span></span>
+<span>  base_url <span class="op">=</span> <span class="st">'https://api.example.org'</span>,</span>
+<span>  name_case <span class="op">=</span> <span class="st">'snake_case'</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">root</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, all.files <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] ".Rbuildignore"           ".specmill/manifest.json"</span></span>
-<span><span class="co">#&gt; [3] "apis/default.yml"        "DESCRIPTION"            </span></span>
-<span><span class="co">#&gt; [5] "LICENSE"                 "NAMESPACE"              </span></span>
-<span><span class="co">#&gt; [7] "R/api_request.R"         "schema/openapi.json"    </span></span>
-<span><span class="co">#&gt; [9] "specmill.yml"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] ".Rbuildignore"                      ".specmill/helpers/api_request.json"</span></span>
+<span><span class="co">#&gt;  [3] ".specmill/manifest.json"            "apis/default.yml"                  </span></span>
+<span><span class="co">#&gt;  [5] "DESCRIPTION"                        "LICENSE"                           </span></span>
+<span><span class="co">#&gt;  [7] "NAMESPACE"                          "R/api_request.R"                   </span></span>
+<span><span class="co">#&gt;  [9] "schema/openapi.json"                "specmill.yml"</span></span></code></pre></div>
 <p>Initialization writes immediately and refuses existing-file
 conflicts. It creates:</p>
 <table class="table">
@@ -199,7 +200,11 @@ tag, plus grouped source files and help families. This catalogue has no
 tags, so it uses <code>default</code> and keeps one source file per
 function. Pass <code>naming = 'tag_prefix'</code> to propose names such
 as <code>pet_get_by_id</code>, or <code>group_by = 'none'</code> to keep
-one service. Inspect
+one service. <code>name_case</code> accepts <code>asis</code>,
+<code>snake_case</code>, <code>camel_case</code>,
+<code>pascal_case</code>, <code>screaming_snake_case</code>, and
+<code>dot_case</code>. It changes proposed names only; the editable
+<code>names</code> map in service YAML remains authoritative. Inspect
 <code>attr(created, 'configuration')$diagnostics</code> for grouping,
 naming, and unsupported-operation findings.
 <code><a href="../reference/configure_client.html">configure_client()</a></code> previews the same configuration without
@@ -356,7 +361,9 @@ The generated client source has no runtime dependency on specmill.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">result</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'item-1'</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">captured</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    method <span class="op">=</span> <span class="st">'GET'</span>, path <span class="op">=</span> <span class="st">'/items/{item_id}'</span>,</span>
-<span>    path_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>item_id <span class="op">=</span> <span class="st">'item-1'</span><span class="op">)</span>, query <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>language <span class="op">=</span> <span class="st">'en'</span><span class="op">)</span>, body <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>    path_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>item_id <span class="op">=</span> <span class="st">'item-1'</span><span class="op">)</span>, query <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>language <span class="op">=</span> <span class="st">'en'</span><span class="op">)</span>, body <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>        request_controls <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">30L</span>, max_retries <span class="op">=</span> <span class="fl">0L</span>, retry_writes <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>        server <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>diagnostic <span class="op">=</span> <span class="st">'Relative server URL requires a recorded origin or explicit base URL override'</span><span class="op">)</span></span>
 <span>  <span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">result</span></span>
@@ -385,11 +392,28 @@ run:</p>
 <span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">get_item</span><span class="op">(</span>item_id <span class="op">=</span> <span class="st">'a-real-id'</span>, language <span class="op">=</span> <span class="st">'en'</span><span class="op">)</span></span></code></pre></div>
 <p>The last call sends a real request. The default helper performs one
 request, including when an argument is named <code>page</code>. It
-returns JSON as R lists, text/SVG as strings, binary as raw bytes, and
-empty response bodies as <code>NULL</code>. It raises errors for HTTP
-failures or malformed nonempty JSON. Credentials, pagination, retry
-decisions, batching, and service-specific validation belong in the
-client.</p>
+returns JSON objects and arrays as R lists, JSON scalars as their
+corresponding R scalars, text/SVG as strings, binary as raw bytes, and
+empty bodies or JSON <code>null</code> as <code>NULL</code>. It raises
+errors for HTTP failures or malformed nonempty JSON. Those errors report
+the status and response media type without including the request URL,
+response body, or credential values. A missing or unrecognized
+<code>Content-Type</code> returns raw bytes. A JSON
+<code>Content-Type</code> with a non-JSON body is a decode error, while
+a text type always returns text even if its body happens to contain
+JSON. The parser records declared response media and schema metadata,
+but runtime decoding follows the actual <code>Content-Type</code>. The
+generator does not pass declared response schemas to the helper or
+validate response bodies against them. Such validation would need an
+explicit generated helper argument and remains unsupported. Credentials,
+pagination, batching, and service-specific validation belong in the
+client. Optional <code><a href="../reference/paginated.html">paginated()</a></code> companions support explicitly
+configured page/offset and cursor retrieval, with
+<code><a href="../reference/paginated_links.html">paginated_links()</a></code> for next links; see <a href="configuration.html#pagination">pagination configuration</a>. New
+helpers expose timeout, URL override, and bounded safe retries through
+one package-scoped R option; see the <a href="https://github.com/seanthimons/specmill#generated-client-request-controls" class="external-link">request
+controls guide</a>. Existing client-owned helpers require an explicit
+update to adopt these controls.</p>
 </div>
 <div class="section level2">
 <h2 id="save-the-project-and-maintain-it">9. Save the project and maintain it<a class="anchor" aria-label="anchor" href="#save-the-project-and-maintain-it"></a>

@@ -191,7 +191,7 @@ ownership example uses the bundled helper’s default contract.</p>
 <span><span class="co">#&gt; [1] "R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$path</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpD5zobV/existing-client-1faa3055914b/R/get_item.R"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/RtmpgIgBjL/existing-client-204e3d52ff6b/R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$action</span></span>
 <span><span class="co">#&gt; [1] "protected"</span></span></code></pre></div>
@@ -260,6 +260,15 @@ files. <code>dev/specmill_callbacks.R</code> supplies development
 callbacks; <code>inst/hook_config.yml</code> remains the runtime hook
 policy. Keep these rather than substituting the simplified examples
 above.</p>
+<p>Routine regeneration does not apply a naming convention again.
+ComptoxR’s reviewed <code>names</code> maps keep public functions such
+as <code>ct_chemical_detail_search</code> unchanged. When previewing
+configuration for newly catalogued endpoints, pass
+<code>name_case = 'snake_case'</code> to
+<code><a href="../reference/configure_client.html">configure_client()</a></code>. Multi-API proposals apply the API
+prefix first, so an API named <code>ct</code> proposes names beginning
+with <code>ct_</code>. Review and copy new mappings into the existing
+service YAML before regeneration.</p>
 <p>Preview and check from a terminal:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--plan</span></span>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--dry-run</span></span>

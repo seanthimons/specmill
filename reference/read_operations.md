@@ -1,7 +1,7 @@
 # Read and compare local schema operations
 
 Extract operation records from local OpenAPI 3.0/3.1 or Swagger 2.0 JSON
-schemas and compare their input contracts.
+or YAML schemas and compare their input contracts.
 
 ## Usage
 
@@ -14,7 +14,7 @@ compare_operations(old, new)
 
 - files:
 
-  Local JSON schema paths.
+  Local JSON, YAML, or YML schema paths.
 
 - policy:
 
@@ -36,9 +36,12 @@ compare_operations(old, new)
 ## Value
 
 read_operations() returns named operations and unsupported_operations
-plus diagnostic and inventory lists. compare_operations() returns change
-records with key, status (added, breaking, review, or unknown), and
-reason; no changes returns an empty list.
+plus diagnostic, server_diagnostics, and inventory lists. Every
+operation carries server metadata containing a resolved URL or a
+selection diagnostic; runtime overrides may resolve the latter.
+Effective server changes are reported for review. compare_operations()
+returns change records with key, status (added, breaking, review, or
+unknown), and reason; no changes returns an empty list.
 
 ## Details
 

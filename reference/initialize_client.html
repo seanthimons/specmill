@@ -53,7 +53,9 @@
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">initialize_client</span><span class="op">(</span><span class="va">root</span>, <span class="va">schema</span>, package <span class="op">=</span> <span class="cn">NULL</span>, title <span class="op">=</span> <span class="cn">NULL</span>, author <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>    license <span class="op">=</span> <span class="cn">NULL</span>, base_url <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    naming <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"operation_id"</span>, <span class="st">"tag_prefix"</span><span class="op">)</span>, group_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tag"</span>, <span class="st">"none"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>    naming <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"operation_id"</span>, <span class="st">"tag_prefix"</span><span class="op">)</span>, group_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tag"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>    name_case <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"asis"</span>, <span class="st">"snake_case"</span>, <span class="st">"camel_case"</span>, <span class="st">"pascal_case"</span>,</span>
+<span>        <span class="st">"screaming_snake_case"</span>, <span class="st">"dot_case"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -64,7 +66,7 @@
 <dd><p>Destination client directory; it may be created when absent.</p></dd>
 
 <dt id="arg-schema">schema<a class="anchor" aria-label="anchor" href="#arg-schema"></a></dt>
-<dd><p>Local JSON schema for initialization.</p></dd>
+<dd><p>Local JSON, YAML, or YML schema, or a reviewed data frame returned by configure_apis for multiple APIs. Multi-API setup requires an existing root containing those schemas, and a new package. Each included API receives a separate request helper, namespaced function names and credential identities.</p></dd>
 
 <dt id="arg-package">package<a class="anchor" aria-label="anchor" href="#arg-package"></a></dt>
 <dd><p>New R package name, for example <code>catalogueclient</code>. Must agree with an existing DESCRIPTION when supplied.</p></dd>
@@ -79,13 +81,16 @@
 <dd><p>Explicit license string for a new package. <code>MIT + file LICENSE</code> also creates an MIT license metadata file.</p></dd>
 
 <dt id="arg-base-url">base_url<a class="anchor" aria-label="anchor" href="#arg-base-url"></a></dt>
-<dd><p>Absolute HTTP base URL for a new client-owned transport.</p></dd>
+<dd><p>Optional absolute HTTP(S) override for all operations in the new client-owned transport. Overrides schema servers; a runtime option can override it.</p></dd>
 
 <dt id="arg-naming">naming<a class="anchor" aria-label="anchor" href="#arg-naming"></a></dt>
 <dd><p>Preserve operationId names by default, or propose tag-prefixed snake_case names. See configure_client.</p></dd>
 
 <dt id="arg-group-by">group_by<a class="anchor" aria-label="anchor" href="#arg-group-by"></a></dt>
-<dd><p>Group service configuration by first tag (default), or use one default service with none.</p></dd>
+<dd><p>Group operations by first tag (default), or use one default group with none. Multi-API initialization writes one YAML file per API with nested groups; single-schema initialization keeps flat group files.</p></dd>
+
+<dt id="arg-name-case">name_case<a class="anchor" aria-label="anchor" href="#arg-name-case"></a></dt>
+<dd><p>Case convention for proposed names. Choices are as-is, snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, and dot.case. See configure_client.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -94,7 +99,7 @@
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This function writes immediately and refuses any existing-file conflict. Supply package, title, author (given, family, email), and license for a new package. Existing DESCRIPTION metadata is retained; it must already declare httr2 and jsonlite, which the default transport needs for HTTP and JSON. The base URL can come from the first schema server, but must be an absolute HTTP URL. Initialization does not generate wrappers or tests: follow with generate_client(). The helper is client runtime code and does not import specmill.</p>
+    <p>This function writes immediately and refuses any existing-file conflict. Supply package, title, author (given, family, email), and license for a new package. Existing DESCRIPTION metadata is retained; it must already declare httr2 and jsonlite, which the default transport needs for HTTP and JSON. Without an explicit override, generated wrappers use operation, path, then root servers, resolving variable defaults. Ambiguous or unsupported selection produces server_diagnostics and fails before HTTP unless a runtime override is supplied. Baseline YAML defaults.request_controls exposes timeout, max_retries, and retry_writes. Regeneration passes these inherited defaults into helper calls without editing the client-owned helper. Runtime options override these fields. The helper reads the lowercase dry-run prefix plus .request as an R option containing base_url, timeout (default 30 seconds per attempt), max_retries (default 0), and retry_writes (default FALSE). Enabled retries cover transient HTTP responses for GET, HEAD, OPTIONS, PUT and DELETE; other methods need explicit write permission. Retry-After is honored. Normal generation never updates this helper. Initialization does not generate wrappers or tests: follow with generate_client(). The helper is client runtime code and does not import specmill.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
