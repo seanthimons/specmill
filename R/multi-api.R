@@ -81,33 +81,18 @@ multi_api_proposal <- function(
     schema_file <- paste0('schema/', api, '.', tools::file_ext(source_file))
     files[[schema_file]] <- proposal$files[[source_file]]
     helper <- paste0(api, '_request')
-    code <- file_text(system.file(
-      'templates/request.R',
-      package = 'specmill',
-      mustWork = TRUE
-    ))
-    code <- sub(
-      'base_url_override <- NULL # Initialization override',
-      paste0(
-        'base_url_override <- ',
-        r_literal(apis$base_url[[i]]),
-        ' # Initialization override'
-      ),
-      code,
-      fixed = TRUE
+    scaffold <- request_helper_scaffold(
+      helper,
+      apis$base_url[[i]],
+      apis$base_url[[i]],
+      dry_run_env(package)
     )
-    code <- sub('api_request <-', paste0(helper, ' <-'), code, fixed = TRUE)
-    helpers[[paste0('R/', helper, '.R')]] <- gsub(
-      'DRY_RUN_ENV',
-      r_literal(dry_run_env(package)),
-      gsub(
-        'BASE_URL',
-        r_literal(apis$base_url[[i]]),
-        code,
-        fixed = TRUE
-      ),
-      fixed = TRUE
-    )
+    helpers[[paste0('R/', helper, '.R')]] <- scaffold$code
+    helpers[[paste0(
+      '.specmill/helpers/',
+      helper,
+      '.json'
+    )]] <- scaffold$provenance
     api_groups <- list()
     for (file in grep('^apis/', names(proposal$files), value = TRUE)) {
       text <- proposal$files[[file]]

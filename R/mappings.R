@@ -50,7 +50,8 @@ validate_settings <- function(
       'batch',
       'request_controls',
       'body_media',
-      'query_array_style'
+      'query_array_style',
+      'specialization'
     ),
     label
   )
@@ -69,10 +70,20 @@ validate_settings <- function(
     }
   }
   if (!is.null(settings$query_array_style)) {
-    query_array_style(settings$query_array_style, paste(label, 'query_array_style'))
+    query_array_style(
+      settings$query_array_style,
+      paste(label, 'query_array_style')
+    )
   }
   for (name in intersect(
-    c('name', 'helper', 'file', 'implementation', 'post_state'),
+    c(
+      'name',
+      'helper',
+      'file',
+      'implementation',
+      'post_state',
+      'specialization'
+    ),
     names(settings)
   )) {
     config_string(settings[[name]], paste(label, name))
