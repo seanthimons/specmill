@@ -61,6 +61,17 @@ dry_run_env <- function(package) {
 # Escape schema strings as R literals. No remote text is evaluated as code.
 r_literal <- function(x) {
   text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
+  if (any(utf8ToInt(enc2utf8(text)) > 127L)) {
+    # Quoted names allow Unicode escapes; backtick names do not in R.
+    if (!is.language(x) && !is.function(x)) {
+      text <- paste(deparse(x, width.cutoff = 500L,
+        control = c('keepNA', 'keepInteger', 'showAttributes')), collapse = '\n')
+    }
+    points <- utf8ToInt(enc2utf8(text))
+    text <- paste0(vapply(points, function(point) {
+      if (point <= 127L) intToUtf8(point) else sprintf('\\U%08x', point)
+    }, character(1)), collapse = '')
+  }
   # Data constructors must not resolve through generated functions named list/c.
   # Language objects remain caller-owned expressions (development callbacks).
   if (!is.language(x) && !is.function(x) && is.call(str2lang(text))) {
