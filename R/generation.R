@@ -182,6 +182,7 @@ render_operation <- function(operation, spec) {
       )
     }
   }
+  lines <- c(lines, parameter_checks(params, formal_names))
   if (!is.null(body_name)) {
     if (operation$body_required) {
       lines <- c(
@@ -223,6 +224,22 @@ render_operation <- function(operation, spec) {
     }
   }
   lines <- c(lines, parameter_capture)
+  for (i in seq_along(params)) {
+    if (
+      params[[i]]$location == 'query' &&
+        !isTRUE(params[[i]]$allow_empty_value)
+    ) {
+      lines <- c(lines, paste0(
+        '  if (base::is.character(params[[',
+        r_literal(formal_names[[i]]),
+        ']]) && base::any(!base::nzchar(params[[',
+        r_literal(formal_names[[i]]),
+        ']]))) base::stop(',
+        r_literal(paste('Empty query parameter:', input_names[[i]])),
+        ')'
+      ))
+    }
+  }
   hooks <- spec$hooks[[operation$name]] %or% list()
   if (length(hooks$pre_request)) {
     lines <- c(
@@ -240,22 +257,6 @@ render_operation <- function(operation, spec) {
       '  changed <- base::intersect(base::names(params), base::names(state$params))',
       '  params[changed] <- state$params[changed]'
     )
-  }
-  for (i in seq_along(params)) {
-    if (
-      params[[i]]$location == 'query' &&
-        !isTRUE(params[[i]]$allow_empty_value)
-    ) {
-      lines <- c(lines, paste0(
-        '  if (base::is.character(params[[',
-        r_literal(formal_names[[i]]),
-        ']]) && base::any(!base::nzchar(params[[',
-        r_literal(formal_names[[i]]),
-        ']]))) base::stop(',
-        r_literal(paste('Empty query parameter:', input_names[[i]])),
-        ')'
-      ))
-    }
   }
   request <- paste0(
     '  result <- ',

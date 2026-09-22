@@ -155,6 +155,79 @@ mappings_acceptance <- function() {
     !length(calls),
     identical(order, c('pre_request', 'post_response'))
   )
+  # Client-owned hooks may replace request representations through existing maps.
+  spec <- configured$spec
+  spec$request <- list(
+    arguments = list(
+      body = list(from = c('hook_state', 'request', 'body')),
+      options = list(from = c('hook_state', 'request', 'options'))
+    )
+  )
+  spec$post_state <- 'hook_state'
+  env$run_hook <- function(name, stage, data) {
+    order <<- c(order, stage)
+    if (stage == 'pre_request') {
+      data$request <- list(
+        body = list(inputType = 'MOL', query = data$params$identifier),
+        options = list(enabled = FALSE, limit = 0L)
+      )
+      data$params <- list(language = '')
+      data$sentinel <- 42L
+      return(data)
+    }
+    stopifnot(data$sentinel == 42L, data$request$options$limit == 0L)
+    data$result
+  }
+  calls <- list()
+  order <- character()
+  fn <- render(spec)
+  stopifnot(
+    identical(fn('sample'), 'complete'),
+    identical(order, c('pre_request', 'request', 'post_response')),
+    identical(
+      calls,
+      list(list(
+        body = list(inputType = 'MOL', query = 'sample'),
+        options = list(enabled = FALSE, limit = 0L)
+      ))
+    )
+  )
+  # A hook exception propagates without an unintended helper or fallback call.
+  calls <- list()
+  env$run_hook <- function(...) stop('client transformation failed')
+  error <- tryCatch(fn('sample'), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('client transformation failed', conditionMessage(error)),
+    !length(calls)
+  )
+  reshape <- list(
+    name = 'reshape',
+    method = 'POST',
+    path = '/reshape',
+    parameters = list(),
+    body = list(type = 'integer'),
+    body_required = TRUE,
+    body_media = 'application/json'
+  )
+  env$run_hook <- function(name, stage, data) {
+    data$params$body <- 'client-owned representation'
+    data
+  }
+  env$record <- function(...) list(...)
+  eval(
+    parse(
+      text = specmill::render_operation(
+        reshape,
+        list(
+          helper = 'record',
+          hooks = list(reshape = list(pre_request = 'reshape_body'))
+        )
+      )
+    ),
+    env
+  )
+  stopifnot(identical(env$reshape(1L)$body, 'client-owned representation'))
   fails <- function(lines, pattern) {
     put(lines)
     error <- tryCatch(
