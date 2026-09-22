@@ -147,6 +147,7 @@ operation_documentation <- function(op, policy = list()) {
       function(name) paste0('@', name, ' ', prose(policy$tags[[name]])),
       character(1)
     ),
+    if (!is.null(op$rdname)) paste0('@rdname ', op$rdname),
     '@export',
     if (length(policy$examples)) {
       c(
@@ -238,7 +239,10 @@ document_output <- function(root, desired, remove = character()) {
   for (name in names(desired)) {
     path <- project_path(stage, name)
     dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
-    writeLines(enc2utf8(desired[[name]]), path, useBytes = TRUE)
+    original <- project_path(root, name)
+    content <- if (endsWith(name, '.R') && file.exists(original) &&
+        has_protected_lifecycle(original)) file_text(original) else desired[[name]]
+    writeLines(enc2utf8(content), path, useBytes = TRUE)
   }
   script <- file.path(stage, 'document.R')
   writeLines(
@@ -296,6 +300,9 @@ document_output <- function(root, desired, remove = character()) {
       next
     } else {
       owners[[name]] <- unique(unlist(owners, use.names = FALSE))
+    }
+    if (!identical(portable_output_path(root, name), name)) {
+      stop('Non-portable documentation filename; shorten the documentation topic: ', name)
     }
     desired[[name]] <- file_text(file.path(stage, name))
   }

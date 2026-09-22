@@ -1,0 +1,104 @@
+[
+  {
+    "number": 4,
+    "state": "OPEN",
+    "title": "feat: add generated OAuth login and token refresh",
+    "url": "https://github.com/seanthimons/specmill/issues/4"
+  },
+  {
+    "number": 25,
+    "state": "CLOSED",
+    "title": "fix: generate scalar numeric fixtures within declared bounds",
+    "url": "https://github.com/seanthimons/specmill/issues/25"
+  },
+  {
+    "number": 26,
+    "state": "OPEN",
+    "title": "docs: establish request media policies for 26 AMOS operations",
+    "url": "https://github.com/seanthimons/specmill/issues/26"
+  },
+  {
+    "number": 27,
+    "state": "OPEN",
+    "title": "docs: resolve AMOS parameter defects and latent upload contracts",
+    "url": "https://github.com/seanthimons/specmill/issues/27"
+  },
+  {
+    "number": 28,
+    "state": "OPEN",
+    "title": "docs: resolve binary-query upload contracts for 18 operations",
+    "url": "https://github.com/seanthimons/specmill/issues/28"
+  },
+  {
+    "number": 29,
+    "state": "CLOSED",
+    "title": "docs: establish the resolver ghs-list-count GET-body policy",
+    "url": "https://github.com/seanthimons/specmill/issues/29"
+  },
+  {
+    "number": 30,
+    "state": "CLOSED",
+    "title": "feat: support finite recursive request payloads for ProtocolRecord",
+    "url": "https://github.com/seanthimons/specmill/issues/30"
+  },
+  {
+    "number": 31,
+    "state": "OPEN",
+    "title": "feat: support explicitly reviewed nested query-object contracts",
+    "url": "https://github.com/seanthimons/specmill/issues/31"
+  },
+  {
+    "number": 32,
+    "state": "CLOSED",
+    "title": "milestone: harden generated R clients and request contracts",
+    "url": "https://github.com/seanthimons/specmill/issues/32"
+  },
+  {
+    "number": 33,
+    "state": "CLOSED",
+    "title": "fix: enforce consistent schema validation across request inputs",
+    "url": "https://github.com/seanthimons/specmill/issues/33"
+  },
+  {
+    "number": 34,
+    "state": "CLOSED",
+    "title": "docs: clarify client-owned pre-request hook responsibility",
+    "url": "https://github.com/seanthimons/specmill/issues/34"
+  },
+  {
+    "number": 35,
+    "state": "CLOSED",
+    "title": "fix: diagnose contradictory parameter constraints at their source",
+    "url": "https://github.com/seanthimons/specmill/issues/35"
+  },
+  {
+    "number": 36,
+    "state": "CLOSED",
+    "title": "fix: keep generated package file paths portable",
+    "url": "https://github.com/seanthimons/specmill/issues/36"
+  },
+  {
+    "number": 37,
+    "state": "CLOSED",
+    "title": "fix: escape non-ASCII literals in generated R source",
+    "url": "https://github.com/seanthimons/specmill/issues/37"
+  },
+  {
+    "number": 38,
+    "state": "CLOSED",
+    "title": "fix: honor parameter examples and clarify optional fixture failures",
+    "url": "https://github.com/seanthimons/specmill/issues/38"
+  },
+  {
+    "number": 39,
+    "state": "CLOSED",
+    "title": "feat: track request-helper provenance and offer reviewed upgrades",
+    "url": "https://github.com/seanthimons/specmill/issues/39"
+  },
+  {
+    "number": 40,
+    "state": "CLOSED",
+    "title": "test: verify hardened generated clients with exact localhost requests",
+    "url": "https://github.com/seanthimons/specmill/issues/40"
+  }
+]

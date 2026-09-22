@@ -233,6 +233,22 @@ inspect_client <- function(
         name = name,
         implemented = !is.null(definition) && name %in% exports,
         implementation = configured$spec$implementation %or% 'generated',
+        specialization = list(
+          reason = configured$spec$specialization,
+          helper = configured$spec$helper %or% service$helper,
+          request = configured$spec[['request']],
+          hooks = service$hooks[[name]],
+          status = if (
+            !is.null(configured$spec[['request']]) ||
+              length(service$hooks[[name]])
+          ) {
+            'configured; behavior unverified'
+          } else if (!is.null(configured$spec$specialization)) {
+            'requires client handling'
+          } else {
+            'none recorded'
+          }
+        ),
         file = if (is.null(definition)) {
           NULL
         } else {
@@ -256,6 +272,29 @@ inspect_client <- function(
   manual <- setdiff(intersect(exports, names(definitions)), selected_names)
   list(
     operations = operations,
+    helpers = inspect_request_helpers(
+      root,
+      unique(c(
+        vapply(project$services, `[[`, character(1), 'helper'),
+        vapply(operations, function(x) x$specialization$helper, character(1))
+      )),
+      definitions
+    ),
+    protected_sources = list.files(
+      file.path(root, 'R'),
+      pattern = '[.]R$',
+      full.names = TRUE,
+      recursive = TRUE
+    )[vapply(
+      list.files(
+        file.path(root, 'R'),
+        pattern = '[.]R$',
+        full.names = TRUE,
+        recursive = TRUE
+      ),
+      has_protected_lifecycle,
+      logical(1)
+    )],
     inventory = inventory,
     diagnostics = diagnostics,
     manual_exports = stats::setNames(

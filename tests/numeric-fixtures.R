@@ -130,8 +130,10 @@ numeric_fixtures_acceptance <- function() {
     overrides <- setNames(list(inputs), ops[[1L]]$name)
     fails(specmill::operation_fixtures(ops, overrides), 'numeric bounds')
     body$properties$value <- invalid_hint
-    stopifnot(
-      specmill::operation_fixtures(read(body, media))[[1L]]$body$value == 10
+    # Issue #38 now rejects invalid selected body examples without fallback.
+    fails(
+      specmill::operation_fixtures(read(body, media)),
+      'No valid body fixture'
     )
   }
   cat('Numeric fixtures passed.\n')

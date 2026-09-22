@@ -7,7 +7,15 @@ initialize_client <- function(
   license = NULL,
   base_url = NULL,
   naming = c('operation_id', 'tag_prefix'),
-  group_by = c('tag', 'none')
+  group_by = c('tag', 'none'),
+  name_case = c(
+    'asis',
+    'snake_case',
+    'camel_case',
+    'pascal_case',
+    'screaming_snake_case',
+    'dot_case'
+  )
 ) {
   if (is.data.frame(schema)) {
     return(initialize_apis(
@@ -18,11 +26,13 @@ initialize_client <- function(
       author,
       license,
       match.arg(naming),
-      match.arg(group_by)
+      match.arg(group_by),
+      match.arg(name_case)
     ))
   }
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
   naming <- match.arg(naming)
+  name_case <- match.arg(name_case)
   group_by <- match.arg(group_by)
   document <- read_schema_document(schema)
   base_url_override <- base_url
@@ -95,28 +105,19 @@ initialize_client <- function(
       'Existing DESCRIPTION must declare curl before adding the default transport'
     )
   }
-  helper <- readLines(
-    system.file('templates/request.R', package = 'specmill', mustWork = TRUE),
-    warn = FALSE
+  scaffold <- request_helper_scaffold(
+    'api_request',
+    base_url,
+    base_url_override,
+    dry_run_env(package)
   )
-  helper <- sub(
-    'base_url_override <- NULL # Initialization override',
-    paste0(
-      'base_url_override <- ',
-      r_literal(base_url_override),
-      ' # Initialization override'
-    ),
-    helper,
-    fixed = TRUE
+  proposal <- configuration_proposal(
+    schema,
+    package,
+    naming,
+    group_by,
+    name_case
   )
-  helper <- gsub('BASE_URL', r_literal(base_url), helper, fixed = TRUE)
-  helper <- gsub(
-    'DRY_RUN_ENV',
-    r_literal(dry_run_env(package)),
-    helper,
-    fixed = TRUE
-  )
-  proposal <- configuration_proposal(schema, package, naming, group_by)
   if (
     any(vapply(
       proposal$diagnostics,
@@ -129,7 +130,8 @@ initialize_client <- function(
   output <- c(
     proposal$files,
     list(
-      'R/api_request.R' = paste(helper, collapse = '\n'),
+      'R/api_request.R' = scaffold$code,
+      '.specmill/helpers/api_request.json' = scaffold$provenance,
       '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
     )
   )
