@@ -41,3 +41,16 @@ file is not evidence that tests ran or passed.
 
 [Step-by-step
 guide](https://seanthimons.github.io/specmill/articles/testing.html).
+
+## Client-owned helpers
+
+Newly initialized helpers retain their substituted baseline and template
+hash under `.specmill/helpers/`. The `helpers` result includes baseline,
+local and proposed current source for read-only review, local/upstream
+change flags, and missing explicit helper arguments. Legacy helpers have
+unknown baselines. Argument compatibility does not establish behavior.
+Manually merge selected improvements and run request/transport checks;
+inspection never adopts or overwrites a helper. `protected_sources`
+lists discovered lifecycle-protected R files. Each operation includes
+specialization evidence, configured helper/mapping/hooks and ownership
+separately.

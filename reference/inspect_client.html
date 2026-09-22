@@ -80,6 +80,18 @@
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><a href="https://seanthimons.github.io/specmill/articles/testing.html">Step-by-step guide</a>.</p></div>
     </div>
+    <div class="section level2">
+    <h2 id="client-owned-helpers">Client-owned helpers<a class="anchor" aria-label="anchor" href="#client-owned-helpers"></a></h2>
+    <p>Newly initialized helpers retain their substituted
+baseline and template hash under <code class="file">.specmill/helpers/</code>. The <code>helpers</code>
+result includes baseline, local and proposed current source for read-only review,
+local/upstream change flags, and missing explicit helper arguments. Legacy helpers
+have unknown baselines. Argument compatibility does not establish behavior.
+Manually merge selected improvements and run request/transport checks; inspection
+never adopts or overwrites a helper. <code>protected_sources</code> lists discovered
+lifecycle-protected R files. Each operation includes specialization evidence,
+configured helper/mapping/hooks and ownership separately.</p>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

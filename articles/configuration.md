@@ -11,7 +11,141 @@ All project/config/schema paths resolve against the explicit client
 directory. Use relative paths inside YAML. Parent traversal, absolute
 paths, and symlinks are rejected.
 
+## JSON and YAML schema files
+
+Pass a local `.json`, `.yaml`, or `.yml` file directly to
+[`read_operations()`](https://seanthimons.github.io/specmill/reference/read_operations.md),
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md),
+or
+[`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md).
+The API catalogue, project generation, and schema comparisons use the
+same schema loader. No separate conversion command or converted JSON
+sidecar is needed. Service `schemas.files` and `schemas.patterns` can
+select either format. Initialization keeps the source format and
+extension in `schema/openapi.<ext>` for a single API, or
+`schema/<api>.<ext>` for a reviewed API catalogue.
+
+YAML uses YAML 1.2 scalar resolution: unquoted `yes`, `no`, `on`, and
+`off` are strings; `true` and `false` are booleans. Quote values when
+the schema requires a string, including Swagger’s `swagger: '2.0'`.
+Empty objects ([`{}`](https://rdrr.io/r/base/Paren.html)), empty arrays
+(`[]`), explicit nulls, and omitted fields remain distinct. Sequence
+elements are retained as lists, including single-element sequences.
+UTF-8 text is read without depending on the machine’s locale. Types are
+never inferred from examples.
+
+Numbers use R’s integer/double representation, as with JSON ingestion.
+Values outside the 32-bit integer range use doubles; arbitrary-precision
+integers are not supported, and values beyond the exact double range can
+lose precision. Non-finite numbers are rejected. YAML input must contain
+exactly one document. Duplicate mapping keys, complex keys, boolean/null
+keys, and custom tags (including executable tags) are rejected. Mapping
+keys must be strings or exact integers with absolute value at most
+`2^53 - 1`. Integer response keys such as `200:` are read as strings;
+quoting them is clearer. YAML anchors and aliases are supported; merge
+keys (`<<`) are rejected.
+
+These rules support the JSON-shaped data model described in the [OpenAPI
+format specification](https://spec.openapis.org/oas/v3.1.0.html#format).
+Local file references resolve relative to the file containing each
+reference, including references in path items and operations. Remote
+references are not downloaded. Missing files and unsupported recursive
+references produce diagnostics when they affect an operation’s request
+contract. Initialization bundles local dependencies into the copied
+schema so the generated client does not depend on the original download
+directory. JSON and YAML share these rules.
+
 ## Project file: specmill.yml
+
+### Review multiple APIs once
+
+Put the downloaded JSON or YAML schemas in the project root. The API
+catalogue proposes names from schema titles, detects duplicate content
+independently of filenames and formatting, and offers one editable
+table:
+
+``` r
+
+apis <- specmill::configure_apis(root, mode = 'apply')
+```
+
+Default discovery selects `.json`, `.yaml`, and `.yml` files directly
+inside root, excluding `specmill.yml`, `specmill.yaml`,
+`specmill-apis.yml`, and `specmill-apis.yaml`. Pass `schemas` explicitly
+when other configuration YAML files share the directory. Equivalent JSON
+and YAML documents count as duplicate content.
+
+In an interactive session, review `api`, `base_url`, and `include`, then
+close the editor. Choices are saved in `specmill-apis.yml`; unchanged
+inputs reuse them without prompting again. Use `review = TRUE` to
+revisit choices. In batch scripts, use `review = FALSE`; `choices`
+accepts a data frame keyed by `schema` for scripted name, URL and
+inclusion overrides. Planning is read-only by default.
+
+Names come from `info.title`, with suffixes when distinct schemas share
+a title. Relative servers need the download origin: pass `origins`, a
+character vector of URLs named by schema paths relative to root.
+Missing/ambiguous servers need explicit base URLs before saving.
+Server-variable defaults and Swagger host/basePath metadata are
+supported. Incorrect reverse-proxy metadata still requires review.
+
+Pass the reviewed table as `schema` to
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
+or
+[`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md).
+The generated YAML keeps tag grouping within each API, prefixes function
+names with its reviewed API name, and creates a request helper for each
+base URL. Credential names use `api.scheme`, so identical scheme names
+in different APIs do not share tokens accidentally. Service
+authentication maps refer to these project credential names. Set a
+credential with `set_api_token(token, scheme = 'reviewed_api.api_key')`.
+
+### Batch limits
+
+Generated project YAML also includes request defaults:
+
+``` yaml
+defaults:
+  request_controls:
+    timeout: 30
+    max_retries: 0
+    retry_writes: false
+```
+
+Timeout is seconds per attempt. `max_retries: 2` permits three total
+attempts. These values use the same inheritance as other defaults:
+project, API, group or service, then operation. After editing YAML,
+regenerate wrappers to update their helper calls. Runtime
+`<package>.request` options override individual YAML fields. The
+client-owned helper must accept `request_controls` and apply those
+defaults; normal generation never overwrites it. Complete request
+mappings own their helper arguments and must pass any controls
+explicitly. Write retries still require `retry_writes: true`; use that
+only when replay is safe for the API.
+
+Generated defaults expose `batch.max_items` and `batch.max_bytes` as
+null (unconfigured). A top-level array request schema’s `maxItems`
+becomes an operation-specific default. Set limits under service defaults
+or individual operations, for example:
+
+``` yaml
+operations:
+  POST /batch:
+    batch:
+      max_items: 100
+      max_bytes: 1048576
+```
+
+Shared limits apply only to applicable request bodies, so ordinary GET
+requests are unaffected. The helper rejects oversized requests before
+sending them. Item limits apply to top-level array bodies supplied as
+unnamed lists; byte limits measure the serialized UTF-8 JSON or raw
+binary payload. Limits embedded only in prose need explicit review; they
+are not silently treated as schema constraints. Automatic chunking,
+response aggregation, nested-array limits and newline-delimited batches
+remain separate work. Existing client-owned helpers need a `batch`
+argument before using these settings; generation verifies that
+compatibility.
 
 For a new package,
 [`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md)
@@ -36,13 +170,31 @@ is explicit in the YAML for editing. Multiple tags use the first, with a
 diagnostic; missing tags use `default`. `group_by = 'none'` creates a
 single default service instead.
 
+Use `name_case` independently of that naming strategy. Its choices are
+`asis` (the default), `snake_case`, `camel_case`, `pascal_case`,
+`screaming_snake_case`, and `dot_case`. Thus `naming = 'tag_prefix'`
+with `name_case = 'camel_case'` proposes `petGetById`. Names already
+reviewed in the service YAML are kept exactly, so an existing package
+can retain its convention.
+
+When generated names collide, `proposal$diagnostics` lists every
+contributing `METHOD /path`; multi-API diagnostics include the
+API-qualified proposed name. Edit the matching `names` entries in the
+existing service YAML, then rerun
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md).
+Matching reviewed names are reused across reruns and schema ordering,
+while unrelated service settings and deliberate operation overrides
+remain untouched. Noninteractive runs return these diagnostics and never
+prompt or silently rename a public function.
+
 `mode = 'apply'` writes absent configuration files only. If existing
 YAML or the schema copy differs, nothing is written: review the
 before/after text and make the desired edits yourself. Filename
-collisions block writing; function-name collisions must be resolved
-before wrapper generation. Unsupported operations remain included, with
-diagnostics. Configuration generation does not create custom transports
-or hide unsupported endpoints.
+collisions block writing; function-name collisions must be resolved in
+service YAML before wrapper generation. A later proposal carries forward
+matching reviewed names but never overwrites the YAML. Unsupported
+operations remain included, with diagnostics. Configuration generation
+does not create custom transports or hide unsupported endpoints.
 
 [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)
 and maintenance commands use `specmill.yml` by default. Pass `config`
@@ -118,6 +270,77 @@ explicit environment even for a read-only plan.
 
 ## Service files
 
+### Multiple APIs: one file per API, with nested groups
+
+When `schema` is a reviewed
+[`configure_apis()`](https://seanthimons.github.io/specmill/reference/configure_apis.md)
+data frame, initialization writes one `apis/<api>.yml` per included API.
+Schema tags become nested `groups`, not additional YAML files. For
+example, 27 schemas with 69 tag groups produce 27 API files containing
+those 69 groups. A single-schema initialization still offers the
+original flat tag files, and existing flat service files remain
+supported.
+
+``` yaml
+# apis/chemicals.yml
+api: chemicals
+schemas:
+  files: [schema/chemicals.json]
+  patterns: []
+  exclude: []
+selection:
+  methods: [GET, POST]
+  exclude: ['^/admin(?:/|$)']
+helper: chemicals_request
+authentication: {}
+documentation: true
+defaults:
+  batch: {max_items: null, max_bytes: null}
+groups:
+  chemicals_search:
+    selection:
+      methods: [GET, POST]
+      exclude: []
+      include: ['GET /search']
+    names:
+      GET /search: chemicals_search
+    defaults:
+      file: R/chemicals_search.R
+    operations: {}
+```
+
+List this API file in `specmill.yml` under `services`. Each group key is
+its stable service ID and must be unique across the project. Keep those
+IDs when moving existing configuration so ownership and operation
+identities remain stable.
+
+Selection runs through **project, API, then group**. Allowed methods
+intersect; path exclusions accumulate. A group cannot restore an
+endpoint prohibited by its API or project. An API exclusion affects only
+its own groups. The preview names the policy level responsible for an
+exclusion. Group `include` lists and public names remain intact even
+when a higher-level rule excludes an operation.
+
+Edit API `selection.exclude` once for shared route policy; use group
+`selection.exclude` only for additional restrictions. `schemas.exclude`
+instead filters schema filenames. Neither setting edits the original
+schema document.
+
+API schema sources, helper, authentication references, and documentation
+settings are inherited unless a group overrides them. Operation defaults
+merge in order: project, API, group, then operation. Set function names
+and output `file` in groups or operations; API defaults reject them to
+avoid accidental shared output names. Use `group_by = 'none'` when tags
+are not useful: each API still has one file with a single group. YAML
+file count, tag grouping, and generated R-file layout are separate
+choices.
+
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
+proposals do not overwrite existing configuration. Existing flat YAML
+continues to work; consolidate reviewed settings explicitly instead of
+replacing them with a fresh scaffold and losing names, exclusions, or
+overrides.
+
 ### Project-wide limits and inherited settings
 
 Set package-wide selection in `specmill.yml`, for example:
@@ -165,9 +388,9 @@ The default transport supports scalar path/query/header parameters,
 OpenAPI string query arrays with `style: form` (repeated keys when
 `explode: true`, comma-separated values otherwise), JSON bodies, and
 `application/octet-stream` bodies declared as `type: string`,
-`format: binary`. Pass a character vector for query arrays and a raw
-vector for binary uploads. JSON is selected when offered alongside
-XML/form alternatives.
+`format: binary`, plus URL-encoded and multipart form bodies. Pass a
+character vector for query arrays and a raw vector for binary uploads.
+JSON is selected when offered alongside other supported alternatives.
 
 Initialization proposes authentication configuration for schemas
 declaring security schemes. For example, to use ComptoxR’s
@@ -214,9 +437,287 @@ mappings also retain responsibility for authentication. Adding the field
 opts into generated authentication.
 
 Existing helpers need optional `headers`, `query_serialization`,
-`body_media`, or `auth` arguments when an operation uses these features.
-Generation validates helper compatibility and does not overwrite
-client-owned helpers.
+`body_media`, `auth`, `parameter_serialization`, `cookies`,
+`body_encoding`, or `form_schema` arguments when an operation uses these
+features. Generation validates helper compatibility and does not
+overwrite client-owned helpers.
+
+### Dry run
+
+Generated wrappers honour a per-package dry-run environment variable.
+The name is the package name uppercased with every non-alphanumeric
+character replaced by `_`, then suffixed `_DRY_RUN`; for example package
+`requestclient` uses `REQUESTCLIENT_DRY_RUN`. When its value is truthy
+(`true`, `1`, or `yes`, any case), the wrapper builds the fully-formed
+`httr2` request—authentication, query, and body included—then returns
+that `httr2_request` object instead of calling
+[`httr2::req_perform()`](https://httr2.r-lib.org/reference/req_perform.html).
+Empty, unset, or any other value performs the request normally.
+
+``` r
+
+Sys.setenv(REQUESTCLIENT_DRY_RUN = 'true')
+req <- some_operation(id = 42)   # returns the unexecuted httr2_request
+Sys.unsetenv('REQUESTCLIENT_DRY_RUN')
+```
+
+This is useful for inspecting the exact request a wrapper would send
+without touching the network.
+
+### Form bodies and file uploads
+
+Generated form operations take a named `body` list. Omit optional fields
+by leaving their names out; required fields are checked before sending.
+Explicit `NULL` fields and empty arrays are rejected. An empty string is
+a present field; an empty URL-encoded form sends zero bytes with its
+form content type. Use unnamed lists for arrays and named lists for
+object fields. Empty multipart bodies are rejected; omit an optional
+body argument instead.
+
+``` r
+
+# application/x-www-form-urlencoded
+create_item(body = list(name = 'Milo', tags = list('red', 'blue')))
+
+# multipart/form-data: a file plus a JSON object part
+upload_item(body = list(
+  file = curl::form_file('photo.png', name = 'photo.png'),
+  metadata = list(title = 'Milo')
+))
+```
+
+Binary parts accept raw vectors or
+[`curl::form_file()`](https://jeroen.r-universe.dev/curl/reference/multipart.html)
+values. Arrays of parts use repeated field names. Multipart objects use
+JSON; primitive parts use text, and binary parts use
+`application/octet-stream`, unless the schema supplies a supported
+`encoding.contentType`. URL-encoded fields use the schema’s
+`encoding.style` and `encoding.explode` rules. Swagger 2 `formData`
+parameters and their `collectionFormat` are also supported. Unsupported
+nested URL-encoded shapes, dynamic form maps, and custom part headers
+produce diagnostics.
+
+To choose an offered media type, set a service default or an operation
+override:
+
+``` yaml
+defaults:
+  body_media: application/x-www-form-urlencoded
+operations:
+  POST /uploads:
+    body_media: multipart/form-data
+```
+
+The selected media type must exist in that operation’s schema. Existing
+client-owned helpers need the optional `body_media`, `body_encoding`,
+and `form_schema` arguments and must implement their encoding;
+generation will not replace them. New clients use the bundled transport
+and declare `curl` in Imports. Adding the default transport to an
+existing package requires declaring `curl` first; retaining a
+client-owned helper adds no such requirement.
+
+### Parameter serialization
+
+OpenAPI 3.0 and 3.1 support the following flat parameter shapes. Arrays
+contain strings, integers, numbers, or booleans; objects contain scalar
+properties or scalar-valued maps. Use unnamed vectors/lists for arrays
+and named lists for objects. Nested arrays/objects and unconstrained
+array items have no supported parameter encoding; JSON body support is
+broader.
+
+| Location | Style | Shapes | Explode |
+|----|----|----|----|
+| Query | `form` (default) | Scalar, array, flat object | Both; default true |
+| Query | `spaceDelimited`, `pipeDelimited` | Array | Both; default false |
+| Query | `deepObject` | Flat object | Explicit true required |
+| Path | `simple` (default), `label`, `matrix` | Scalar, array, flat object | Both; default false |
+| Header | `simple` | Scalar, array, flat object | Both; default false |
+| Cookie | `form` | Scalar, array, flat object | Both; default true |
+
+Swagger 2 supports primitive arrays with `collectionFormat: csv`
+(default), `ssv`, `tsv`, or `pipes` in query, path, and header
+parameters; `multi` is query-only. Ordinary cookies and object
+parameters are not Swagger 2 types. Parameter `content` and
+`allowReserved: true` remain explicitly diagnosed rather than guessed.
+Binary parameters require source-contract review, especially files
+declared in query strings (#16).
+
+For APIs that explicitly require repeated bracketed query-array names,
+opt in:
+
+``` yaml
+defaults:
+  query_array_style: brackets
+operations:
+  GET /ordinary-items:
+    query_array_style: schema
+```
+
+`brackets` sends a flat primitive array as
+`expand[]=customer&expand[]=invoice` (with URI percent encoding). It
+applies to query arrays in the selected service or operation, regardless
+of their declared array style. `schema` restores the normal
+schema-driven behavior for an operation. This is an explicit convention,
+not an interpretation of OpenAPI `deepObject` for arrays: the [OpenAPI
+definition](https://spec.openapis.org/oas/v3.0.4.html#style-values)
+defines `deepObject` for objects, while [Stripe’s expansion
+examples](https://docs.stripe.com/api/expanding_objects) show repeated
+`expand[]` keys.
+
+Only arrays of strings, integers, numbers, or booleans are covered.
+Object, path, header, cookie, JSON, and form-body encodings keep their
+existing behavior. Nested arrays, object items, unions, binary items,
+null elements, and empty arrays remain unsupported. No API is detected
+automatically and no schema is rewritten. The direct reader accepts the
+same opt-in as
+`read_operations(file, policy = list(query_array_style = 'brackets'))`.
+Existing helpers must implement the bracket style in their existing
+`parameter_serialization` handling; accepting the argument alone is
+insufficient.
+
+For example, a query object `list(R = 1L, G = 2L)` becomes `R=1&G=2`
+with exploded form, `p=R,1,G,2` with non-exploded form, or
+`p[R]=1&p[G]=2` with deepObject. Exploded cookies become separate
+`name=value` pairs joined by `;`. URI tokens are UTF-8 percent-encoded
+before delimiters are added; literal percent escapes are data and are
+encoded again. Header values are not URI-encoded. New boolean
+array/object encodings use `true` and `false`; existing scalar helper
+behavior is retained.
+
+Omitting an optional argument uses its schema default, if any; explicit
+`NULL` omits it. Empty scalar strings remain provided values (`p=` in
+query/cookies, `;p` in matrix paths, `.` in label paths). Empty
+containers are rejected because URI templates do not give them an
+unambiguous representation distinct from omission. Null elements,
+missing/non-finite scalars, duplicate object names, and nested values
+are rejected before HTTP. Non-exploded whitespace-delimited values
+cannot themselves contain the whitespace delimiter; composite header
+values cannot contain their structural delimiter. These cases fail
+instead of silently changing the values received by the server.
+
+Existing scalar and form-style string-query-array wrappers retain their
+helper arguments, including `query_serialization`. Newly supported
+encodings pass `parameter_serialization` metadata (location, name,
+schema, style, explode, required status, and Swagger collection format);
+cookies additionally pass a `cookies` list. Before generating these
+operations into an existing client, review its helper against the
+current `inst/templates/request.R` implementation and add these optional
+arguments **and their serialization behavior**, retaining the client’s
+base URL, authentication, hooks, and response handling. Merely accepting
+`...` does not implement the encoding. Generation never replaces a
+client-owned helper, and a helper without the required arguments fails
+planning with an explicit migration message. Complete custom request
+mappings continue to own their serialization.
+
+The matrix follows the [OpenAPI parameter
+specification](https://spec.openapis.org/oas/v3.0.3.html#parameter-object)
+and [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570), including
+comma-separated non-exploded labels. Offline tests verify the received
+URI, headers, and cookies through the generated client rather than
+relying on helper return values.
+
+### JSON body values
+
+Generated wrappers accept named lists for objects and unnamed lists for
+arrays, including single-item arrays. For a declared object,
+[`list()`](https://rdrr.io/r/base/list.html) becomes
+[`{}`](https://rdrr.io/r/base/Paren.html); for a declared array it stays
+`[]`. In unconstrained values, use `setNames(list(), character())` for
+[`{}`](https://rdrr.io/r/base/Paren.html) and
+[`list()`](https://rdrr.io/r/base/list.html) for `[]`. Scalars are
+single strings, finite numbers, or logical values. Heterogeneous arrays
+can contain these scalars, nested lists, and `NULL`. Atomic vectors,
+data frames, classed objects, missing values, and duplicate or empty
+object names are rejected; convert them to plain JSON-shaped lists
+explicitly.
+
+Omit an optional body argument to send no body. Explicit `body = NULL`
+sends JSON `null` when allowed by the schema: unconstrained values, a
+nullable OpenAPI 3.0 type, or an OpenAPI 3.1 `null` type (including a
+type array); otherwise it fails. Inside an object, `list(field = NULL)`
+retains the field as `null`, while leaving the name out omits it.
+Required fields must be present, even when their values may be null.
+Wrappers pass an explicitly unboxed JSON null to the existing helper for
+a top-level null; no new helper arguments are needed. Client-owned
+helpers still control their own serialization.
+
+Open objects accept extra fields. A schema in `additionalProperties`
+validates each extra value; `additionalProperties: false` rejects extra
+fields. Fixtures and wrappers share these checks. Examples may supply
+fixture values but never establish a type. Swagger 2 body arrays may
+omit `items`; OpenAPI 3.0 arrays and Swagger 2 non-body arrays must
+supply it. Explicit `items: {}` accepts any JSON value. Boolean schemas
+remain diagnosed; this is not a full JSON Schema validator.
+
+JSON bodies support finite recursion when a plain local `$ref` points
+back to an ancestor schema from an optional object property. Default
+fixtures omit that recursive child. Supplied children retain the
+ancestor’s required fields, types, and constraints. Required back-edges,
+recursion through array items or typed maps, and recursive references
+with siblings remain outside this slice and produce diagnostics. This
+restriction also applies to nullable required cycles. Parameters and
+form bodies retain their existing recursion diagnostics.
+
+Body values are limited to 32 levels below the root and 20,000 nodes,
+including unconstrained fields. Validation also stops after 20,000
+schema visits. Environments are rejected as non-JSON values; cyclic
+lists terminate at the depth limit with a possible-cycle error. Values
+beyond these limits fail before transport, without dropping or
+truncating content.
+
+JSON request bodies support `oneOf`, `anyOf`, and `allOf` at the body
+root, in properties, in array items, and in typed maps. Pass ordinary R
+values:
+
+``` r
+
+# For oneOf branches requiring either values or records:
+body <- list(values = list('first', 'second'))
+# The other branch might accept:
+body <- list(records = list(list(id = 1L), list(id = 'second')))
+```
+
+`oneOf` requires exactly one matching branch; `anyOf` requires one or
+more; `allOf` requires every branch. Sibling constraints also apply.
+Supplying fields that satisfy two open-object branches of `oneOf` is an
+error, even if a discriminator names one branch. Discriminators are
+hints, not validation shortcuts, and wrappers neither insert tags nor
+strip fields. These rules follow [JSON Schema
+composition](https://json-schema.org/understanding-json-schema/reference/combining).
+
+Within composed values, container shape is explicit: use
+`setNames(list(), character())` for
+[`{}`](https://rdrr.io/r/base/Paren.html) and
+[`list()`](https://rdrr.io/r/base/list.html) for `[]`. Branch matching
+never changes one into the other. Closed `allOf` members each check the
+whole object; declaring a field in another member does not override
+`additionalProperties: false`. OpenAPI 3.1 `type: [string, 'null']`
+accepts strings and explicit null; `nullable` alone has no validation
+meaning in 3.1.
+
+Fixtures try a finite set of candidates from declared examples,
+defaults, enums, and branch shapes, then validate against the complete
+schema. They do not infer types from examples or solve arbitrary
+intersections. If no candidate passes, supply a reviewed fixture
+override; an ambiguous `oneOf` value still fails.
+
+Branch matching checks types, required fields, typed maps, closed
+objects, enum/const values, numeric and string bounds, patterns, array
+length/uniqueness, and object size. Unsupported assertion keywords in
+JSON bodies produce an operation-specific diagnostic; malformed
+supported constraints are schema defects. Formats remain annotations.
+Parameter and form-body compositions remain diagnosed because their wire
+representation needs separate support; response schemas remain metadata,
+without generated response validation. Complete request mappings and
+explicitly retained implementations remain the customization paths for
+unsupported contracts.
+
+Local references are resolved relative to the containing file; remote
+references are never fetched. Cycles and reference chains exceeding 100
+levels are diagnosed. OpenAPI 3.1 local schema-reference siblings are
+conjunctive. For a bundled reference with assertion siblings, use an
+explicit `allOf` containing the reference and the sibling constraints; a
+diagnostic prevents lossy merging.
 
 ``` yaml
 id: catalogue
@@ -420,8 +921,18 @@ exactly one form:
 For JSON, use named lists for objects and unnamed lists for arrays,
 including one-element arrays. `NULL`, `false`, zero, and one-element
 lists are distinct. Do not turn arrays into scalar values for
-convenience. The helper owns the final serialization and full runtime
-value validation.
+convenience. The helper owns final serialization and transport checks.
+Schema-derived public parameters and bodies are validated before request
+mapping and runtime hooks. Complete client `inputs` maps retain their
+documented client-owned validation.
+
+Parameter transports use optional `NULL` for omission and reject
+required `NULL`; they do not encode JSON null. Empty parameter
+containers have no unambiguous wire representation. Form fields likewise
+reject null and empty arrays. JSON bodies retain their declared
+nullability and container constraints. Ordinary scalar query/path/header
+booleans retain R’s `TRUE`/`FALSE` spelling; structured parameter
+serialization, JSON, and forms use `true`/`false`.
 
 ## Development callbacks versus runtime hooks
 
@@ -447,6 +958,20 @@ during planning too: keep them deterministic and free of
 filesystem/network side effects.
 
 Runtime hooks execute when a user calls the generated wrapper:
+
+Hooks are client-owned request-shaping code. They may intentionally
+change a validated public value’s type, remove values, or build a
+different request body and options under their returned state. Existing
+`hook_state` mappings select which state reaches the helper. Hook
+authors own these transformations and any validation they require;
+specmill adds no mandatory post-hook schema gate or outgoing-contract
+declaration. Generic helpers retain their transport checks. Hook
+exceptions propagate without calling a fallback request.
+
+Schema-derived public inputs, including empty-query restrictions, are
+checked before `pre_request`. An empty query created by a hook is
+therefore the hook author’s responsibility. Explicit client `inputs`
+preserve their existing missing/NULL behavior described above.
 
 ``` yaml
 hook_callback: run_hook
@@ -482,3 +1007,194 @@ native schema support.
 
 Apply only reviewed changes, then run `check` and [the client’s
 tests](https://seanthimons.github.io/specmill/articles/testing.md).
+
+## Pagination
+
+Pagination configuration is explicit R code per operation, kept in a
+companion function outside generated files. There is no pagination YAML
+field in this first implementation.
+[`paginated()`](https://seanthimons.github.io/specmill/reference/paginated.md)
+follows the existing
+[`batched()`](https://seanthimons.github.io/specmill/reference/batched.md)
+pattern of calling an ordinary function; it does not change wrapper
+generation or transport.
+
+The convention inventory used for this implementation is:
+
+| Convention | Inputs and response | Support |
+|----|----|----|
+| Page number | A zero- or one-based page, a page size, and a collection, possibly nested | Explicit starting page; increment by one |
+| Offset | An offset, a limit, and a collection | Explicit starting offset; increment by requested size |
+| Cursor | An opaque token in a response body and a token argument on the next request | Explicit token argument and extractor; repeated tokens rejected |
+| Next link | A response body URL or an HTTP Link header | [`paginated_links()`](https://seanthimons.github.io/specmill/reference/paginated_links.md) with a bodyless httr2 GET request; same origin only |
+
+The bundled catalogue’s `list_items(page)` demonstrates why parameter
+names are insufficient: its schema supplies neither a size parameter nor
+an end condition. It is not automatically pageable. Existing extension
+points include public input and request mappings, pre-request and
+post-response hooks, custom request helpers, and retained
+`implementation: existing` functions. Hooks can normalize a response; a
+separate companion can orchestrate repeated calls without changing the
+public single-request contract. The helper and companion are
+client-owned R files.
+
+For an operation with public arguments `page`, `per_page`, and
+`category`:
+
+``` r
+
+list_all_items <- function(category, max_pages = 100, max_items = 10000) {
+  specmill::paginated(
+    list_items, category = category,
+    mode = 'page', parameter = 'page', size_parameter = 'per_page',
+    start = 1, page_size = 50, items = function(response) response$data,
+    max_pages = max_pages, max_items = max_items
+  )
+}
+result <- list_all_items('books')
+result$stop_reason
+result$pages
+```
+
+For a top-level collection and offset/limit arguments:
+
+``` r
+
+search_all <- function(query, max_pages = 100, max_items = 10000) {
+  specmill::paginated(
+    search_items, query = query,
+    mode = 'offset', parameter = 'offset', size_parameter = 'limit',
+    start = 0, page_size = 50, items = identity,
+    max_pages = max_pages, max_items = max_items
+  )
+}
+```
+
+Use exact public argument names, including any configured renames. Fixed
+arguments must be named and cannot override the pagination arguments. If
+an operation’s argument collides with a
+[`paginated()`](https://seanthimons.github.io/specmill/reference/paginated.md)
+control such as `items` or `start`, use a small adapter function that
+closes over that fixed value. Add specmill to Imports if shipping these
+companions in a client package. Existing generated functions remain
+independent of specmill at runtime.
+
+The extractor must return a list, atomic vector, or data frame. Data
+frames count rows. NULL is rejected to catch missing response fields;
+explicitly convert a known null/204 end response to an empty collection
+in the extractor if the API uses that convention. Extracted pages retain
+their collection type and are not merged. Empty pages are omitted and
+produce `stop_reason = 'empty_page'`. Short pages continue; a full final
+page therefore requires another call to discover an empty page. Page
+numbers advance by one, offsets by the fixed requested size. Offset APIs
+that cap or change the stride require custom orchestration.
+
+`max_pages` and `max_items` must be finite positive integers. Their
+defaults are 100 and 10000. The last collection is sliced to meet the
+item limit without changing the request size. Limits bound calls and
+retained items, not response bytes or total time. Transport retries can
+make multiple HTTP attempts per call. A limit produces `max_pages` or
+`max_items`, with the item limit taking precedence when both are
+reached. Neither means that all available items were fetched. Repeated
+nonempty pages terminate at these limits without deduplication. Request,
+decode, and extraction errors propagate immediately; no partial result
+is returned.
+
+### Cursor responses, including AMOS
+
+`mode = 'cursor'` takes the exact public cursor argument name and a
+`next_cursor` function. The default `start = NULL` is passed explicitly
+on the first call. Use `start = ''` if the operation requires an empty
+string instead. Supply a resume token explicitly when resuming.
+`size_parameter` and `page_size` may both be NULL when the companion
+fixes the size itself. Cursor values must be strings or NULL; they are
+never decoded, modified, inferred from item IDs, or treated as URLs.
+
+AMOS development and staging return a `results` array and a `pagination`
+object containing `hasNext`, `limit`, and `nextCursor`. Configure a
+generated GET wrapper for `/api/amos/method_keyset_pagination/{limit}`
+as follows:
+
+``` r
+
+all_methods <- function(max_pages = 10, max_items = 500) {
+  specmill::paginated(
+    amos_page, mode = 'cursor', parameter = 'cursor',
+    size_parameter = 'limit', page_size = 50,
+    items = function(x) x$results,
+    next_cursor = function(x) {
+      if (isTRUE(x$pagination$hasNext)) x$pagination$nextCursor else NULL
+    },
+    max_pages = max_pages, max_items = max_items
+  )
+}
+```
+
+For the filtered POST form, put the cursor in the body through a
+companion:
+
+``` r
+
+filtered_page <- function(cursor, limit) {
+  amos_filtered(limit = limit, body = list(
+    cursor = if (is.null(cursor)) '' else cursor,
+    filters = list(internal_id = list(
+      filterType = 'text', type = 'startsWith', filter = 'GJ-'
+    ))
+  ))
+}
+```
+
+Pass `filtered_page` in place of `amos_page`. Keep filters and sort
+order fixed throughout retrieval. The generated functions retain their
+one-request behavior. NULL or an empty next token ends with
+`no_next_cursor`. Repeated tokens, including cycles back to the initial
+token, raise an error before another request. Empty pages stop even if a
+token is present; limits stop before token extraction. These stops take
+precedence over detecting repetition in an unused next token.
+
+### Next links in bodies or headers
+
+Generated wrappers return decoded bodies, so they do not expose HTTP
+headers.
+[`paginated_links()`](https://seanthimons.github.io/specmill/reference/paginated_links.md)
+instead takes an httr2 request; its extractors receive the full httr2
+response. It requires httr2 1.3.0 or later and a bodyless GET request.
+
+``` r
+request <- httr2::request('https://example.org/items?limit=50') %>%
+  httr2::req_timeout(20)
+
+# HTTP Link header, rel="next", is the default next-link extractor.
+result <- specmill::paginated_links(
+  request, items = function(response) httr2::resp_body_json(response)$data,
+  max_pages = 10, max_items = 500
+)
+
+# A body-provided next URL uses the same retrieval and origin checks.
+result <- specmill::paginated_links(
+  request, items = function(response) httr2::resp_body_json(response)$data,
+  next_link = function(response) httr2::resp_body_json(response)$next,
+  max_pages = 10, max_items = 500
+)
+```
+
+Configure authentication on the original request. Each link must match
+its scheme, hostname, and effective port before that request’s
+credentials are used. Relative links resolve against the current
+response URL. URL userinfo and fragments are rejected. All redirects are
+disabled, including same-origin redirects; a redirect response is an
+error. The next URL supplies its complete query string, so initial query
+arguments are not automatically appended. NULL or an empty link ends
+with `no_next_link`. Repeated resolved links are errors; finite limits
+also bound cycles that change their URL spelling. Error messages for
+invalid/repeated links do not include their values.
+
+Cross-origin links, redirect traversal, link-based POSTs, and
+composite/non-string cursor objects are unsupported. Use a client-owned
+helper for such contracts; never edit generated wrappers. AMOS validates
+cursor behavior, not next-link behavior. The localhost tests exercise
+body and header links, relative resolution, cycles, and credential
+isolation. The opt-in `dev/verify_amos_pagination.R` script checks
+generated GET and filtered POST wrappers against dev or staging without
+production access or credentials.

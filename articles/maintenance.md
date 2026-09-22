@@ -41,6 +41,13 @@ implementation merely because an operation disappears from an
 unsupported or changed schema. Eligible removal comes from explicit
 exclusions or reconciled renames and requires verified ownership.
 
+Naming conventions are proposal-time settings.
+[`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md)
+uses the explicit service YAML names and does not reapply `name_case`.
+To propose names for new endpoints, run
+`configure_client(..., name_case = 'snake_case')`, review its changes,
+and copy the accepted mappings into the existing YAML.
+
 ## 2. Generate and verify
 
 ``` r

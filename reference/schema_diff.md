@@ -6,7 +6,7 @@ including reachable local references.
 ## Usage
 
 ``` r
-schema_diff(old_dir, new_dir, pattern = "\\.json$", stage_priority = NULL,
+schema_diff(old_dir, new_dir, pattern = "\\.(json|ya?ml)$", stage_priority = NULL,
     exclude_pattern = NULL, policies = list())
 format_diff_markdown(diff_results)
 count_diff_changes(diff_results)
@@ -25,7 +25,8 @@ count_diff_changes(diff_results)
 
 - pattern:
 
-  Regular expression selecting filenames; defaults to JSON files.
+  Regular expression selecting filenames; defaults to JSON, YAML, and
+  YML files.
 
 - stage_priority:
 

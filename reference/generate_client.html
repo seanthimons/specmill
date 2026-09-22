@@ -92,11 +92,23 @@
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list of class <code>specmill_generation</code> with files (file/path/action records), configured operations, excluded operations with reasons, drift, diagnostics, mapping_diagnostics, retained_diagnostics, unused_hooks, inventory, retained_sources, and manifest (toolkit version, input hashes, policy versions). Printing separates selected and excluded operations and reports removals and protections. Operations outside a service's include list remain in inventory but are omitted from the excluded summary to avoid repeating other services' endpoints. File actions include write, unchanged, protected, remove, and retained. Check errors on actions other than unchanged or retained.</p>
+    <p>A list of class <code>specmill_generation</code> with files (file/path/action records), configured operations, excluded operations with reasons, drift, diagnostics, server_diagnostics, mapping_diagnostics, retained_diagnostics, unused_hooks, inventory, retained_sources, and manifest (toolkit version, input hashes, policy versions). Printing separates selected and excluded operations and reports removals and protections. Operations outside a service's include list remain in inventory but are omitted from the excluded summary to avoid repeating other services' endpoints. File actions include write, unchanged, protected, remove, and retained. Check errors on actions other than unchanged or retained.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Supply exactly one of spec and config. Check is the default and errors when reconciled output is stale or protected; plan returns file actions without modifying the client; apply reconciles verified owned output. Both read-only modes stage candidate output. Development callbacks must be deterministic and are resolved only in callbacks. Unsupported operations remain diagnostics and never authorize removal. Check success does not establish complete schema support or passing tests. Adoption accepts only individually reviewed current hashes and does not override lifecycle or mixed-file protection.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="portable-generated-output">Portable generated output<a class="anchor" aria-label="anchor" href="#portable-generated-output"></a></h2>
+    <p>Generated R, Rd and contract-test filenames are limited to 100 bytes including the
+package archive prefix. Long stems receive a deterministic 16-digit SHA-256
+suffix. Public function names and help aliases stay unchanged. Short explicit
+API names or output filenames remain supported. A package name too long to leave
+space for a filename fails with a diagnostic.</p>
+<p>Existing generated files move only when their manifest hashes still match;
+client edits and protected lifecycle badges block a move. Repeated generation
+uses the same filenames. Unicode in executable schema literals uses R escapes
+that preserve the original runtime strings; documentation text remains UTF-8.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

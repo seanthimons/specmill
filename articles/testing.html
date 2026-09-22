@@ -118,7 +118,9 @@ arguments, and its mock response.</p>
 <span>      arguments <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>        method <span class="op">=</span> <span class="st">'GET'</span>, path <span class="op">=</span> <span class="st">'/items/{item_id}'</span>,</span>
 <span>        path_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>item_id <span class="op">=</span> <span class="st">'item-1'</span><span class="op">)</span>,</span>
-<span>        query <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>language <span class="op">=</span> <span class="st">'en'</span><span class="op">)</span>, body <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>        query <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>language <span class="op">=</span> <span class="st">'en'</span><span class="op">)</span>, body <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>        request_controls <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">30L</span>, max_retries <span class="op">=</span> <span class="fl">0L</span>, retry_writes <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>        server <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>diagnostic <span class="op">=</span> <span class="st">'Relative server URL requires a recorded origin or explicit base URL override'</span><span class="op">)</span></span>
 <span>      <span class="op">)</span>,</span>
 <span>      response <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'item-1'</span>, title <span class="op">=</span> <span class="st">'Example item'</span><span class="op">)</span></span>
 <span>    <span class="op">)</span><span class="op">)</span>,</span>
@@ -171,6 +173,7 @@ placeholder URL is never contacted.</p>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> | <span style="color: #FFAF00;">F</span> <span style="color: #BB00BB;">W</span> <span style="color: #0000BB;"> S</span> <span style="color: #00BB00;"> OK</span> | Context</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ⠏ |          0 | contract-get_item                                              </span></span>
+<span><span class="co">#&gt; ⠋ |          1 | contract-get_item                                              </span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> |          2 | contract-get_item</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ══ <span style="font-weight: bold;">Results</span> ═════════════════════════════════════════════════════════════════════</span></span>
@@ -224,7 +227,10 @@ an RDS file:</p>
 <span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="at">      </span><span class="fu">path_params</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">item_id</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">}</span></span>
 <span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="at">      </span><span class="fu">query</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">language</span><span class="kw">:</span><span class="at"> en</span><span class="kw">}</span></span>
 <span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="at">      </span><span class="fu">body</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span>
-<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="at">    </span><span class="fu">result</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">id</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">}</span></span></code></pre></div>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="at">      </span><span class="fu">request_controls</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> </span><span class="dv">30</span><span class="kw">,</span><span class="at"> </span><span class="fu">max_retries</span><span class="kw">:</span><span class="at"> </span><span class="dv">0</span><span class="kw">,</span><span class="at"> </span><span class="fu">retry_writes</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">}</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="at">      </span><span class="fu">server</span><span class="kw">:</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="at">        </span><span class="fu">diagnostic</span><span class="kw">:</span><span class="at"> Relative server URL requires a recorded origin or explicit base URL override</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="at">    </span><span class="fu">result</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">id</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">}</span></span></code></pre></div>
 <p>A contract can override <code>response_fixture</code>. Inline
 single-call tests use <code>test-&lt;operation&gt;.R</code>; RDS
 sequence tests use <code>test-contract-&lt;operation&gt;.R</code>.
@@ -236,10 +242,25 @@ the same operation in both inline and RDS contracts.</p>
 <h2 id="candidate-input-fixtures-are-not-independent-expectations">Candidate input fixtures are not independent expectations<a class="anchor" aria-label="anchor" href="#candidate-input-fixtures-are-not-independent-expectations"></a>
 </h2>
 <p><code><a href="../reference/operation_fixtures.html">operation_fixtures()</a></code> chooses candidate inputs in the
-order <strong>override -&gt; example -&gt; default -&gt; enum -&gt; type
-fixture</strong>. It checks supported constraints and stops if the
-chosen candidate fails them; it does not silently try a lower priority
-value. Schema examples are never evaluated as R code.</p>
+order <strong>override -&gt; parameter/media example -&gt; schema
+example -&gt; default -&gt; enum -&gt; type fixture</strong>. It checks
+supported constraints and stops if the chosen candidate fails them; it
+does not silently try a lower priority value. Examples never become
+public function defaults and are never evaluated as R code. Required
+public arguments remain required.</p>
+<p>The default fixture policy exercises optional inputs. Explicit
+<code>mode = "minimal"</code> omits optional arguments, optional bodies,
+and optional object fields during fallback synthesis. Explicit overrides
+and declared examples remain validated. Each minimal input list records
+<code>attr(inputs, "omitted_inputs")</code>; report reduced coverage
+separately. Omission may activate a wrapper default, so it does not
+prove omission from the outgoing request. Explicit NULL, empty strings,
+FALSE, and zero remain supplied values.</p>
+<p><code>read_operations()$fixture_diagnostics</code> reports type/enum
+contradictions with source pointers and requiredness separately from
+parser blockers. Optional contradictions remain visible in the default
+audit even when omission permits a request. Fixture construction and
+localhost transport checks do not establish live service acceptance.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">operations</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/read_operations.html">read_operations</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span><span class="op">$</span><span class="va">operations</span></span>
 <span><span class="va">candidate_inputs</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/operation_fixtures.html">operation_fixtures</a></span><span class="op">(</span><span class="va">operations</span><span class="op">)</span></span>

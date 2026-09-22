@@ -85,9 +85,229 @@
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">render_operation</span><span class="op">(</span><span class="va">op</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>helper <span class="op">=</span> <span class="st">'api_request'</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> # Generated with specmill; do not edit by hand.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> get_item &lt;- function(item_id, language = NULL) {</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   if (is.null(item_id)) stop("Required input: item_id")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   params &lt;- list("item_id" = item_id, "language" = language)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   result &lt;- api_request(method = "GET", path = "/items/{item_id}", path_params = list("item_id" = params[["item_id"]]), query = list("language" = params[["language"]]), body = NULL)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   if (base::is.null(item_id)) base::stop("Required input: item_id")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   base::evalq(function (values, schemas, validate) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     for (name in names(values)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         value &lt;- values[[name]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (is.null(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             next</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         schema &lt;- schemas[[name]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (identical(schema$type, "array") &amp;&amp; is.atomic(value) &amp;&amp; !is.object(value) &amp;&amp; is.null(dim(value)) &amp;&amp; is.null(names(value))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             value &lt;- as.list(value)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         tryCatch(validate(value, schema), error = function(e) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid public input ", name, ": ", conditionMessage(e), call. = FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         })</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     invisible(NULL)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> }, envir = base::baseenv())(base::list("item_id" = item_id, "language" = language), base::evalq(list(item_id = list(type = "string"), language = list(type = "string", enum = list("en", "fr"))), envir = base::baseenv()), base::evalq(function (value, schema) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     nodes &lt;- 0L</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     check_json &lt;- function(value, depth = 0L) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         nodes &lt;&lt;- nodes + 1L</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (depth &gt; 32L) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Body depth limit exceeded (32); possible cycle")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (nodes &gt; 20000L) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Body node limit exceeded (20000)")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (is.environment(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Body contains an environment or cycle")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (is.list(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             for (child in value) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 check_json(child, depth + 1L)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     check_json(value)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     definitions &lt;- list()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     collect &lt;- function(node) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         id &lt;- attr(node, "specmill_id")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (!is.null(id)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             definitions[[id]] &lt;&lt;- node</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         for (child in node$properties) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             collect(child)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         for (field in c("items", "additionalProperties")) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (is.list(node[[field]])) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 collect(node[[field]])</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         for (field in c("allOf", "anyOf", "oneOf")) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             for (child in node[[field]]) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 collect(child)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     collect(schema)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     validations &lt;- 0L</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     equal_json &lt;- function(x, y) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (is.list(x) || is.list(y)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (!is.list(x) || !is.list(y) || !identical(is.null(names(x)), is.null(names(y)))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 return(FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (is.null(names(x))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 return(length(x) == length(y) &amp;&amp; all(mapply(equal_json, x, y)))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (!setequal(names(x), names(y))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 return(FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             return(all(vapply(sort(names(x)), function(name) equal_json(x[[name]], y[[name]]), logical(1))))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (is.numeric(x) &amp;&amp; is.numeric(y)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             return(length(x) == 1L &amp;&amp; length(y) == 1L &amp;&amp; !is.na(x) &amp;&amp; !is.na(y) &amp;&amp; x == y)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         identical(x, y)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     validate &lt;- function(value, schema, strict = FALSE) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         validations &lt;&lt;- validations + 1L</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (validations &gt; 20000L) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Body validation node limit exceeded (20000)")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         ref &lt;- attr(schema, "specmill_ref")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (!is.null(ref)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             schema &lt;- definitions[[ref]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (is.null(schema)) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Missing recursive body definition")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         type &lt;- unlist(schema$type, use.names = FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         strict &lt;- strict || length(type) &gt; 1L || any(c("oneOf", "anyOf", "allOf") %in% names(schema))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (is.object(value) || !is.null(dim(value))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Body must contain plain JSON values")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         scalar &lt;- is.atomic(value) &amp;&amp; length(value) == 1L &amp;&amp; !anyNA(value) &amp;&amp; is.null(names(value))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         shape &lt;- if (is.null(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             "null"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (is.list(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (is.null(names(value))) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 "array"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             else "object"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (!scalar) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             ""</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (is.character(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             "string"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (is.logical(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             "boolean"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (is.numeric(value) &amp;&amp; is.finite(value) &amp;&amp; value == trunc(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             "integer"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (is.numeric(value) &amp;&amp; is.finite(value)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             "number"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             ""</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (!nzchar(shape)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body scalar type")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         legacy_empty_object &lt;- !strict &amp;&amp; identical(shape, "array") &amp;&amp; !length(value) &amp;&amp; identical(type, "object")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (shape != "null" &amp;&amp; length(type) &amp;&amp; !legacy_empty_object &amp;&amp; !(shape %in% type || (shape == "integer" &amp;&amp; "number" %in% type))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body scalar type")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (shape == "null") {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (length(type) &amp;&amp; !("null" %in% type) &amp;&amp; !isTRUE(schema$nullable)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Explicit null body is not nullable")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (shape == "object" || legacy_empty_object) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             keys &lt;- names(value)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (is.null(keys)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 keys &lt;- character()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (anyNA(keys) || anyDuplicated(keys) || any(!nzchar(keys))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Invalid body object names")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (!all(unlist(schema$required) %in% keys)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Missing required body fields")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (any(vapply(schema$properties[intersect(keys, names(schema$properties))], function(property) isTRUE(property$readOnly), logical(1)))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Read-only body fields are not allowed")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             unknown &lt;- setdiff(keys, names(schema$properties))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (length(unknown) &amp;&amp; isFALSE(schema$additionalProperties)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Unknown body fields")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             value &lt;- lapply(seq_along(value), function(i) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 child &lt;- schema$properties[[keys[[i]]]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 if (is.null(child)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   child &lt;- if (is.list(schema$additionalProperties)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     schema$additionalProperties</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   else {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     list()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 validate(value[[i]], child, strict)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             })</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             names(value) &lt;- keys</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         else if (shape == "array") {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if ((!is.null(schema$minItems) &amp;&amp; length(value) &lt; schema$minItems) || (!is.null(schema$maxItems) &amp;&amp; length(value) &gt; schema$maxItems)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Invalid body array length")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             value &lt;- lapply(value, validate, schema = schema$items, strict = strict)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         numeric_value &lt;- shape %in% c("integer", "number")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (numeric_value &amp;&amp; ((!is.null(schema$minimum) &amp;&amp; value &lt; schema$minimum) || (!is.null(schema$maximum) &amp;&amp; value &gt; schema$maximum) || (isTRUE(schema$exclusiveMinimum) &amp;&amp; !is.null(schema$minimum) &amp;&amp; value &lt;= schema$minimum) || (isTRUE(schema$exclusiveMaximum) &amp;&amp; !is.null(schema$maximum) &amp;&amp; value &gt;= schema$maximum) || (!is.null(schema$exclusiveMinimum) &amp;&amp; is.numeric(schema$exclusiveMinimum) &amp;&amp; value &lt;= schema$exclusiveMinimum) || (!is.null(schema$exclusiveMaximum) &amp;&amp; is.numeric(schema$exclusiveMaximum) &amp;&amp; </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             value &gt;= schema$exclusiveMaximum))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body numeric bounds")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (numeric_value &amp;&amp; !is.null(schema$multipleOf) &amp;&amp; abs(value/schema$multipleOf - round(value/schema$multipleOf)) &gt; sqrt(.Machine$double.eps)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body multipleOf")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (shape == "string" &amp;&amp; ((!is.null(schema$minLength) &amp;&amp; nchar(value) &lt; schema$minLength) || (!is.null(schema$maxLength) &amp;&amp; nchar(value) &gt; schema$maxLength) || (!is.null(schema$pattern) &amp;&amp; !grepl(schema$pattern, value, perl = TRUE)))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body string")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (!is.null(schema$enum) &amp;&amp; !any(vapply(schema$enum, equal_json, logical(1), y = value))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body enum")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if ("const" %in% names(schema) &amp;&amp; !equal_json(value, schema$const)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body const")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (((!is.null(schema$minProperties) &amp;&amp; is.list(value) &amp;&amp; !is.null(names(value)) &amp;&amp; length(value) &lt; schema$minProperties) || (!is.null(schema$maxProperties) &amp;&amp; is.list(value) &amp;&amp; !is.null(names(value)) &amp;&amp; length(value) &gt; schema$maxProperties))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Invalid body object size")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         if (isTRUE(schema$uniqueItems) &amp;&amp; shape == "array" &amp;&amp; any(vapply(seq_along(value), function(i) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             any(vapply(value[seq_len(i - 1L)], equal_json, logical(1), y = value[[i]]))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }, logical(1)))) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             stop("Duplicate body array items")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         for (field in c("allOf", "anyOf", "oneOf")) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (!field %in% names(schema)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 next</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             branches &lt;- schema[[field]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (is.null(branches)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 branches &lt;- list()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             matches &lt;- vapply(branches, function(branch) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 !inherits(try(validate(value, branch, TRUE), silent = TRUE), "try-error")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }, logical(1))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (field == "allOf" &amp;&amp; !all(matches)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Body allOf requires every branch")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (field == "anyOf" &amp;&amp; !any(matches)) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Body anyOf matched no branches")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             if (field == "oneOf" &amp;&amp; sum(matches) != 1L) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 stop("Body oneOf matched ", sum(matches), " branches; expected exactly one")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     validate(value, schema)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> }, envir = base::baseenv()))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   params &lt;- base::list("item_id" = item_id, "language" = language)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   if (base::is.character(params[["language"]]) &amp;&amp; base::any(!base::nzchar(params[["language"]]))) base::stop("Empty query parameter: language")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   result &lt;- api_request(method = "GET", path = "/items/{item_id}", path_params = base::list("item_id" = params[["item_id"]]), query = base::list("language" = params[["language"]]), body = NULL, server = base::evalq(list(diagnostic = "Relative server URL requires a recorded origin or explicit base URL override"), envir = base::baseenv()))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   result</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
 </code></pre></div>

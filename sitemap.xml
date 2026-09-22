@@ -12,9 +12,11 @@
 <url><loc>https://seanthimons.github.io/specmill/authors.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/index.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/apply_files.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/reference/batched.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/bind_tools.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/check_public_boundary.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/check_requests.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/reference/configure_apis.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/configure_client.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/coverage_report.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/credential_status.html</loc></url>
@@ -25,6 +27,8 @@
 <url><loc>https://seanthimons.github.io/specmill/reference/inspect_client.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/load_project.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/operation_fixtures.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/reference/paginated.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/reference/paginated_links.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/read_operations.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/render_operation.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/schema_diff.html</loc></url>

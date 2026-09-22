@@ -60,14 +60,15 @@ print(x, ...)
 
 A list of class `specmill_generation` with files (file/path/action
 records), configured operations, excluded operations with reasons,
-drift, diagnostics, mapping_diagnostics, retained_diagnostics,
-unused_hooks, inventory, retained_sources, and manifest (toolkit
-version, input hashes, policy versions). Printing separates selected and
-excluded operations and reports removals and protections. Operations
-outside a service's include list remain in inventory but are omitted
-from the excluded summary to avoid repeating other services' endpoints.
-File actions include write, unchanged, protected, remove, and retained.
-Check errors on actions other than unchanged or retained.
+drift, diagnostics, server_diagnostics, mapping_diagnostics,
+retained_diagnostics, unused_hooks, inventory, retained_sources, and
+manifest (toolkit version, input hashes, policy versions). Printing
+separates selected and excluded operations and reports removals and
+protections. Operations outside a service's include list remain in
+inventory but are omitted from the excluded summary to avoid repeating
+other services' endpoints. File actions include write, unchanged,
+protected, remove, and retained. Check errors on actions other than
+unchanged or retained.
 
 ## Details
 
@@ -80,6 +81,21 @@ operations remain diagnostics and never authorize removal. Check success
 does not establish complete schema support or passing tests. Adoption
 accepts only individually reviewed current hashes and does not override
 lifecycle or mixed-file protection.
+
+## Portable generated output
+
+Generated R, Rd and contract-test filenames are limited to 100 bytes
+including the package archive prefix. Long stems receive a deterministic
+16-digit SHA-256 suffix. Public function names and help aliases stay
+unchanged. Short explicit API names or output filenames remain
+supported. A package name too long to leave space for a filename fails
+with a diagnostic.
+
+Existing generated files move only when their manifest hashes still
+match; client edits and protected lifecycle badges block a move.
+Repeated generation uses the same filenames. Unicode in executable
+schema literals uses R escapes that preserve the original runtime
+strings; documentation text remains UTF-8.
 
 ## See also
 

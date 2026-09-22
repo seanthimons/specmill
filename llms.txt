@@ -48,6 +48,171 @@ specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
 specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 ```
 
+## Generated client request controls
+
+The baseline `specmill.yml` includes:
+
+``` yaml
+defaults:
+  request_controls:
+    timeout: 30
+    max_retries: 0
+    retry_writes: false
+```
+
+Edit these values and run
+[`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md)
+to update the generated helper calls. `max_retries` counts retries after
+the initial attempt, so `2` allows three total attempts. Defaults
+inherit through project, API/service/group, and operation settings, with
+later settings overriding individual fields. Values are validated when
+loading YAML. Timeout must be finite and positive; retries must be a
+nonnegative integer; write permission must be a boolean.
+
+New helpers also read one package-scoped R option on every call. Runtime
+options override the YAML defaults per field. For a package named
+`catalogueclient`:
+
+``` r
+
+options(catalogueclient.request = list(
+  base_url = 'https://staging.example.org/v1',
+  timeout = 30,
+  max_retries = 2,
+  retry_writes = FALSE
+))
+```
+
+The option prefix is the lowercase dry-run prefix: punctuation in
+package names becomes `_`. All helpers in a multi-API package share this
+option; setting `base_url` overrides every API, so omit it unless that
+is intended. Omitted fields use the generated YAML defaults, falling
+back to 30 seconds per attempt, zero retries, and no permission to retry
+non-idempotent writes when YAML controls are absent. Base URL overrides
+remain runtime options or initialization settings. Reset with
+`options(catalogueclient.request = NULL)`. Invalid controls fail before
+HTTP.
+
+URL precedence is runtime `base_url`, then the explicit initialization
+`base_url` or reviewed multi-API catalogue URL, then operation, path,
+and root schema servers. An inferred root URL is only the direct
+helper-call default; generated wrappers carry their effective server.
+Server-variable string defaults are substituted. One distinct absolute
+HTTP(S) URL is required; credentials, query strings, fragments, invalid
+ports, and unresolved templates are rejected.
+
+Ambiguous servers, missing variable defaults, unsupported schemes, and
+relative URLs without an origin produce `server_diagnostics` in
+[`read_operations()`](https://seanthimons.github.io/specmill/reference/read_operations.md)
+and generation plans. The generated helper refuses those calls unless an
+explicit URL override resolves selection. These diagnostics do not block
+generation, since the override is chosen at runtime. An empty server
+array selects the OpenAPI default `/`, which also needs an origin or
+override. Catalogue discovery can resolve relative root URLs against its
+recorded origin and assemble Swagger `schemes`, `host`, and `basePath`;
+multiple schemes need a reviewed URL. Missing Swagger host/scheme fields
+need a recorded origin or explicit override. Direct local-schema parsing
+does not infer a download origin. Named server selection and runtime
+variable substitutions require a client-owned helper.
+
+When enabled, retries apply to GET, HEAD, OPTIONS, PUT, and DELETE.
+POST, PATCH, and other methods require `retry_writes = TRUE`; enable it
+only when the API can safely replay the request, for example with its
+own idempotency key. The helper retries HTTP 408, 429, 500, 502, 503,
+and 504, with at most `max_retries + 1` attempts. It uses [httr2 retry
+support](https://httr2.r-lib.org/reference/req_retry.html) for
+Retry-After and jittered exponential backoff. Connection/TLS failures
+and JSON decode errors are not retried. Timeout limits each attempt, not
+the total call including Retry-After waits. Exhausted HTTP and JSON
+errors retain status and media type without response bodies or
+credentials; connection errors use a fixed credential-safe message.
+
+Existing `R/api_request.R` files remain client-owned and are never
+refreshed by normal generation. New scaffolds retain their substituted
+baseline under `.specmill/helpers/`. Use `inspect_client(root)$helpers`
+for read-only baseline, local and proposed comparisons; legacy helpers
+without provenance stay unknown. Adoption remains manual. [Helper review
+and lifecycle
+protection](https://seanthimons.github.io/specmill/dev/audits/open-issues-20260922/HELPERS.md)
+includes specialization reporting and retained-implementation guidance.
+To adopt these controls, merge the `server` and `request_controls`
+arguments, YAML-default fallback, URL selection/validation, option
+validation, and `req_timeout()`/`req_retry()` setup from
+[`inst/templates/request.R`](https://seanthimons.github.io/specmill/inst/templates/request.R)
+into your helper. Replace its `BASE_URL` and `DRY_RUN_ENV` placeholders
+with your client’s defaults; set the initialization override only if you
+intend it to beat schema servers. Keep your authentication and response
+handling. Generation checks that custom helpers accept the `server` and
+configured `request_controls` arguments or `...`; accepting and ignoring
+it is not an implementation of server selection. Complete request
+mappings retain control of their own helper arguments. Proxy/TLS
+settings, streaming, cancellation, custom retry predicates, and per-API
+runtime controls still require a custom helper.
+
+## Explicit pagination
+
+Keep the generated single-request function and put per-operation
+pagination settings in a separate, client-owned R function:
+
+``` r
+
+list_all_items <- function(category, max_pages = 100, max_items = 10000) {
+  specmill::paginated(
+    list_items, category = category,
+    mode = 'page', parameter = 'page', size_parameter = 'per_page',
+    start = 1, page_size = 50, items = function(response) response$data,
+    max_pages = max_pages, max_items = max_items
+  )
+}
+```
+
+Use the actual public argument names and collection extractor for your
+operation. For an offset API, configure `mode = 'offset'`,
+`parameter = 'offset'`, `size_parameter = 'limit'`, and `start = 0`.
+Offsets advance by `page_size`; page numbers advance by one. No
+pagination is inferred from a schema or a name.
+
+The result contains unmerged extracted `pages`, `requests`,
+`item_count`, and `stop_reason`. Empty pages stop retrieval and are
+omitted. Short pages continue. Finite page and item limits are
+mandatory, with defaults of 100 and 10000. The item limit slices the
+last collection; it bounds retained items, not response bytes. Request
+size stays fixed, so the server must honor the configured offset stride.
+Check `stop_reason`: reaching a limit does not prove retrieval is
+complete. Errors propagate immediately without returning partial
+results. Repeated pages are not deduplicated and stop at the configured
+limits. Each call retains its transport timeout and retry policy; there
+is no total elapsed-time limit.
+
+This companion uses specmill at runtime; add it to the client package’s
+Imports if you include the companion there. Ordinary generated functions
+still need no specmill runtime dependency and retain their signatures
+and return types. Cursor mode uses an explicit `next_cursor` extractor
+and rejects repeated tokens. For AMOS dev/staging keyset responses:
+
+``` r
+
+specmill::paginated(
+  amos_page, mode = 'cursor', parameter = 'cursor',
+  size_parameter = 'limit', page_size = 50,
+  items = function(x) x$results,
+  next_cursor = function(x) {
+    if (isTRUE(x$pagination$hasNext)) x$pagination$nextCursor else NULL
+  },
+  max_pages = 10, max_items = 500
+)
+```
+
+`amos_page` is a single-request wrapper for the keyset endpoint. Cursor
+tokens remain opaque; NULL or an empty next token ends retrieval.
+[`paginated_links()`](https://seanthimons.github.io/specmill/reference/paginated_links.md)
+accepts an httr2 GET request and extracts body or HTTP Link-header URLs.
+It checks every link against the initial origin and disables redirects
+before sending credentials. See [pagination
+configuration](https://seanthimons.github.io/specmill/vignettes/configuration.Rmd#pagination)
+and the [AMOS live validation
+report](https://seanthimons.github.io/specmill/dev/audits/pagination/README.md).
+
 ## Learn the workflow
 
 | Guide | What it covers |
@@ -82,6 +247,8 @@ trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).
   : Initialize a new client package
 - [`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
   : Propose editable configuration from a schema
+- [`configure_apis()`](https://seanthimons.github.io/specmill/reference/configure_apis.md)
+  : Review and save names and servers for multiple APIs
 - [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)
   : Load and validate a YAML project
 - [`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md)
@@ -130,6 +297,12 @@ trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).
   : Render one wrapper as R source text
 - [`bind_tools()`](https://seanthimons.github.io/specmill/reference/bind_tools.md)
   : Bind legacy maintenance tools to a client context
+- [`batched()`](https://seanthimons.github.io/specmill/reference/batched.md)
+  : Call a function in batches
+- [`paginated()`](https://seanthimons.github.io/specmill/reference/paginated.md)
+  : Retrieve bounded pages from a single-request function
+- [`paginated_links()`](https://seanthimons.github.io/specmill/reference/paginated_links.md)
+  : Retrieve bounded pages through same-origin next links
 - [`specmill`](https://seanthimons.github.io/specmill/reference/specmill.md)
   [`specmill-package`](https://seanthimons.github.io/specmill/reference/specmill.md)
   : Generate and maintain R API clients

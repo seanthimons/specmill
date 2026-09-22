@@ -160,6 +160,82 @@ in coverage totals. They never authorize deleting old output.</p>
 <div class="section level2">
 <h2 id="common-errors">Common errors<a class="anchor" aria-label="anchor" href="#common-errors"></a>
 </h2>
+<div class="section level3">
+<h3 id="read-the-operations-disposition">Read the operation’s disposition<a class="anchor" aria-label="anchor" href="#read-the-operations-disposition"></a>
+</h3>
+<p>Preview with
+<code>generate_client(root, config = 'specmill.yml', mode = 'plan')</code>.
+The <code>inventory</code> keeps every discovered operation, including
+exclusions. Its additive <code>classification</code> field explains the
+disposition without changing the existing <code>status</code> values
+used for selection and file ownership:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Classification</th>
+<th>Meaning and action</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>ready</code></td>
+<td>Parsing found no blocker in the supported subset; verify the
+generated request before relying on live results</td>
+</tr>
+<tr class="even">
+<td><code>policy_exclusion</code></td>
+<td>Project or service selection excluded the operation; review its
+<code>reason</code> to reconsider it. Excluded schemas are not
+validated</td>
+</tr>
+<tr class="odd">
+<td><code>schema_defect</code></td>
+<td>A source-contract problem was detected; verify and correct it or
+explicitly retain an existing implementation</td>
+</tr>
+<tr class="even">
+<td><code>capability_gap</code></td>
+<td>specmill cannot handle the construct; consider a supported complete
+client mapping or leave it visible pending implementation</td>
+</tr>
+<tr class="odd">
+<td><code>review_required</code></td>
+<td>An unclassified error needs source/configuration review; no
+schema-validity claim is made</td>
+</tr>
+</tbody>
+</table>
+<p>Diagnostics also include <code>code</code>,
+<code>source_location</code> (an escaped JSON pointer), and
+<code>guidance</code>. For multiple transport limitations,
+<code>reason</code> lists the observed messages and the structured
+fields describe the first blocker. A later metadata error takes
+precedence. Referenced input locations may point into shared schema
+definitions. Mapped and retained operations preserve the original
+classification as evidence in <code>mapping_diagnostics</code> or
+<code>retained_diagnostics</code>; consult <code>status</code> for their
+current generation disposition.</p>
+<p>An unconstrained body is different from a missing body schema.
+<code>items: {}</code> places no constraints on array elements. Swagger
+2 body arrays inherit Draft 4 semantics that allow omitted
+<code>items</code>; Swagger 2 non-body arrays and OpenAPI 3.0 array
+schemas require it. These contexts receive different diagnostic codes.
+See <a href="https://spec.openapis.org/oas/v3.0.3.html#schema-object" class="external-link">OpenAPI
+3.0 Schema Objects</a>, <a href="https://spec.openapis.org/oas/v2.0.html#parameter-object" class="external-link">Swagger
+2 parameters</a>, and <a href="https://json-schema.org/draft-04/draft-fge-json-schema-validation-00#rfc.section.5.3.1.4" class="external-link">Draft
+4 array validation</a>.</p>
+<p>Do not delete an operation merely because it has no named object
+properties: primitive arrays are meaningful inputs, and free-form bodies
+can represent a generator limitation. Local recursion, unresolved
+references, and external references now have separate codes. No
+diagnostic classification establishes full schema validity or
+live-service correctness.</p>
+</div>
+<div class="section level3">
+<h3 id="resolve-common-failures">Resolve common failures<a class="anchor" aria-label="anchor" href="#resolve-common-failures"></a>
+</h3>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -244,6 +320,7 @@ runtime behavior, and service status separately</td>
 for reconciled output. Inspect diagnostics and run tests separately. For
 reproducible generation, pin the toolkit and formatter alongside schema,
 policy, and fixture versions.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="ownership-and-protected-files">Ownership and protected files<a class="anchor" aria-label="anchor" href="#ownership-and-protected-files"></a>

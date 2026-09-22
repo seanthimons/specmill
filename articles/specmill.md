@@ -71,14 +71,15 @@ created <- specmill::initialize_client(
   title = 'Catalogue API Client',
   author = list(given = 'Example', family = 'Maintainer', email = 'you@example.org'),
   license = 'MIT + file LICENSE',
-  base_url = 'https://api.example.org'
+  base_url = 'https://api.example.org',
+  name_case = 'snake_case'
 )
 list.files(root, recursive = TRUE, all.files = TRUE)
-#> [1] ".Rbuildignore"           ".specmill/manifest.json"
-#> [3] "apis/default.yml"        "DESCRIPTION"            
-#> [5] "LICENSE"                 "NAMESPACE"              
-#> [7] "R/api_request.R"         "schema/openapi.json"    
-#> [9] "specmill.yml"
+#>  [1] ".Rbuildignore"                      ".specmill/helpers/api_request.json"
+#>  [3] ".specmill/manifest.json"            "apis/default.yml"                  
+#>  [5] "DESCRIPTION"                        "LICENSE"                           
+#>  [7] "NAMESPACE"                          "R/api_request.R"                   
+#>  [9] "schema/openapi.json"                "specmill.yml"
 ```
 
 Initialization writes immediately and refuses existing-file conflicts.
@@ -102,7 +103,10 @@ Tagged schemas automatically get one service file per first operation
 tag, plus grouped source files and help families. This catalogue has no
 tags, so it uses `default` and keeps one source file per function. Pass
 `naming = 'tag_prefix'` to propose names such as `pet_get_by_id`, or
-`group_by = 'none'` to keep one service. Inspect
+`group_by = 'none'` to keep one service. `name_case` accepts `asis`,
+`snake_case`, `camel_case`, `pascal_case`, `screaming_snake_case`, and
+`dot_case`. It changes proposed names only; the editable `names` map in
+service YAML remains authoritative. Inspect
 `attr(created, 'configuration')$diagnostics` for grouping, naming, and
 unsupported-operation findings.
 [`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
@@ -270,7 +274,9 @@ stopifnot(
   identical(result, list(id = 'item-1')),
   identical(captured, list(
     method = 'GET', path = '/items/{item_id}',
-    path_params = list(item_id = 'item-1'), query = list(language = 'en'), body = NULL
+    path_params = list(item_id = 'item-1'), query = list(language = 'en'), body = NULL,
+        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE),
+        server = list(diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override')
   ))
 )
 result
@@ -305,11 +311,32 @@ catalogueclient::get_item(item_id = 'a-real-id', language = 'en')
 ```
 
 The last call sends a real request. The default helper performs one
-request, including when an argument is named `page`. It returns JSON as
-R lists, text/SVG as strings, binary as raw bytes, and empty response
-bodies as `NULL`. It raises errors for HTTP failures or malformed
-nonempty JSON. Credentials, pagination, retry decisions, batching, and
-service-specific validation belong in the client.
+request, including when an argument is named `page`. It returns JSON
+objects and arrays as R lists, JSON scalars as their corresponding R
+scalars, text/SVG as strings, binary as raw bytes, and empty bodies or
+JSON `null` as `NULL`. It raises errors for HTTP failures or malformed
+nonempty JSON. Those errors report the status and response media type
+without including the request URL, response body, or credential values.
+A missing or unrecognized `Content-Type` returns raw bytes. A JSON
+`Content-Type` with a non-JSON body is a decode error, while a text type
+always returns text even if its body happens to contain JSON. The parser
+records declared response media and schema metadata, but runtime
+decoding follows the actual `Content-Type`. The generator does not pass
+declared response schemas to the helper or validate response bodies
+against them. Such validation would need an explicit generated helper
+argument and remains unsupported. Credentials, pagination, batching, and
+service-specific validation belong in the client. Optional
+[`paginated()`](https://seanthimons.github.io/specmill/reference/paginated.md)
+companions support explicitly configured page/offset and cursor
+retrieval, with
+[`paginated_links()`](https://seanthimons.github.io/specmill/reference/paginated_links.md)
+for next links; see [pagination
+configuration](https://seanthimons.github.io/specmill/articles/configuration.html#pagination).
+New helpers expose timeout, URL override, and bounded safe retries
+through one package-scoped R option; see the [request controls
+guide](https://github.com/seanthimons/specmill#generated-client-request-controls).
+Existing client-owned helpers require an explicit update to adopt these
+controls.
 
 ## 9. Save the project and maintain it
 

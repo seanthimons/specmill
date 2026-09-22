@@ -111,6 +111,12 @@ upstream deletion. Generation does not automatically delete an
 implementation merely because an operation disappears from an
 unsupported or changed schema. Eligible removal comes from explicit
 exclusions or reconciled renames and requires verified ownership.</p>
+<p>Naming conventions are proposal-time settings.
+<code><a href="../reference/generate_client.html">generate_client()</a></code> uses the explicit service YAML names and
+does not reapply <code>name_case</code>. To propose names for new
+endpoints, run
+<code>configure_client(..., name_case = 'snake_case')</code>, review its
+changes, and copy the accepted mappings into the existing YAML.</p>
 </div>
 <div class="section level2">
 <h2 id="generate-and-verify">2. Generate and verify<a class="anchor" aria-label="anchor" href="#generate-and-verify"></a>

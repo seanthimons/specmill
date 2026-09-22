@@ -48,7 +48,9 @@ contracts <- list(
       arguments = list(
         method = 'GET', path = '/items/{item_id}',
         path_params = list(item_id = 'item-1'),
-        query = list(language = 'en'), body = NULL
+        query = list(language = 'en'), body = NULL,
+        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE),
+        server = list(diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override')
       ),
       response = list(id = 'item-1', title = 'Example item')
     )),
@@ -110,6 +112,7 @@ testthat::test_local(root, filter = 'contract-get_item', stop_on_failure = TRUE)
 #> ✔ | F W  S  OK | Context
 #> 
 #> ⠏ |          0 | contract-get_item                                              
+#> ⠋ |          1 | contract-get_item                                              
 #> ✔ |          2 | contract-get_item
 #> 
 #> ══ Results ═════════════════════════════════════════════════════════════════════
@@ -169,6 +172,9 @@ contracts:
       path_params: {item_id: item-1}
       query: {language: en}
       body: null
+      request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+      server:
+        diagnostic: Relative server URL requires a recorded origin or explicit base URL override
     result: {id: item-1}
 ```
 
@@ -182,10 +188,27 @@ contracts.
 ## Candidate input fixtures are not independent expectations
 
 [`operation_fixtures()`](https://seanthimons.github.io/specmill/reference/operation_fixtures.md)
-chooses candidate inputs in the order **override -\> example -\> default
--\> enum -\> type fixture**. It checks supported constraints and stops
-if the chosen candidate fails them; it does not silently try a lower
-priority value. Schema examples are never evaluated as R code.
+chooses candidate inputs in the order **override -\> parameter/media
+example -\> schema example -\> default -\> enum -\> type fixture**. It
+checks supported constraints and stops if the chosen candidate fails
+them; it does not silently try a lower priority value. Examples never
+become public function defaults and are never evaluated as R code.
+Required public arguments remain required.
+
+The default fixture policy exercises optional inputs. Explicit
+`mode = "minimal"` omits optional arguments, optional bodies, and
+optional object fields during fallback synthesis. Explicit overrides and
+declared examples remain validated. Each minimal input list records
+`attr(inputs, "omitted_inputs")`; report reduced coverage separately.
+Omission may activate a wrapper default, so it does not prove omission
+from the outgoing request. Explicit NULL, empty strings, FALSE, and zero
+remain supplied values.
+
+`read_operations()$fixture_diagnostics` reports type/enum contradictions
+with source pointers and requiredness separately from parser blockers.
+Optional contradictions remain visible in the default audit even when
+omission permits a request. Fixture construction and localhost transport
+checks do not establish live service acceptance.
 
 ``` r
 
