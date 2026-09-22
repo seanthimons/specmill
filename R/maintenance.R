@@ -236,10 +236,10 @@ inspect_client <- function(
         specialization = list(
           reason = configured$spec$specialization,
           helper = configured$spec$helper %or% service$helper,
-          request = configured$spec$request,
+          request = configured$spec[['request']],
           hooks = service$hooks[[name]],
           status = if (
-            !is.null(configured$spec$request) ||
+            !is.null(configured$spec[['request']]) ||
               length(service$hooks[[name]])
           ) {
             'configured; behavior unverified'
