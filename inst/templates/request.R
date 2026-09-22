@@ -211,7 +211,11 @@ api_request <- function(method, path, path_params, query, body, headers = base::
       request <- httr2::req_body_json(request, body, auto_unbox = TRUE, null = 'null')
     } else base::stop('Unsupported request body media type')
   }
-  if (!base::is.null(auth)) request <- api_auth(request, auth)
+  if (!base::is.null(auth)) {
+    authenticate <- base::get0('api_auth', envir = base::environment(), mode = 'function', inherits = TRUE)
+    if (base::is.null(authenticate)) base::stop('Authentication scaffolding is missing')
+    request <- authenticate(request, auth)
+  }
   if (base::length(encoded_cookies)) request <- httr2::req_headers(request, .redact = 'Cookie')
   # Append encoded tokens last: query authentication must not decode/re-encode them.
   if (base::length(encoded_query)) request <- httr2::req_url(request, base::paste0(request$url, if (base::grepl('?', request$url, fixed = TRUE)) '&' else '?', base::paste(encoded_query, collapse = '&')))

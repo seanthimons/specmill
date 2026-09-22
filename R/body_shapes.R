@@ -247,7 +247,16 @@ body_fixture <- function(schema, override = NULL) {
   if (!missing(override)) {
     return(body_value(override, schema))
   }
-  for (candidate in body_fixture_candidates(schema)) {
+  selected <- intersect(c('example', 'default'), names(schema))
+  if (length(selected)) {
+    return(body_value(schema[[selected[[1L]]]], schema))
+  }
+  candidates <- if ('enum' %in% names(schema)) {
+    as.list(schema$enum)
+  } else {
+    body_fixture_candidates(schema)
+  }
+  for (candidate in candidates) {
     result <- tryCatch(
       list(ok = TRUE, value = body_value(candidate, schema)),
       error = function(e) list(ok = FALSE)
@@ -258,6 +267,11 @@ body_fixture <- function(schema, override = NULL) {
 }
 
 body_fixture_candidates <- function(schema) {
+  selected <- intersect(c('example', 'default', 'enum'), names(schema))
+  if (length(selected)) {
+    value <- schema[[selected[[1L]]]]
+    return(if (selected[[1L]] == 'enum') as.list(value) else list(value))
+  }
   direct <- c(
     if ('const' %in% names(schema)) list(schema$const),
     if ('example' %in% names(schema)) list(schema$example),
@@ -490,11 +504,13 @@ body_value <- function(value, schema) {
       if (!all(unlist(schema$required) %in% keys)) {
         stop('Missing required body fields')
       }
-      if (any(vapply(
-        schema$properties[intersect(keys, names(schema$properties))],
-        function(property) isTRUE(property$readOnly),
-        logical(1)
-      ))) {
+      if (
+        any(vapply(
+          schema$properties[intersect(keys, names(schema$properties))],
+          function(property) isTRUE(property$readOnly),
+          logical(1)
+        ))
+      ) {
         stop('Read-only body fields are not allowed')
       }
       unknown <- setdiff(keys, names(schema$properties))

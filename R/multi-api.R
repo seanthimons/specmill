@@ -4,6 +4,7 @@ multi_api_proposal <- function(
   package,
   naming,
   group_by,
+  name_case = 'asis',
   reviewed_names = list()
 ) {
   required <- c('schema', 'api', 'base_url', 'include')
@@ -51,6 +52,7 @@ multi_api_proposal <- function(
       package,
       naming,
       group_by,
+      name_case,
       api_reviewed
     )
     project <- yaml::yaml.load(proposal$files[['specmill.yml']])
@@ -79,33 +81,18 @@ multi_api_proposal <- function(
     schema_file <- paste0('schema/', api, '.', tools::file_ext(source_file))
     files[[schema_file]] <- proposal$files[[source_file]]
     helper <- paste0(api, '_request')
-    code <- file_text(system.file(
-      'templates/request.R',
-      package = 'specmill',
-      mustWork = TRUE
-    ))
-    code <- sub(
-      'base_url_override <- NULL # Initialization override',
-      paste0(
-        'base_url_override <- ',
-        r_literal(apis$base_url[[i]]),
-        ' # Initialization override'
-      ),
-      code,
-      fixed = TRUE
+    scaffold <- request_helper_scaffold(
+      helper,
+      apis$base_url[[i]],
+      apis$base_url[[i]],
+      dry_run_env(package)
     )
-    code <- sub('api_request <-', paste0(helper, ' <-'), code, fixed = TRUE)
-    helpers[[paste0('R/', helper, '.R')]] <- gsub(
-      'DRY_RUN_ENV',
-      r_literal(dry_run_env(package)),
-      gsub(
-        'BASE_URL',
-        r_literal(apis$base_url[[i]]),
-        code,
-        fixed = TRUE
-      ),
-      fixed = TRUE
-    )
+    helpers[[paste0('R/', helper, '.R')]] <- scaffold$code
+    helpers[[paste0(
+      '.specmill/helpers/',
+      helper,
+      '.json'
+    )]] <- scaffold$provenance
     api_groups <- list()
     for (file in grep('^apis/', names(proposal$files), value = TRUE)) {
       text <- proposal$files[[file]]
@@ -117,7 +104,11 @@ multi_api_proposal <- function(
       for (key in names(config$names)) {
         old <- config$names[[key]]
         reviewed <- api_reviewed[[key]]
-        new <- reviewed %or% paste(api, old, sep = '_')
+        new <- reviewed %or%
+          configuration_case(
+            paste(api, old, sep = '_'),
+            name_case
+          )
         if (!identical(make.names(new), new) || new == '...') {
           stop('Invalid reviewed operation name: ', paste(api, key))
         }
@@ -158,7 +149,11 @@ multi_api_proposal <- function(
     files[[destination]] <- api_configuration_text(api_config)
     services <- c(services, destination)
     for (op in proposal$operations) {
-      op$name <- api_reviewed[[op$key]] %or% paste(api, op$name, sep = '_')
+      op$name <- api_reviewed[[op$key]] %or%
+        configuration_case(
+          paste(api, op$name, sep = '_'),
+          name_case
+        )
       op$api <- api
       operations[[length(operations) + 1L]] <- op
     }
@@ -203,12 +198,20 @@ initialize_apis <- function(
   author,
   license,
   naming,
-  group_by
+  group_by,
+  name_case
 ) {
   if (file.exists(file.path(root, 'DESCRIPTION'))) {
     stop('Multi-API initialization requires a new package directory')
   }
-  proposal <- multi_api_proposal(root, apis, package, naming, group_by)
+  proposal <- multi_api_proposal(
+    root,
+    apis,
+    package,
+    naming,
+    group_by,
+    name_case
+  )
   first <- apis[apis$include, , drop = FALSE][1L, ]
   stage <- tempfile('multi-api-initialization-')
   on.exit(unlink(stage, recursive = TRUE), add = TRUE)
@@ -221,7 +224,8 @@ initialize_apis <- function(
     license,
     first$base_url,
     naming,
-    group_by
+    group_by,
+    name_case
   )
   metadata <- c('DESCRIPTION', 'NAMESPACE', 'LICENSE', '.Rbuildignore')
   metadata <- metadata[file.exists(file.path(stage, metadata))]

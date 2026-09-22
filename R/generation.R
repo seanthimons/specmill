@@ -182,6 +182,7 @@ render_operation <- function(operation, spec) {
       )
     }
   }
+  lines <- c(lines, parameter_checks(params, formal_names))
   if (!is.null(body_name)) {
     if (operation$body_required) {
       lines <- c(
@@ -223,6 +224,22 @@ render_operation <- function(operation, spec) {
     }
   }
   lines <- c(lines, parameter_capture)
+  for (i in seq_along(params)) {
+    if (
+      params[[i]]$location == 'query' &&
+        !isTRUE(params[[i]]$allow_empty_value)
+    ) {
+      lines <- c(lines, paste0(
+        '  if (base::is.character(params[[',
+        r_literal(formal_names[[i]]),
+        ']]) && base::any(!base::nzchar(params[[',
+        r_literal(formal_names[[i]]),
+        ']]))) base::stop(',
+        r_literal(paste('Empty query parameter:', input_names[[i]])),
+        ')'
+      ))
+    }
+  }
   hooks <- spec$hooks[[operation$name]] %or% list()
   if (length(hooks$pre_request)) {
     lines <- c(
@@ -240,22 +257,6 @@ render_operation <- function(operation, spec) {
       '  changed <- base::intersect(base::names(params), base::names(state$params))',
       '  params[changed] <- state$params[changed]'
     )
-  }
-  for (i in seq_along(params)) {
-    if (
-      params[[i]]$location == 'query' &&
-        !isTRUE(params[[i]]$allow_empty_value)
-    ) {
-      lines <- c(lines, paste0(
-        '  if (base::is.character(params[[',
-        r_literal(formal_names[[i]]),
-        ']]) && base::any(!base::nzchar(params[[',
-        r_literal(formal_names[[i]]),
-        ']]))) base::stop(',
-        r_literal(paste('Empty query parameter:', input_names[[i]])),
-        ')'
-      ))
-    }
   }
   request <- paste0(
     '  result <- ',
@@ -552,6 +553,12 @@ generate_client <- function(
   configured_operations <- list()
   retained_sources <- character()
   source_names <- list()
+  portable_rename_ids <- character()
+  portable_sources <- list()
+  manifest_path <- project_path(root, '.specmill/manifest.json')
+  previous <- if (file.exists(manifest_path)) {
+    jsonlite::read_json(manifest_path)$files
+  } else list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
@@ -615,16 +622,38 @@ generate_client <- function(
       }
       configured_operations[[op$name]] <- op
       file <- operation_spec[['file']] %or% paste0('R/', op$name, '.R')
+      original_file <- file
+      file <- portable_output_path(root, file)
+      if (!is.null(portable_sources[[file]]) &&
+          !identical(portable_sources[[file]], original_file)) {
+        stop('Portable wrapper filenames collide: ', file)
+      }
+      portable_sources[[file]] <- original_file
       path <- project_path(root, file)
       if (!grepl('^R/[^/]+\\.R$', file)) {
         stop('Wrapper file must be directly inside R/')
       }
       definition <- runtime_definitions[[op$name]]
       if (!is.null(definition) && !identical(definition$file_path, path)) {
-        stop(
+        old_file <- substring(definition$file_path, nchar(root) + 2L)
+        owned_move <- !is.null(previous[[old_file]]) &&
+          identical(portable_output_path(root, old_file), file) &&
+          identical(output_hash(definition$file_path), previous[[old_file]]$hash) &&
+          !has_protected_lifecycle(definition$file_path)
+        if (owned_move) portable_rename_ids <- union(portable_rename_ids, op$id)
+        if (!owned_move) stop(
           'Wrapper collides with an existing definition in ',
           definition$file_path
         )
+      }
+      rd_file <- portable_output_path(root, paste0('man/', op$name, '.Rd'))
+      if (!is.null(portable_sources[[rd_file]]) &&
+          !identical(portable_sources[[rd_file]], op$name)) {
+        stop('Portable documentation filenames collide: ', rd_file)
+      }
+      portable_sources[[rd_file]] <- op$name
+      if (!identical(rd_file, paste0('man/', op$name, '.Rd'))) {
+        op$rdname <- tools::file_path_sans_ext(basename(rd_file))
       }
       code <- renderer(op, operation_spec)
       if (!is.null(definition)) {
@@ -633,6 +662,10 @@ generate_client <- function(
           parse(text = code)[[1L]][[3L]],
           baseenv()
         )))
+        if (has_protected_lifecycle(path) &&
+            !identical(original_formals, candidate_formals)) {
+          stop('Protected implementation public contract differs: ', op$name)
+        }
         for (parameter in union(
           names(original_formals),
           names(candidate_formals)
@@ -739,6 +772,8 @@ generate_client <- function(
           op$name,
           '.R'
         )
+        test_file <- portable_output_path(root, test_file)
+        if (test_file %in% names(desired)) stop('Portable test filenames collide: ', test_file)
         desired[[test_file]] <- render_contract(op, operation_spec, contract)
         owners[[test_file]] <- op$id
       }
@@ -765,6 +800,14 @@ generate_client <- function(
     }),
     use.names = FALSE
   )
+  portable_moves <- names(previous)[vapply(names(previous), function(file) {
+    target <- portable_output_path(root, file)
+    !identical(target, file) && target %in% names(desired) &&
+      setequal(unlist(previous[[file]]$operations), owners[[target]])
+  }, logical(1))]
+  portable_rename_ids <- union(portable_rename_ids, unlist(lapply(
+    previous[portable_moves], `[[`, 'operations'), use.names = FALSE))
+  named_ids <- union(named_ids, portable_rename_ids)
   excluded <- vapply(
     Filter(function(x) x$status == 'excluded', inventory),
     `[[`,
@@ -778,6 +821,10 @@ generate_client <- function(
       next
     }
     definitions <- tg_find_function_defs_in_file(path)
+    if (has_protected_lifecycle(path) &&
+        length(setdiff(source_names[[file]], names(definitions)))) {
+      stop('Protected grouped source cannot add selected implementations: ', file)
+    }
     expressions <- as.list(parse(path))
     extra_names <- setdiff(names(definitions), source_names[[file]])
     if (length(extra_names) && !is.null(previous[[file]])) {
@@ -885,7 +932,7 @@ generate_client <- function(
   }
   if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) {
     desired <- document_output(root, desired, removals)
-    if (length(renamed) || length(grouped_rename_ids)) {
+    if (length(previous)) {
       old_docs <- setdiff(
         grep('^man/', names(previous), value = TRUE),
         names(desired)
@@ -898,7 +945,9 @@ generate_client <- function(
         )])
         if (
           length(ids) &&
-            all(ids %in% union(named_ids, grouped_rename_ids)) &&
+            (all(ids %in% union(named_ids, grouped_rename_ids)) ||
+              (!identical(portable_output_path(root, path), path) &&
+                portable_output_path(root, path) %in% names(desired))) &&
             all(ids %in% union(replacement_ids, excluded))
         ) {
           if (

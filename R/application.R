@@ -213,7 +213,9 @@ apply_files <- function(
     adoptable[[i]] <<- verified && !protected
     action <- if (same) {
       'unchanged'
-    } else if (!verified || protected) {
+    } else if (protected) {
+      'retained'
+    } else if (!verified) {
       if (i > length(desired)) 'retained' else 'protected'
     } else if (i > length(desired)) {
       if (exists) 'remove' else 'unchanged'

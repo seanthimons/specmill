@@ -228,6 +228,22 @@ input_schema <- function(
       recursive_body = recursive_body
     )
   }
+  if (
+    length(schema$enum) &&
+      length(type) &&
+      !any(vapply(
+        schema$enum,
+        fixture_type_matches,
+        logical(1),
+        schema = schema
+      ))
+  ) {
+    attr(schema, 'specmill_enum_location') <- attr(
+      schema,
+      'specmill_enum_location'
+    ) %or%
+      schema_location(source_location, 'enum')
+  }
   if (recursive_body && !is.null(ref)) {
     attr(schema, 'specmill_id') <- ref
   }

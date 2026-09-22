@@ -1,5 +1,11 @@
 # Normalize only encodings whose flat wire representation is defined.
-parameter_shape <- function(p, schema, version, at, query_array_style = 'schema') {
+parameter_shape <- function(
+  p,
+  schema,
+  version,
+  at,
+  query_array_style = 'schema'
+) {
   fail <- function(code, message, classification = 'capability_gap') {
     schema_problem(code, classification, message, at)
   }
@@ -117,6 +123,74 @@ query_array_style <- function(style, label = 'query_array_style') {
     stop(label, ' must be schema or brackets')
   }
   style
+}
+
+# Validate public schema inputs before client-owned request transformations.
+# Parameters retain their vector representation; JSON validation uses lists.
+parameter_values <- function(values, schemas, validate) {
+  for (name in names(values)) {
+    value <- values[[name]]
+    if (is.null(value)) {
+      next
+    } # Optional NULL means omission on parameter transports.
+    schema <- schemas[[name]]
+    if (
+      identical(schema$type, 'array') &&
+        is.atomic(value) &&
+        !is.object(value) &&
+        is.null(dim(value)) &&
+        is.null(names(value))
+    ) {
+      value <- as.list(value)
+    }
+    tryCatch(validate(value, schema), error = function(e) {
+      stop(
+        'Invalid public input ',
+        name,
+        ': ',
+        conditionMessage(e),
+        call. = FALSE
+      )
+    })
+  }
+  invisible(NULL)
+}
+
+parameter_checks <- function(params, formal_names) {
+  selected <- which(vapply(
+    params,
+    function(p) {
+      p$location %in% c('query', 'path', 'header', 'cookie')
+    },
+    logical(1)
+  ))
+  if (!length(selected)) {
+    return(character())
+  }
+  paste0(
+    '  base::evalq(',
+    r_literal(parameter_values),
+    ', envir = base::baseenv())(',
+    'base::list(',
+    paste(
+      vapply(
+        selected,
+        function(i) {
+          paste0(r_literal(formal_names[[i]]), ' = ', formal_names[[i]])
+        },
+        character(1)
+      ),
+      collapse = ', '
+    ),
+    '), ',
+    r_literal(setNames(
+      lapply(params[selected], `[[`, 'schema'),
+      formal_names[selected]
+    )),
+    ', base::evalq(',
+    r_literal(body_value),
+    ', envir = base::baseenv()))'
+  )
 }
 
 # Preserve existing helper calls for the previously supported subset.
