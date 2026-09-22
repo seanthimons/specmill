@@ -44,6 +44,8 @@ verify_hardened_clients <- function(
             body = jsonlite::toJSON(
               list(
                 count = count,
+                method = req$REQUEST_METHOD,
+                content_type = req$CONTENT_TYPE,
                 path = req$PATH_INFO,
                 query = req$QUERY_STRING,
                 header = req$HTTP_X_TEST,
@@ -331,6 +333,8 @@ verify_hardened_clients <- function(
     segment <- paste0('a:/', '\u00e9')
     result <- invoke('get_wire', segment, 0L, 1L)
     stopifnot(
+      result$method == 'GET',
+      is.null(result$content_type),
       result$path == paste0('/wire/a%3A%2F%C3%A9'),
       result$query == '?amount=0',
       result$header == '1'
@@ -341,11 +345,21 @@ verify_hardened_clients <- function(
       stopifnot(is.null(result$key))
     }
     json <- invoke('post_json', list(text = text, amount = 0L))
+    stopifnot(
+      json$method == 'POST',
+      json$path == '/json',
+      startsWith(json$content_type, 'application/json')
+    )
     stopifnot(identical(
       wire(json),
       charToRaw(enc2utf8(paste0('{"text":"', text, '","amount":0}')))
     ))
     form <- invoke('post_form', list(text = text, amount = 0L))
+    stopifnot(
+      form$method == 'POST',
+      form$path == '/form',
+      startsWith(form$content_type, 'application/x-www-form-urlencoded')
+    )
     expected_form <- paste0(
       'text=',
       utils::URLencode(enc2utf8(text), reserved = TRUE, repeated = TRUE),
@@ -353,6 +367,11 @@ verify_hardened_clients <- function(
     )
     stopifnot(identical(wire(form), charToRaw(expected_form)))
     hook <- invoke('post_hook', 1L)
+    stopifnot(
+      hook$method == 'POST',
+      hook$path == '/hook',
+      startsWith(hook$content_type, 'application/json')
+    )
     stopifnot(
       identical(wire(hook), charToRaw('{"inputType":"MOL","amount":"1"}')),
       hook$hook_state == 42L
