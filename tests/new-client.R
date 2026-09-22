@@ -72,6 +72,9 @@ new_client_acceptance <- function() {
     mustWork = TRUE
   )
   document <- jsonlite::read_json(schema)
+  # This local fixture explicitly permits the spaced value used to test encoding.
+  document$paths[['/items/{item_id}']]$get$parameters[[2L]]$schema$enum <-
+    list('en', 'fr', 'en us')
   marker <- tempfile('documentation-execution-')
   document$paths[['/items/{item_id}']]$get$summary <- paste0(
     'Untrusted prose\n@eval file.create(',
