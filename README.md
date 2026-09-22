@@ -109,7 +109,11 @@ and media type without response bodies or credentials; connection errors use a
 fixed credential-safe message.
 
 Existing `R/api_request.R` files remain client-owned and are never refreshed by
-normal generation. To adopt these controls, merge the `server` and
+normal generation. New scaffolds retain their substituted baseline under
+`.specmill/helpers/`. Use `inspect_client(root)$helpers` for read-only baseline,
+local and proposed comparisons; legacy helpers without provenance stay unknown.
+Adoption remains manual. [Helper review and lifecycle protection](dev/audits/open-issues-20260922/HELPERS.md)
+includes specialization reporting and retained-implementation guidance. To adopt these controls, merge the `server` and
 `request_controls` arguments, YAML-default fallback, URL selection/validation,
 option validation, and `req_timeout()`/`req_retry()` setup
 from [`inst/templates/request.R`](inst/templates/request.R) into your helper.
