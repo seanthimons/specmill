@@ -5,7 +5,10 @@
 \usage{
 configure_client(root, schema, package = NULL,
     naming = c("operation_id", "tag_prefix"),
-    group_by = c("tag", "none"), mode = c("plan", "apply"))
+    group_by = c("tag", "none"),
+    mode = c("plan", "apply"),
+    name_case = c("asis", "snake_case", "camel_case", "pascal_case",
+        "screaming_snake_case", "dot_case"))
 }
 \arguments{
 \item{root}{Client directory. Planning does not create it.}
@@ -13,6 +16,7 @@ configure_client(root, schema, package = NULL,
 \item{package}{R package name; read from DESCRIPTION when present. A supplied name must agree with existing metadata.}
 \item{naming}{Preserve valid operationId names, or use tag-prefixed snake_case. Missing or invalid IDs get method/path names. Prefixing removes exact tag tokens and their simple plural, not synonyms.}
 \item{group_by}{Group by first operation tag, or keep one default service. Missing tags use default. Untagged/default services keep per-function source files; other groups configure a shared R file and help family.}
+\item{name_case}{Case convention applied to proposed names: preserve them as-is, or use snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, or dot.case. Exact names already reviewed in service YAML are preserved.}
 \item{mode}{Preview by default. Apply creates absent files only; differing existing files or colliding tag filenames stop the entire write.}
 }
 \value{A list with named YAML/schema text in files, operation assignments in operations, diagnostics, and changes. Each change contains file, action (create, unchanged, conflict), before, and after. Schemas with security declarations get an authentication map from scheme names to proposed environment-variable names. It contains no tokens; names can be edited before generation. API keys and HTTP bearer tokens are supported; OAuth login and refresh are deferred.}
