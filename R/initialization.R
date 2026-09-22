@@ -7,7 +7,15 @@ initialize_client <- function(
   license = NULL,
   base_url = NULL,
   naming = c('operation_id', 'tag_prefix'),
-  group_by = c('tag', 'none')
+  group_by = c('tag', 'none'),
+  name_case = c(
+    'asis',
+    'snake_case',
+    'camel_case',
+    'pascal_case',
+    'screaming_snake_case',
+    'dot_case'
+  )
 ) {
   if (is.data.frame(schema)) {
     return(initialize_apis(
@@ -18,11 +26,13 @@ initialize_client <- function(
       author,
       license,
       match.arg(naming),
-      match.arg(group_by)
+      match.arg(group_by),
+      match.arg(name_case)
     ))
   }
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
   naming <- match.arg(naming)
+  name_case <- match.arg(name_case)
   group_by <- match.arg(group_by)
   document <- read_schema_document(schema)
   base_url_override <- base_url
@@ -116,7 +126,13 @@ initialize_client <- function(
     helper,
     fixed = TRUE
   )
-  proposal <- configuration_proposal(schema, package, naming, group_by)
+  proposal <- configuration_proposal(
+    schema,
+    package,
+    naming,
+    group_by,
+    name_case
+  )
   if (
     any(vapply(
       proposal$diagnostics,

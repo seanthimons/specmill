@@ -5,6 +5,34 @@ configuration_words <- function(x) {
   gsub('^_+|_+$', '', x)
 }
 
+configuration_case <- function(x, name_case) {
+  if (name_case == 'asis') {
+    return(x)
+  }
+  words <- strsplit(configuration_words(x), '_', fixed = TRUE)[[1L]]
+  if (name_case == 'snake_case') {
+    return(paste(words, collapse = '_'))
+  }
+  if (name_case == 'screaming_snake_case') {
+    return(toupper(paste(words, collapse = '_')))
+  }
+  if (name_case == 'dot_case') {
+    return(paste(words, collapse = '.'))
+  }
+  camel <- paste0(
+    words[[1L]],
+    paste0(
+      toupper(substring(words[-1L], 1L, 1L)),
+      substring(words[-1L], 2L),
+      collapse = ''
+    )
+  )
+  if (name_case == 'camel_case') {
+    return(camel)
+  }
+  paste0(toupper(substring(camel, 1L, 1L)), substring(camel, 2L))
+}
+
 configuration_name_diagnostics <- function(operations) {
   public_names <- vapply(operations, `[[`, character(1), 'name')
   collisions <- duplicated(tolower(public_names)) |
@@ -28,10 +56,22 @@ configuration_proposal <- function(
   package,
   naming,
   group_by,
+  name_case = 'asis',
   reviewed_names = list()
 ) {
   naming <- match.arg(naming, c('operation_id', 'tag_prefix'))
   group_by <- match.arg(group_by, c('tag', 'none'))
+  name_case <- match.arg(
+    name_case,
+    c(
+      'asis',
+      'snake_case',
+      'camel_case',
+      'pascal_case',
+      'screaming_snake_case',
+      'dot_case'
+    )
+  )
   config_string(package, 'package')
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {
     stop('Invalid R package name')
@@ -143,6 +183,7 @@ configuration_proposal <- function(
         words <- words[!words %in% c(prefix, paste0(prefix, 's'))]
         name <- paste(c(prefix, words), collapse = '_')
       }
+      name <- configuration_case(name, name_case)
       name <- make.names(name)
       records[[length(records) + 1L]] <- list(
         key = key,
@@ -450,10 +491,19 @@ configure_client <- function(
   package = NULL,
   naming = c('operation_id', 'tag_prefix'),
   group_by = c('tag', 'none'),
-  mode = c('plan', 'apply')
+  mode = c('plan', 'apply'),
+  name_case = c(
+    'asis',
+    'snake_case',
+    'camel_case',
+    'pascal_case',
+    'screaming_snake_case',
+    'dot_case'
+  )
 ) {
   mode <- match.arg(mode)
   naming <- match.arg(naming)
+  name_case <- match.arg(name_case)
   group_by <- match.arg(group_by)
   description <- file.path(root, 'DESCRIPTION')
   if (file.exists(description)) {
@@ -464,16 +514,31 @@ configure_client <- function(
     package <- existing
   }
   proposal <- if (is.data.frame(schema)) {
-    multi_api_proposal(root, schema, package, naming, group_by)
+    multi_api_proposal(root, schema, package, naming, group_by, name_case)
   } else {
-    configuration_proposal(schema, package, naming, group_by)
+    configuration_proposal(schema, package, naming, group_by, name_case)
   }
   reviewed <- reviewed_configuration_names(root, proposal)
   if (length(reviewed)) {
     proposal <- if (is.data.frame(schema)) {
-      multi_api_proposal(root, schema, package, naming, group_by, reviewed)
+      multi_api_proposal(
+        root,
+        schema,
+        package,
+        naming,
+        group_by,
+        name_case,
+        reviewed
+      )
     } else {
-      configuration_proposal(schema, package, naming, group_by, reviewed)
+      configuration_proposal(
+        schema,
+        package,
+        naming,
+        group_by,
+        name_case,
+        reviewed
+      )
     }
   }
   proposal$changes <- lapply(names(proposal$files), function(file) {

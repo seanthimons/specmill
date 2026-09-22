@@ -154,6 +154,12 @@ method/path names. Every proposed name is explicit in the YAML for editing.
 Multiple tags use the first, with a diagnostic; missing tags use `default`.
 `group_by = 'none'` creates a single default service instead.
 
+Use `name_case` independently of that naming strategy. Its choices are `asis`
+(the default), `snake_case`, `camel_case`, `pascal_case`,
+`screaming_snake_case`, and `dot_case`. Thus `naming = 'tag_prefix'` with
+`name_case = 'camel_case'` proposes `petGetById`. Names already reviewed in the
+service YAML are kept exactly, so an existing package can retain its convention.
+
 When generated names collide, `proposal$diagnostics` lists every contributing
 `METHOD /path`; multi-API diagnostics include the API-qualified proposed name.
 Edit the matching `names` entries in the existing service YAML, then rerun
