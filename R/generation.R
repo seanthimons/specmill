@@ -662,6 +662,10 @@ generate_client <- function(
           parse(text = code)[[1L]][[3L]],
           baseenv()
         )))
+        if (has_protected_lifecycle(path) &&
+            !identical(original_formals, candidate_formals)) {
+          stop('Protected implementation public contract differs: ', op$name)
+        }
         for (parameter in union(
           names(original_formals),
           names(candidate_formals)
@@ -817,6 +821,10 @@ generate_client <- function(
       next
     }
     definitions <- tg_find_function_defs_in_file(path)
+    if (has_protected_lifecycle(path) &&
+        length(setdiff(source_names[[file]], names(definitions)))) {
+      stop('Protected grouped source cannot add selected implementations: ', file)
+    }
     expressions <- as.list(parse(path))
     extra_names <- setdiff(names(definitions), source_names[[file]])
     if (length(extra_names) && !is.null(previous[[file]])) {
