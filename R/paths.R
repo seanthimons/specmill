@@ -41,3 +41,25 @@ strip_curly_params <- function(
 
   out
 }
+
+# The tar portability gate counts the package prefix as well as the filename.
+portable_output_path <- function(root, file) {
+  description <- file.path(root, 'DESCRIPTION')
+  package <- if (file.exists(description)) {
+    unname(read.dcf(description)[1L, 'Package'])
+  } else basename(root)
+  budget <- min(100L, 100L - nchar(paste0(package, '/', dirname(file), '/'), type = 'bytes'))
+  component <- basename(file)
+  if (nchar(component, type = 'bytes') <= budget) return(file)
+  extension <- paste0('.', tools::file_ext(component))
+  suffix <- paste0('_', substr(text_hash(file), 1L, 16L), extension)
+  prefix_budget <- budget - nchar(suffix, type = 'bytes')
+  if (prefix_budget < 1L) {
+    stop('Package name leaves no portable output filename space; use a shorter package name')
+  }
+  prefix <- tools::file_path_sans_ext(component)
+  while (nchar(prefix, type = 'bytes') > prefix_budget) {
+    prefix <- substr(prefix, 1L, nchar(prefix) - 1L)
+  }
+  paste0(dirname(file), '/', prefix, suffix)
+}
