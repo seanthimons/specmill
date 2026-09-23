@@ -87,17 +87,23 @@ initialization.</p>
 <div class="section level2">
 <h2 id="install-the-development-tools">1. Install the development tools<a class="anchor" aria-label="anchor" href="#install-the-development-tools"></a>
 </h2>
-<p>Run this once in R. The tagged release makes the tutorial
-reproducible:</p>
+<p>This guide follows the current development version on
+<code>main</code>. Install it once in R; the older <code>v0.1.4</code>
+release does not include all the features shown here:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">'remotes'</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">'seanthimons/specmill@v0.1.4'</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'httr2'</span>, <span class="st">'testthat'</span>, <span class="st">'devtools'</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">'seanthimons/specmill@main'</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'httr2'</span>, <span class="st">'curl'</span>, <span class="st">'testthat'</span>, <span class="st">'devtools'</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>If a project supplies an installer and toolkit lock, use those
 instead: they select the version reviewed for that project. In a local
 specmill source checkout, <code>devtools::install('.')</code> installs
 the checked-out version. Start a fresh R session after changing an
-already loaded version.</p>
+already loaded version. Record the reviewed commit SHA in your project
+installer or dependency lock before relying on reproducible output. A
+branch name moves, and <code><a href="https://rdrr.io/r/utils/packageDescription.html" class="external-link">packageVersion()</a></code> alone does not
+identify a development checkout. GitHub installs also record
+<code>RemoteSha</code> in
+<code>packageDescription("specmill")</code>.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/packageDescription.html" class="external-link">packageVersion</a></span><span class="op">(</span><span class="st">'specmill'</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] '0.1.4'</span></span></code></pre></div>
@@ -117,16 +123,107 @@ get an item, list items, create an item, and refresh the catalogue.</p>
 own project, replace it with an unused permanent directory such as
 <code>C:/projects/catalogueclient</code> or
 <code>~/projects/catalogueclient</code>, and replace <code>schema</code>
-with your downloaded JSON schema. Save the schema’s origin and version
-in your project; generation reads local files and does not download or
-refresh schemas.</p>
+with your downloaded JSON, YAML, or YML schema. Save the schema’s origin
+and version in your project; generation reads local files and does not
+download or refresh schemas.</p>
 </div>
 <div class="section level2">
 <h2 id="initialize-the-package">3. Initialize the package<a class="anchor" aria-label="anchor" href="#initialize-the-package"></a>
 </h2>
+<p>Preview names, selection, and diagnostics before writing the
+package:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">proposal</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/configure_client.html">configure_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, <span class="va">schema</span>, package <span class="op">=</span> <span class="st">'catalogueclient'</span>, name_case <span class="op">=</span> <span class="st">'snake_case'</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">proposal</span><span class="op">$</span><span class="va">changes</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [[1]]$file</span></span>
+<span><span class="co">#&gt; [1] "schema/openapi.json"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[1]]$action</span></span>
+<span><span class="co">#&gt; [1] "create"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[1]]$before</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[1]]$after</span></span>
+<span><span class="co">#&gt; [1] "{\n  \"openapi\": \"3.0.3\",\n  \"info\": {\"title\": \"Catalogue\", \"version\": \"1\"},\n  \"paths\": {\n    \"/items/{item_id}\": {\"get\": {\"operationId\": \"get_item\", \"parameters\": [\n      {\"name\": \"item_id\", \"in\": \"path\", \"required\": true, \"schema\": {\"type\": \"string\"}},\n      {\"name\": \"language\", \"in\": \"query\", \"schema\": {\"type\": \"string\", \"enum\": [\"en\", \"fr\"]}}\n    ], \"responses\": {\"200\": {\"description\": \"Item\"}}}},\n    \"/items\": {\n      \"get\": {\"operationId\": \"list_items\", \"parameters\": [\n        {\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"minimum\": 1}}\n      ], \"responses\": {\"200\": {\"description\": \"Items\"}}},\n      \"post\": {\"operationId\": \"create_item\", \"requestBody\": {\"required\": true, \"content\": {\n        \"application/json\": {\"schema\": {\"$ref\": \"#/components/schemas/Item\"}}\n      }}, \"responses\": {\"201\": {\"description\": \"Created\"}}}\n    },\n    \"/refresh\": {\"post\": {\"operationId\": \"refresh\", \"responses\": {\"204\": {\"description\": \"Refreshed\"}}}}\n  },\n  \"components\": {\"schemas\": {\"Item\": {\"type\": \"object\", \"required\": [\"title\"], \"properties\": {\n    \"title\": {\"type\": \"string\"}, \"count\": {\"type\": \"integer\"}\n  }}}}\n}"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]</span></span>
+<span><span class="co">#&gt; [[2]]$file</span></span>
+<span><span class="co">#&gt; [1] "specmill.yml"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]$action</span></span>
+<span><span class="co">#&gt; [1] "create"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]$before</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]$after</span></span>
+<span><span class="co">#&gt; [1] "config_version: 1\n# Package identity; keep consistent with DESCRIPTION.\npackage: catalogueclient\n# Service configuration files, relative to the package root.\nservices:\n- apis/default.yml\n# Package-wide limits: services cannot re-enable these excluded methods or paths.\nselection:\n  methods:\n  - GET\n  - POST\n  - PUT\n  - PATCH\n  - DELETE\n  - HEAD\n  - OPTIONS\n  - TRACE\n  exclude: []\n# Default runtime helper; services may override it.\nhelper: api_request\n# Generate help and exports unless a service overrides this setting.\ndocumentation: yes\n# Shared settings; service defaults and individual overrides take precedence.\n# Request controls: seconds per attempt, retries after the first attempt, and explicit write replay permission.\n# Runtime package.request options override these generated defaults.\n# Keep function names and output files in service YAML.\ndefaults:\n  implementation: generated\n  request_controls:\n    timeout: 30\n    max_retries: 0\n    retry_writes: no\n  batch:\n    max_items: ~\n    max_bytes: ~\n# authentication: {} # Opt in to generated auth when the schema declares security.\n# Optional formatting: uncomment and use your exact installed air version.\n# formatter: {name: air, version: \"0.9.0\"}\n# Callback source files to fingerprint; pass their functions via callbacks, too.\ncallback_files: []"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]</span></span>
+<span><span class="co">#&gt; [[3]]$file</span></span>
+<span><span class="co">#&gt; [1] "apis/default.yml"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]$action</span></span>
+<span><span class="co">#&gt; [1] "create"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]$before</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]$after</span></span>
+<span><span class="co">#&gt; [1] "id: catalogueclient\n# Local schema files; patterns are file globs, exclude matches basenames by regex.\n# All paths resolve from the package root.\nschemas:\n  files:\n  - schema/openapi.json\n  patterns: []\n  exclude: []\n# An operation must pass methods AND include AND not match exclude (path regexes).\n# Keep only GET and POST below to omit PUT/PATCH/DELETE wrappers.\n# Leave their include/name entries in place; regeneration removes unchanged owned output.\n# An empty include selects nothing; remove include to allow every matching operation.\nselection:\n  methods:\n  - GET\n  - POST\n  - PUT\n  - PATCH\n  - DELETE\n  - HEAD\n  - OPTIONS\n  - TRACE\n  exclude: []\n  include:\n  - GET /items\n  - POST /items\n  - GET /items/{item_id}\n  - POST /refresh\n# Edit the public R function names here; keys stay METHOD /original/path.\nnames:\n  GET /items: list_items\n  POST /items: create_item\n  GET /items/{item_id}: get_item\n  POST /refresh: refresh\n# Shared operation settings. Per-operation settings below override these.\n# file groups wrappers in one R file; omit it for one file per function.\n# Example: add file: R/endpoints.R under defaults.\n# docs can set title, description, return, parameters, examples, tags and lifecycle.\ndefaults: {}\n# Optional overrides keyed by METHOD /original/path. Replace {} with entries.\n# Each entry can set file, helper, parameters, parameter_order and docs.\n# parameters keys use the original location and name, e.g. \"query limit\".\n# Example parameter setting: {name: max_results, default: 10, description: Maximum results.}\n# Advanced facades use inputs, extra_parameters and request.arguments mappings.\noperations: {}\n# Inherited from specmill.yml; uncomment to override for this service:\n# helper: api_request\n# documentation: true\n# Optional hooks: define client functions before enabling these settings.\n# hooks: {} # Public wrapper name -&gt; pre_request/post_response hook-name sequences.\n# hook_callback: run_hook\n# hook_config: inst/hooks.yml # Alternative to inline hooks, not both.\n# prepare: prepare_operation # Development callback; pass an explicit callbacks environment.\n# policy_version: \"1\" # Your review label, recorded in generation metadata.\n# Optional fixed request expectations for generated tests:\n# contracts: {} # Public wrapper name -&gt; fixed request expectations.\n# contracts_file: tests/testthat/contracts.rds\n# response_fixture: {} # Mock response used by inline single-call contracts.\n# Full configuration examples: https://seanthimons.github.io/specmill/articles/configuration.html"</span></span>
+<span><span class="va">proposal</span><span class="op">$</span><span class="va">diagnostics</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [[1]]$key</span></span>
+<span><span class="co">#&gt; [1] "GET /items"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[1]]$code</span></span>
+<span><span class="co">#&gt; [1] "missing_tag"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[1]]$message</span></span>
+<span><span class="co">#&gt; [1] "Assigned to default"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]</span></span>
+<span><span class="co">#&gt; [[2]]$key</span></span>
+<span><span class="co">#&gt; [1] "POST /items"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]$code</span></span>
+<span><span class="co">#&gt; [1] "missing_tag"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]$message</span></span>
+<span><span class="co">#&gt; [1] "Assigned to default"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]</span></span>
+<span><span class="co">#&gt; [[3]]$key</span></span>
+<span><span class="co">#&gt; [1] "GET /items/{item_id}"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]$code</span></span>
+<span><span class="co">#&gt; [1] "missing_tag"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]$message</span></span>
+<span><span class="co">#&gt; [1] "Assigned to default"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[4]]</span></span>
+<span><span class="co">#&gt; [[4]]$key</span></span>
+<span><span class="co">#&gt; [1] "POST /refresh"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[4]]$code</span></span>
+<span><span class="co">#&gt; [1] "missing_tag"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[4]]$message</span></span>
+<span><span class="co">#&gt; [1] "Assigned to default"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.exists</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Supply your own metadata and the service’s real base URL. The example
 URL below is a placeholder and is never contacted in this guide.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">created</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/initialize_client.html">initialize_client</a></span><span class="op">(</span></span>
 <span>  <span class="va">root</span>, <span class="va">schema</span>,</span>
 <span>  package <span class="op">=</span> <span class="st">'catalogueclient'</span>,</span>
@@ -140,8 +237,9 @@ URL below is a placeholder and is never contacted in this guide.</p>
 <span><span class="co">#&gt;  [1] ".Rbuildignore"                      ".specmill/helpers/api_request.json"</span></span>
 <span><span class="co">#&gt;  [3] ".specmill/manifest.json"            "apis/default.yml"                  </span></span>
 <span><span class="co">#&gt;  [5] "DESCRIPTION"                        "LICENSE"                           </span></span>
-<span><span class="co">#&gt;  [7] "NAMESPACE"                          "R/api_request.R"                   </span></span>
-<span><span class="co">#&gt;  [9] "schema/openapi.json"                "specmill.yml"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [7] "NAMESPACE"                          "R/api_options.R"                   </span></span>
+<span><span class="co">#&gt;  [9] "R/api_request.R"                    "schema/openapi.json"               </span></span>
+<span><span class="co">#&gt; [11] "specmill.yml"</span></span></code></pre></div>
 <p>Initialization writes immediately and refuses existing-file
 conflicts. It creates:</p>
 <table class="table">
@@ -166,8 +264,21 @@ conflicts. It creates:</p>
 values, and generated authentication</td>
 </tr>
 <tr class="odd">
+<td><code>R/api_options.R</code></td>
+<td>Client-owned <code>&lt;package&gt;_run_verbose()</code> and
+<code>&lt;package&gt;_dry_run()</code> setters for package-scoped
+session options</td>
+</tr>
+<tr class="even">
 <td><code>schema/openapi.json</code></td>
-<td>Local copy of the schema</td>
+<td>Local schema copy; YAML inputs keep <code>.yaml</code> or
+<code>.yml</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code>.specmill/helpers/api_request.json</code></td>
+<td>Initial transport source and settings for later helper
+comparisons</td>
 </tr>
 <tr class="even">
 <td><code>specmill.yml</code></td>
@@ -192,9 +303,10 @@ policy</td>
 </tr>
 </tbody>
 </table>
-<p>The scaffold declares <code>httr2</code> and <code>jsonlite</code> as
-runtime dependencies for HTTP requests and JSON bodies. Existing
-packages must declare both before using the default transport.</p>
+<p>The scaffold declares <code>httr2</code>, <code>jsonlite</code>, and
+<code>curl</code> as runtime dependencies for requests, JSON bodies, and
+form uploads. Existing packages adopting the default transport must
+declare these dependencies too.</p>
 <p>Tagged schemas automatically get one service file per first operation
 tag, plus grouped source files and help families. This catalogue has no
 tags, so it uses <code>default</code> and keeps one source file per
@@ -217,7 +329,7 @@ instead.</p>
 <div class="section level2">
 <h2 id="inspect-the-schema-and-policy">4. Inspect the schema and policy<a class="anchor" aria-label="anchor" href="#inspect-the-schema-and-policy"></a>
 </h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">parsed</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/read_operations.html">read_operations</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'schema/openapi.json'</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">parsed</span><span class="op">$</span><span class="va">operations</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "get_item"    "list_items"  "create_item" "refresh"</span></span>
@@ -295,7 +407,7 @@ examples.</p>
 <div class="section level2">
 <h2 id="preview-changes-before-applying-them">5. Preview changes before applying them<a class="anchor" aria-label="anchor" href="#preview-changes-before-applying-them"></a>
 </h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">plan</span><span class="op">$</span><span class="va">files</span>, <span class="va">`[[`</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, <span class="st">'file'</span><span class="op">)</span>,</span>
@@ -324,7 +436,7 @@ Manifest metadata can also appear in the plan.</p>
 <div class="section level2">
 <h2 id="apply-then-check-reproducibility">6. Apply, then check reproducibility<a class="anchor" aria-label="anchor" href="#apply-then-check-reproducibility"></a>
 </h2>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">applied</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
 <span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span></span>
@@ -347,7 +459,7 @@ replacement.</p>
 <p>For this small demonstration, source the helper and one wrapper into
 a private environment, then replace the helper there with a recorder.
 The generated client source has no runtime dependency on specmill.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runtime</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">baseenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sys.source.html" class="external-link">sys.source</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'R/api_request.R'</span><span class="op">)</span>, <span class="va">runtime</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sys.source.html" class="external-link">sys.source</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'R/get_item.R'</span><span class="op">)</span>, <span class="va">runtime</span><span class="op">)</span></span>
@@ -386,10 +498,20 @@ need no token. OAuth login and refresh are deferred. See the <a href="configurat
 persistence.</p>
 <p>After configuring the actual service and any required credentials,
 run:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/help.html" class="external-link">help</a></span><span class="op">(</span><span class="st">'get_item'</span>, package <span class="op">=</span> <span class="st">'catalogueclient'</span><span class="op">)</span></span>
+<span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">catalogueclient_dry_run</span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">request</span> <span class="op">&lt;-</span> <span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">get_item</span><span class="op">(</span>item_id <span class="op">=</span> <span class="st">'a-real-id'</span>, language <span class="op">=</span> <span class="st">'en'</span><span class="op">)</span></span>
+<span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">catalogueclient_dry_run</span><span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co"># This call sends HTTP:</span></span>
 <span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">get_item</span><span class="op">(</span>item_id <span class="op">=</span> <span class="st">'a-real-id'</span>, language <span class="op">=</span> <span class="st">'en'</span><span class="op">)</span></span></code></pre></div>
+<p>Dry runs still validate inputs and require credentials for
+authenticated operations. The returned request may contain credentials;
+do not publish it. Use <code>catalogueclient_run_verbose(TRUE)</code> to
+report the method and response status, and
+<code>catalogueclient_run_verbose(FALSE)</code> to turn messages
+off.</p>
 <p>The last call sends a real request. The default helper performs one
 request, including when an argument is named <code>page</code>. It
 returns JSON objects and arrays as R lists, JSON scalars as their
@@ -419,10 +541,11 @@ update to adopt these controls.</p>
 <h2 id="save-the-project-and-maintain-it">9. Save the project and maintain it<a class="anchor" aria-label="anchor" href="#save-the-project-and-maintain-it"></a>
 </h2>
 <p>Commit the schema, YAML policy, client helper, generated
-source/help/tests, and <code>.specmill/manifest.json</code> together.
-Keep the manifest tracked: it establishes which output can be updated
-safely. Keep credentials outside tracked files. Add a package test
-runner as shown in the testing guide.</p>
+source/help/tests, <code>.specmill/manifest.json</code>, and
+<code>.specmill/helpers/</code> together. Keep the manifest tracked: it
+establishes which output can be updated safely. Keep credentials outside
+tracked files. Add a package test runner as shown in the testing
+guide.</p>
 <p>When a schema or policy changes, repeat <strong>plan -&gt; review
 -&gt; apply -&gt; check -&gt; tests</strong>. See <a href="maintenance.html">Routine maintenance and CI</a> for thin
 commands, schema comparisons, coverage reports, and building

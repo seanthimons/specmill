@@ -26,10 +26,10 @@ inspect_client(root, config = "specmill.yml", callbacks = new.env(parent = empty
 
 ## Value
 
-A list with operations, inventory, diagnostics, manual_exports, and
-coverage. Coverage is keyed by service ID and contains total selected
-operations, implemented exported definitions, and declared contracts
-with test files.
+A list with operations, inventory, diagnostics, manual_exports,
+coverage, helpers, and protected_sources. Coverage is keyed by service
+ID and contains total selected operations, implemented exported
+definitions, and declared contracts with test files.
 
 ## Details
 

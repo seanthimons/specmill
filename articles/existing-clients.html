@@ -79,8 +79,9 @@
 recreating the package or replacing its HTTP implementation. Work on a
 dedicated branch, record a clean baseline, and begin with one
 representative operation.</p>
-<p>If your project is already configured for specmill, skip to <a href="maintenance.html">the maintenance loop</a>. ComptoxR maintainers
-can use the commands at the end of this guide.</p>
+<p>If your project already has <code>specmill.yml</code>, use <a href="#update-an-already-configured-client">the upgrade workflow</a>
+below or <a href="maintenance.html">the maintenance loop</a>. ComptoxR
+maintainers can use the commands at the end of this guide.</p>
 <div class="section level2">
 <h2 id="record-the-existing-contract">1. Record the existing contract<a class="anchor" aria-label="anchor" href="#record-the-existing-contract"></a>
 </h2>
@@ -97,35 +98,53 @@ with existing scaffold files.</p>
 <div class="section level2">
 <h2 id="add-project-and-service-files">2. Add project and service files<a class="anchor" aria-label="anchor" href="#add-project-and-service-files"></a>
 </h2>
-<p>Create <code>specmill.yml</code> in the client root:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">config_version</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">package</span><span class="kw">:</span><span class="at"> existingclient</span></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">apis/catalogue.yml</span><span class="kw">]</span></span></code></pre></div>
+<p>For a schema-driven starting point, preview configuration without
+writing files:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/normalizePath.html" class="external-link">normalizePath</a></span><span class="op">(</span><span class="st">'/path/to/existingclient'</span>, winslash <span class="op">=</span> <span class="st">'/'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">proposal</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/configure_client.html">configure_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'schema/catalogue.yaml'</span><span class="op">)</span>, name_case <span class="op">=</span> <span class="st">'snake_case'</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">proposal</span><span class="op">$</span><span class="va">changes</span></span>
+<span><span class="va">proposal</span><span class="op">$</span><span class="va">diagnostics</span></span>
+<span><span class="va">proposal</span><span class="op">$</span><span class="va">files</span><span class="op">[[</span><span class="st">'apis/default.yml'</span><span class="op">]</span><span class="op">]</span> <span class="co"># For a schema without tags.</span></span></code></pre></div>
+<p>Tagged schemas propose one service per first tag. Review the proposed
+names against the package’s public interface, narrow
+<code>selection.include</code> to the first operation, and configure
+your actual helper and mappings before generating.
+<code>configure_client(..., mode = 'apply')</code> creates absent files
+only and refuses conflicting existing files. It creates no helper or
+package metadata. Copy reviewed changes into existing YAML manually.</p>
+<p>You can also write a minimal policy directly. Create
+<code>specmill.yml</code> in the client root:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">config_version</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">package</span><span class="kw">:</span><span class="at"> existingclient</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">apis/catalogue.yml</span><span class="kw">]</span></span></code></pre></div>
 <p>Save a reviewed local schema as <code>schema/catalogue.json</code>,
 then create <code>apis/catalogue.yml</code>:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">id</span><span class="kw">:</span><span class="at"> catalogue</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="at">  </span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/catalogue.json</span><span class="kw">]</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">]</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/items$'</span><span class="kw">]</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> request_item</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="at">    </span><span class="fu">inputs</span><span class="kw">:</span></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="at">      </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">,</span><span class="at"> </span><span class="fu">required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="kw">,</span><span class="at"> </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Catalogue item ID.</span><span class="kw">}</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="at">      </span><span class="fu">language</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">,</span><span class="at"> </span><span class="fu">default</span><span class="kw">:</span><span class="at"> en</span><span class="kw">,</span><span class="at"> </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Response language.</span><span class="kw">}</span></span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="at">    </span><span class="fu">request</span><span class="kw">:</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="at">      </span><span class="fu">arguments</span><span class="kw">:</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="at">        </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">value</span><span class="kw">:</span><span class="at"> items</span><span class="kw">}</span></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="at">        </span><span class="fu">id</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> identifier</span><span class="kw">]}</span></span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="at">        </span><span class="fu">language</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> language</span><span class="kw">]}</span></span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="at">    </span><span class="fu">docs</span><span class="kw">:</span></span>
-<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="at">      </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Fetch a catalogue item</span></span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="at">      </span><span class="fu">return</span><span class="kw">:</span><span class="at"> The item returned by the existing request helper.</span></span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="at">      </span><span class="fu">examples</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">}]</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">id</span><span class="kw">:</span><span class="at"> catalogue</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="at">  </span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/catalogue.json</span><span class="kw">]</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">]</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/items$'</span><span class="kw">]</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> request_item</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="at">    </span><span class="fu">inputs</span><span class="kw">:</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="at">      </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">,</span><span class="at"> </span><span class="fu">required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="kw">,</span><span class="at"> </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Catalogue item ID.</span><span class="kw">}</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="at">      </span><span class="fu">language</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">,</span><span class="at"> </span><span class="fu">default</span><span class="kw">:</span><span class="at"> en</span><span class="kw">,</span><span class="at"> </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Response language.</span><span class="kw">}</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="at">    </span><span class="fu">request</span><span class="kw">:</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="at">      </span><span class="fu">arguments</span><span class="kw">:</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="at">        </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">value</span><span class="kw">:</span><span class="at"> items</span><span class="kw">}</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="at">        </span><span class="fu">id</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> identifier</span><span class="kw">]}</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="at">        </span><span class="fu">language</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> language</span><span class="kw">]}</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="at">    </span><span class="fu">docs</span><span class="kw">:</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="at">      </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Fetch a catalogue item</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="at">      </span><span class="fu">return</span><span class="kw">:</span><span class="at"> The item returned by the existing request helper.</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="at">      </span><span class="fu">examples</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">}]</span></span></code></pre></div>
 <p>This preserves <code>fetch_item(identifier, language = 'en')</code>
 while mapping it to
 <code>request_item(endpoint = 'items', id = identifier, language = language)</code>.
@@ -143,7 +162,7 @@ Do not add specmill to runtime dependencies.</p>
 <h2 id="keep-executable-customizations-in-r">3. Keep executable customizations in R<a class="anchor" aria-label="anchor" href="#keep-executable-customizations-in-r"></a>
 </h2>
 <p>For development callbacks, use an explicit environment:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/normalizePath.html" class="external-link">normalizePath</a></span><span class="op">(</span><span class="st">'/path/to/existingclient'</span>, winslash <span class="op">=</span> <span class="st">'/'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">callbacks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">baseenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sys.source.html" class="external-link">sys.source</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'dev/callbacks.R'</span><span class="op">)</span>, envir <span class="op">=</span> <span class="va">callbacks</span><span class="op">)</span></span>
@@ -166,7 +185,7 @@ insufficient.</p>
 adds an old generated wrapper, and adopts it after inspection. It never
 touches your package. The YAML above illustrates a custom mapping; this
 ownership example uses the bundled helper’s default contract.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">'existing-client-'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
 <span><span class="va">catalogue</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'catalogue'</span>, package <span class="op">=</span> <span class="st">'specmill'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -191,7 +210,7 @@ ownership example uses the bundled helper’s default contract.</p>
 <span><span class="co">#&gt; [1] "R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$path</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpYRl93j/existing-client-1ffa16256f63/R/get_item.R"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/Rtmpnq4Sfl/existing-client-20a82e76c1f6/R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$action</span></span>
 <span><span class="co">#&gt; [1] "protected"</span></span></code></pre></div>
@@ -199,7 +218,7 @@ ownership example uses the bundled helper’s default contract.</p>
 required-input checks and documentation. Hash only files you have
 reviewed, using UTF-8 text, LF line endings, and no terminal
 newline:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">text</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">legacy</span>, warn <span class="op">=</span> <span class="cn">FALSE</span>, encoding <span class="op">=</span> <span class="st">'UTF-8'</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">'\n'</span><span class="op">)</span></span>
 <span><span class="va">hash</span> <span class="op">&lt;-</span> <span class="fu">digest</span><span class="fu">::</span><span class="fu"><a href="https://eddelbuettel.github.io/digest/man/digest.html" class="external-link">digest</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Encoding.html" class="external-link">enc2utf8</a></span><span class="op">(</span><span class="va">text</span><span class="op">)</span>, algo <span class="op">=</span> <span class="st">'sha256'</span>, serialize <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">adopt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">'R/get_item.R'</span> <span class="op">=</span> <span class="va">hash</span><span class="op">)</span></span>
@@ -244,13 +263,77 @@ manifest together. Keep the prior toolkit pin with matching output
 available for rollback. See <a href="testing.html">Testing</a> and <a href="troubleshooting.html">Troubleshooting</a>.</p>
 </div>
 <div class="section level2">
+<h2 id="update-an-already-configured-client">Update an already configured client<a class="anchor" aria-label="anchor" href="#update-an-already-configured-client"></a>
+</h2>
+<p>Keep the current toolkit pin and a clean baseline before upgrading.
+Install the candidate toolkit in a separate R library or project
+environment when comparing versions, then restart R. The current guides
+describe <code>main</code>; use a reviewed commit SHA or your project’s
+installer to make subsequent runs reproducible.</p>
+<ol style="list-style-type: decimal">
+<li>Run <code>generate_client(..., mode = 'plan')</code> with the
+existing policy and callbacks. Review diagnostics, file actions, public
+signatures, and request mappings. Do not rerun initialization or replace
+reviewed YAML with a fresh proposal.</li>
+<li>Inspect client-owned helpers with the candidate toolkit:</li>
+</ol>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">inspection</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/inspect_client.html">inspect_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span><span class="op">)</span></span>
+<span><span class="va">inspection</span><span class="op">$</span><span class="va">helpers</span></span>
+<span><span class="va">inspection</span><span class="op">$</span><span class="va">protected_sources</span></span>
+<span><span class="va">helper</span> <span class="op">&lt;-</span> <span class="va">inspection</span><span class="op">$</span><span class="va">helpers</span><span class="op">[[</span><span class="st">'api_request'</span><span class="op">]</span><span class="op">]</span> <span class="co"># Use your configured helper name.</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">helper</span><span class="op">$</span><span class="va">baseline</span>, <span class="st">'known'</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">helper</span><span class="op">$</span><span class="va">customized</span></span>
+<span>  <span class="va">helper</span><span class="op">$</span><span class="va">upstream_changed</span></span>
+<span>  <span class="va">helper</span><span class="op">$</span><span class="va">missing_explicit_arguments</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">helper</span><span class="op">$</span><span class="va">comparison</span><span class="op">$</span><span class="va">proposed</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>For projects with development callbacks, pass the same
+<code>callbacks</code> environment to inspection and generation. New
+scaffolds keep helper baselines under <code>.specmill/helpers/</code>;
+commit that directory with the manifest. Older helpers without
+provenance report an unknown baseline. Inspection writes nothing and
+cannot establish whether a helper behaves correctly.</p>
+<ol start="3" style="list-style-type: decimal">
+<li>Manually merge the transport changes needed by your selected
+operations. Preserve authentication, hooks, response classes, and
+service-specific behavior. New arguments such as <code>server</code>,
+<code>request_controls</code>, <code>parameter_serialization</code>, or
+<code>form_schema</code> need their implementation too; adding
+<code>...</code> is insufficient. See <a href="configuration.html#parameter-serialization">transport
+configuration</a>.</li>
+<li>To add session controls, review the installed templates with
+<code>system.file('templates/options.R', package = 'specmill')</code>
+and
+<code>system.file('templates/request.R', package = 'specmill')</code>.
+Copy the options template into client-owned
+<code>R/api_options.R</code>, replace <code>CLIENT_PREFIX</code> with
+the exact package name and <code>OPTION_PREFIX</code> with a quoted
+lowercase package name with punctuation replaced by <code>_</code>, and
+merge the helper’s option handling. Generate documentation to export the
+setters. Existing clients do not receive either change through
+regeneration alone.</li>
+<li>Replan, apply reviewed changes, check, and run contract and
+transport tests. Exercise dry-run and verbose controls if adopted,
+including turning them off. Compare public names, arguments, exports,
+and results with the baseline. Commit the toolkit pin, policy, helper
+edits, output, and manifest together.</li>
+</ol>
+<p>You can keep an existing helper when no newly selected feature
+requires changes. Generated wrappers need no specmill runtime
+dependency. Adding a companion that calls
+<code><a href="../reference/paginated.html">specmill::paginated()</a></code>, <code><a href="../reference/paginated_links.html">paginated_links()</a></code>, or
+<code><a href="../reference/batched.html">batched()</a></code> does require specmill in the client’s
+Imports.</p>
+</div>
+<div class="section level2">
 <h2 id="comptoxr-use-the-maintained-integration">ComptoxR: use the maintained integration<a class="anchor" aria-label="anchor" href="#comptoxr-use-the-maintained-integration"></a>
 </h2>
 <p>These commands use the specmill integration in ComptoxR. Use the
 <code>CONTRIBUTING.md</code> in your checkout for its current
 branch/release policy.</p>
 <p>From the ComptoxR root, install its checksum-pinned toolkit:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">'dev/install_toolkit.R'</span><span class="op">)</span></span>
 <span><span class="fu">install_toolkit</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The project declares Air <strong>0.9.0</strong> in
@@ -270,19 +353,19 @@ prefix first, so an API named <code>ct</code> proposes names beginning
 with <code>ct_</code>. Review and copy new mappings into the existing
 service YAML before regeneration.</p>
 <p>Preview and check from a terminal:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--plan</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--dry-run</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--check</span> <span class="at">--rebuild</span><span class="op">=</span>ct <span class="at">--rebuild</span><span class="op">=</span>chemi <span class="at">--rebuild</span><span class="op">=</span>epi</span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--check</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="ex">Rscript</span> dev/check_hook_config.R</span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="ex">Rscript</span> dev/check_public_api.R</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--plan</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--dry-run</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--check</span> <span class="at">--rebuild</span><span class="op">=</span>ct <span class="at">--rebuild</span><span class="op">=</span>chemi <span class="at">--rebuild</span><span class="op">=</span>epi</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--check</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="ex">Rscript</span> dev/check_hook_config.R</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="ex">Rscript</span> dev/check_public_api.R</span></code></pre></div>
 <p>After reviewing changes, regenerate:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--rebuild</span><span class="op">=</span>ct <span class="at">--rebuild</span><span class="op">=</span>chemi <span class="at">--rebuild</span><span class="op">=</span>epi</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--generate</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--rebuild</span><span class="op">=</span>ct <span class="at">--rebuild</span><span class="op">=</span>chemi <span class="at">--rebuild</span><span class="op">=</span>epi</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--generate</span></span></code></pre></div>
 <p>Repeat the checks and run the checkout’s targeted offline tests. The
 thin commands load callbacks for you. For interactive R, use their
 sourceable functions with explicit arguments:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">'dev/generate_stubs.R'</span><span class="op">)</span></span>
 <span><span class="fu">generate_stubs_main</span><span class="op">(</span>args <span class="op">=</span> <span class="st">'--plan'</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">'dev/generate_tests.R'</span><span class="op">)</span></span>

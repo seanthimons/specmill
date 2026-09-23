@@ -94,15 +94,50 @@ Pass the reviewed table as `schema` to
 or
 [`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md).
 The generated YAML keeps tag grouping within each API, prefixes function
-names with its reviewed API name, and creates a request helper for each
-base URL. Credential names use `api.scheme`, so identical scheme names
-in different APIs do not share tokens accidentally. Service
-authentication maps refer to these project credential names. Set a
-credential with `set_api_token(token, scheme = 'reviewed_api.api_key')`.
+names with its reviewed API name.
+[`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md)
+also creates a request helper for each included API;
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
+only proposes configuration and schema copies. Credential names use
+`api.scheme`, so identical scheme names in different APIs do not share
+tokens accidentally. Service authentication maps refer to these project
+credential names. Set a credential with
+`set_api_token(token, scheme = 'reviewed_api.api_key')`.
 
-### Batch limits
+For a new multi-API package, use the reviewed table in the same
+initialization and generation sequence as a single schema:
 
-Generated project YAML also includes request defaults:
+``` r
+
+# root is an existing directory containing schemas, with no package scaffold yet.
+apis <- specmill::configure_apis(root, mode = 'apply')
+proposal <- specmill::configure_client(
+  root, apis, package = 'combinedclient', name_case = 'snake_case'
+)
+proposal$diagnostics
+# After reviewing API names, URLs, inclusion, and proposed function names:
+specmill::initialize_client(
+  root, apis, package = 'combinedclient', title = 'Combined API Client',
+  author = list(given = 'Example', family = 'Maintainer', email = 'you@example.org'),
+  license = 'MIT + file LICENSE', name_case = 'snake_case'
+)
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan$diagnostics
+plan$files
+# Review, then apply and check as in the new-client guide.
+```
+
+Keep `specmill-apis.yml` in Git alongside the schema snapshots and
+reviewed service YAML. For an existing package, stop at the
+configuration proposal and follow
+[adoption](https://seanthimons.github.io/specmill/articles/existing-clients.md);
+initialization would conflict with its scaffold. Updating the catalogue
+does not automatically merge service YAML or refresh client-owned
+helpers.
+
+### Request controls and batch limits
+
+Generated project YAML includes request defaults:
 
 ``` yaml
 defaults:
@@ -442,27 +477,42 @@ Existing helpers need optional `headers`, `query_serialization`,
 features. Generation validates helper compatibility and does not
 overwrite client-owned helpers.
 
-### Dry run
+### Dry run and verbose messages
 
-Generated wrappers honour a per-package dry-run environment variable.
-The name is the package name uppercased with every non-alphanumeric
-character replaced by `_`, then suffixed `_DRY_RUN`; for example package
-`requestclient` uses `REQUESTCLIENT_DRY_RUN`. When its value is truthy
-(`true`, `1`, or `yes`, any case), the wrapper builds the fully-formed
-`httr2` request—authentication, query, and body included—then returns
-that `httr2_request` object instead of calling
-[`httr2::req_perform()`](https://httr2.r-lib.org/reference/req_perform.html).
-Empty, unset, or any other value performs the request normally.
+New clients export package-prefixed session controls. For
+`catalogueclient`:
 
 ``` r
 
-Sys.setenv(REQUESTCLIENT_DRY_RUN = 'true')
-req <- some_operation(id = 42)   # returns the unexecuted httr2_request
-Sys.unsetenv('REQUESTCLIENT_DRY_RUN')
+catalogueclient::catalogueclient_dry_run(TRUE)
+request <- catalogueclient::get_item(item_id = 'item-1')
+catalogueclient::catalogueclient_dry_run(FALSE)
+catalogueclient::catalogueclient_run_verbose(TRUE)
+# Subsequent requests report their HTTP method and response status.
+catalogueclient::catalogueclient_run_verbose(FALSE)
 ```
 
-This is useful for inspecting the exact request a wrapper would send
-without touching the network.
+Both controls default to off and accept one nonmissing logical value.
+Function names preserve the exact package name, including case and dots.
+The option prefix is lowercase with punctuation replaced by `_`. All
+helpers in a multi-API client share the controls. They change session
+options, not profile files.
+
+Dry-run helpers return a prepared `httr2_request` without sending it.
+Input validation and authentication still run, so private endpoints need
+credentials. The returned request may contain credentials. Verbose
+messages omit URLs, headers, query values, and bodies.
+
+An explicit `catalogueclient.dry_run` option, including `FALSE`,
+overrides the legacy `CATALOGUECLIENT_DRY_RUN` environment flag. Remove
+the option with `options(catalogueclient.dry_run = NULL)` to restore
+that fallback. The flag accepts `true`, `1`, or `yes`, ignoring case.
+Other values leave dry run off.
+
+These controls live in client-owned `R/api_options.R` and the request
+helper. Existing clients need [manual
+adoption](https://seanthimons.github.io/specmill/articles/existing-clients.html#update-an-already-configured-client);
+regeneration does not install the setters or refresh the helper.
 
 ### Form bodies and file uploads
 
@@ -734,7 +784,7 @@ policy_version: reviewed-1
 | Field | Meaning |
 |----|----|
 | `id` | Required stable service identity, unique in the project |
-| `schemas.files` | Sequence of literal local JSON paths |
+| `schemas.files` | Sequence of literal local JSON, YAML, or YML paths |
 | `schemas.patterns` | Sequence of root-relative file globs; each must match files |
 | `schemas.exclude` | Sequence of case-sensitive regexes matched against schema basenames |
 | `helper` | Required client runtime function name, defined in `R/` |

@@ -164,22 +164,48 @@ review.</p>
 <p>Pass the reviewed table as <code>schema</code> to
 <code><a href="../reference/configure_client.html">configure_client()</a></code> or <code><a href="../reference/initialize_client.html">initialize_client()</a></code>. The
 generated YAML keeps tag grouping within each API, prefixes function
-names with its reviewed API name, and creates a request helper for each
-base URL. Credential names use <code>api.scheme</code>, so identical
+names with its reviewed API name. <code><a href="../reference/initialize_client.html">initialize_client()</a></code> also
+creates a request helper for each included API;
+<code><a href="../reference/configure_client.html">configure_client()</a></code> only proposes configuration and schema
+copies. Credential names use <code>api.scheme</code>, so identical
 scheme names in different APIs do not share tokens accidentally. Service
 authentication maps refer to these project credential names. Set a
 credential with
 <code>set_api_token(token, scheme = 'reviewed_api.api_key')</code>.</p>
+<p>For a new multi-API package, use the reviewed table in the same
+initialization and generation sequence as a single schema:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># root is an existing directory containing schemas, with no package scaffold yet.</span></span>
+<span><span class="va">apis</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/configure_apis.html">configure_apis</a></span><span class="op">(</span><span class="va">root</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
+<span><span class="va">proposal</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/configure_client.html">configure_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, <span class="va">apis</span>, package <span class="op">=</span> <span class="st">'combinedclient'</span>, name_case <span class="op">=</span> <span class="st">'snake_case'</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">proposal</span><span class="op">$</span><span class="va">diagnostics</span></span>
+<span><span class="co"># After reviewing API names, URLs, inclusion, and proposed function names:</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/initialize_client.html">initialize_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, <span class="va">apis</span>, package <span class="op">=</span> <span class="st">'combinedclient'</span>, title <span class="op">=</span> <span class="st">'Combined API Client'</span>,</span>
+<span>  author <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>given <span class="op">=</span> <span class="st">'Example'</span>, family <span class="op">=</span> <span class="st">'Maintainer'</span>, email <span class="op">=</span> <span class="st">'you@example.org'</span><span class="op">)</span>,</span>
+<span>  license <span class="op">=</span> <span class="st">'MIT + file LICENSE'</span>, name_case <span class="op">=</span> <span class="st">'snake_case'</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
+<span><span class="va">plan</span><span class="op">$</span><span class="va">diagnostics</span></span>
+<span><span class="va">plan</span><span class="op">$</span><span class="va">files</span></span>
+<span><span class="co"># Review, then apply and check as in the new-client guide.</span></span></code></pre></div>
+<p>Keep <code>specmill-apis.yml</code> in Git alongside the schema
+snapshots and reviewed service YAML. For an existing package, stop at
+the configuration proposal and follow <a href="existing-clients.html">adoption</a>; initialization would conflict
+with its scaffold. Updating the catalogue does not automatically merge
+service YAML or refresh client-owned helpers.</p>
 </div>
 <div class="section level3">
-<h3 id="batch-limits">Batch limits<a class="anchor" aria-label="anchor" href="#batch-limits"></a>
+<h3 id="request-controls-and-batch-limits">Request controls and batch limits<a class="anchor" aria-label="anchor" href="#request-controls-and-batch-limits"></a>
 </h3>
-<p>Generated project YAML also includes request defaults:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="at">  </span><span class="fu">request_controls</span><span class="kw">:</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> </span><span class="dv">30</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="at">    </span><span class="fu">max_retries</span><span class="kw">:</span><span class="at"> </span><span class="dv">0</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="at">    </span><span class="fu">retry_writes</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
+<p>Generated project YAML includes request defaults:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="at">  </span><span class="fu">request_controls</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> </span><span class="dv">30</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="at">    </span><span class="fu">max_retries</span><span class="kw">:</span><span class="at"> </span><span class="dv">0</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="at">    </span><span class="fu">retry_writes</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
 <p>Timeout is seconds per attempt. <code>max_retries: 2</code> permits
 three total attempts. These values use the same inheritance as other
 defaults: project, API, group or service, then operation. After editing
@@ -196,11 +222,11 @@ is safe for the API.</p>
 request schema’s <code>maxItems</code> becomes an operation-specific
 default. Set limits under service defaults or individual operations, for
 example:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="at">  </span><span class="fu">POST /batch</span><span class="kw">:</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="at">    </span><span class="fu">batch</span><span class="kw">:</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="at">      </span><span class="fu">max_items</span><span class="kw">:</span><span class="at"> </span><span class="dv">100</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="at">      </span><span class="fu">max_bytes</span><span class="kw">:</span><span class="at"> </span><span class="dv">1048576</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="at">  </span><span class="fu">POST /batch</span><span class="kw">:</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="at">    </span><span class="fu">batch</span><span class="kw">:</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="at">      </span><span class="fu">max_items</span><span class="kw">:</span><span class="at"> </span><span class="dv">100</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="at">      </span><span class="fu">max_bytes</span><span class="kw">:</span><span class="at"> </span><span class="dv">1048576</span></span></code></pre></div>
 <p>Shared limits apply only to applicable request bodies, so ordinary
 GET requests are unaffected. The helper rejects oversized requests
 before sending them. Item limits apply to top-level array bodies
@@ -214,7 +240,7 @@ generation verifies that compatibility.</p>
 <p>For a new package, <code><a href="../reference/initialize_client.html">initialize_client()</a></code> writes editable
 YAML grouped by schema tags. To preview that configuration first, or
 propose it for an existing package:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">proposal</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/configure_client.html">configure_client</a></span><span class="op">(</span></span>
 <span>  <span class="va">root</span>, <span class="va">schema</span>, package <span class="op">=</span> <span class="st">'petstoretrial'</span>, naming <span class="op">=</span> <span class="st">'tag_prefix'</span></span>
 <span><span class="op">)</span></span>
@@ -269,11 +295,11 @@ without enabling them unnecessarily.</p>
 <p>In each generated service file (<code>apis/pet.yml</code>,
 <code>apis/store.yml</code>, and <code>apis/user.yml</code> for
 Petstore), replace the <code>selection.methods</code> list with:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="at">  </span><span class="fu">include</span><span class="kw">:</span><span class="co"> # Keep the existing entries below this key.</span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">    # ... existing METHOD /path entries ...</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="at">  </span><span class="fu">include</span><span class="kw">:</span><span class="co"> # Keep the existing entries below this key.</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">    # ... existing METHOD /path entries ...</span></span></code></pre></div>
 <p>This excerpt shows where to edit; keep the actual generated
 <code>include</code> list. Selection filters intersect: an included
 endpoint still has to match the allowed methods and avoid the excluded
@@ -283,7 +309,7 @@ the method filter. Excluded operations stay visible in the inventory but
 are skipped before parsing and wrapper generation. You do not need to
 review or delete hundreds of entries.</p>
 <p>Regenerate wrappers and documentation, then reload the package:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
 <span><span class="va">plan</span><span class="op">$</span><span class="va">operations</span></span>
 <span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
@@ -297,9 +323,9 @@ proceeding. Restore the methods and regenerate to bring the wrappers
 back. Existing YAML is never overwritten automatically: older projects
 can preview <code><a href="../reference/configure_client.html">configure_client()</a></code> and copy the desired
 settings from its proposal.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">config_version</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">package</span><span class="kw">:</span><span class="at"> catalogueclient</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">apis/catalogue.yml</span><span class="kw">]</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">config_version</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">package</span><span class="kw">:</span><span class="at"> catalogueclient</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">apis/catalogue.yml</span><span class="kw">]</span></span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -358,31 +384,31 @@ additional YAML files. For example, 27 schemas with 69 tag groups
 produce 27 API files containing those 69 groups. A single-schema
 initialization still offers the original flat tag files, and existing
 flat service files remain supported.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># apis/chemicals.yml</span></span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">api</span><span class="kw">:</span><span class="at"> chemicals</span></span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="at">  </span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/chemicals.json</span><span class="kw">]</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="at">  </span><span class="fu">patterns</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/admin(?:/|$)'</span><span class="kw">]</span></span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> chemicals_request</span></span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="fu">authentication</span><span class="kw">:</span><span class="at"> </span><span class="kw">{}</span></span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="at">  </span><span class="fu">batch</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">max_items</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span><span class="kw">,</span><span class="at"> </span><span class="fu">max_bytes</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span><span class="kw">}</span></span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="fu">groups</span><span class="kw">:</span></span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="at">  </span><span class="fu">chemicals_search</span><span class="kw">:</span></span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="at">    </span><span class="fu">selection</span><span class="kw">:</span></span>
-<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="at">      </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
-<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="at">      </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
-<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="at">      </span><span class="fu">include</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'GET /search'</span><span class="kw">]</span></span>
-<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="at">    </span><span class="fu">names</span><span class="kw">:</span></span>
-<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="at">      </span><span class="fu">GET /search</span><span class="kw">:</span><span class="at"> chemicals_search</span></span>
-<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="at">    </span><span class="fu">defaults</span><span class="kw">:</span></span>
-<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="at">      </span><span class="fu">file</span><span class="kw">:</span><span class="at"> R/chemicals_search.R</span></span>
-<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="at">    </span><span class="fu">operations</span><span class="kw">:</span><span class="at"> </span><span class="kw">{}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># apis/chemicals.yml</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">api</span><span class="kw">:</span><span class="at"> chemicals</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="at">  </span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/chemicals.json</span><span class="kw">]</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="at">  </span><span class="fu">patterns</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/admin(?:/|$)'</span><span class="kw">]</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> chemicals_request</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="fu">authentication</span><span class="kw">:</span><span class="at"> </span><span class="kw">{}</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="at">  </span><span class="fu">batch</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">max_items</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span><span class="kw">,</span><span class="at"> </span><span class="fu">max_bytes</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span><span class="kw">}</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="fu">groups</span><span class="kw">:</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="at">  </span><span class="fu">chemicals_search</span><span class="kw">:</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="at">    </span><span class="fu">selection</span><span class="kw">:</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="at">      </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="at">      </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="at">      </span><span class="fu">include</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'GET /search'</span><span class="kw">]</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="at">    </span><span class="fu">names</span><span class="kw">:</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="at">      </span><span class="fu">GET /search</span><span class="kw">:</span><span class="at"> chemicals_search</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="at">    </span><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="at">      </span><span class="fu">file</span><span class="kw">:</span><span class="at"> R/chemicals_search.R</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="at">    </span><span class="fu">operations</span><span class="kw">:</span><span class="at"> </span><span class="kw">{}</span></span></code></pre></div>
 <p>List this API file in <code>specmill.yml</code> under
 <code>services</code>. Each group key is its stable service ID and must
 be unique across the project. Keep those IDs when moving existing
@@ -416,13 +442,13 @@ scaffold and losing names, exclusions, or overrides.</p>
 </h3>
 <p>Set package-wide selection in <code>specmill.yml</code>, for
 example:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/admin(?:/|$)'</span><span class="kw">]</span></span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> api_request</span></span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="at">  </span><span class="fu">implementation</span><span class="kw">:</span><span class="at"> generated</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/admin(?:/|$)'</span><span class="kw">]</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> api_request</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="at">  </span><span class="fu">implementation</span><span class="kw">:</span><span class="at"> generated</span></span></code></pre></div>
 <p>Every service must satisfy both project and service selection rules.
 Service methods intersect project methods; path exclusions accumulate. A
 service cannot re-enable a project-prohibited endpoint. Exact
@@ -437,7 +463,7 @@ values continue to take precedence. Project defaults reject
 <code>name</code> and <code>file</code>: set names and file layout per
 service to avoid accidental collisions.</p>
 <p>Print the preview to see separate lists with reasons:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plan</span><span class="op">)</span></span>
 <span><span class="va">plan</span><span class="op">$</span><span class="va">excluded</span></span></code></pre></div>
@@ -457,13 +483,13 @@ other supported alternatives.</p>
 <p>Initialization proposes authentication configuration for schemas
 declaring security schemes. For example, to use ComptoxR’s
 environment-variable convention:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">authentication</span><span class="kw">:</span></span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="at">  </span><span class="fu">api_key</span><span class="kw">:</span><span class="at"> ctx_api_key</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">authentication</span><span class="kw">:</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="at">  </span><span class="fu">api_key</span><span class="kw">:</span><span class="at"> ctx_api_key</span></span></code></pre></div>
 <p>Here <code>api_key</code> must be the security-scheme name in the
 schema; <code>ctx_api_key</code> is the environment variable chosen by
 the package maintainer. Keep real tokens out of this file. Generation
 writes <code>R/api_auth.R</code> with documented helpers:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># In the generated package, after loading it:</span></span>
 <span><span class="fu">set_api_token</span><span class="op">(</span><span class="st">'YOUR_TOKEN'</span>, scheme <span class="op">=</span> <span class="st">'api_key'</span><span class="op">)</span>                 <span class="co"># this session</span></span>
 <span><span class="fu">set_api_token</span><span class="op">(</span><span class="st">'YOUR_TOKEN'</span>, scheme <span class="op">=</span> <span class="st">'api_key'</span>, persist <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="co"># also save</span></span></code></pre></div>
@@ -496,25 +522,37 @@ features. Generation validates helper compatibility and does not
 overwrite client-owned helpers.</p>
 </div>
 <div class="section level3">
-<h3 id="dry-run">Dry run<a class="anchor" aria-label="anchor" href="#dry-run"></a>
+<h3 id="dry-run-and-verbose-messages">Dry run and verbose messages<a class="anchor" aria-label="anchor" href="#dry-run-and-verbose-messages"></a>
 </h3>
-<p>Generated wrappers honour a per-package dry-run environment variable.
-The name is the package name uppercased with every non-alphanumeric
-character replaced by <code>_</code>, then suffixed
-<code>_DRY_RUN</code>; for example package <code>requestclient</code>
-uses <code>REQUESTCLIENT_DRY_RUN</code>. When its value is truthy
-(<code>true</code>, <code>1</code>, or <code>yes</code>, any case), the
-wrapper builds the fully-formed <code>httr2</code>
-request—authentication, query, and body included—then returns that
-<code>httr2_request</code> object instead of calling
-<code><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">httr2::req_perform()</a></code>. Empty, unset, or any other value
-performs the request normally.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>REQUESTCLIENT_DRY_RUN <span class="op">=</span> <span class="st">'true'</span><span class="op">)</span></span>
-<span><span class="va">req</span> <span class="op">&lt;-</span> <span class="fu">some_operation</span><span class="op">(</span>id <span class="op">=</span> <span class="fl">42</span><span class="op">)</span>   <span class="co"># returns the unexecuted httr2_request</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.unsetenv</a></span><span class="op">(</span><span class="st">'REQUESTCLIENT_DRY_RUN'</span><span class="op">)</span></span></code></pre></div>
-<p>This is useful for inspecting the exact request a wrapper would send
-without touching the network.</p>
+<p>New clients export package-prefixed session controls. For
+<code>catalogueclient</code>:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">catalogueclient_dry_run</span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">request</span> <span class="op">&lt;-</span> <span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">get_item</span><span class="op">(</span>item_id <span class="op">=</span> <span class="st">'item-1'</span><span class="op">)</span></span>
+<span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">catalogueclient_dry_run</span><span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">catalogueclient_run_verbose</span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># Subsequent requests report their HTTP method and response status.</span></span>
+<span><span class="fu">catalogueclient</span><span class="fu">::</span><span class="fu">catalogueclient_run_verbose</span><span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p>Both controls default to off and accept one nonmissing logical value.
+Function names preserve the exact package name, including case and dots.
+The option prefix is lowercase with punctuation replaced by
+<code>_</code>. All helpers in a multi-API client share the controls.
+They change session options, not profile files.</p>
+<p>Dry-run helpers return a prepared <code>httr2_request</code> without
+sending it. Input validation and authentication still run, so private
+endpoints need credentials. The returned request may contain
+credentials. Verbose messages omit URLs, headers, query values, and
+bodies.</p>
+<p>An explicit <code>catalogueclient.dry_run</code> option, including
+<code>FALSE</code>, overrides the legacy
+<code>CATALOGUECLIENT_DRY_RUN</code> environment flag. Remove the option
+with <code>options(catalogueclient.dry_run = NULL)</code> to restore
+that fallback. The flag accepts <code>true</code>, <code>1</code>, or
+<code>yes</code>, ignoring case. Other values leave dry run off.</p>
+<p>These controls live in client-owned <code>R/api_options.R</code> and
+the request helper. Existing clients need <a href="existing-clients.html#update-an-already-configured-client">manual
+adoption</a>; regeneration does not install the setters or refresh the
+helper.</p>
 </div>
 <div class="section level3">
 <h3 id="form-bodies-and-file-uploads">Form bodies and file uploads<a class="anchor" aria-label="anchor" href="#form-bodies-and-file-uploads"></a>
@@ -526,7 +564,7 @@ rejected. An empty string is a present field; an empty URL-encoded form
 sends zero bytes with its form content type. Use unnamed lists for
 arrays and named lists for object fields. Empty multipart bodies are
 rejected; omit an optional body argument instead.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># application/x-www-form-urlencoded</span></span>
 <span><span class="fu">create_item</span><span class="op">(</span>body <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">'Milo'</span>, tags <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">'red'</span>, <span class="st">'blue'</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -547,11 +585,11 @@ URL-encoded shapes, dynamic form maps, and custom part headers produce
 diagnostics.</p>
 <p>To choose an offered media type, set a service default or an
 operation override:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="at">  </span><span class="fu">body_media</span><span class="kw">:</span><span class="at"> application/x-www-form-urlencoded</span></span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="at">  </span><span class="fu">POST /uploads</span><span class="kw">:</span></span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="at">    </span><span class="fu">body_media</span><span class="kw">:</span><span class="at"> multipart/form-data</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="at">  </span><span class="fu">body_media</span><span class="kw">:</span><span class="at"> application/x-www-form-urlencoded</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="at">  </span><span class="fu">POST /uploads</span><span class="kw">:</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="at">    </span><span class="fu">body_media</span><span class="kw">:</span><span class="at"> multipart/form-data</span></span></code></pre></div>
 <p>The selected media type must exist in that operation’s schema.
 Existing client-owned helpers need the optional <code>body_media</code>,
 <code>body_encoding</code>, and <code>form_schema</code> arguments and
@@ -639,11 +677,11 @@ source-contract review, especially files declared in query strings
 (#16).</p>
 <p>For APIs that explicitly require repeated bracketed query-array
 names, opt in:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
-<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="at">  </span><span class="fu">query_array_style</span><span class="kw">:</span><span class="at"> brackets</span></span>
-<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /ordinary-items</span><span class="kw">:</span></span>
-<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="at">    </span><span class="fu">query_array_style</span><span class="kw">:</span><span class="at"> schema</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="at">  </span><span class="fu">query_array_style</span><span class="kw">:</span><span class="at"> brackets</span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /ordinary-items</span><span class="kw">:</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="at">    </span><span class="fu">query_array_style</span><span class="kw">:</span><span class="at"> schema</span></span></code></pre></div>
 <p><code>brackets</code> sends a flat primitive array as
 <code>expand[]=customer&amp;expand[]=invoice</code> (with URI percent
 encoding). It applies to query arrays in the selected service or
@@ -755,7 +793,7 @@ truncating content.</p>
 <p>JSON request bodies support <code>oneOf</code>, <code>anyOf</code>,
 and <code>allOf</code> at the body root, in properties, in array items,
 and in typed maps. Pass ordinary R values:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For oneOf branches requiring either values or records:</span></span>
 <span><span class="va">body</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">'first'</span>, <span class="st">'second'</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># The other branch might accept:</span></span>
@@ -797,15 +835,15 @@ levels are diagnosed. OpenAPI 3.1 local schema-reference siblings are
 conjunctive. For a bundled reference with assertion siblings, use an
 explicit <code>allOf</code> containing the reference and the sibling
 constraints; a diagnostic prevents lossy merging.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">id</span><span class="kw">:</span><span class="at"> catalogue</span></span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span></span>
-<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="at">  </span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/catalogue.json</span><span class="kw">]</span></span>
-<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> api_request</span></span>
-<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
-<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
-<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/internal/'</span><span class="kw">]</span></span>
-<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="fu">policy_version</span><span class="kw">:</span><span class="at"> reviewed-1</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">id</span><span class="kw">:</span><span class="at"> catalogue</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="at">  </span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/catalogue.json</span><span class="kw">]</span></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> api_request</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="at">  </span><span class="fu">methods</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">GET</span><span class="kw">,</span><span class="at"> POST</span><span class="kw">]</span></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="at">  </span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/internal/'</span><span class="kw">]</span></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="fu">policy_version</span><span class="kw">:</span><span class="at"> reviewed-1</span></span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -822,7 +860,7 @@ constraints; a diagnostic prevents lossy merging.</p>
 </tr>
 <tr class="even">
 <td><code>schemas.files</code></td>
-<td>Sequence of literal local JSON paths</td>
+<td>Sequence of literal local JSON, YAML, or YML paths</td>
 </tr>
 <tr class="odd">
 <td><code>schemas.patterns</code></td>
@@ -923,24 +961,24 @@ YAML contains data, never R source strings.</p>
 <h2 id="name-and-document-a-wrapper">Name and document a wrapper<a class="anchor" aria-label="anchor" href="#name-and-document-a-wrapper"></a>
 </h2>
 <p>Add this to the service that selects the catalogue schema:</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
-<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
-<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="at">    </span><span class="fu">parameters</span><span class="kw">:</span></span>
-<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="at">      </span><span class="fu">path item_id</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">name</span><span class="kw">:</span><span class="at"> identifier</span><span class="kw">,</span><span class="at"> </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Catalogue item ID.</span><span class="kw">}</span></span>
-<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="at">      </span><span class="fu">query language</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">default</span><span class="kw">:</span><span class="at"> en</span><span class="kw">}</span></span>
-<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="at">    </span><span class="fu">docs</span><span class="kw">:</span></span>
-<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="at">      </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Fetch one catalogue item</span></span>
-<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="at">      </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Retrieve one item in the requested language.</span></span>
-<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="at">      </span><span class="fu">parameters</span><span class="kw">:</span></span>
-<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="at">        </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> The catalogue identifier, for example item-1.</span></span>
-<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="at">        </span><span class="fu">language</span><span class="kw">:</span><span class="at"> Response language; en or fr.</span></span>
-<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="at">      </span><span class="fu">return</span><span class="kw">:</span><span class="at"> An R list containing the decoded item response.</span></span>
-<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="at">      </span><span class="fu">examples</span><span class="kw">:</span></span>
-<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="kw">{</span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">}</span></span>
-<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="kw">{</span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">,</span><span class="at"> </span><span class="fu">language</span><span class="kw">:</span><span class="at"> fr</span><span class="kw">}</span></span>
-<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a><span class="at">      </span><span class="fu">tags</span><span class="kw">:</span></span>
-<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a><span class="at">        </span><span class="fu">family</span><span class="kw">:</span><span class="at"> catalogue endpoints</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="at">    </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="at">      </span><span class="fu">path item_id</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">name</span><span class="kw">:</span><span class="at"> identifier</span><span class="kw">,</span><span class="at"> </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Catalogue item ID.</span><span class="kw">}</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="at">      </span><span class="fu">query language</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">default</span><span class="kw">:</span><span class="at"> en</span><span class="kw">}</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="at">    </span><span class="fu">docs</span><span class="kw">:</span></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="at">      </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Fetch one catalogue item</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="at">      </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Retrieve one item in the requested language.</span></span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a><span class="at">      </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="at">        </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> The catalogue identifier, for example item-1.</span></span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="at">        </span><span class="fu">language</span><span class="kw">:</span><span class="at"> Response language; en or fr.</span></span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a><span class="at">      </span><span class="fu">return</span><span class="kw">:</span><span class="at"> An R list containing the decoded item response.</span></span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a><span class="at">      </span><span class="fu">examples</span><span class="kw">:</span></span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="kw">{</span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">}</span></span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="kw">{</span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> item-1</span><span class="kw">,</span><span class="at"> </span><span class="fu">language</span><span class="kw">:</span><span class="at"> fr</span><span class="kw">}</span></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="at">      </span><span class="fu">tags</span><span class="kw">:</span></span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a><span class="at">        </span><span class="fu">family</span><span class="kw">:</span><span class="at"> catalogue endpoints</span></span></code></pre></div>
 <p>Parameter overrides use <strong>original location plus name</strong>,
 such as <code>path item_id</code>. Documentation and example inputs use
 the resulting <strong>public R names</strong>, such as
@@ -976,21 +1014,21 @@ as prose, not executable configuration.</p>
 choices as editable YAML. Function prefixes are opt-in through
 <code>naming = 'tag_prefix'</code>; the package still has one R
 namespace. For example, a Petstore service can contain:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">id</span><span class="kw">:</span><span class="at"> pet</span></span>
-<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/openapi.json</span><span class="kw">]}</span></span>
-<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">include</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'GET /pet/{petId}'</span><span class="kw">]}</span></span>
-<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> api_request</span></span>
-<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="fu">names</span><span class="kw">:</span></span>
-<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /pet/{petId}</span><span class="kw">:</span><span class="at"> pet_get</span></span>
-<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
-<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="at">  </span><span class="fu">file</span><span class="kw">:</span><span class="at"> R/pet.R</span></span>
-<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a><span class="at">  </span><span class="fu">docs</span><span class="kw">:</span></span>
-<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="at">    </span><span class="fu">tags</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">family</span><span class="kw">:</span><span class="at"> pet endpoints</span><span class="kw">}</span></span>
-<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /pet/{petId}</span><span class="kw">:</span></span>
-<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a><span class="at">    </span><span class="fu">parameters</span><span class="kw">:</span></span>
-<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a><span class="at">      </span><span class="fu">path petId</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">name</span><span class="kw">:</span><span class="at"> pet_id</span><span class="kw">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="fu">id</span><span class="kw">:</span><span class="at"> pet</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/openapi.json</span><span class="kw">]}</span></span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">include</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'GET /pet/{petId}'</span><span class="kw">]}</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> api_request</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a><span class="fu">names</span><span class="kw">:</span></span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /pet/{petId}</span><span class="kw">:</span><span class="at"> pet_get</span></span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a><span class="at">  </span><span class="fu">file</span><span class="kw">:</span><span class="at"> R/pet.R</span></span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a><span class="at">  </span><span class="fu">docs</span><span class="kw">:</span></span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a><span class="at">    </span><span class="fu">tags</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">family</span><span class="kw">:</span><span class="at"> pet endpoints</span><span class="kw">}</span></span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /pet/{petId}</span><span class="kw">:</span></span>
+<span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a><span class="at">    </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a><span class="at">      </span><span class="fu">path petId</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">name</span><span class="kw">:</span><span class="at"> pet_id</span><span class="kw">}</span></span></code></pre></div>
 <p>This exposes <code>pet_get(pet_id)</code> while preserving
 <code>/pet/{petId}</code> on the wire. List separate
 <code>apis/pet.yml</code>, <code>apis/store.yml</code>, and
@@ -1097,23 +1135,23 @@ errors.</p>
 <h2 id="map-public-inputs-to-your-existing-helper">Map public inputs to your existing helper<a class="anchor" aria-label="anchor" href="#map-public-inputs-to-your-existing-helper"></a>
 </h2>
 <p>The default helper contract is:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">api_request</span><span class="op">(</span><span class="va">method</span>, <span class="va">path</span>, <span class="va">path_params</span>, <span class="va">query</span>, <span class="va">body</span><span class="op">)</span></span></code></pre></div>
 <p>To preserve a different helper interface, explicitly replace its
 argument map:</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
-<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
-<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="at">    </span><span class="fu">inputs</span><span class="kw">:</span></span>
-<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="at">      </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">}</span></span>
-<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="at">      </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">default</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> logical</span><span class="kw">}</span></span>
-<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a><span class="at">    </span><span class="fu">request</span><span class="kw">:</span></span>
-<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a><span class="at">      </span><span class="fu">arguments</span><span class="kw">:</span></span>
-<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a><span class="at">        </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">value</span><span class="kw">:</span><span class="at"> items</span><span class="kw">}</span></span>
-<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="at">        </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> identifier</span><span class="kw">]}</span></span>
-<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="at">        </span><span class="fu">options</span><span class="kw">:</span></span>
-<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="at">          </span><span class="fu">compact_object</span><span class="kw">:</span></span>
-<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="at">            </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> verbose</span><span class="kw">]}</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="at">    </span><span class="fu">inputs</span><span class="kw">:</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="at">      </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">}</span></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="at">      </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">default</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> logical</span><span class="kw">}</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="at">    </span><span class="fu">request</span><span class="kw">:</span></span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="at">      </span><span class="fu">arguments</span><span class="kw">:</span></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="at">        </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">value</span><span class="kw">:</span><span class="at"> items</span><span class="kw">}</span></span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="at">        </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> identifier</span><span class="kw">]}</span></span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a><span class="at">        </span><span class="fu">options</span><span class="kw">:</span></span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="at">          </span><span class="fu">compact_object</span><span class="kw">:</span></span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="at">            </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> verbose</span><span class="kw">]}</span></span></code></pre></div>
 <p>Here the helper must accept <code>endpoint</code>,
 <code>identifier</code>, and <code>options</code>. Extra inputs are sent
 only when explicitly bound. Each binding has exactly one form:</p>
@@ -1187,7 +1225,7 @@ serialization, JSON, and forms use
 </h2>
 <p>A development binding callback receives one operation while
 generating source:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">callbacks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">baseenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">callbacks</span><span class="op">$</span><span class="va">batch_limit</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">operation</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">'batch_limit'</span>, <span class="st">'1000'</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -1215,11 +1253,11 @@ checked before <code>pre_request</code>. An empty query created by a
 hook is therefore the hook author’s responsibility. Explicit client
 <code>inputs</code> preserve their existing missing/NULL behavior
 described above.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">hook_callback</span><span class="kw">:</span><span class="at"> run_hook</span></span>
-<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="fu">hooks</span><span class="kw">:</span></span>
-<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a><span class="at">  </span><span class="fu">fetch_item</span><span class="kw">:</span></span>
-<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a><span class="at">    </span><span class="fu">pre_request</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">validate_identifier</span><span class="kw">]</span></span>
-<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="at">    </span><span class="fu">post_response</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">tidy_item</span><span class="kw">]</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">hook_callback</span><span class="kw">:</span><span class="at"> run_hook</span></span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a><span class="fu">hooks</span><span class="kw">:</span></span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a><span class="at">  </span><span class="fu">fetch_item</span><span class="kw">:</span></span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="at">    </span><span class="fu">pre_request</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">validate_identifier</span><span class="kw">]</span></span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a><span class="at">    </span><span class="fu">post_response</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">tidy_item</span><span class="kw">]</span></span></code></pre></div>
 <p>The wrapper invokes the client’s executor as
 <code>run_hook('fetch_item', 'pre_request', list(params = params))</code>.
 The executor runs the named chain in order and returns state. Returned
@@ -1305,7 +1343,7 @@ calls without changing the public single-request contract. The helper
 and companion are client-owned R files.</p>
 <p>For an operation with public arguments <code>page</code>,
 <code>per_page</code>, and <code>category</code>:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">list_all_items</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">category</span>, <span class="va">max_pages</span> <span class="op">=</span> <span class="fl">100</span>, <span class="va">max_items</span> <span class="op">=</span> <span class="fl">10000</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/paginated.html">paginated</a></span><span class="op">(</span></span>
 <span>    <span class="va">list_items</span>, category <span class="op">=</span> <span class="va">category</span>,</span>
@@ -1318,7 +1356,7 @@ and companion are client-owned R files.</p>
 <span><span class="va">result</span><span class="op">$</span><span class="va">stop_reason</span></span>
 <span><span class="va">result</span><span class="op">$</span><span class="va">pages</span></span></code></pre></div>
 <p>For a top-level collection and offset/limit arguments:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">search_all</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">query</span>, <span class="va">max_pages</span> <span class="op">=</span> <span class="fl">100</span>, <span class="va">max_items</span> <span class="op">=</span> <span class="fl">10000</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/paginated.html">paginated</a></span><span class="op">(</span></span>
 <span>    <span class="va">search_items</span>, query <span class="op">=</span> <span class="va">query</span>,</span>
@@ -1372,7 +1410,7 @@ a <code>pagination</code> object containing <code>hasNext</code>,
 <code>limit</code>, and <code>nextCursor</code>. Configure a generated
 GET wrapper for <code>/api/amos/method_keyset_pagination/{limit}</code>
 as follows:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">all_methods</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">max_pages</span> <span class="op">=</span> <span class="fl">10</span>, <span class="va">max_items</span> <span class="op">=</span> <span class="fl">500</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/paginated.html">paginated</a></span><span class="op">(</span></span>
 <span>    <span class="va">amos_page</span>, mode <span class="op">=</span> <span class="st">'cursor'</span>, parameter <span class="op">=</span> <span class="st">'cursor'</span>,</span>
@@ -1386,7 +1424,7 @@ as follows:</p>
 <span><span class="op">}</span></span></code></pre></div>
 <p>For the filtered POST form, put the cursor in the body through a
 companion:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">filtered_page</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">cursor</span>, <span class="va">limit</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">amos_filtered</span><span class="op">(</span>limit <span class="op">=</span> <span class="va">limit</span>, body <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    cursor <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">cursor</span><span class="op">)</span><span class="op">)</span> <span class="st">''</span> <span class="kw">else</span> <span class="va">cursor</span>,</span>
@@ -1411,21 +1449,21 @@ unused next token.</p>
 headers. <code><a href="../reference/paginated_links.html">paginated_links()</a></code> instead takes an httr2 request;
 its extractors receive the full httr2 response. It requires httr2 1.3.0
 or later and a bodyless GET request.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>request <span class="ot">&lt;-</span> httr2<span class="sc">::</span><span class="fu">request</span>(<span class="st">'https://example.org/items?limit=50'</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>  httr2<span class="sc">::</span><span class="fu">req_timeout</span>(<span class="dv">20</span>)</span>
-<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a></span>
-<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a><span class="co"># HTTP Link header, rel="next", is the default next-link extractor.</span></span>
-<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a>result <span class="ot">&lt;-</span> specmill<span class="sc">::</span><span class="fu">paginated_links</span>(</span>
-<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a>  request, <span class="at">items =</span> <span class="cf">function</span>(response) httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(response)<span class="sc">$</span>data,</span>
-<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a>  <span class="at">max_pages =</span> <span class="dv">10</span>, <span class="at">max_items =</span> <span class="dv">500</span></span>
-<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a>)</span>
-<span id="cb29-9"><a href="#cb29-9" tabindex="-1"></a></span>
-<span id="cb29-10"><a href="#cb29-10" tabindex="-1"></a><span class="co"># A body-provided next URL uses the same retrieval and origin checks.</span></span>
-<span id="cb29-11"><a href="#cb29-11" tabindex="-1"></a>result <span class="ot">&lt;-</span> specmill<span class="sc">::</span><span class="fu">paginated_links</span>(</span>
-<span id="cb29-12"><a href="#cb29-12" tabindex="-1"></a>  request, <span class="at">items =</span> <span class="cf">function</span>(response) httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(response)<span class="sc">$</span>data,</span>
-<span id="cb29-13"><a href="#cb29-13" tabindex="-1"></a>  <span class="at">next_link =</span> <span class="cf">function</span>(response) httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(response)<span class="sc">$</span><span class="cf">next</span>,</span>
-<span id="cb29-14"><a href="#cb29-14" tabindex="-1"></a>  <span class="at">max_pages =</span> <span class="dv">10</span>, <span class="at">max_items =</span> <span class="dv">500</span></span>
-<span id="cb29-15"><a href="#cb29-15" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a>request <span class="ot">&lt;-</span> httr2<span class="sc">::</span><span class="fu">request</span>(<span class="st">'https://example.org/items?limit=50'</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a>  httr2<span class="sc">::</span><span class="fu">req_timeout</span>(<span class="dv">20</span>)</span>
+<span id="cb30-3"><a href="#cb30-3" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" tabindex="-1"></a><span class="co"># HTTP Link header, rel="next", is the default next-link extractor.</span></span>
+<span id="cb30-5"><a href="#cb30-5" tabindex="-1"></a>result <span class="ot">&lt;-</span> specmill<span class="sc">::</span><span class="fu">paginated_links</span>(</span>
+<span id="cb30-6"><a href="#cb30-6" tabindex="-1"></a>  request, <span class="at">items =</span> <span class="cf">function</span>(response) httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(response)<span class="sc">$</span>data,</span>
+<span id="cb30-7"><a href="#cb30-7" tabindex="-1"></a>  <span class="at">max_pages =</span> <span class="dv">10</span>, <span class="at">max_items =</span> <span class="dv">500</span></span>
+<span id="cb30-8"><a href="#cb30-8" tabindex="-1"></a>)</span>
+<span id="cb30-9"><a href="#cb30-9" tabindex="-1"></a></span>
+<span id="cb30-10"><a href="#cb30-10" tabindex="-1"></a><span class="co"># A body-provided next URL uses the same retrieval and origin checks.</span></span>
+<span id="cb30-11"><a href="#cb30-11" tabindex="-1"></a>result <span class="ot">&lt;-</span> specmill<span class="sc">::</span><span class="fu">paginated_links</span>(</span>
+<span id="cb30-12"><a href="#cb30-12" tabindex="-1"></a>  request, <span class="at">items =</span> <span class="cf">function</span>(response) httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(response)<span class="sc">$</span>data,</span>
+<span id="cb30-13"><a href="#cb30-13" tabindex="-1"></a>  <span class="at">next_link =</span> <span class="cf">function</span>(response) httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(response)<span class="sc">$</span><span class="cf">next</span>,</span>
+<span id="cb30-14"><a href="#cb30-14" tabindex="-1"></a>  <span class="at">max_pages =</span> <span class="dv">10</span>, <span class="at">max_items =</span> <span class="dv">500</span></span>
+<span id="cb30-15"><a href="#cb30-15" tabindex="-1"></a>)</span></code></pre></div>
 <p>Configure authentication on the original request. Each link must
 match its scheme, hostname, and effective port before that request’s
 credentials are used. Relative links resolve against the current

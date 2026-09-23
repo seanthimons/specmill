@@ -1,4 +1,4 @@
-# specmill
+# specmill ![specmill hex logo](reference/figures/logo.jpg)
 
 Generate and maintain R API clients from local OpenAPI schemas and
 reviewed YAML policy. specmill creates wrappers, documentation, and
@@ -8,10 +8,14 @@ specmill installed.
 
 ## Install
 
+These guides describe the current development version on `main`. The
+`v0.1.4` release predates YAML schema support, multi-API setup, and
+session controls.
+
 ``` r
 
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@v0.1.4')
+remotes::install_github('seanthimons/specmill@main')
 ```
 
 For an existing project with a toolkit lock, use its own installer to
@@ -49,6 +53,37 @@ specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 ```
 
 ## Generated client request controls
+
+New clients include exported session controls prefixed with their
+package name:
+
+``` r
+
+catalogueclient::catalogueclient_run_verbose(TRUE) # Report HTTP method and response status.
+catalogueclient::catalogueclient_dry_run(TRUE)     # Return a prepared httr2 request; send nothing.
+catalogueclient::catalogueclient_dry_run(FALSE)    # Resume actual requests.
+catalogueclient::catalogueclient_run_verbose(FALSE)
+```
+
+Function names preserve the package name, including case and dots;
+generic `run_verbose()` and `dry_run()` aliases are not exported, so
+attaching multiple clients does not mask these controls. Both default to
+off and require one nonmissing logical value. They set
+`catalogueclient.run_verbose` and `catalogueclient.dry_run` R options;
+the prefix uses the same lowercase package naming as the request options
+below. Multi-API clients share these settings across their helpers. An
+explicit `dry_run` option overrides the existing
+`CATALOGUECLIENT_DRY_RUN` environment flag, including when FALSE. Remove
+the option with `options(catalogueclient.dry_run = NULL)` to restore the
+environment fallback. No profile or environment files are changed.
+
+Verbose messages omit URLs, headers, query values and bodies. Dry-run
+requests still validate inputs and authentication, and the returned
+object may contain credentials. These setters live in client-owned
+`R/api_options.R`, created during initialization and exported when
+documentation is generated. Existing clients need manual adoption of
+that file and the updated request helper; regeneration does not replace
+client-owned helpers or add these setters to older clients.
 
 The baseline `specmill.yml` includes:
 
@@ -131,14 +166,14 @@ Existing `R/api_request.R` files remain client-owned and are never
 refreshed by normal generation. New scaffolds retain their substituted
 baseline under `.specmill/helpers/`. Use `inspect_client(root)$helpers`
 for read-only baseline, local and proposed comparisons; legacy helpers
-without provenance stay unknown. Adoption remains manual. [Helper review
-and lifecycle
-protection](https://seanthimons.github.io/specmill/dev/audits/open-issues-20260922/HELPERS.md)
-includes specialization reporting and retained-implementation guidance.
-To adopt these controls, merge the `server` and `request_controls`
-arguments, YAML-default fallback, URL selection/validation, option
-validation, and `req_timeout()`/`req_retry()` setup from
-[`inst/templates/request.R`](https://seanthimons.github.io/specmill/inst/templates/request.R)
+without provenance stay unknown. Adoption remains manual. See [updating
+an existing
+client](https://seanthimons.github.io/specmill/articles/existing-clients.html#update-an-already-configured-client)
+for helper review and verification steps. To adopt these controls, merge
+the `server` and `request_controls` arguments, YAML-default fallback,
+URL selection/validation, option validation, and
+`req_timeout()`/`req_retry()` setup from
+[`inst/templates/request.R`](https://github.com/seanthimons/specmill/blob/main/inst/templates/request.R)
 into your helper. Replace its `BASE_URL` and `DRY_RUN_ENV` placeholders
 with your client’s defaults; set the initialization override only if you
 intend it to beat schema servers. Keep your authentication and response
@@ -209,9 +244,9 @@ tokens remain opaque; NULL or an empty next token ends retrieval.
 accepts an httr2 GET request and extracts body or HTTP Link-header URLs.
 It checks every link against the initial origin and disables redirects
 before sending credentials. See [pagination
-configuration](https://seanthimons.github.io/specmill/vignettes/configuration.Rmd#pagination)
+configuration](https://seanthimons.github.io/specmill/articles/configuration.html#pagination)
 and the [AMOS live validation
-report](https://seanthimons.github.io/specmill/dev/audits/pagination/README.md).
+report](https://github.com/seanthimons/specmill/blob/main/dev/audits/pagination/README.md).
 
 ## Learn the workflow
 
@@ -223,10 +258,10 @@ report](https://seanthimons.github.io/specmill/dev/audits/pagination/README.md).
 | [Troubleshooting](https://seanthimons.github.io/specmill/articles/troubleshooting.html) | Supported schemas, protected files, adoption, and interrupted-apply recovery |
 | [Function reference](https://seanthimons.github.io/specmill/reference/index.html) | Arguments, results, and examples for every exported function |
 
-Generation uses local JSON schemas and reports unsupported operations
-explicitly. Reviewing generated output and passing helper-call tests do
-not establish live API compatibility. See the guides for the supported
-subset and verification steps.
+Generation uses local JSON or YAML schemas and reports unsupported
+operations explicitly. Reviewing generated output and passing
+helper-call tests do not establish live API compatibility. See the
+guides for the supported subset and verification steps.
 
 The compatibility engine was extracted from ComptoxR under its MIT
 license (Sean Thimons). specmill was previously named apipak and

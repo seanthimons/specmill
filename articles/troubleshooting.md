@@ -2,29 +2,39 @@
 
 ## Supported input and transport
 
-specmill reads local JSON documents in OpenAPI 3.0/3.1 or Swagger 2.0
-format. YAML project configuration does not imply support for YAML
-schema documents. The parser is a supported-subset extractor, not a full
-OpenAPI validator.
+specmill reads local JSON, YAML, and YML documents in OpenAPI 3.0/3.1 or
+Swagger 2.0 format. It supports a subset of each standard; parsing is
+not full OpenAPI validation. These guides follow the current development
+version, so check your toolkit pin if an older release rejects a
+documented feature.
 
 | Feature | Current behavior |
 |----|----|
-| Scalar path/query parameters | Supported; path parameters must be required |
-| Local `$ref` | Supported within a document; external or cyclic input references are diagnosed |
-| JSON scalar bodies | Supported |
-| Nested JSON objects/arrays | Supported with declared properties and supported item types |
-| Array/object path/query inputs | Outside the default serializer subset; diagnose or use a complete client mapping |
-| Composed/free-form input schemas | Diagnosed when unsupported |
-| Multipart, uploads, non-JSON request media | Outside the generated default transport subset |
+| Schema references | Same-document and local-file references are supported; remote references are not downloaded |
+| Scalar parameters | Path, query, header, and supported cookie parameters; paths must be required |
+| Array/object parameters | Flat primitive arrays and flat objects with supported styles; nested shapes are diagnosed |
+| JSON bodies | Scalars, nested objects/arrays, free-form values, supported composition, and bounded local recursion |
+| Binary bodies | Raw vectors for `application/octet-stream` with a binary string schema |
+| Form bodies/uploads | Supported URL-encoded and multipart shapes, including Swagger `formData`; unsupported encodings are diagnosed |
+| Authentication | Generated API-key and HTTP bearer support; OAuth login/refresh and custom flows remain client-owned |
 | HTTP method | Explicitly declared; no inferred GET/POST conversion |
-| Pagination/batching | Client behavior; a `page` argument alone causes one request |
-| Response interpretation | Client helper owns decoding and service-specific meaning |
+| Pagination/batching | Explicit configuration or companion functions; a `page` argument alone causes one request |
+| Response interpretation | The helper decodes the actual content type; no generated response-schema validation |
 
-Fixture selection checks supported type, enum, numeric bounds, string
-lengths, and patterns. Helpers still own complete runtime validation and
-serialization. Do not interpret a chosen fixture as a valid live
-identifier or a safe operation to invoke. A GET endpoint may itself
-submit work.
+See [schema
+loading](https://seanthimons.github.io/specmill/articles/configuration.html#json-and-yaml-schema-files),
+[parameter
+serialization](https://seanthimons.github.io/specmill/articles/configuration.html#parameter-serialization),
+[JSON
+bodies](https://seanthimons.github.io/specmill/articles/configuration.html#json-body-values),
+and [form
+uploads](https://seanthimons.github.io/specmill/articles/configuration.html#form-bodies-and-file-uploads)
+for the supported shapes and limits. Generated input checks cover
+supported constraints; custom helpers remain responsible for their
+serialization and service-specific behavior. Fixture selection also
+checks supported types, enums, bounds, lengths, and patterns. Do not
+interpret a chosen fixture as a valid live identifier or a safe
+operation to invoke. A GET endpoint may itself submit work.
 
 [`read_operations()`](https://seanthimons.github.io/specmill/reference/read_operations.md)
 returns supported `operations`, structurally valid but unsupported

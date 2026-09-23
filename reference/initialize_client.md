@@ -1,7 +1,7 @@
 # Initialize a new client package
 
 Create absent package scaffold files, a local schema copy, project
-policy, and a client-owned httr2 request helper.
+policy, a client-owned httr2 request helper, and session controls.
 
 ## Usage
 
@@ -82,10 +82,11 @@ This function writes immediately and refuses any existing-file conflict.
 Supply package, title, author (given, family, email), and license for a
 new package. Existing DESCRIPTION metadata is retained; it must already
 declare httr2 and jsonlite, which the default transport needs for HTTP
-and JSON. Without an explicit override, generated wrappers use
-operation, path, then root servers, resolving variable defaults.
-Ambiguous or unsupported selection produces server_diagnostics and fails
-before HTTP unless a runtime override is supplied. Baseline YAML
+and JSON. Adding a new default transport also requires curl for form
+uploads. Without an explicit override, generated wrappers use operation,
+path, then root servers, resolving variable defaults. Ambiguous or
+unsupported selection produces server_diagnostics and fails before HTTP
+unless a runtime override is supplied. Baseline YAML
 defaults.request_controls exposes timeout, max_retries, and
 retry_writes. Regeneration passes these inherited defaults into helper
 calls without editing the client-owned helper. Runtime options override
@@ -98,6 +99,19 @@ Retry-After is honored. Normal generation never updates this helper.
 Initialization does not generate wrappers or tests: follow with
 generate_client(). The helper is client runtime code and does not import
 specmill.
+
+New clients also receive client-owned `R/api_options.R` with
+`<package>_run_verbose(verbose = FALSE)` and
+`<package>_dry_run(enabled = FALSE)`. Function prefixes preserve the
+exact package name; no unprefixed control aliases are exported. These
+set package-prefixed `run_verbose` and `dry_run` R options. Both default
+to off. An explicit dry-run option overrides the legacy dry-run
+environment flag. Dry runs return prepared httr2 requests without
+sending them; input validation and authentication still apply, and
+returned requests may contain credentials. Verbose messages contain
+method and HTTP status only. Multi-API clients share one set of
+controls. Existing helpers and clients require manual adoption;
+regeneration never overwrites client-owned runtime files.
 
 ## See also
 
