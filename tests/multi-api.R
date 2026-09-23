@@ -151,6 +151,11 @@ multi_api_acceptance <- function() {
   runtime$set_api_token('fixture-one', scheme = 'renamed.key')
   fails(runtime$second_send(list('b')))
   runtime$set_api_token('fixture-two', scheme = 'second.key')
+  withr::local_options(list(multitest.dry_run = NULL, multitest.run_verbose = NULL))
+  runtime$multitest_dry_run(TRUE)
+  stopifnot(inherits(runtime$renamed_send(list('a')), 'httr2_request'),
+            inherits(runtime$second_send(list('b')), 'httr2_request'))
+  runtime$multitest_dry_run(FALSE)
   first <- runtime$renamed_send(list('a', 'b'))
   second <- runtime$second_send(list('c'))
   stopifnot(

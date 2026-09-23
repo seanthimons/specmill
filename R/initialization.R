@@ -131,6 +131,12 @@ initialize_client <- function(
     proposal$files,
     list(
       'R/api_request.R' = scaffold$code,
+      'R/api_options.R' = gsub('CLIENT_PREFIX', package, gsub(
+        'OPTION_PREFIX',
+        r_literal(tolower(sub('_DRY_RUN$', '', dry_run_env(package)))),
+        file_text(system.file('templates/options.R', package = 'specmill', mustWork = TRUE)),
+        fixed = TRUE
+      ), fixed = TRUE),
       '.specmill/helpers/api_request.json' = scaffold$provenance,
       '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
     )

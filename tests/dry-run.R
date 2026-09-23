@@ -1,4 +1,6 @@
 dry_run_acceptance <- function() {
+  withr::local_options(list(requestclient.dry_run = NULL, requestclient.run_verbose = NULL,
+                           unrelatedclient.dry_run = TRUE))
   port_file <- tempfile('dry-run-port-')
   root <- tempfile('dry-run-client-')
   on.exit(unlink(c(root, port_file), recursive = TRUE), add = TRUE)
@@ -104,8 +106,78 @@ dry_run_acceptance <- function() {
   # 1 initial + 5 falsy + this final = 7.
   final <- runtime$get_item('widget', 'fr')
   stopifnot(identical(final$request_number, 7L))
+  stopifnot(all(c('export(requestclient_dry_run)', 'export(requestclient_run_verbose)') %in%
+                  readLines(file.path(root, 'NAMESPACE'))))
+  stopifnot(!any(c('export(dry_run)', 'export(run_verbose)') %in%
+                  readLines(file.path(root, 'NAMESPACE'))))
+  # The explicit session option overrides even a truthy legacy environment flag.
+  runtime$requestclient_dry_run(TRUE)
+  stopifnot(inherits(runtime$get_item('widget'), 'httr2_request'))
+  Sys.setenv(REQUESTCLIENT_DRY_RUN = 'true')
+  runtime$requestclient_dry_run(FALSE)
+  stopifnot(identical(runtime$get_item('widget')$request_number, 8L))
+  options(requestclient.dry_run = NULL)
+  stopifnot(inherits(runtime$get_item('widget'), 'httr2_request'))
+  Sys.unsetenv('REQUESTCLIENT_DRY_RUN')
+  # Logging must not expose path, query, or header credential values.
+  runtime$requestclient_run_verbose(TRUE)
+  messages <- character()
+  capture <- function(expr) withCallingHandlers(expr, message = function(m) {
+    messages <<- c(messages, conditionMessage(m))
+    invokeRestart('muffleMessage')
+  })
+  result <- capture(runtime$api_request('GET', '/private-path-secret', list(),
+    list(key = 'query-secret'), NULL, headers = list(Authorization = 'Bearer header-secret')))
+  stopifnot(identical(result$request_number, 9L),
+            identical(trimws(messages), c('GET request', 'HTTP 200')))
+  runtime$requestclient_dry_run(TRUE)
+  messages <- character()
+  stopifnot(inherits(capture(runtime$get_item('widget')), 'httr2_request'),
+            identical(trimws(messages), 'GET request (dry run)'))
+  for (invalid in list(NA, NULL, 'true', c(TRUE, FALSE))) {
+    stopifnot(inherits(tryCatch(runtime$requestclient_dry_run(invalid), error = identity), 'error'),
+              inherits(tryCatch(runtime$requestclient_run_verbose(invalid), error = identity), 'error'))
+  }
+  stopifnot(isTRUE(getOption('requestclient.dry_run')),
+            isTRUE(getOption('requestclient.run_verbose')),
+            isTRUE(getOption('unrelatedclient.dry_run')))
+  options(requestclient.dry_run = 'true')
+  stopifnot(inherits(tryCatch(runtime$get_item('widget'), error = identity), 'error'))
+  runtime$requestclient_dry_run(FALSE)
+  options(requestclient.run_verbose = NA)
+  stopifnot(inherits(tryCatch(runtime$get_item('widget'), error = identity), 'error'))
+  runtime$requestclient_run_verbose(FALSE)
+  messages <- character()
+  stopifnot(identical(capture(runtime$get_item('widget'))$request_number, 10L), !length(messages))
+  # Two attached clients have distinct controls, preserving package case and dots.
+  other_root <- tempfile('other-client-')
+  on.exit(unlink(other_root, recursive = TRUE), add = TRUE)
+  specmill::initialize_client(other_root, schema, package = 'Other.Client',
+    title = 'Other Client', author = list(given = 'Test', family = 'Maintainer',
+    email = 'maintainer@example.org'), license = 'MIT + file LICENSE', base_url = base_url)
+  other <- new.env(parent = baseenv())
+  for (file in list.files(file.path(other_root, 'R'), full.names = TRUE)) sys.source(file, other)
+  withr::local_options(list(other_client.dry_run = NULL, other_client.run_verbose = NULL))
+  attach(mget(c('requestclient_dry_run', 'requestclient_run_verbose'), runtime), name = 'test:requestclient')
+  on.exit(detach('test:requestclient'), add = TRUE)
+  attach(mget(c('Other.Client_dry_run', 'Other.Client_run_verbose'), other), name = 'test:Other.Client')
+  on.exit(detach('test:Other.Client'), add = TRUE)
+  requestclient_dry_run(TRUE)
+  Other.Client_dry_run(FALSE)
+  stopifnot(inherits(runtime$get_item('widget'), 'httr2_request'),
+    identical(other$api_request('GET', '/other', list(), list(), NULL)$request_number, 11L))
+  requestclient_dry_run(FALSE)
+  Other.Client_dry_run(TRUE)
+  stopifnot(identical(runtime$get_item('widget')$request_number, 12L),
+    inherits(other$api_request('GET', '/other', list(), list(), NULL), 'httr2_request'))
+  service_file <- file.path(root, 'apis/default.yml')
+  service <- yaml::read_yaml(service_file, handlers = list(seq = function(x) x))
+  service$names[['GET /items/{item_id}']] <- 'requestclient_dry_run'
+  yaml::write_yaml(service, service_file)
+  collision <- tryCatch(specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'), error = identity)
+  stopifnot(inherits(collision, 'error'), grepl('session control', conditionMessage(collision)))
   cat(
-    'Dry run: per-package env flag returns the unexecuted request without hitting the server.\n'
+    'Session controls: exported setters, option precedence, legacy flags, private logging and no-network dry runs passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

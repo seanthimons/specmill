@@ -84,6 +84,7 @@ Initialization writes immediately and refuses existing-file conflicts. It create
 |---|---|
 | `DESCRIPTION`, `LICENSE` | Package identity, dependencies, and your license |
 | `R/api_request.R` | Client-owned httr2 transport for JSON/binary bodies, headers, query values, and generated authentication |
+| `R/api_options.R` | Client-owned `<package>_run_verbose()` and `<package>_dry_run()` setters for package-scoped session options |
 | `schema/openapi.json` | Local copy of the schema |
 | `specmill.yml` | Project version and selected service files |
 | `apis/<tag>.yml` (or `apis/default.yml` here) | Exact operation selection, editable names, helper, and generation policy |

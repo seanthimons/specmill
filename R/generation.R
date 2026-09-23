@@ -537,6 +537,10 @@ generate_client <- function(
     stop('Wrapper name collides with a helper or callback')
   }
   runtime_definitions <- client_definitions(root)
+  controls <- names(Filter(function(x) basename(x$file_path) == 'api_options.R', runtime_definitions))
+  if (any(operation_names %in% controls)) {
+    stop('Operation collides with a client session control; supply a name override')
+  }
   if (
     !is.null(config) &&
       any(!reserved %in% c(names(runtime_definitions), 'run_hook'))
