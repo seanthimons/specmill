@@ -1,4 +1,4 @@
-# specmill
+# specmill <img src="man/figures/logo.jpg" align="right" width="160" alt="specmill hex logo" />
 
 Generate and maintain R API clients from local OpenAPI schemas and reviewed YAML
 policy. specmill creates wrappers, documentation, and request contract tests while
@@ -7,9 +7,12 @@ Your package's users do not need specmill installed.
 
 ## Install
 
+These guides describe the current development version on `main`. The `v0.1.4`
+release predates YAML schema support, multi-API setup, and session controls.
+
 ```r
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@v0.1.4')
+remotes::install_github('seanthimons/specmill@main')
 ```
 
 For an existing project with a toolkit lock, use its own installer to get the
@@ -139,11 +142,11 @@ Existing `R/api_request.R` files remain client-owned and are never refreshed by
 normal generation. New scaffolds retain their substituted baseline under
 `.specmill/helpers/`. Use `inspect_client(root)$helpers` for read-only baseline,
 local and proposed comparisons; legacy helpers without provenance stay unknown.
-Adoption remains manual. [Helper review and lifecycle protection](dev/audits/open-issues-20260922/HELPERS.md)
-includes specialization reporting and retained-implementation guidance. To adopt these controls, merge the `server` and
+Adoption remains manual. See [updating an existing client](https://seanthimons.github.io/specmill/articles/existing-clients.html#update-an-already-configured-client)
+for helper review and verification steps. To adopt these controls, merge the `server` and
 `request_controls` arguments, YAML-default fallback, URL selection/validation,
 option validation, and `req_timeout()`/`req_retry()` setup
-from [`inst/templates/request.R`](inst/templates/request.R) into your helper.
+from [`inst/templates/request.R`](https://github.com/seanthimons/specmill/blob/main/inst/templates/request.R) into your helper.
 Replace its `BASE_URL` and `DRY_RUN_ENV` placeholders with your client's defaults;
 set the initialization override only if you intend it to beat schema servers.
 Keep your authentication and response handling. Generation checks that custom
@@ -206,8 +209,8 @@ specmill::paginated(
 remain opaque; NULL or an empty next token ends retrieval. `paginated_links()`
 accepts an httr2 GET request and extracts body or HTTP Link-header URLs. It checks
 every link against the initial origin and disables redirects before sending
-credentials. See [pagination configuration](vignettes/configuration.Rmd#pagination)
-and the [AMOS live validation report](dev/audits/pagination/README.md).
+credentials. See [pagination configuration](https://seanthimons.github.io/specmill/articles/configuration.html#pagination)
+and the [AMOS live validation report](https://github.com/seanthimons/specmill/blob/main/dev/audits/pagination/README.md).
 
 ## Learn the workflow
 
@@ -219,7 +222,7 @@ and the [AMOS live validation report](dev/audits/pagination/README.md).
 | [Troubleshooting](https://seanthimons.github.io/specmill/articles/troubleshooting.html) | Supported schemas, protected files, adoption, and interrupted-apply recovery |
 | [Function reference](https://seanthimons.github.io/specmill/reference/index.html) | Arguments, results, and examples for every exported function |
 
-Generation uses local JSON schemas and reports unsupported operations explicitly.
+Generation uses local JSON or YAML schemas and reports unsupported operations explicitly.
 Reviewing generated output and passing helper-call tests do not establish live
 API compatibility. See the guides for the supported subset and verification steps.
 

@@ -10,7 +10,7 @@ inspect_client(root, config = "specmill.yml", callbacks = new.env(parent = empty
 \item{config}{Project YAML path relative to root, or client hook configuration for hook validation.}
 \item{callbacks}{Explicit environment containing named development callbacks.}
 }
-\value{A list with operations, inventory, diagnostics, manual_exports, and coverage. Coverage is keyed by service ID and contains total selected operations, implemented exported definitions, and declared contracts with test files.}
+\value{A list with operations, inventory, diagnostics, manual_exports, coverage, helpers, and protected_sources. Coverage is keyed by service ID and contains total selected operations, implemented exported definitions, and declared contracts with test files.}
 \details{This is a read-only structural inspection. Unsupported selections remain in coverage totals. Manual exports are listed separately. A present test file is not evidence that tests ran or passed.}
 \seealso{\href{https://seanthimons.github.io/specmill/articles/testing.html}{Step-by-step guide}.}
 \section{Client-owned helpers}{Newly initialized helpers retain their substituted

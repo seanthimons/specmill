@@ -24,18 +24,22 @@ For an existing package, including ComptoxR, use
 
 ## 1. Install the development tools
 
-Run this once in R. The tagged release makes the tutorial reproducible:
+This guide follows the current development version on `main`. Install it once
+in R; the older `v0.1.4` release does not include all the features shown here:
 
 ```{r install, eval=FALSE}
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@v0.1.4')
-install.packages(c('httr2', 'testthat', 'devtools'))
+remotes::install_github('seanthimons/specmill@main')
+install.packages(c('httr2', 'curl', 'testthat', 'devtools'))
 ```
 
 If a project supplies an installer and toolkit lock, use those instead: they
 select the version reviewed for that project. In a local specmill source checkout,
 `devtools::install('.')` installs the checked-out version. Start a fresh R session
-after changing an already loaded version.
+after changing an already loaded version. Record the reviewed commit SHA in
+your project installer or dependency lock before relying on reproducible output.
+A branch name moves, and `packageVersion()` alone does not identify a development
+checkout. GitHub installs also record `RemoteSha` in `packageDescription("specmill")`.
 
 ```{r version}
 packageVersion('specmill')
@@ -56,11 +60,22 @@ root <- tempfile('catalogue-client-')
 
 `root` is temporary so this guide can be rerun. For your own project, replace it
 with an unused permanent directory such as `C:/projects/catalogueclient` or
-`~/projects/catalogueclient`, and replace `schema` with your downloaded JSON
+`~/projects/catalogueclient`, and replace `schema` with your downloaded JSON, YAML, or YML
 schema. Save the schema's origin and version in your project; generation reads
 local files and does not download or refresh schemas.
 
 ## 3. Initialize the package
+
+Preview names, selection, and diagnostics before writing the package:
+
+```{r configuration-preview}
+proposal <- specmill::configure_client(
+  root, schema, package = 'catalogueclient', name_case = 'snake_case'
+)
+proposal$changes
+proposal$diagnostics
+stopifnot(!dir.exists(root))
+```
 
 Supply your own metadata and the service's real base URL. The example URL below
 is a placeholder and is never contacted in this guide.
@@ -85,15 +100,16 @@ Initialization writes immediately and refuses existing-file conflicts. It create
 | `DESCRIPTION`, `LICENSE` | Package identity, dependencies, and your license |
 | `R/api_request.R` | Client-owned httr2 transport for JSON/binary bodies, headers, query values, and generated authentication |
 | `R/api_options.R` | Client-owned `<package>_run_verbose()` and `<package>_dry_run()` setters for package-scoped session options |
-| `schema/openapi.json` | Local copy of the schema |
+| `schema/openapi.json` | Local schema copy; YAML inputs keep `.yaml` or `.yml` |
+| `.specmill/helpers/api_request.json` | Initial transport source and settings for later helper comparisons |
 | `specmill.yml` | Project version and selected service files |
 | `apis/<tag>.yml` (or `apis/default.yml` here) | Exact operation selection, editable names, helper, and generation policy |
 | `NAMESPACE`, `.Rbuildignore` | Package exports and exclusion of development inputs |
 | `.specmill/manifest.json` | Ownership hashes maintained by specmill |
 
-The scaffold declares `httr2` and `jsonlite` as runtime dependencies for HTTP
-requests and JSON bodies. Existing packages must declare both before using the
-default transport.
+The scaffold declares `httr2`, `jsonlite`, and `curl` as runtime dependencies
+for requests, JSON bodies, and form uploads. Existing packages adopting the
+default transport must declare these dependencies too.
 
 Tagged schemas automatically get one service file per first operation tag, plus
 grouped source files and help families. This catalogue has no tags, so it uses
@@ -209,8 +225,17 @@ After configuring the actual service and any required credentials, run:
 ```{r client-install, eval=FALSE}
 devtools::install(root)
 help('get_item', package = 'catalogueclient')
+catalogueclient::catalogueclient_dry_run(TRUE)
+request <- catalogueclient::get_item(item_id = 'a-real-id', language = 'en')
+catalogueclient::catalogueclient_dry_run(FALSE)
+# This call sends HTTP:
 catalogueclient::get_item(item_id = 'a-real-id', language = 'en')
 ```
+
+Dry runs still validate inputs and require credentials for authenticated
+operations. The returned request may contain credentials; do not publish it.
+Use `catalogueclient_run_verbose(TRUE)` to report the method and response status,
+and `catalogueclient_run_verbose(FALSE)` to turn messages off.
 
 The last call sends a real request. The default helper performs one request,
 including when an argument is named `page`. It returns JSON objects and arrays
@@ -234,8 +259,8 @@ Existing client-owned helpers require an explicit update to adopt these controls
 
 ## 9. Save the project and maintain it
 
-Commit the schema, YAML policy, client helper, generated source/help/tests, and
-`.specmill/manifest.json` together. Keep the manifest tracked: it establishes which
+Commit the schema, YAML policy, client helper, generated source/help/tests,
+`.specmill/manifest.json`, and `.specmill/helpers/` together. Keep the manifest tracked: it establishes which
 output can be updated safely. Keep credentials outside tracked files. Add a
 package test runner as shown in the testing guide.
 
