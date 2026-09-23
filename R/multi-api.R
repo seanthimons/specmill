@@ -181,7 +181,7 @@ multi_api_proposal <- function(
     sub('\n$', '', yaml::as.yaml(root_config)),
     sep = '\n'
   )
-  diagnostics <- c(diagnostics, configuration_name_diagnostics(operations))
+  diagnostics <- c(diagnostics, configuration_name_diagnostics(operations, package))
   list(
     files = files,
     helpers = helpers,
@@ -227,7 +227,7 @@ initialize_apis <- function(
     group_by,
     name_case
   )
-  metadata <- c('DESCRIPTION', 'NAMESPACE', 'LICENSE', '.Rbuildignore')
+  metadata <- c('DESCRIPTION', 'NAMESPACE', 'LICENSE', '.Rbuildignore', 'R/api_options.R')
   metadata <- metadata[file.exists(file.path(stage, metadata))]
   files <- c(
     proposal$files,

@@ -33,11 +33,11 @@ configuration_case <- function(x, name_case) {
   paste0(toupper(substring(camel, 1L, 1L)), substring(camel, 2L))
 }
 
-configuration_name_diagnostics <- function(operations) {
+configuration_name_diagnostics <- function(operations, package) {
   public_names <- vapply(operations, `[[`, character(1), 'name')
   collisions <- duplicated(tolower(public_names)) |
     duplicated(tolower(public_names), fromLast = TRUE) |
-    public_names %in% c('api_request', 'run_hook')
+    public_names %in% c('api_request', 'run_hook', paste0(package, c('_run_verbose', '_dry_run')))
   lapply(which(collisions), function(i) {
     diagnostic <- list(
       key = operations[[i]]$key,
@@ -218,7 +218,7 @@ configuration_proposal <- function(
       )
     }
   }
-  diagnostics <- c(diagnostics, configuration_name_diagnostics(records))
+  diagnostics <- c(diagnostics, configuration_name_diagnostics(records, package))
   # Diagnostic parsing must not fail early on the very name collisions we report.
   parsed <- read_operations(
     schema,

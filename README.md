@@ -41,6 +41,33 @@ specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 
 ## Generated client request controls
 
+New clients include exported session controls prefixed with their package name:
+
+```r
+catalogueclient::catalogueclient_run_verbose(TRUE) # Report HTTP method and response status.
+catalogueclient::catalogueclient_dry_run(TRUE)     # Return a prepared httr2 request; send nothing.
+catalogueclient::catalogueclient_dry_run(FALSE)    # Resume actual requests.
+catalogueclient::catalogueclient_run_verbose(FALSE)
+```
+
+Function names preserve the package name, including case and dots; generic
+`run_verbose()` and `dry_run()` aliases are not exported, so attaching multiple
+clients does not mask these controls. Both default to off and require one
+nonmissing logical value. They set
+`catalogueclient.run_verbose` and `catalogueclient.dry_run` R options; the prefix
+uses the same lowercase package naming as the request options below. Multi-API
+clients share these settings across their helpers. An explicit `dry_run` option
+overrides the existing `CATALOGUECLIENT_DRY_RUN` environment flag, including when
+FALSE. Remove the option with `options(catalogueclient.dry_run = NULL)` to restore
+the environment fallback. No profile or environment files are changed.
+
+Verbose messages omit URLs, headers, query values and bodies. Dry-run requests
+still validate inputs and authentication, and the returned object may contain
+credentials. These setters live in client-owned `R/api_options.R`, created during
+initialization and exported when documentation is generated. Existing clients
+need manual adoption of that file and the updated request helper; regeneration
+does not replace client-owned helpers or add these setters to older clients.
+
 The baseline `specmill.yml` includes:
 
 ```yaml
