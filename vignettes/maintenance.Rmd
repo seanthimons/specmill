@@ -361,6 +361,46 @@ arguments and return values. Keep these policies client-specific.
 credentials without logging values or making requests. They cannot prove a key
 is authorized. Offline generation and fixed contract tests need no live key.
 
+### Gate an upstream schema publication
+
+A publisher can use `read_operations()` directly on the candidate local schema,
+without a client project or generated files. Save this as an R script and invoke
+it with `Rscript validate-schema.R candidate.json` using a reviewed specmill pin:
+
+```r
+files <- commandArgs(trailingOnly = TRUE)
+stopifnot(length(files) > 0L)
+for (file in files) {
+  parsed <- specmill::read_operations(file)
+  print(parsed$diagnostics)
+  stopifnot(length(parsed$diagnostics) == 0L)
+}
+```
+
+Parsing errors and failed assertions exit unsuccessfully. Publish only after
+this step succeeds. Do not apply client selection filters to a whole-schema
+gate: excluded operations are inventoried but not validated. This gate rejects
+both detected schema defects and specmill capability gaps. It is not a complete
+OpenAPI conformance validator or proof of a working service. Fixture and server
+diagnostics are separate results and need separate gates if required.
+
+For the AMOS `GET /api/amos/get_similar_structures/{identifier_type}/{identifier}`
+declaration containing only a `dtxsid` path parameter, the reader reports three
+schema defects: unmatched `dtxsid`, missing `identifier_type`, and missing
+`identifier`. Each diagnostic has the same stable method/path `key`, a `source`
+file, and a `source_location` JSON Pointer. The unmatched declaration points to
+its parameter object; missing declarations point to the path item, since their
+parameter objects do not exist. Use the full diagnostics list for all findings;
+`inventory` keeps one row per operation and its first diagnostic for compatibility.
+Earlier parsing errors can still prevent the path-name checks from running.
+
+Generation plans expose these diagnostics too. Check and apply reject a mixed
+selection containing this route before writing output. After reviewing the
+findings, explicitly select independently supported routes to generate those.
+A generated client mapping cannot repair malformed path metadata. Existing
+`implementation: existing` support can retain a reviewed handwritten function
+with a complete client contract, but does not certify or correct the schema.
+
 ## 6. Build documentation for your generated client
 
 Set `documentation: true` and write useful `docs` policy before building the
