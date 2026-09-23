@@ -5,7 +5,8 @@ the package or replacing its HTTP implementation. Work on a dedicated
 branch, record a clean baseline, and begin with one representative
 operation.
 
-If your project is already configured for specmill, skip to [the
+If your project already has `specmill.yml`, use [the upgrade
+workflow](#update-an-already-configured-client) below or [the
 maintenance
 loop](https://seanthimons.github.io/specmill/articles/maintenance.md).
 ComptoxR maintainers can use the commands at the end of this guide.
@@ -26,7 +27,30 @@ and refuses conflicts with existing scaffold files.
 
 ## 2. Add project and service files
 
-Create `specmill.yml` in the client root:
+For a schema-driven starting point, preview configuration without
+writing files:
+
+``` r
+
+root <- normalizePath('/path/to/existingclient', winslash = '/', mustWork = TRUE)
+proposal <- specmill::configure_client(
+  root, file.path(root, 'schema/catalogue.yaml'), name_case = 'snake_case'
+)
+proposal$changes
+proposal$diagnostics
+proposal$files[['apis/default.yml']] # For a schema without tags.
+```
+
+Tagged schemas propose one service per first tag. Review the proposed
+names against the package’s public interface, narrow `selection.include`
+to the first operation, and configure your actual helper and mappings
+before generating. `configure_client(..., mode = 'apply')` creates
+absent files only and refuses conflicting existing files. It creates no
+helper or package metadata. Copy reviewed changes into existing YAML
+manually.
+
+You can also write a minimal policy directly. Create `specmill.yml` in
+the client root:
 
 ``` yaml
 config_version: 1
@@ -134,7 +158,7 @@ Filter(function(x) x$action == 'protected', plan$files)
 #> [1] "R/get_item.R"
 #> 
 #> [[1]]$path
-#> [1] "/tmp/RtmpYRl93j/existing-client-1ffa16256f63/R/get_item.R"
+#> [1] "/tmp/Rtmpnq4Sfl/existing-client-20a82e76c1f6/R/get_item.R"
 #> 
 #> [[1]]$action
 #> [1] "protected"
@@ -192,6 +216,72 @@ available for rollback. See
 [Testing](https://seanthimons.github.io/specmill/articles/testing.md)
 and
 [Troubleshooting](https://seanthimons.github.io/specmill/articles/troubleshooting.md).
+
+## Update an already configured client
+
+Keep the current toolkit pin and a clean baseline before upgrading.
+Install the candidate toolkit in a separate R library or project
+environment when comparing versions, then restart R. The current guides
+describe `main`; use a reviewed commit SHA or your project’s installer
+to make subsequent runs reproducible.
+
+1.  Run `generate_client(..., mode = 'plan')` with the existing policy
+    and callbacks. Review diagnostics, file actions, public signatures,
+    and request mappings. Do not rerun initialization or replace
+    reviewed YAML with a fresh proposal.
+2.  Inspect client-owned helpers with the candidate toolkit:
+
+``` r
+
+inspection <- specmill::inspect_client(root, config = 'specmill.yml')
+inspection$helpers
+inspection$protected_sources
+helper <- inspection$helpers[['api_request']] # Use your configured helper name.
+if (identical(helper$baseline, 'known')) {
+  helper$customized
+  helper$upstream_changed
+  helper$missing_explicit_arguments
+  cat(helper$comparison$proposed)
+}
+```
+
+For projects with development callbacks, pass the same `callbacks`
+environment to inspection and generation. New scaffolds keep helper
+baselines under `.specmill/helpers/`; commit that directory with the
+manifest. Older helpers without provenance report an unknown baseline.
+Inspection writes nothing and cannot establish whether a helper behaves
+correctly.
+
+3.  Manually merge the transport changes needed by your selected
+    operations. Preserve authentication, hooks, response classes, and
+    service-specific behavior. New arguments such as `server`,
+    `request_controls`, `parameter_serialization`, or `form_schema` need
+    their implementation too; adding `...` is insufficient. See
+    [transport
+    configuration](https://seanthimons.github.io/specmill/articles/configuration.html#parameter-serialization).
+4.  To add session controls, review the installed templates with
+    `system.file('templates/options.R', package = 'specmill')` and
+    `system.file('templates/request.R', package = 'specmill')`. Copy the
+    options template into client-owned `R/api_options.R`, replace
+    `CLIENT_PREFIX` with the exact package name and `OPTION_PREFIX` with
+    a quoted lowercase package name with punctuation replaced by `_`,
+    and merge the helper’s option handling. Generate documentation to
+    export the setters. Existing clients do not receive either change
+    through regeneration alone.
+5.  Replan, apply reviewed changes, check, and run contract and
+    transport tests. Exercise dry-run and verbose controls if adopted,
+    including turning them off. Compare public names, arguments,
+    exports, and results with the baseline. Commit the toolkit pin,
+    policy, helper edits, output, and manifest together.
+
+You can keep an existing helper when no newly selected feature requires
+changes. Generated wrappers need no specmill runtime dependency. Adding
+a companion that calls
+[`specmill::paginated()`](https://seanthimons.github.io/specmill/reference/paginated.md),
+[`paginated_links()`](https://seanthimons.github.io/specmill/reference/paginated_links.md),
+or
+[`batched()`](https://seanthimons.github.io/specmill/reference/batched.md)
+does require specmill in the client’s Imports.
 
 ## ComptoxR: use the maintained integration
 

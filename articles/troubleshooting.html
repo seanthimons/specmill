@@ -78,10 +78,11 @@
 <div class="section level2">
 <h2 id="supported-input-and-transport">Supported input and transport<a class="anchor" aria-label="anchor" href="#supported-input-and-transport"></a>
 </h2>
-<p>specmill reads local JSON documents in OpenAPI 3.0/3.1 or Swagger 2.0
-format. YAML project configuration does not imply support for YAML
-schema documents. The parser is a supported-subset extractor, not a full
-OpenAPI validator.</p>
+<p>specmill reads local JSON, YAML, and YML documents in OpenAPI 3.0/3.1
+or Swagger 2.0 format. It supports a subset of each standard; parsing is
+not full OpenAPI validation. These guides follow the current development
+version, so check your toolkit pin if an older release rejects a
+documented feature.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -93,35 +94,39 @@ OpenAPI validator.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Scalar path/query parameters</td>
-<td>Supported; path parameters must be required</td>
+<td>Schema references</td>
+<td>Same-document and local-file references are supported; remote
+references are not downloaded</td>
 </tr>
 <tr class="even">
-<td>Local <code>$ref</code>
-</td>
-<td>Supported within a document; external or cyclic input references are
-diagnosed</td>
+<td>Scalar parameters</td>
+<td>Path, query, header, and supported cookie parameters; paths must be
+required</td>
 </tr>
 <tr class="odd">
-<td>JSON scalar bodies</td>
-<td>Supported</td>
+<td>Array/object parameters</td>
+<td>Flat primitive arrays and flat objects with supported styles; nested
+shapes are diagnosed</td>
 </tr>
 <tr class="even">
-<td>Nested JSON objects/arrays</td>
-<td>Supported with declared properties and supported item types</td>
+<td>JSON bodies</td>
+<td>Scalars, nested objects/arrays, free-form values, supported
+composition, and bounded local recursion</td>
 </tr>
 <tr class="odd">
-<td>Array/object path/query inputs</td>
-<td>Outside the default serializer subset; diagnose or use a complete
-client mapping</td>
+<td>Binary bodies</td>
+<td>Raw vectors for <code>application/octet-stream</code> with a binary
+string schema</td>
 </tr>
 <tr class="even">
-<td>Composed/free-form input schemas</td>
-<td>Diagnosed when unsupported</td>
+<td>Form bodies/uploads</td>
+<td>Supported URL-encoded and multipart shapes, including Swagger
+<code>formData</code>; unsupported encodings are diagnosed</td>
 </tr>
 <tr class="odd">
-<td>Multipart, uploads, non-JSON request media</td>
-<td>Outside the generated default transport subset</td>
+<td>Authentication</td>
+<td>Generated API-key and HTTP bearer support; OAuth login/refresh and
+custom flows remain client-owned</td>
 </tr>
 <tr class="even">
 <td>HTTP method</td>
@@ -129,20 +134,26 @@ client mapping</td>
 </tr>
 <tr class="odd">
 <td>Pagination/batching</td>
-<td>Client behavior; a <code>page</code> argument alone causes one
-request</td>
+<td>Explicit configuration or companion functions; a <code>page</code>
+argument alone causes one request</td>
 </tr>
 <tr class="even">
 <td>Response interpretation</td>
-<td>Client helper owns decoding and service-specific meaning</td>
+<td>The helper decodes the actual content type; no generated
+response-schema validation</td>
 </tr>
 </tbody>
 </table>
-<p>Fixture selection checks supported type, enum, numeric bounds, string
-lengths, and patterns. Helpers still own complete runtime validation and
-serialization. Do not interpret a chosen fixture as a valid live
-identifier or a safe operation to invoke. A GET endpoint may itself
-submit work.</p>
+<p>See <a href="configuration.html#json-and-yaml-schema-files">schema
+loading</a>, <a href="configuration.html#parameter-serialization">parameter
+serialization</a>, <a href="configuration.html#json-body-values">JSON
+bodies</a>, and <a href="configuration.html#form-bodies-and-file-uploads">form uploads</a>
+for the supported shapes and limits. Generated input checks cover
+supported constraints; custom helpers remain responsible for their
+serialization and service-specific behavior. Fixture selection also
+checks supported types, enums, bounds, lengths, and patterns. Do not
+interpret a chosen fixture as a valid live identifier or a safe
+operation to invoke. A GET endpoint may itself submit work.</p>
 <p><code><a href="../reference/read_operations.html">read_operations()</a></code> returns supported
 <code>operations</code>, structurally valid but unsupported
 <code>unsupported_operations</code>, an <code>inventory</code>, and

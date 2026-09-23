@@ -2,8 +2,12 @@
 
 Use the same loop for new and existing clients: **update inputs -\> plan
 -\> review -\> apply -\> check -\> test -\> commit**. Schemas, service
-policy, callbacks, fixed fixtures, output, and `.specmill/manifest.json`
-form one reviewed change.
+policy, callbacks, fixed fixtures, output, `.specmill/helpers/`, and
+`.specmill/manifest.json` form one reviewed change. For a toolkit
+upgrade, follow the [existing-client upgrade
+workflow](https://seanthimons.github.io/specmill/articles/existing-clients.html#update-an-already-configured-client).
+Normal generation does not update client-owned request helpers or
+session controls.
 
 ## 1. Review schema changes
 
@@ -123,6 +127,8 @@ inspection <- specmill::inspect_client(root)
 inspection$coverage
 inspection$manual_exports
 inspection$diagnostics
+inspection$helpers
+inspection$protected_sources
 ```
 
 Coverage counts files and declarations, not passing tests or working

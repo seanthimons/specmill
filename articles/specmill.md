@@ -15,20 +15,27 @@ instead of initialization.
 
 ## 1. Install the development tools
 
-Run this once in R. The tagged release makes the tutorial reproducible:
+This guide follows the current development version on `main`. Install it
+once in R; the older `v0.1.4` release does not include all the features
+shown here:
 
 ``` r
 
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@v0.1.4')
-install.packages(c('httr2', 'testthat', 'devtools'))
+remotes::install_github('seanthimons/specmill@main')
+install.packages(c('httr2', 'curl', 'testthat', 'devtools'))
 ```
 
 If a project supplies an installer and toolkit lock, use those instead:
 they select the version reviewed for that project. In a local specmill
 source checkout, `devtools::install('.')` installs the checked-out
 version. Start a fresh R session after changing an already loaded
-version.
+version. Record the reviewed commit SHA in your project installer or
+dependency lock before relying on reproducible output. A branch name
+moves, and
+[`packageVersion()`](https://rdrr.io/r/utils/packageDescription.html)
+alone does not identify a development checkout. GitHub installs also
+record `RemoteSha` in `packageDescription("specmill")`.
 
 ``` r
 
@@ -54,11 +61,105 @@ root <- tempfile('catalogue-client-')
 `root` is temporary so this guide can be rerun. For your own project,
 replace it with an unused permanent directory such as
 `C:/projects/catalogueclient` or `~/projects/catalogueclient`, and
-replace `schema` with your downloaded JSON schema. Save the schema’s
-origin and version in your project; generation reads local files and
-does not download or refresh schemas.
+replace `schema` with your downloaded JSON, YAML, or YML schema. Save
+the schema’s origin and version in your project; generation reads local
+files and does not download or refresh schemas.
 
 ## 3. Initialize the package
+
+Preview names, selection, and diagnostics before writing the package:
+
+``` r
+
+proposal <- specmill::configure_client(
+  root, schema, package = 'catalogueclient', name_case = 'snake_case'
+)
+proposal$changes
+#> [[1]]
+#> [[1]]$file
+#> [1] "schema/openapi.json"
+#> 
+#> [[1]]$action
+#> [1] "create"
+#> 
+#> [[1]]$before
+#> NULL
+#> 
+#> [[1]]$after
+#> [1] "{\n  \"openapi\": \"3.0.3\",\n  \"info\": {\"title\": \"Catalogue\", \"version\": \"1\"},\n  \"paths\": {\n    \"/items/{item_id}\": {\"get\": {\"operationId\": \"get_item\", \"parameters\": [\n      {\"name\": \"item_id\", \"in\": \"path\", \"required\": true, \"schema\": {\"type\": \"string\"}},\n      {\"name\": \"language\", \"in\": \"query\", \"schema\": {\"type\": \"string\", \"enum\": [\"en\", \"fr\"]}}\n    ], \"responses\": {\"200\": {\"description\": \"Item\"}}}},\n    \"/items\": {\n      \"get\": {\"operationId\": \"list_items\", \"parameters\": [\n        {\"name\": \"page\", \"in\": \"query\", \"schema\": {\"type\": \"integer\", \"minimum\": 1}}\n      ], \"responses\": {\"200\": {\"description\": \"Items\"}}},\n      \"post\": {\"operationId\": \"create_item\", \"requestBody\": {\"required\": true, \"content\": {\n        \"application/json\": {\"schema\": {\"$ref\": \"#/components/schemas/Item\"}}\n      }}, \"responses\": {\"201\": {\"description\": \"Created\"}}}\n    },\n    \"/refresh\": {\"post\": {\"operationId\": \"refresh\", \"responses\": {\"204\": {\"description\": \"Refreshed\"}}}}\n  },\n  \"components\": {\"schemas\": {\"Item\": {\"type\": \"object\", \"required\": [\"title\"], \"properties\": {\n    \"title\": {\"type\": \"string\"}, \"count\": {\"type\": \"integer\"}\n  }}}}\n}"
+#> 
+#> 
+#> [[2]]
+#> [[2]]$file
+#> [1] "specmill.yml"
+#> 
+#> [[2]]$action
+#> [1] "create"
+#> 
+#> [[2]]$before
+#> NULL
+#> 
+#> [[2]]$after
+#> [1] "config_version: 1\n# Package identity; keep consistent with DESCRIPTION.\npackage: catalogueclient\n# Service configuration files, relative to the package root.\nservices:\n- apis/default.yml\n# Package-wide limits: services cannot re-enable these excluded methods or paths.\nselection:\n  methods:\n  - GET\n  - POST\n  - PUT\n  - PATCH\n  - DELETE\n  - HEAD\n  - OPTIONS\n  - TRACE\n  exclude: []\n# Default runtime helper; services may override it.\nhelper: api_request\n# Generate help and exports unless a service overrides this setting.\ndocumentation: yes\n# Shared settings; service defaults and individual overrides take precedence.\n# Request controls: seconds per attempt, retries after the first attempt, and explicit write replay permission.\n# Runtime package.request options override these generated defaults.\n# Keep function names and output files in service YAML.\ndefaults:\n  implementation: generated\n  request_controls:\n    timeout: 30\n    max_retries: 0\n    retry_writes: no\n  batch:\n    max_items: ~\n    max_bytes: ~\n# authentication: {} # Opt in to generated auth when the schema declares security.\n# Optional formatting: uncomment and use your exact installed air version.\n# formatter: {name: air, version: \"0.9.0\"}\n# Callback source files to fingerprint; pass their functions via callbacks, too.\ncallback_files: []"
+#> 
+#> 
+#> [[3]]
+#> [[3]]$file
+#> [1] "apis/default.yml"
+#> 
+#> [[3]]$action
+#> [1] "create"
+#> 
+#> [[3]]$before
+#> NULL
+#> 
+#> [[3]]$after
+#> [1] "id: catalogueclient\n# Local schema files; patterns are file globs, exclude matches basenames by regex.\n# All paths resolve from the package root.\nschemas:\n  files:\n  - schema/openapi.json\n  patterns: []\n  exclude: []\n# An operation must pass methods AND include AND not match exclude (path regexes).\n# Keep only GET and POST below to omit PUT/PATCH/DELETE wrappers.\n# Leave their include/name entries in place; regeneration removes unchanged owned output.\n# An empty include selects nothing; remove include to allow every matching operation.\nselection:\n  methods:\n  - GET\n  - POST\n  - PUT\n  - PATCH\n  - DELETE\n  - HEAD\n  - OPTIONS\n  - TRACE\n  exclude: []\n  include:\n  - GET /items\n  - POST /items\n  - GET /items/{item_id}\n  - POST /refresh\n# Edit the public R function names here; keys stay METHOD /original/path.\nnames:\n  GET /items: list_items\n  POST /items: create_item\n  GET /items/{item_id}: get_item\n  POST /refresh: refresh\n# Shared operation settings. Per-operation settings below override these.\n# file groups wrappers in one R file; omit it for one file per function.\n# Example: add file: R/endpoints.R under defaults.\n# docs can set title, description, return, parameters, examples, tags and lifecycle.\ndefaults: {}\n# Optional overrides keyed by METHOD /original/path. Replace {} with entries.\n# Each entry can set file, helper, parameters, parameter_order and docs.\n# parameters keys use the original location and name, e.g. \"query limit\".\n# Example parameter setting: {name: max_results, default: 10, description: Maximum results.}\n# Advanced facades use inputs, extra_parameters and request.arguments mappings.\noperations: {}\n# Inherited from specmill.yml; uncomment to override for this service:\n# helper: api_request\n# documentation: true\n# Optional hooks: define client functions before enabling these settings.\n# hooks: {} # Public wrapper name -> pre_request/post_response hook-name sequences.\n# hook_callback: run_hook\n# hook_config: inst/hooks.yml # Alternative to inline hooks, not both.\n# prepare: prepare_operation # Development callback; pass an explicit callbacks environment.\n# policy_version: \"1\" # Your review label, recorded in generation metadata.\n# Optional fixed request expectations for generated tests:\n# contracts: {} # Public wrapper name -> fixed request expectations.\n# contracts_file: tests/testthat/contracts.rds\n# response_fixture: {} # Mock response used by inline single-call contracts.\n# Full configuration examples: https://seanthimons.github.io/specmill/articles/configuration.html"
+proposal$diagnostics
+#> [[1]]
+#> [[1]]$key
+#> [1] "GET /items"
+#> 
+#> [[1]]$code
+#> [1] "missing_tag"
+#> 
+#> [[1]]$message
+#> [1] "Assigned to default"
+#> 
+#> 
+#> [[2]]
+#> [[2]]$key
+#> [1] "POST /items"
+#> 
+#> [[2]]$code
+#> [1] "missing_tag"
+#> 
+#> [[2]]$message
+#> [1] "Assigned to default"
+#> 
+#> 
+#> [[3]]
+#> [[3]]$key
+#> [1] "GET /items/{item_id}"
+#> 
+#> [[3]]$code
+#> [1] "missing_tag"
+#> 
+#> [[3]]$message
+#> [1] "Assigned to default"
+#> 
+#> 
+#> [[4]]
+#> [[4]]$key
+#> [1] "POST /refresh"
+#> 
+#> [[4]]$code
+#> [1] "missing_tag"
+#> 
+#> [[4]]$message
+#> [1] "Assigned to default"
+stopifnot(!dir.exists(root))
+```
 
 Supply your own metadata and the service’s real base URL. The example
 URL below is a placeholder and is never contacted in this guide.
@@ -78,8 +179,9 @@ list.files(root, recursive = TRUE, all.files = TRUE)
 #>  [1] ".Rbuildignore"                      ".specmill/helpers/api_request.json"
 #>  [3] ".specmill/manifest.json"            "apis/default.yml"                  
 #>  [5] "DESCRIPTION"                        "LICENSE"                           
-#>  [7] "NAMESPACE"                          "R/api_request.R"                   
-#>  [9] "schema/openapi.json"                "specmill.yml"
+#>  [7] "NAMESPACE"                          "R/api_options.R"                   
+#>  [9] "R/api_request.R"                    "schema/openapi.json"               
+#> [11] "specmill.yml"
 ```
 
 Initialization writes immediately and refuses existing-file conflicts.
@@ -89,15 +191,18 @@ It creates:
 |----|----|
 | `DESCRIPTION`, `LICENSE` | Package identity, dependencies, and your license |
 | `R/api_request.R` | Client-owned httr2 transport for JSON/binary bodies, headers, query values, and generated authentication |
-| `schema/openapi.json` | Local copy of the schema |
+| `R/api_options.R` | Client-owned `<package>_run_verbose()` and `<package>_dry_run()` setters for package-scoped session options |
+| `schema/openapi.json` | Local schema copy; YAML inputs keep `.yaml` or `.yml` |
+| `.specmill/helpers/api_request.json` | Initial transport source and settings for later helper comparisons |
 | `specmill.yml` | Project version and selected service files |
 | `apis/<tag>.yml` (or `apis/default.yml` here) | Exact operation selection, editable names, helper, and generation policy |
 | `NAMESPACE`, `.Rbuildignore` | Package exports and exclusion of development inputs |
 | `.specmill/manifest.json` | Ownership hashes maintained by specmill |
 
-The scaffold declares `httr2` and `jsonlite` as runtime dependencies for
-HTTP requests and JSON bodies. Existing packages must declare both
-before using the default transport.
+The scaffold declares `httr2`, `jsonlite`, and `curl` as runtime
+dependencies for requests, JSON bodies, and form uploads. Existing
+packages adopting the default transport must declare these dependencies
+too.
 
 Tagged schemas automatically get one service file per first operation
 tag, plus grouped source files and help families. This catalogue has no
@@ -307,8 +412,18 @@ After configuring the actual service and any required credentials, run:
 
 devtools::install(root)
 help('get_item', package = 'catalogueclient')
+catalogueclient::catalogueclient_dry_run(TRUE)
+request <- catalogueclient::get_item(item_id = 'a-real-id', language = 'en')
+catalogueclient::catalogueclient_dry_run(FALSE)
+# This call sends HTTP:
 catalogueclient::get_item(item_id = 'a-real-id', language = 'en')
 ```
+
+Dry runs still validate inputs and require credentials for authenticated
+operations. The returned request may contain credentials; do not publish
+it. Use `catalogueclient_run_verbose(TRUE)` to report the method and
+response status, and `catalogueclient_run_verbose(FALSE)` to turn
+messages off.
 
 The last call sends a real request. The default helper performs one
 request, including when an argument is named `page`. It returns JSON
@@ -341,10 +456,10 @@ controls.
 ## 9. Save the project and maintain it
 
 Commit the schema, YAML policy, client helper, generated
-source/help/tests, and `.specmill/manifest.json` together. Keep the
-manifest tracked: it establishes which output can be updated safely.
-Keep credentials outside tracked files. Add a package test runner as
-shown in the testing guide.
+source/help/tests, `.specmill/manifest.json`, and `.specmill/helpers/`
+together. Keep the manifest tracked: it establishes which output can be
+updated safely. Keep credentials outside tracked files. Add a package
+test runner as shown in the testing guide.
 
 When a schema or policy changes, repeat **plan -\> review -\> apply -\>
 check -\> tests**. See [Routine maintenance and

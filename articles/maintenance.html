@@ -78,8 +78,11 @@
 <p>Use the same loop for new and existing clients: <strong>update inputs
 -&gt; plan -&gt; review -&gt; apply -&gt; check -&gt; test -&gt;
 commit</strong>. Schemas, service policy, callbacks, fixed fixtures,
-output, and <code>.specmill/manifest.json</code> form one reviewed
-change.</p>
+output, <code>.specmill/helpers/</code>, and
+<code>.specmill/manifest.json</code> form one reviewed change. For a
+toolkit upgrade, follow the <a href="existing-clients.html#update-an-already-configured-client">existing-client
+upgrade workflow</a>. Normal generation does not update client-owned
+request helpers or session controls.</p>
 <div class="section level2">
 <h2 id="review-schema-changes">1. Review schema changes<a class="anchor" aria-label="anchor" href="#review-schema-changes"></a>
 </h2>
@@ -209,7 +212,9 @@ apply.</p>
 <code class="sourceCode R"><span><span class="va">inspection</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/inspect_client.html">inspect_client</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
 <span><span class="va">inspection</span><span class="op">$</span><span class="va">coverage</span></span>
 <span><span class="va">inspection</span><span class="op">$</span><span class="va">manual_exports</span></span>
-<span><span class="va">inspection</span><span class="op">$</span><span class="va">diagnostics</span></span></code></pre></div>
+<span><span class="va">inspection</span><span class="op">$</span><span class="va">diagnostics</span></span>
+<span><span class="va">inspection</span><span class="op">$</span><span class="va">helpers</span></span>
+<span><span class="va">inspection</span><span class="op">$</span><span class="va">protected_sources</span></span></code></pre></div>
 <p>Coverage counts files and declarations, not passing tests or working
 endpoints. Selected unsupported operations remain in totals. Manual
 exported wrappers are separate from the schema denominator and still
