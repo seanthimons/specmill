@@ -78,7 +78,7 @@ schema_report_operations <- function(path, policy) {
           operation = operation,
           parameters = item$parameters,
           servers = item$servers %or% document$servers,
-          security = operation$security %or% document$security,
+          security = operation[['security']] %or% document[['security']],
           host = document$host,
           basePath = document$basePath,
           schemes = document$schemes

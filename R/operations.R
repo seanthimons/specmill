@@ -629,9 +629,9 @@ read_operations <- function(files, policy = list()) {
               body_encoding = body_encoding,
               body_example = body_example,
               security = if ('security' %in% names(op)) {
-                op$security
+                op[['security']]
               } else {
-                document$security
+                document[['security']]
               },
               security_schemes = security_schemes,
               source = normalizePath(file, winslash = '/'),

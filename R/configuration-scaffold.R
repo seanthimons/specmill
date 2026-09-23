@@ -303,10 +303,10 @@ configuration_proposal <- function(
     length(
       document$components$securitySchemes %or% document$securityDefinitions
     ) ||
-      !is.null(document$security) ||
+      !is.null(document[['security']]) ||
       any(vapply(
         parsed$operations,
-        function(op) !is.null(op$security),
+        function(op) !is.null(op[['security']]),
         logical(1)
       ))
   ) {
