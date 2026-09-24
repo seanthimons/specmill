@@ -210,8 +210,8 @@ Render examples offline; mark real API calls `eval=FALSE` or use fixed examples
 that do not contact services.
 
 For **specmill's own site**, `_pkgdown.yml` defines navigation and
-`.github/workflows/pkgdown.yml` builds on pull requests and publishes on the
-configured default-branch pushes or manual dispatch. Local build command:
+`.github/workflows/pkgdown.yaml` builds on pull requests and publishes through
+GitHub Actions Pages after default-branch pushes or manual dispatch. Local build command:
 
 ```{r specmill-site, eval=FALSE}
 pkgdown::build_site(preview = FALSE)
