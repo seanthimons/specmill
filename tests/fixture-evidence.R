@@ -91,6 +91,7 @@ fixture_evidence_acceptance <- function() {
   parameter$schema$enum <- list('2', 3)
   stopifnot(inputs(read(parameter))$value == 3)
   for (value in list(FALSE, 0, '')) {
+    parameter$allowEmptyValue <- TRUE
     parameter$schema <- list(
       type = if (is.logical(value)) {
         'boolean'
@@ -103,6 +104,36 @@ fixture_evidence_acceptance <- function() {
     parameter['example'] <- list(value)
     stopifnot(isTRUE(all.equal(inputs(read(parameter))$value, value)))
   }
+  parameter$allowEmptyValue <- FALSE
+  fails(inputs(read(parameter)))
+  parameter$example <- NULL
+  parameter$schema <- list(type = 'string', default = '')
+  parsed <- read(parameter)
+  fails(inputs(parsed))
+  stopifnot(!length(inputs(parsed, mode = 'minimal')))
+  eval(
+    parse(
+      text = specmill::render_operation(
+        parsed$operations[[1L]],
+        list(helper = 'request')
+      )
+    ),
+    runtime
+  )
+  # Omitting a defaulted argument activates its default, not wire omission.
+  stopifnot(inherits(tryCatch(runtime$sample(), error = identity), 'error'))
+  stopifnot(is.null(runtime$sample(value = NULL)$query$value))
+  stopifnot(
+    inputs(parsed, list(sample = list(value = 'reviewed')))$value == 'reviewed'
+  )
+  parameter$schema <- list(type = 'string', examples = list('plural hint'))
+  stopifnot(inputs(read(parameter, version = '3.1.0'))$value == 'example')
+  parameter$schema$default <- 'default'
+  stopifnot(inputs(read(parameter, version = '3.1.0'))$value == 'default')
+  parameter$schema$example <- 'singular hint'
+  stopifnot(inputs(read(parameter, version = '3.1.0'))$value == 'singular hint')
+  parameter$schema$example <- 2
+  fails(inputs(read(parameter, version = '3.1.0')))
   parameter$schema <- list(type = 'string', nullable = TRUE)
   parameter['example'] <- list(NULL)
   stopifnot(
