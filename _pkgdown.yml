@@ -15,6 +15,7 @@ articles:
   navbar: Maintain a client
   contents:
   - configuration
+  - hooks
   - testing
   - maintenance
   - troubleshooting
@@ -23,6 +24,7 @@ reference:
   contents:
   - initialize_client
   - configure_client
+  - configure_hooks
   - configure_apis
   - load_project
   - generate_client

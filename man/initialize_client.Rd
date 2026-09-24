@@ -35,6 +35,6 @@ input validation and authentication still apply, and returned requests may
 contain credentials. Verbose messages contain method and HTTP status only.
 Multi-API clients share one set of controls. Existing helpers and clients require
 manual adoption; regeneration never overwrites client-owned runtime files.}
-\seealso{\href{https://seanthimons.github.io/specmill/articles/specmill.html}{Step-by-step guide}.}
+\seealso{\code{configure_hooks} for optional client-owned pre/post execution. \href{https://seanthimons.github.io/specmill/articles/specmill.html}{Step-by-step guide}.}
 
 \note{Service YAML includes explicit operation allowlists and editable names, including unsupported operations. Name collisions and unsupported transports require review before wrapper generation; initialization does not resolve them. Inspect attr(result, 'configuration')$diagnostics, or preview with configure_client() before initialization.}

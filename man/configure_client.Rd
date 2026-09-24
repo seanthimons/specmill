@@ -24,7 +24,7 @@ configure_client(root, schema, package = NULL,
 
 Existing files are never overwritten, even if originally generated. Only matching reviewed names, including deliberate operation-level name overrides, are carried into the proposal; other existing settings remain untouched. Review changes and manually incorporate the desired YAML edits. Apply with no new files is a no-op. This is initial scaffolding, not automatic schema-refresh reconciliation. No helper, package metadata, wrappers, or tests are created by this function; use initialize_client for a new package.}
 \note{Schema copies retain the source format and extension; YAML inputs do not create converted JSON sidecars. For a reviewed multi-API data frame, the proposal contains one apis/<api>.yml per included API. Each file holds shared schema, selection, helper, authentication and default settings plus nested tag groups. Groups inherit API settings and cannot re-enable project- or API-excluded methods or paths. Existing flat service files remain supported.}
-\seealso{\code{initialize_client}, \code{generate_client}, \code{load_project}}
+\seealso{\code{configure_hooks} for optional client-owned pre/post execution. \code{initialize_client}, \code{generate_client}, \code{load_project}}
 \examples{
 schema <- system.file('catalogue/schema.json', package = 'specmill')
 proposal <- configure_client(tempfile(), schema, package = 'catalogueclient')
