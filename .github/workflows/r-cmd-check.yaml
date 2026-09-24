@@ -1,0 +1,23 @@
+name: R-CMD-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: r-cmd-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  r-cmd-check:
+    name: R CMD check
+    # Pinned to the baseline v1.0.0 commit. Dependabot bumps this.
+    uses: seanthimons/baseline/.github/workflows/r-cmd-check.yaml@0a2a80a6d045ffbdacedd59e35dce1497e2acfc1 # v1.0.0
+    with:
+      matrix: '[{"os":"ubuntu-latest","r":"release"},{"os":"windows-latest","r":"release"}]'
+      setup-air: true

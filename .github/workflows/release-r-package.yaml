@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-type:
+        description: Version component to bump
+        type: choice
+        options: [patch, minor, major, dev]
+        default: patch
+      dry-run:
+        description: Build and check only; do not publish
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Release
+    permissions:
+      contents: write
+    uses: seanthimons/baseline/.github/workflows/release-r-package.yaml@0a2a80a6d045ffbdacedd59e35dce1497e2acfc1 # v1.0.0
+    with:
+      version-type: ${{ inputs.version-type }}
+      dry-run: ${{ inputs.dry-run }}
+      notes-mode: autonewsmd
+      news-postprocess-script: dev/build_news.R
+    secrets:
+      # Fine-grained PAT with Contents read/write on specmill, from an account
+      # allowed to push to main. Add before using this workflow.
+      RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
