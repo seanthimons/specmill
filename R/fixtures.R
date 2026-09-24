@@ -148,13 +148,7 @@ fixture_value <- function(schema, override = NULL) {
     }
     stop('Explicit null fixture is not nullable')
   }
-  value <- if (!missing(override)) {
-    override
-  } else {
-    schema$example %or%
-      schema$default %or%
-      schema$enum[[1L]]
-  }
+  value <- if (!missing(override)) override else NULL
   if (is.null(value)) {
     value <- switch(
       schema$type,
@@ -263,13 +257,22 @@ operation_fixtures <- function(
       lapply(parameters, function(p) {
         tryCatch(
           {
-            if (p$name %in% names(overrides[[op$name]])) {
+            value <- if (p$name %in% names(overrides[[op$name]])) {
               fixture_value(p$schema, overrides[[op$name]][[p$name]])
             } else if ('example' %in% names(p$example)) {
               fixture_value(p$schema, p$example$example)
             } else {
               fixture_value(p$schema)
             }
+            if (
+              p$location == 'query' &&
+                !isTRUE(p$allow_empty_value) &&
+                is.character(value) &&
+                any(!nzchar(value))
+            ) {
+              stop('Empty query parameter: ', p$name)
+            }
+            value
           },
           error = function(e) {
             problem <- Filter(
