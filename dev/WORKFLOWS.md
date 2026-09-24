@@ -4,7 +4,7 @@ The R CMD check caller runs on main pushes, pull requests, and manual dispatch.
 It checks Windows and Linux with Air installed. The pkgdown caller builds the
 site on pull requests and deploys after main pushes or published releases.
 
-Shared checks use caller stubs from [baseline v1.0.0](https://github.com/seanthimons/baseline/tree/0a2a80a6d045ffbdacedd59e35dce1497e2acfc1), pinned to that full commit:
+Shared checks use caller stubs from [baseline v1.0.0](https://github.com/seanthimons/baseline/tree/0a2a80a6d045ffbdacedd59e35dce1497e2acfc1), pinned to that full commit except for the R CMD check caller, which pins the [TESTTHAT_PARALLEL fix](https://github.com/seanthimons/baseline/pull/1):
 
 - `gitleaks.yaml`: full-history scans on main pushes, main pull requests, manual runs, and Mondays at 06:43 UTC. The default-rule `.gitleaks.toml` is copied from baseline; the existing narrow `.gitleaksignore` stays in use.
 - `commit-lint.yaml`: commit subjects, PR titles, and branch names on all pull requests.
