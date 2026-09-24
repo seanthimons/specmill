@@ -106,6 +106,22 @@ full schema validity or live-service correctness.
 | Plan/input changed during generation | Stop concurrent edits/writers, make callbacks deterministic, then replan |
 | HTTP failure | Diagnose authentication, input, request construction, schema drift, runtime behavior, and service status separately |
 
+When upstream operation IDs collide, `read_operations()` lists each conflicting
+name and every method/path using it. Its `policy = list(names = list(...))`
+example can be passed to `read_operations()` after reviewing the names.
+For a generated client, `initialize_client()` writes configuration and returns
+collision diagnostics in `attr(result, 'configuration')$diagnostics`. Edit the
+affected service YAML `names:` map before generation. For example:
+
+```yaml
+names:
+  GET /qaAnnualPerformanceEvaluations/bySite: qa_annual_performance_evaluations_by_site
+  GET /qaAnnualPerformanceEvaluations/byPQAO: qa_annual_performance_evaluations_by_pqao
+```
+
+`configure_client()` preserves these reviewed names. Run `generate_client()`
+with `mode = 'apply'`, then `mode = 'check'` to verify regeneration.
+
 A normal return from `check` only establishes freshness for reconciled output.
 Inspect diagnostics and run tests separately. For reproducible generation, pin
 the toolkit and formatter alongside schema, policy, and fixture versions.

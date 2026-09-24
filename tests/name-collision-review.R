@@ -19,6 +19,23 @@ name_collision_review_acceptance <- function() {
   )
   write <- function() jsonlite::write_json(document, schema, auto_unbox = TRUE)
   write()
+  collision_error <- function(expr) {
+    error <- tryCatch(force(expr), error = identity)
+    stopifnot(inherits(error, 'error'))
+    conditionMessage(error)
+  }
+  message <- collision_error(specmill::read_operations(schema))
+  stopifnot(all(vapply(
+    c(
+      'default_api_reaction_map_DL_options',
+      'OPTIONS /reaction/map_DL',
+      'OPTIONS /reaction/batchsearch',
+      'policy = list(names = list(',
+      'service YAML names:'
+    ),
+    function(text) grepl(text, message, fixed = TRUE),
+    logical(1)
+  )))
   created <- specmill::initialize_client(
     root,
     schema,
@@ -43,6 +60,16 @@ name_collision_review_acceptance <- function() {
   ))
 
   service <- file.path(root, 'apis/default_api.yml')
+  message <- collision_error(specmill::generate_client(
+    root,
+    config = 'specmill.yml',
+    mode = 'apply'
+  ))
+  stopifnot(
+    grepl('OPTIONS /reaction/map_DL', message, fixed = TRUE),
+    grepl('OPTIONS /reaction/batchsearch', message, fixed = TRUE),
+    !file.exists(file.path(root, 'R/default_api.R'))
+  )
   text <- readLines(service)
   text <- sub(
     'OPTIONS /reaction/batchsearch: default_api_reaction_map_DL_options',
@@ -95,6 +122,13 @@ name_collision_review_acceptance <- function() {
     artifacts = 'wrappers'
   )
   wrappers <- readLines(file.path(root, 'R/default_api.R'))
+  specmill::generate_client(
+    root,
+    config = 'specmill.yml',
+    mode = 'apply',
+    artifacts = 'wrappers'
+  )
+  stopifnot(identical(wrappers, readLines(file.path(root, 'R/default_api.R'))))
   stopifnot(all(vapply(
     vapply(reviewed$operations, `[[`, character(1), 'name'),
     function(name) any(startsWith(wrappers, paste0(name, ' <- function('))),
@@ -178,6 +212,58 @@ name_collision_review_acceptance <- function() {
     'chet_batchsearch_options' %in%
       vapply(multi_reviewed$operations, `[[`, character(1), 'name')
   )
+  # AQS duplicate IDs, multiple collision groups, and a reserved suffix.
+  aqs <- operation()
+  aqs$operationId <- 'qaAnnualPerformanceEvaluationsBySite'
+  document <- list(
+    swagger = '2.0',
+    info = list(title = 'AQS naming', version = '1'),
+    paths = list(
+      '/qaAnnualPerformanceEvaluations/bySite' = list(get = aqs),
+      '/qaAnnualPerformanceEvaluations/byPQAO' = list(get = aqs),
+      '/other' = list(get = operation(), post = operation()),
+      '/reserved' = list(
+        get = modifyList(
+          aqs,
+          list(
+            operationId = 'qaAnnualPerformanceEvaluationsBySite_1'
+          )
+        )
+      )
+    )
+  )
+  write()
+  message <- collision_error(specmill::read_operations(schema))
+  keys <- c(
+    'GET /qaAnnualPerformanceEvaluations/bySite',
+    'GET /qaAnnualPerformanceEvaluations/byPQAO',
+    'GET /other',
+    'POST /other'
+  )
+  stopifnot(all(vapply(
+    keys,
+    function(key) {
+      grepl(key, message, fixed = TRUE)
+    },
+    logical(1)
+  )))
+  # Execute exactly the policy example printed in the error.
+  example <- strsplit(message, 'policy = ', fixed = TRUE)[[1L]][[2L]]
+  example <- strsplit(example, '.\nFor a generated client', fixed = TRUE)[[
+    1L
+  ]][[1L]]
+  policy <- eval(parse(text = example))
+  parsed <- specmill::read_operations(schema, policy)
+  stopifnot(
+    length(parsed$operations) == 5L,
+    !anyDuplicated(names(parsed$operations))
+  )
+  policy$names[[keys[[1L]]]] <- 'qa_annual_performance_evaluations_by_site'
+  policy$names[[keys[[2L]]]] <- 'qa_annual_performance_evaluations_by_pqao'
+  parsed <- specmill::read_operations(schema, policy)
+  stopifnot(all(unlist(policy$names) %in% names(parsed$operations)))
+  selected <- specmill::read_operations(schema, list(include = keys[[1L]]))
+  stopifnot(length(selected$operations) == 1L)
   cat(
     'Name collisions: complete evidence, reviewed-name persistence and stable generation passed.\n'
   )
