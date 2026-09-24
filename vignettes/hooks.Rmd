@@ -1,0 +1,349 @@
+---
+title: "Configure and maintain runtime hooks"
+description: "Scaffold a client-owned executor, configure pre/post chains, test them offline, and regenerate safely."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Configure and maintain runtime hooks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', message = FALSE)
+```
+
+Runtime hooks customize generated wrappers before the request helper runs and
+after it returns. Use them to normalize identifiers, construct service-specific
+payloads, skip requests, or shape results. Your client owns the executor and the
+hook functions. Installing the client does not require specmill.
+
+This guide uses the development version of specmill with `configure_hooks()`.
+Follow [installation and package setup](specmill.html) first. An older installed
+version may support hook configuration without providing this setup command.
+The examples below run offline when this article is built.
+
+## Create the optional executor
+
+For a new client, initialize the package first. For an existing package, use its
+root and proceed directly to `configure_hooks()`.
+
+```{r initialize}
+schema <- system.file('catalogue/schema.json', package = 'specmill', mustWork = TRUE)
+root <- tempfile('hook-client-')
+specmill::initialize_client(
+  root, schema, package = 'hookclient', title = 'Hook Example Client',
+  author = list(given = 'Example', family = 'Maintainer', email = 'you@example.org'),
+  license = 'MIT + file LICENSE', base_url = 'https://example.invalid'
+)
+proposal <- specmill::configure_hooks(root)
+proposal$changes
+proposal$missing_imports
+```
+
+Planning does not write files. The proposed executor reads YAML using `yaml`, so
+add that package to the client's `DESCRIPTION` under `Imports`. Keep all existing
+imports. In this disposable example we make the metadata edit programmatically:
+
+```{r dependency}
+metadata <- read.dcf(file.path(root, 'DESCRIPTION'))
+metadata[1, 'Imports'] <- paste(metadata[1, 'Imports'], 'yaml', sep = ', ')
+write.dcf(metadata, file.path(root, 'DESCRIPTION'))
+specmill::configure_hooks(root, mode = 'apply')
+```
+
+The setup creates two files:
+
+| File | Responsibility |
+|---|---|
+| `R/hook_registry.R` | Client-owned `read_hook_config()` and `run_hook()` executor |
+| `inst/hooks.yml` | Ordered chains keyed by public wrapper name |
+
+No endpoint is enabled automatically. Setup refuses to overwrite customized
+files or add a second executor when it finds those function names elsewhere.
+If you already have a ComptoxR-style executor, keep it and configure its callback
+and YAML path instead. You do not need this scaffold.
+
+The generated executor adds a `yaml` runtime dependency. It adds no dependency
+on specmill, ComptoxR, or a separate hook framework. Commit the executor and edit
+it as ordinary client code. It reads the installed YAML on each stage, without
+a cache. If this becomes measurable overhead, add a cache and an explicit reload
+function in the client.
+
+## Enable pre-request and post-response hooks
+
+In `apis/default.yml`, add these fields at service level:
+
+```yaml
+hook_callback: run_hook
+hook_config: inst/hooks.yml
+```
+
+For a multi-API configuration, place them inside each participating entry under
+`groups`, alongside that group's `names` and `operations`. They are not API
+container or project-level fields. Each group can reference the same registry.
+Hook keys are the final public R names, including any API prefix or rename.
+
+```{r service}
+service_path <- file.path(root, 'apis/default.yml')
+service <- yaml::read_yaml(service_path, handlers = list(seq = function(x) x))
+service$hook_callback <- 'run_hook'
+service$hook_config <- 'inst/hooks.yml'
+yaml::write_yaml(service, service_path)
+```
+
+Write the declarations in `inst/hooks.yml`:
+
+```{r declarations}
+writeLines(c(
+  'get_item:',
+  '  pre_request: [normalize_item_id]',
+  '  post_response: [extract_item]'
+), file.path(root, 'inst/hooks.yml'))
+```
+
+Define those functions in a separate client-owned file. This example trims the
+identifier, rejects an empty identifier, and unwraps a response's `data` field.
+The post-hook preserves prepared requests returned by the client's dry-run mode.
+
+```{r functions}
+writeLines(c(
+  'normalize_item_id <- function(state) {',
+  '  id <- trimws(state$params$item_id)',
+  '  if (length(id) != 1L || is.na(id) || !nzchar(id)) stop("Supply an item ID")',
+  '  state$params$item_id <- id',
+  '  state',
+  '}',
+  '',
+  'extract_item <- function(state) {',
+  '  if (inherits(state$result, "httr2_request")) return(state$result)',
+  '  state$result$data',
+  '}'
+), file.path(root, 'R/hooks_items.R'))
+```
+
+Define functions before generating wrappers. Generation validates referenced
+hook names and stages. Keep these functions out of generated endpoint files.
+
+You can instead use inline `hooks` in the service configuration:
+
+```yaml
+hook_callback: run_hook
+hooks:
+  get_item:
+    pre_request: [normalize_item_id]
+    post_response: [extract_item]
+```
+
+Choose `hooks` or `hook_config`, never both. Inline configuration tells the
+**generator** which stages to emit; it does not supply the runtime executor's
+registry. The scaffold reads `inst/hooks.yml`, so using that same file through
+`hook_config` avoids maintaining two declarations. A custom executor may store
+its policy in R instead.
+
+## Understand the call contract
+
+The generated flow is:
+
+```text
+public input validation
+  -> run_hook(name, "pre_request", list(params = params))
+  -> update public parameters from returned state$params
+  -> request helper
+  -> run_hook(name, "post_response", list(result = result, params = params))
+  -> final return value
+```
+
+Hooks run once around the helper call. They do not run once per internal retry,
+page, or batch. Transport errors propagate; `post_response` is not an error or
+finally handler and does not receive failed HTTP responses automatically.
+
+Each hook receives one argument. Pre-hooks return a list containing `params`.
+Only returned parameter names matching public inputs replace those inputs.
+To remove a value, retain its name with a `NULL` value, for example
+`state$params['language'] <- list(NULL)`. Dropping a name leaves the original
+public value unchanged. New internal request values require explicit mappings.
+
+Chains run in declaration order, with each return value passed to the next hook.
+In a post-chain, keep returning state until the final hook returns the public
+result, or deliberately make later hooks accept the earlier hook's result type.
+The scaffold supplies no automatic wrapping between hooks and does not inject
+ComptoxR's `fn_name` or `hook_type` fields into state.
+
+Schema-derived public inputs are validated before the pre-hook. A hook cannot
+repair an input already rejected by that validation. Use explicit `inputs` and
+request mappings when you need a different public contract; see
+[operation settings](configuration.html#operation-settings). After transformation,
+hooks own validation of their constructed values; there is no second schema
+validation gate. Request-helper transport checks still apply.
+
+## Generate and test offline
+
+Preview, inspect the generated source, then apply:
+
+```{r generate}
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+wrapper <- readLines(file.path(root, 'R/get_item.R'))
+cat(grep('run_hook|skip_request|changed|result <- api_request', wrapper, value = TRUE), sep = '\n')
+```
+
+This check loads client functions into an isolated environment and replaces the
+HTTP helper with a recording function. It also points the config reader at the
+source YAML. That replacement is for this source-level test only; the installed
+executor uses `system.file()` to find its own package's registry.
+
+```{r offline-test}
+client <- new.env(parent = baseenv())
+for (path in list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)) {
+  sys.source(path, envir = client)
+}
+client$read_hook_config <- function() yaml::read_yaml(file.path(root, 'inst/hooks.yml'))
+calls <- list()
+client$api_request <- function(...) {
+  calls[[length(calls) + 1L]] <<- list(...)
+  list(data = list(id = 'abc', title = 'Example'))
+}
+stopifnot(identical(client$get_item(' abc ')$id, 'abc'))
+stopifnot(identical(calls[[1]]$path_params$item_id, 'abc'))
+error <- tryCatch(client$get_item('   '), error = identity)
+stopifnot(inherits(error, 'client_hook_error'), length(calls) == 1L)
+stopifnot(identical(error$hook_name, 'normalize_item_id'))
+specmill::check_client_hooks(
+  root, yaml::read_yaml(file.path(root, 'inst/hooks.yml')),
+  hooks = client
+)
+specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+```
+
+Keep an equivalent check in your client's tests. Test chain order, representative
+results, empty/invalid inputs, and any skip behavior you implement. Generated
+request contract tests cover helper calls; they do not establish that your
+response transformation is correct. A failed hook stops the chain and carries
+its original condition in `error$parent`, plus the function, stage, and hook name.
+
+Before distributing the package, install it and exercise the executor from the
+installed namespace. This catches missing `inst/hooks.yml`, missing runtime
+imports, and accidental development dependencies:
+
+```{r installed-check, eval=FALSE}
+# Run in a shell, replacing the path with your client root:
+# R CMD INSTALL path/to/client
+# R CMD build path/to/client
+# R CMD check --no-manual hookclient_0.0.0.9000.tar.gz
+
+library(hookclient)
+stopifnot(file.exists(system.file('hooks.yml', package = 'hookclient')))
+hookclient::hookclient_dry_run(TRUE)
+request <- hookclient::get_item(' abc ')
+stopifnot(inherits(request, 'httr2_request'))
+hookclient::hookclient_dry_run(FALSE)
+```
+
+## Pass extra state or skip a request
+
+A pre-hook can return `state$skip_request <- TRUE` and a `state$result` value.
+By default the wrapper returns that result immediately, without a helper or
+post-hook call. To format cached or locally computed results through the
+post-chain, configure the operation:
+
+```yaml
+operations:
+  GET /items/{item_id}:
+    post_on_skip: true
+    post_state: hook_state
+```
+
+`post_on_skip` and `post_state` are independent options. Both require a configured
+pre-hook. `post_state: hook_state` passes the entire pre-state to the post-hook,
+with `result` replaced by the helper result or skipped result. It is useful for
+metadata such as the original identifier or a local lookup outcome.
+
+For example, replace the pre-hook above with this version and regenerate after
+adding the operation settings:
+
+```r
+normalize_item_id <- function(state) {
+  state$original_id <- state$params$item_id
+  state$params$item_id <- trimws(state$params$item_id)
+  id <- state$params$item_id
+  if (length(id) != 1L || is.na(id) || !nzchar(id)) stop('Supply an item ID')
+  if (identical(state$params$item_id, 'local')) {
+    state$skip_request <- TRUE
+    state$result <- list(data = list(id = 'local', title = 'Local item'))
+  }
+  state
+}
+```
+
+The skipped result deliberately has the same shape as the helper result, so
+`extract_item()` handles both. The wrapper does not stop a pre-chain early when
+a hook sets `skip_request`; later pre-hooks still run.
+
+To send data constructed outside `params`, provide explicit helper mappings:
+
+```yaml
+operations:
+  POST /items:
+    request:
+      arguments:
+        method: {value: POST}
+        path: {value: /items}
+        path_params: {value: {}}
+        query: {value: {}}
+        body: {from: [hook_state, request, body]}
+```
+
+This requires a pre-hook on `create_item` that sets `state$request$body`.
+`request.arguments` specifies the helper call, so include all arguments your
+helper requires. For additional public options use `extra_parameters` in the
+operation configuration, not ComptoxR's legacy `extra_params` inside hook YAML.
+See [request bindings](configuration.html) for authentication, headers, body,
+and options mappings. Hook configuration alone does not change a signature.
+
+## Regeneration and ownership
+
+Commit the schema, project/service YAML, runtime YAML, hook functions, executor,
+generated wrappers, documentation, tests, and `.specmill/manifest.json` together.
+Use `configure_hooks()` for initial setup only. It refuses to overwrite edits.
+Use `generate_client()` to reconcile wrappers after configuration changes.
+
+| Change | Required development step |
+|---|---|
+| Edit a hook function body | Run its tests; reinstall or reload client code |
+| Reorder or replace names in an already emitted stage | Validate and regenerate/check; reinstall to ship the updated YAML |
+| Add the first hook or remove the last hook for a stage | Regenerate; the wrapper must gain or lose that stage call |
+| Change parameters, request mappings, skip behavior, or post-state settings | Regenerate and test the resulting helper calls and hook state |
+| Rename a public wrapper | Update the hook YAML key and service names together, then regenerate |
+| Update a schema | Review schema and configuration differences, regenerate, then run checks |
+| Update the executor template in specmill | Review and manually adopt changes in the client-owned executor |
+
+The executor reads the installed registry. Editing `inst/hooks.yml` in a source
+checkout does not change an already installed package. Reinstall and start a
+fresh R session when verifying shipped behavior. Do not edit the installed
+library as your development workflow.
+
+```r
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+# Review the proposed changes and diagnostics.
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+```
+
+`check` makes no changes and fails for stale or protected generated output.
+Normal generation retains the client-owned executor, hook functions, and runtime
+YAML. If a generated file was edited by hand, move that customization into hooks
+or operation configuration and follow the [ownership workflow](maintenance.html).
+Do not bypass protection by deleting the manifest.
+
+Declarations for missing wrappers in an external `hook_config` file appear in
+`unused_hooks`. Review them after renaming or removing operations; they can be
+intentional when several services share one registry. Referenced hook functions
+must exist in client source. Generation validates wiring, not the behavior of
+every possible return value.
+
+For a ComptoxR migration, keep its existing executor, merge rules, error classes,
+and state conventions. Set `hook_callback` to that executor and `hook_config` to
+its registry. Specmill reads pre/post declarations from that file; legacy extra
+parameters and request templates need corresponding operation configuration.
+See [adopt an existing client](existing-clients.html).

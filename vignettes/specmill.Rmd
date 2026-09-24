@@ -64,6 +64,9 @@ with an unused permanent directory such as `C:/projects/catalogueclient` or
 schema. Save the schema's origin and version in your project; generation reads
 local files and does not download or refresh schemas.
 
+For request and response customization, the [runtime hooks guide](hooks.html)
+covers optional client-owned executor setup, examples, testing, and regeneration.
+
 ## 3. Initialize the package
 
 Preview names, selection, and diagnostics before writing the package:
