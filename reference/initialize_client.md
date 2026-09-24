@@ -115,6 +115,7 @@ regeneration never overwrites client-owned runtime files.
 
 ## See also
 
+`configure_hooks` for optional client-owned pre/post execution.
 [Step-by-step
 guide](https://seanthimons.github.io/specmill/articles/specmill.html).
 

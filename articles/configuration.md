@@ -986,6 +986,11 @@ serialization, JSON, and forms use `true`/`false`.
 
 ## Development callbacks versus runtime hooks
 
+For a complete example, see [Configure and maintain runtime
+hooks](https://seanthimons.github.io/specmill/articles/hooks.md),
+including optional executor scaffolding, installed-client behavior, and
+regeneration.
+
 A development binding callback receives one operation while generating
 source:
 
