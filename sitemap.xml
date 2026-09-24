@@ -4,6 +4,7 @@
 <url><loc>https://seanthimons.github.io/specmill/LICENSE-text.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/configuration.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/existing-clients.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/articles/hooks.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/index.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/maintenance.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/specmill.html</loc></url>
@@ -18,6 +19,7 @@
 <url><loc>https://seanthimons.github.io/specmill/reference/check_requests.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/configure_apis.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/configure_client.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/reference/configure_hooks.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/coverage_report.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/credential_status.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/generate_client.html</loc></url>

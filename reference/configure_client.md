@@ -100,6 +100,7 @@ remain supported.
 
 ## See also
 
+`configure_hooks` for optional client-owned pre/post execution.
 `initialize_client`, `generate_client`, `load_project`
 
 ## Examples

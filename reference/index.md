@@ -6,6 +6,8 @@
   : Initialize a new client package
 - [`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
   : Propose editable configuration from a schema
+- [`configure_hooks()`](https://seanthimons.github.io/specmill/reference/configure_hooks.md)
+  : Scaffold a client-owned runtime hook executor
 - [`configure_apis()`](https://seanthimons.github.io/specmill/reference/configure_apis.md)
   : Review and save names and servers for multiple APIs
 - [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)

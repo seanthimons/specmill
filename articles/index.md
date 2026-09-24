@@ -22,6 +22,12 @@
   A field-by-field guide to project and service YAML, mappings, and
   callbacks.
 
+- [Configure and maintain runtime
+  hooks](https://seanthimons.github.io/specmill/articles/hooks.md):
+
+  Scaffold a client-owned executor, configure pre/post chains, test them
+  offline, and regenerate safely.
+
 - [Write and run contract
   tests](https://seanthimons.github.io/specmill/articles/testing.md):
 

@@ -252,6 +252,7 @@ report](https://github.com/seanthimons/specmill/blob/main/dev/audits/pagination/
 
 | Guide | What it covers |
 |----|----|
+| [Runtime hooks](https://seanthimons.github.io/specmill/articles/hooks.html) | Client-owned executor setup, pre/post examples, testing, and regeneration |
 | [Configuration](https://seanthimons.github.io/specmill/articles/configuration.html) | Services, selection, public inputs, request mappings, hooks, and documentation |
 | [Testing](https://seanthimons.github.io/specmill/articles/testing.html) | Independent fixtures, generated tests, and transport checks |
 | [Maintenance and CI](https://seanthimons.github.io/specmill/articles/maintenance.html) | Schema updates, commands, reports, and client documentation sites |
@@ -282,6 +283,8 @@ trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).
   : Initialize a new client package
 - [`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
   : Propose editable configuration from a schema
+- [`configure_hooks()`](https://seanthimons.github.io/specmill/reference/configure_hooks.md)
+  : Scaffold a client-owned runtime hook executor
 - [`configure_apis()`](https://seanthimons.github.io/specmill/reference/configure_apis.md)
   : Review and save names and servers for multiple APIs
 - [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)
@@ -365,6 +368,12 @@ trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).
 
   A field-by-field guide to project and service YAML, mappings, and
   callbacks.
+
+- [Configure and maintain runtime
+  hooks](https://seanthimons.github.io/specmill/articles/hooks.md):
+
+  Scaffold a client-owned executor, configure pre/post chains, test them
+  offline, and regenerate safely.
 
 - [Write and run contract
   tests](https://seanthimons.github.io/specmill/articles/testing.md):

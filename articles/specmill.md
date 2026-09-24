@@ -65,6 +65,11 @@ replace `schema` with your downloaded JSON, YAML, or YML schema. Save
 the schema’s origin and version in your project; generation reads local
 files and does not download or refresh schemas.
 
+For request and response customization, the [runtime hooks
+guide](https://seanthimons.github.io/specmill/articles/hooks.md) covers
+optional client-owned executor setup, examples, testing, and
+regeneration.
+
 ## 3. Initialize the package
 
 Preview names, selection, and diagnostics before writing the package:
