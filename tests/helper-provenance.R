@@ -153,9 +153,7 @@ helper_provenance_acceptance <- function() {
         'retained'
     )
   }
-  # A selected addition cannot disappear inside an intentionally retained group.
-  settings$defaults$file <- 'R/group.R'
-  yaml::write_yaml(settings, api_file)
+  unlink(file.path(root, 'R/kept.R'))
   run <- function(mode) {
     specmill::generate_client(
       root,
@@ -164,6 +162,30 @@ helper_provenance_acceptance <- function() {
       artifacts = 'wrappers'
     )
   }
+  # Generated stable output stays owned: mapping changes rewrite it and
+  # check reports drift until they are applied.
+  settings$defaults$file <- 'R/owned.R'
+  settings$defaults$docs <- list(lifecycle = 'stable')
+  yaml::write_yaml(settings, api_file)
+  run('apply')
+  owned_file <- file.path(root, 'R/owned.R')
+  stopifnot(specmill:::has_protected_lifecycle(owned_file))
+  owned_before <- specmill:::file_text(owned_file)
+  settings$defaults$docs$title <- 'Owned stable wrapper'
+  yaml::write_yaml(settings, api_file)
+  stale <- tryCatch(run('check'), error = identity)
+  stopifnot(inherits(stale, 'error'))
+  run('apply')
+  stopifnot(
+    !identical(specmill:::file_text(owned_file), owned_before),
+    grepl('Owned stable wrapper', specmill:::file_text(owned_file))
+  )
+  run('check')
+  settings$defaults$docs <- NULL
+  unlink(owned_file)
+  # A selected addition cannot disappear inside an intentionally retained group.
+  settings$defaults$file <- 'R/group.R'
+  yaml::write_yaml(settings, api_file)
   run('apply')
   group_file <- file.path(root, 'R/group.R')
   write('# lifecycle::badge("stable")', group_file, append = TRUE)

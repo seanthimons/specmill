@@ -642,8 +642,7 @@ generate_client <- function(
         old_file <- substring(definition$file_path, nchar(root) + 2L)
         owned_move <- !is.null(previous[[old_file]]) &&
           identical(portable_output_path(root, old_file), file) &&
-          identical(output_hash(definition$file_path), previous[[old_file]]$hash) &&
-          !has_protected_lifecycle(definition$file_path)
+          identical(output_hash(definition$file_path), previous[[old_file]]$hash)
         if (owned_move) portable_rename_ids <- union(portable_rename_ids, op$id)
         if (!owned_move) stop(
           'Wrapper collides with an existing definition in ',
@@ -667,6 +666,7 @@ generate_client <- function(
           baseenv()
         )))
         if (has_protected_lifecycle(path) &&
+            !owned_output(path, previous[[file]]) &&
             !identical(original_formals, candidate_formals)) {
           stop('Protected implementation public contract differs: ', op$name)
         }
@@ -826,6 +826,7 @@ generate_client <- function(
     }
     definitions <- tg_find_function_defs_in_file(path)
     if (has_protected_lifecycle(path) &&
+        !owned_output(path, previous[[file]]) &&
         length(setdiff(source_names[[file]], names(definitions)))) {
       stop('Protected grouped source cannot add selected implementations: ', file)
     }
@@ -843,8 +844,7 @@ generate_client <- function(
           setequal(setdiff(ids, excluded), owners[[file]]) &&
           length(definitions) == length(ids) &&
           all(unmapped_names %in% names(definitions)) &&
-          identical(output_hash(path), previous[[file]]$hash) &&
-          !has_protected_lifecycle(path)
+          identical(output_hash(path), previous[[file]]$hash)
       ) {
         extra_names <- character()
         grouped_rename_ids <- union(grouped_rename_ids, ids)
@@ -926,8 +926,7 @@ generate_client <- function(
       original <- project_path(root, path)
       if (
         file.exists(original) &&
-          (!identical(output_hash(original), previous[[path]]$hash) ||
-            (endsWith(path, '.R') && has_protected_lifecycle(original)))
+          !identical(output_hash(original), previous[[path]]$hash)
       ) {
         stop('Protected original blocks configured rename: ', path)
       }
