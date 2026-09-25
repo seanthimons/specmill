@@ -7,10 +7,11 @@
 ^\.worktrees$
 ^\.git$
 ^\.gitleaksignore$
+^\.gitleaks\.toml$
 ^\.github$
 ^_pkgdown\.yml$
 ^docs$
 ^\.docs-lib$
 ^artifacts$
 ^dev$
-^specmill-logo\.jpg$
+^specmill_hex\.png$

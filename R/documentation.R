@@ -283,10 +283,12 @@ document_output <- function(root, desired, remove = character()) {
         'R/[^ ,\\r\\n]+\\.R'
       )))
       selected_sources <- intersect(sources, names(owners))
-      if (!length(selected_sources)) {
+      # Client-owned sources need initial help pages too. Existing pages remain
+      # client-owned, including edits made directly to Rd rather than roxygen.
+      if (!length(selected_sources) && file.exists(project_path(root, name))) {
         next
       }
-      if (length(setdiff(sources, selected_sources))) {
+      if (length(selected_sources) && length(setdiff(sources, selected_sources))) {
         stop('Mixed documentation includes an unowned source: ', name)
       }
       owners[[name]] <- unique(unlist(
