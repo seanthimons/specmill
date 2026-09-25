@@ -1,6 +1,6 @@
 ---
 title: "Adopt an existing client"
-description: "Preserve an existing package's interface and runtime, with a ComptoxR workflow."
+description: "Connect an existing R package to specmill while preserving its public interface and runtime behavior."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Adopt an existing client}
@@ -18,7 +18,6 @@ baseline, and begin with one representative operation.
 
 If your project already has `specmill.yml`, use [the upgrade workflow](#update-an-already-configured-client)
 below or [the maintenance loop](maintenance.html).
-ComptoxR maintainers can use the commands at the end of this guide.
 
 ## 1. Record the existing contract
 
@@ -251,61 +250,3 @@ You can keep an existing helper when no newly selected feature requires changes.
 Generated wrappers need no specmill runtime dependency. Adding a companion that
 calls `specmill::paginated()`, `paginated_links()`, or `batched()` does require
 specmill in the client's Imports.
-
-## ComptoxR: use the maintained integration
-
-These commands use the specmill integration in ComptoxR. Use the
-`CONTRIBUTING.md` in your checkout for its current branch/release policy.
-
-From the ComptoxR root, install its checksum-pinned toolkit:
-
-```{r comptox-install, eval=FALSE}
-source('dev/install_toolkit.R')
-install_toolkit()
-```
-
-The project declares Air **0.9.0** in `specmill.yml`; install that exact formatter
-before generation. The project selects CTX, EPI, and separate Chemi service files.
-`dev/specmill_callbacks.R` supplies development callbacks; `inst/hook_config.yml`
-remains the runtime hook policy. Keep these rather than substituting the
-simplified examples above.
-
-Routine regeneration does not apply a naming convention again. ComptoxR's
-reviewed `names` maps keep public functions such as `ct_chemical_detail_search`
-unchanged. When previewing configuration for newly catalogued endpoints, pass
-`name_case = 'snake_case'` to `configure_client()`. Multi-API proposals apply
-the API prefix first, so an API named `ct` proposes names beginning with `ct_`.
-Review and copy new mappings into the existing service YAML before regeneration.
-
-Preview and check from a terminal:
-
-```sh
-Rscript dev/generate_stubs.R --plan
-Rscript dev/generate_tests.R --dry-run
-Rscript dev/generate_stubs.R --check --rebuild=ct --rebuild=chemi --rebuild=epi
-Rscript dev/generate_tests.R --check
-Rscript dev/check_hook_config.R
-Rscript dev/check_public_api.R
-```
-
-After reviewing changes, regenerate:
-
-```sh
-Rscript dev/generate_stubs.R --rebuild=ct --rebuild=chemi --rebuild=epi
-Rscript dev/generate_tests.R --generate
-```
-
-Repeat the checks and run the checkout's targeted offline tests. The thin commands
-load callbacks for you. For interactive R, use their sourceable functions with
-explicit arguments:
-
-```{r comptox-interactive, eval=FALSE}
-source('dev/generate_stubs.R')
-generate_stubs_main(args = '--plan')
-source('dev/generate_tests.R')
-generate_tests_main(args = '--dry-run')
-```
-
-The compatibility `--rebuild` flags are accepted, but YAML selection defines the
-operation set; the flags do not override it. Preserve ComptoxR's runtime,
-production selection, custom roxygen tags, and public-boundary policy.
