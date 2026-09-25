@@ -1,4 +1,4 @@
-# specmill <img src="man/figures/logo.jpg" align="right" width="160" alt="specmill hex logo" />
+# specmill <img src="man/figures/logo.png" align="right" width="160" alt="specmill hex logo" />
 
 Generate and maintain R API clients from local OpenAPI schemas and reviewed YAML
 policy. specmill creates wrappers, documentation, and request contract tests while
