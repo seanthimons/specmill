@@ -1,0 +1,3 @@
+"file","tier","stresses","url","sha256","version"
+"echo-all-data.swagger.json","epa","frozen inventory","https://echodata.epa.gov/echo/swaggerx.swagger_json?p_prefix=ECHO","638d51d2e53aeee357c0944e55f390c1f86464655b8b41c7da3738dbee3f52e6","2.0"
+"echo-sdwis.swagger.json","epa","frozen inventory","https://echodata.epa.gov/echo/swaggerx.swagger_json?p_prefix=SDW","11018915d7acd25f309c0a02da649a30f08f8e57ddfa08b15096885ff96067b0","2.0"

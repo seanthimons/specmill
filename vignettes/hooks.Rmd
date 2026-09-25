@@ -60,11 +60,11 @@ The setup creates two files:
 
 No endpoint is enabled automatically. Setup refuses to overwrite customized
 files or add a second executor when it finds those function names elsewhere.
-If you already have a ComptoxR-style executor, keep it and configure its callback
+If your client already has a hook executor, keep it and configure its callback
 and YAML path instead. You do not need this scaffold.
 
 The generated executor adds a `yaml` runtime dependency. It adds no dependency
-on specmill, ComptoxR, or a separate hook framework. Commit the executor and edit
+on specmill or a separate hook framework. Commit the executor and edit
 it as ordinary client code. It reads the installed YAML on each stage, without
 a cache. If this becomes measurable overhead, add a cache and an explicit reload
 function in the client.
@@ -166,8 +166,9 @@ public value unchanged. New internal request values require explicit mappings.
 Chains run in declaration order, with each return value passed to the next hook.
 In a post-chain, keep returning state until the final hook returns the public
 result, or deliberately make later hooks accept the earlier hook's result type.
-The scaffold supplies no automatic wrapping between hooks and does not inject
-ComptoxR's `fn_name` or `hook_type` fields into state.
+The scaffold passes each hook's return value unchanged to the next hook.
+If your hooks need the wrapper name or stage in their state, add those fields
+in your client-owned executor.
 
 Schema-derived public inputs are validated before the pre-hook. A hook cannot
 repair an input already rejected by that validation. Use explicit `inputs` and
@@ -297,7 +298,7 @@ operations:
 This requires a pre-hook on `create_item` that sets `state$request$body`.
 `request.arguments` specifies the helper call, so include all arguments your
 helper requires. For additional public options use `extra_parameters` in the
-operation configuration, not ComptoxR's legacy `extra_params` inside hook YAML.
+operation configuration.
 See [request bindings](configuration.html) for authentication, headers, body,
 and options mappings. Hook configuration alone does not change a signature.
 
@@ -342,8 +343,8 @@ intentional when several services share one registry. Referenced hook functions
 must exist in client source. Generation validates wiring, not the behavior of
 every possible return value.
 
-For a ComptoxR migration, keep its existing executor, merge rules, error classes,
-and state conventions. Set `hook_callback` to that executor and `hook_config` to
-its registry. Specmill reads pre/post declarations from that file; legacy extra
-parameters and request templates need corresponding operation configuration.
+When adopting an existing client, preserve its hook executor, merge rules, error
+classes, and state conventions. Set `hook_callback` to that executor and `hook_config` to
+its registry. specmill reads pre/post declarations from that file. Additional
+public parameters and request mappings belong in operation configuration.
 See [adopt an existing client](existing-clients.html).

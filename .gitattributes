@@ -1,1 +1,5 @@
 inst/schema-stress/natural-products.json -text
+*.yml text eol=lf
+*.yaml text eol=lf
+*.R text eol=lf
+*.md text eol=lf

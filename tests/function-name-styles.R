@@ -131,12 +131,21 @@ function_name_styles_acceptance <- function() {
   build <- local({
     old <- setwd(build_dir)
     on.exit(setwd(old))
+    r_tests <- Sys.getenv('R_TESTS', unset = NA_character_)
+    on.exit(
+      if (is.na(r_tests)) {
+        Sys.unsetenv('R_TESTS')
+      } else {
+        Sys.setenv(R_TESTS = r_tests)
+      },
+      add = TRUE
+    )
+    Sys.setenv(R_TESTS = '')
     system2(
       file.path(R.home('bin'), 'R'),
-      c('CMD', 'build', '--no-manual', '--no-build-vignettes', root),
+      c('CMD', 'build', '--no-manual', '--no-build-vignettes', shQuote(root)),
       stdout = TRUE,
-      stderr = TRUE,
-      env = 'R_TESTS='
+      stderr = TRUE
     )
   })
   if (!is.null(attr(build, 'status'))) {

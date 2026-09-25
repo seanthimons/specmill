@@ -141,7 +141,9 @@ audit_testing_specs <- function(
                 d$classification
               },
               code = if (is.null(d$code)) '' else d$code,
-              reason = d$reason
+              reason = d$reason,
+              source_location = if (is.null(d$source_location)) '' else d$source_location,
+              guidance = if (is.null(d$guidance)) '' else d$guidance
             )
           }
           for (op in parsed$operations) {
@@ -173,7 +175,9 @@ audit_testing_specs <- function(
               stage = if (nzchar(error)) stage else 'passed',
               classification = '',
               code = '',
-              reason = error
+              reason = error,
+              source_location = '',
+              guidance = ''
             )
           }
           list(summary = summary, operations = records)
@@ -219,13 +223,50 @@ audit_testing_specs <- function(
     file.path(output, 'sources.csv'),
     row.names = FALSE
   )
-  if (is.null(native_root) && report) {
-    report_testing_specs(prepared, output)
+  if (report) {
+    report_testing_diagnostics(
+      dplyr::bind_rows(summaries), dplyr::bind_rows(operations), output
+    )
+    if (is.null(native_root)) report_testing_specs(prepared, output)
   }
   invisible(list(
     schemas = dplyr::bind_rows(summaries),
     operations = dplyr::bind_rows(operations)
   ))
+}
+
+report_testing_diagnostics <- function(schemas, operations, output) {
+  lines <- c(
+    '# Build diagnostics', '',
+    'Parser-blocked operations were not generated. Source defects require a corrected upstream schema.',
+    'Missing request contracts require service-owned evidence. No schema repairs or encoding guesses were applied.',
+    'Capability gaps describe generator limitations; they do not establish that a schema is invalid.',
+    'Only the first parser blocker per operation is reported; correcting it may expose another.',
+    'Offline smoke passes do not establish live service compatibility.', ''
+  )
+  for (field in intersect(c('conversion_error', 'parser_error', 'worker_error'), names(schemas))) {
+    for (i in which(!is.na(schemas[[field]]) & nzchar(schemas[[field]]))) {
+      lines <- c(lines, paste0('- Document ', schemas$file[[i]], ' [', field, ']: ', schemas[[field]][[i]]))
+    }
+  }
+  blocked <- operations[which(operations$stage != 'passed'), , drop = FALSE]
+  lines <- c(lines, '', paste('Operation failures or blockers:', nrow(blocked)), '')
+  for (i in seq_len(nrow(blocked))) {
+    row <- blocked[i, ]
+    classification <- if (identical(row$reason, 'Ambiguous body media type')) {
+      'review_required: request media unspecified'
+    } else if (nzchar(row$classification)) row$classification else row$stage
+    guidance <- if (identical(row$reason, 'Ambiguous body media type')) {
+      'Obtain a service-owned media declaration; do not infer JSON or an upload encoding.'
+    } else row$guidance
+    lines <- c(lines,
+      paste0('- ', row$file, ': `', row$key, '` [', classification, ']: ', row$reason),
+      if (nzchar(row$source_location)) paste0('  Source: `', row$source_location, '`'),
+      if (nzchar(guidance)) paste0('  ', guidance)
+    )
+  }
+  writeLines(c(lines, '', 'Details: [operations.csv](operations.csv), [schemas.csv](schemas.csv), [sources.csv](sources.csv).'),
+    file.path(output, 'DIAGNOSTICS.md'))
 }
 
 report_testing_specs <- function(

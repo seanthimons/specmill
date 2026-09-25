@@ -1,2 +1,8 @@
 # Verified SHA-256 of the archived Envirofacts schema, not a credential.
 03aa43fae1ad57847d3a262663e8d81eb517611f:dev/audits/open-issues-20260922/schema-hashes.csv:generic-api-key:16
+# Verified SHA-256 values in the public schema source ledger, not credentials.
+a2efeeaccdbc8c7d726acf77b76641d950c21136:dev/audits/current-corpus/additional/sources.csv:generic-api-key:4
+a2efeeaccdbc8c7d726acf77b76641d950c21136:dev/audits/current-corpus/additional/sources.csv:generic-api-key:9
+a2efeeaccdbc8c7d726acf77b76641d950c21136:dev/audits/current-corpus/additional/sources.csv:generic-api-key:30
+a2efeeaccdbc8c7d726acf77b76641d950c21136:dev/audits/current-corpus/additional/sources.csv:generic-api-key:31
+a2efeeaccdbc8c7d726acf77b76641d950c21136:dev/audits/current-corpus/additional/sources.csv:generic-api-key:34

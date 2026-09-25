@@ -168,6 +168,10 @@ and stops if the chosen candidate fails them; it does not silently try a lower
 priority value. Examples never become public function defaults and are never
 evaluated as R code. Required public arguments remain required.
 
+Automatic selection uses the singular `example` field. Plural `examples`
+collections require a reviewed override to select a member. Fixture creation also rejects empty query values
+unless the parameter declares `allowEmptyValue: true`, as generated wrappers do.
+
 The default fixture policy exercises optional inputs. Explicit `mode = "minimal"`
 omits optional arguments, optional bodies, and optional object fields during
 fallback synthesis. Explicit overrides and declared examples remain validated.

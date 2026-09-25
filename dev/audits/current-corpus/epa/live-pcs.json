@@ -1,0 +1,57 @@
+{
+  "note": "Direct read-only HTTP requests, bypassing generated-wrapper validation. Numeric 2 serializes as text p_cs=2; this does not distinguish server-side numeric and string types.",
+  "results": [
+    {
+      "checked_at": "2026-09-21T20:54:57.261363+00:00",
+      "method": "GET",
+      "url": "https://echodata.epa.gov/echo/echo_rest_services.get_facilities",
+      "input_p_cs": 2,
+      "encoded_parameters": "output=JSON&p_zip=20001&responseset=1&p_cs=2",
+      "request_content_type": null,
+      "http_status": 200,
+      "message": "Success",
+      "query_rows": "16",
+      "echoed_p_cs": []
+    },
+    {
+      "checked_at": "2026-09-21T20:54:57.265502+00:00",
+      "method": "POST",
+      "url": "https://echodata.epa.gov/echo/echo_rest_services.get_facilities",
+      "input_p_cs": 2,
+      "encoded_parameters": "output=JSON&p_zip=20001&responseset=1&p_cs=2",
+      "request_content_type": "application/x-www-form-urlencoded",
+      "http_status": 200,
+      "message": "Success",
+      "query_rows": "16",
+      "echoed_p_cs": []
+    },
+    {
+      "checked_at": "2026-09-21T20:54:57.479958+00:00",
+      "method": "GET",
+      "url": "https://echodata.epa.gov/echo/echo_rest_services.get_facility_info",
+      "input_p_cs": 2,
+      "encoded_parameters": "output=JSON&p_zip=20001&responseset=1&p_cs=2",
+      "request_content_type": null,
+      "http_status": 200,
+      "message": "Success",
+      "query_rows": "16",
+      "echoed_p_cs": [
+        "2"
+      ]
+    },
+    {
+      "checked_at": "2026-09-21T20:54:57.512314+00:00",
+      "method": "POST",
+      "url": "https://echodata.epa.gov/echo/echo_rest_services.get_facility_info",
+      "input_p_cs": 2,
+      "encoded_parameters": "output=JSON&p_zip=20001&responseset=1&p_cs=2",
+      "request_content_type": "application/x-www-form-urlencoded",
+      "http_status": 200,
+      "message": "Success",
+      "query_rows": "16",
+      "echoed_p_cs": [
+        "2"
+      ]
+    }
+  ]
+}

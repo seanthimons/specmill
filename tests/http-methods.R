@@ -208,7 +208,11 @@ http_methods_acceptance <- function() {
     selected$operations[[1L]]$method == 'TRACE',
     identical(
       grep('^export\\(', readLines(file.path(root, 'NAMESPACE')), value = TRUE),
-      'export(call_trace)'
+      c(
+        'export(call_trace)',
+        'export(methodsclient_dry_run)',
+        'export(methodsclient_run_verbose)'
+      )
     )
   )
   run('check')

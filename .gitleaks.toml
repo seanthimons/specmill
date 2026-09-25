@@ -1,0 +1,4 @@
+title = "Specmill secret scanning"
+
+[extend]
+useDefault = true

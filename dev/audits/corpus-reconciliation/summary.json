@@ -1,0 +1,42 @@
+[
+  {
+    "group": "base",
+    "run": "before",
+    "parser": 53,
+    "passed": 470,
+    "fixture": 25
+  },
+  {
+    "group": "base",
+    "run": "after",
+    "parser": 53,
+    "passed": 470,
+    "fixture": 25
+  },
+  {
+    "group": "epa",
+    "run": "before",
+    "passed": 432,
+    "fixture": 6
+  },
+  {
+    "group": "epa",
+    "run": "after",
+    "passed": 432,
+    "fixture": 6
+  },
+  {
+    "group": "additional",
+    "run": "before",
+    "passed": 4009,
+    "parser": 1215,
+    "fixture": 125
+  },
+  {
+    "group": "additional",
+    "run": "after",
+    "passed": 4063,
+    "parser": 1215,
+    "fixture": 71
+  }
+]
