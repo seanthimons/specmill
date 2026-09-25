@@ -19,7 +19,7 @@ HTTP requests, authentication, response parsing, and runtime hooks.
 
 This walkthrough creates a temporary catalogue client and checks it without
 contacting a service. Every evaluated example runs when this guide is built.
-For an existing package, including ComptoxR, use
+For an existing package, use
 [Adopt an existing client](existing-clients.html) instead of initialization.
 
 ## 1. Install the development tools
