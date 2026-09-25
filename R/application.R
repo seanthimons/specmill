@@ -40,6 +40,9 @@ text_hash <- function(text) {
 output_hash <- function(path) {
   if (file.exists(path)) text_hash(file_text(path)) else NULL
 }
+owned_output <- function(path, entry) {
+  !is.null(entry) && identical(output_hash(path), entry$hash)
+}
 
 recovery_journals <- function(root) {
   directories <- list.files(
@@ -209,7 +212,14 @@ apply_files <- function(
     verified <- !exists ||
       (!is.null(previous) && identical(before[[i]], previous$hash)) ||
       (is.null(previous) && !is.null(owned) && isTRUE(owned(path)))
-    protected <- exists && grepl('\\.R$', name) && has_protected_lifecycle(path)
+    # A badge protects client code, not output the manifest owns unchanged.
+    owned_hash <- exists &&
+      !is.null(previous) &&
+      identical(before[[i]], previous$hash)
+    protected <- exists &&
+      !owned_hash &&
+      grepl('\\.R$', name) &&
+      has_protected_lifecycle(path)
     adoptable[[i]] <<- verified && !protected
     action <- if (same) {
       'unchanged'
