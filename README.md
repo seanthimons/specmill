@@ -1,4 +1,4 @@
-# specmill <img src="man/figures/logo.jpg" align="right" width="160" alt="specmill hex logo" />
+# specmill <img src="man/figures/logo.png" align="right" width="160" alt="specmill hex logo" />
 
 Generate and maintain R API clients from local OpenAPI schemas and reviewed YAML
 policy. specmill creates wrappers, documentation, and request contract tests while
@@ -22,7 +22,7 @@ reviewed version.
 
 - **New package:** [Start a new API client](https://seanthimons.github.io/specmill/articles/specmill.html)
   walks through initialization, generation, and an offline verification.
-- **Existing package or ComptoxR:** [Adopt an existing client](https://seanthimons.github.io/specmill/articles/existing-clients.html)
+- **Existing package:** [Adopt an existing client](https://seanthimons.github.io/specmill/articles/existing-clients.html)
   explains preserving public functions, helpers, hooks, and generated-file ownership.
 
 In the development version, `initialize_client()` writes service YAML from schema
@@ -227,10 +227,8 @@ Generation uses local JSON or YAML schemas and reports unsupported operations ex
 Reviewing generated output and passing helper-call tests do not establish live
 API compatibility. See the guides for the supported subset and verification steps.
 
-The compatibility engine was extracted from ComptoxR under its MIT license
-(Sean Thimons). specmill was previously named apipak and wrapmaint.
-
-ComptoxR's maintained integration uses `specmill.yml` and the checksum-pinned
-specmill release. See [the existing-client guide](https://seanthimons.github.io/specmill/articles/existing-clients.html).
+The compatibility engine originated in ComptoxR, an R API client, and was
+extracted under its MIT license, copyright Sean Thimons. specmill was previously
+named apipak and wrapmaint.
 
 Maintainers: [builds, releases, and the new-schema trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).

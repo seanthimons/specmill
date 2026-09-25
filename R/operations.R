@@ -740,7 +740,39 @@ read_operations <- function(files, policy = list()) {
   }
   operation_names <- vapply(operations, `[[`, character(1), 'name')
   if (anyDuplicated(operation_names)) {
-    stop('Operation name collision; supply reviewed name overrides')
+    collisions <- unique(operation_names[duplicated(operation_names)])
+    keys <- vapply(operations, `[[`, character(1), 'key')
+    details <- vapply(
+      collisions,
+      function(name) {
+        paste0(
+          '  ',
+          name,
+          ':\n    ',
+          paste(keys[operation_names == name], collapse = '\n    ')
+        )
+      },
+      character(1)
+    )
+    conflicting <- which(operation_names %in% collisions)
+    examples <- make.unique(operation_names, sep = '_')
+    overrides <- vapply(
+      conflicting,
+      function(i) {
+        paste0('  ', r_literal(keys[[i]]), ' = ', r_literal(examples[[i]]))
+      },
+      character(1)
+    )
+    stop(
+      'Operation name collision; supply reviewed name overrides:\n',
+      paste(details, collapse = '\n'),
+      '\nReview these example names and pass policy = list(names = list(\n',
+      paste(overrides, collapse = ',\n'),
+      '\n)).\nFor a generated client, edit the service YAML names: map ',
+      'written by initialize_client() before calling generate_client(). ',
+      'configure_client() reports collisions for review.',
+      call. = FALSE
+    )
   }
   names(operations) <- operation_names
   unsupported <- vapply(diagnostics, `[[`, character(1), 'id')

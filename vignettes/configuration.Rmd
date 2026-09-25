@@ -381,14 +381,14 @@ form bodies. Pass a character vector for query arrays and a raw vector for binar
 uploads. JSON is selected when offered alongside other supported alternatives.
 
 Initialization proposes authentication configuration for schemas declaring
-security schemes. For example, to use ComptoxR's environment-variable convention:
+security schemes. Map each scheme to an environment variable for its token:
 
 ```yaml
 authentication:
-  api_key: ctx_api_key
+  api_key: CATALOGUE_API_KEY
 ```
 
-Here `api_key` must be the security-scheme name in the schema; `ctx_api_key` is
+Here `api_key` must be the security-scheme name in the schema; `CATALOGUE_API_KEY` is
 the environment variable chosen by the package maintainer. Keep real tokens
 out of this file. Generation writes `R/api_auth.R` with documented helpers:
 
@@ -412,8 +412,8 @@ Each alternative is an OR choice; all schemes inside one choice are required.
 Missing credentials fail before any HTTP request. OAuth login, refresh, and OpenID
 Connect are deferred; an unsupported-only requirement produces a clear runtime error.
 
-Omitting `authentication` preserves existing client-owned authentication, including
-ComptoxR's helper. Explicit custom request mappings also retain responsibility for
+Omitting `authentication` preserves existing client-owned authentication.
+Explicit custom request mappings also retain responsibility for
 authentication. Adding the field opts into generated authentication.
 
 Existing helpers need optional `headers`, `query_serialization`, `body_media`, `auth`,
@@ -756,8 +756,8 @@ upstream deprecation is not automatic permission to change a wrapper's lifecycle
 Protected lifecycle badges can prevent later regeneration.
 
 `tags` supports metadata such as `family`, `keywords`, `seealso`, `aliases`, and
-client custom tags with existing roxygen handlers. ComptoxR's `apiStage` handler
-remains client code. Executable and structural built-in tags are rejected.
+client custom tags with existing roxygen handlers. Maintain custom handlers in
+your client package. Executable and structural built-in tags are rejected.
 Schema descriptions are treated as prose, not executable configuration.
 
 ## Group endpoint families

@@ -184,6 +184,22 @@ new_client_acceptance <- function() {
   specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
   stopifnot(identical(original, hashes()))
   specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  controls <- paste0('temporarycatalogue_', c('dry_run', 'run_verbose'))
+  control_docs <- file.path(root, 'man', paste0(controls, '.Rd'))
+  stopifnot(all(file.exists(control_docs)))
+  for (i in seq_along(controls)) {
+    stopifnot(
+      paste0('export(', controls[[i]], ')') %in% readLines(file.path(root, 'NAMESPACE')),
+      paste0('\\alias{', controls[[i]], '}') %in% readLines(control_docs[[i]])
+    )
+  }
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  # Client edits to both the scaffold and its help survive documentation runs.
+  options_file <- file.path(root, 'R/api_options.R')
+  cat('\n# Client customization.\n', file = options_file, append = TRUE)
+  cat('\n% Client help customization.\n', file = control_docs[[1L]], append = TRUE)
+  control_hashes <- tools::md5sum(c(options_file, control_docs))
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   # Text inputs keep the same fingerprint after a Git line-ending conversion.
   writeBin(charToRaw('word\r\nlist\r\n'), file.path(root, 'inst/WORDLIST'))
   writeBin(
@@ -195,6 +211,7 @@ new_client_acceptance <- function() {
   specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     identical(applied, hashes()),
+    identical(control_hashes, tools::md5sum(names(control_hashes))),
     file.exists(file.path(root, 'man/get_item.Rd')),
     !file.exists(marker)
   )

@@ -1,0 +1,23 @@
+name: R-CMD-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: r-cmd-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  r-cmd-check:
+    name: R CMD check
+    # Baseline PR #1 fixes an empty TESTTHAT_PARALLEL value on Linux.
+    uses: seanthimons/baseline/.github/workflows/r-cmd-check.yaml@11de13b4212c6ef8b3c3dffae706798551a7e06d
+    with:
+      matrix: '[{"os":"ubuntu-latest","r":"release"},{"os":"windows-latest","r":"release"}]'
+      setup-air: true
