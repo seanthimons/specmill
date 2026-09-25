@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.6 (2026-09-25)
+
+#### Bug fixes
+
+- keep manifest-owned stable wrappers generated
+  ([f3fca33](https://github.com/seanthimons/specmill/tree/f3fca3340c9ed063302320f99ec4d2e30d4bab7b))
+
+#### Other changes
+
+- release v0.1.6 \[skip ci\]
+  ([7ad3149](https://github.com/seanthimons/specmill/tree/7ad3149d8848c973d0a124abe466acc53696482d))
+
+Full set of changes:
+[`v0.1.5...v0.1.6`](https://github.com/seanthimons/specmill/compare/v0.1.5...v0.1.6)
+
 ## specmill 0.1.5 (2026-09-25)
 
 #### New features
@@ -212,7 +227,7 @@
 #### Other changes
 
 - release v0.1.5 \[skip ci\]
-  ([1d19f08](https://github.com/seanthimons/specmill/tree/1d19f086baef7b2fd4ba926a7fe276f7b4c89293))
+  ([93fa257](https://github.com/seanthimons/specmill/tree/93fa257c82eac712d8eff8396233f83207b35f55))
 - package base proving-ground schemas for transfer
   ([d800dc2](https://github.com/seanthimons/specmill/tree/d800dc20c9f36fc62471d9a5d1ff91b20f61d9fd))
 - retire the Petstore build script
