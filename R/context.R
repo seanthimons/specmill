@@ -58,6 +58,13 @@ dry_run_env <- function(package) {
   paste0(toupper(gsub('[^A-Za-z0-9]', '_', package)), '_DRY_RUN')
 }
 
+# YAML/JSON read whole numbers as integers; number schemas render as doubles (100, not 100L).
+number_value <- function(value, schema) {
+  type <- if (identical(schema$type, 'array')) schema$items$type else schema$type
+  if (is.integer(value) && identical(type, 'number')) storage.mode(value) <- 'double'
+  value
+}
+
 # Escape schema strings as R literals. No remote text is evaluated as code.
 r_literal <- function(x) {
   text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
