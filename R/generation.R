@@ -93,7 +93,7 @@ render_operation <- function(operation, spec) {
               )
             }
           }
-          paste0(' = ', r_literal(value))
+          paste0(' = ', r_literal(number_value(value, params[[i]]$schema)))
         } else {
           ''
         }

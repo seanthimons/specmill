@@ -273,7 +273,7 @@ mappings_acceptance <- function() {
     '  GET /items/{item_id}:',
     '    inputs:',
     '      query: {type: character, required: true}',
-    '      limit: {type: numeric, default: 0.0}',
+    '      limit: {type: numeric, default: 0}',
     '    request:',
     '      arguments:',
     '        amount: {from: [params, limit]}',

@@ -190,6 +190,9 @@ operation_documentation <- function(op, policy = list()) {
                       }
                       value <- unlist(value, use.names = FALSE)
                     }
+                    if (!is.na(index)) {
+                      value <- number_value(value, op$parameters[[index]]$schema)
+                    }
                     paste0(
                       name,
                       ' = ',
