@@ -65,8 +65,14 @@ number_value <- function(value, schema) {
   value
 }
 
+# Functions deparse() can emit for data values.
+literal_constructors <- c(
+  'c', 'list', 'structure', 'character', 'integer', 'numeric', 'double',
+  'logical', '-', ':'
+)
+
 # Escape schema strings as R literals. No remote text is evaluated as code.
-r_literal <- function(x) {
+r_literal <- function(x, guard = TRUE) {
   text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
   if (any(utf8ToInt(enc2utf8(text)) > 127L)) {
     # Quoted names allow Unicode escapes; backtick names do not in R.
@@ -81,7 +87,9 @@ r_literal <- function(x) {
   }
   # Data constructors must not resolve through generated functions named list/c.
   # Language objects remain caller-owned expressions (development callbacks).
-  if (!is.language(x) && !is.function(x) && is.call(str2lang(text))) {
+  # Public formals and examples guard only when the package shadows one of
+  # literal_constructors (operation$guard_literals).
+  if (guard && !is.language(x) && !is.function(x) && is.call(str2lang(text))) {
     paste0('base::evalq(', text, ', envir = base::baseenv())')
   } else {
     text

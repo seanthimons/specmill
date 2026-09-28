@@ -93,7 +93,10 @@ render_operation <- function(operation, spec) {
               )
             }
           }
-          paste0(' = ', r_literal(number_value(value, params[[i]]$schema)))
+          paste0(' = ', r_literal(
+            number_value(value, params[[i]]$schema),
+            guard = isTRUE(operation$guard_literals)
+          ))
         } else {
           ''
         }
@@ -541,6 +544,10 @@ generate_client <- function(
   if (any(operation_names %in% controls)) {
     stop('Operation collides with a client session control; supply a name override')
   }
+  # Public literals stay plain unless the package shadows a base data constructor.
+  guard_literals <- any(
+    c(operation_names, names(runtime_definitions)) %in% literal_constructors
+  )
   if (
     !is.null(config) &&
       any(!reserved %in% c(names(runtime_definitions), 'run_hook'))
@@ -569,6 +576,7 @@ generate_client <- function(
     for (op in parsed[[i]]$operations) {
       configured <- configure_operation(op, service)
       op <- configured$operation
+      op$guard_literals <- guard_literals
       operation_spec <- configured$spec
       op$batch <- if (is.null(op$body)) {
         list()
