@@ -546,7 +546,8 @@ generate_client <- function(
   }
   # Public literals stay plain unless the package shadows a base data constructor.
   guard_literals <- any(
-    c(operation_names, names(runtime_definitions)) %in% literal_constructors
+    c(operation_names, names(runtime_definitions), imported_names(root)) %in%
+      literal_constructors
   )
   if (
     !is.null(config) &&

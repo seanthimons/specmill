@@ -117,6 +117,27 @@ mappings_acceptance <- function() {
     gsub('"', "'", specmill::render_operation(guarded, configured$spec)),
     fixed = TRUE
   ))
+  # Imports shadow base in namespace lookup, so they set the guard too.
+  guarded_with <- function(imports) {
+    root <- tempfile('guard-')
+    dir.create(root)
+    fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
+    stopifnot(all(file.copy(list.files(fixture, full.names = TRUE), root, recursive = TRUE)))
+    write(imports, file.path(root, 'NAMESPACE'), append = TRUE)
+    writeLines(c('config_version: 1', 'services: [service.yml]'), file.path(root, 'specmill.yml'))
+    writeLines(c(
+      'id: s', 'schemas: {files: [schema.json]}', 'helper: catalogue_request', 'operations:',
+      '  GET /items/{item_id}:', '    extra_parameters:', '      format: {type: character, default: [compact, tidy]}'
+    ), file.path(root, 'service.yml'))
+    specmill::generate_client(root, config = 'specmill.yml', mode = 'apply', artifacts = 'wrappers')
+    any(grepl('format = base::evalq(', readLines(file.path(root, 'R/get_item.R')), fixed = TRUE))
+  }
+  stopifnot(
+    !guarded_with(character()),
+    !guarded_with('import(stats, except = c(filter))'),
+    guarded_with('importFrom(shadowpkg, c)'),
+    guarded_with('import(uninstalledshadowpkg)')
+  )
   stopifnot(identical(fn(' sample '), 'complete'))
   stopifnot(identical(
     calls,
