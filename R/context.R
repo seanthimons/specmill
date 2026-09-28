@@ -193,3 +193,20 @@ local_ref <- function(
   }
   value
 }
+
+# Names a client's NAMESPACE imports; imports shadow base in namespace lookup.
+# An uninstalled package imported whole is assumed to shadow every constructor.
+imported_names <- function(root) {
+  if (!file.exists(file.path(root, 'NAMESPACE'))) {
+    return(character())
+  }
+  imports <- parseNamespaceFile(basename(root), dirname(root))$imports
+  unlist(lapply(imports, function(entry) {
+    except <- if (identical(names(entry), c('', 'except'))) entry$except
+    if (length(entry) == 2L && is.null(except)) {
+      return(entry[[2L]])
+    }
+    exports <- tryCatch(getNamespaceExports(entry[[1L]]), error = function(e) literal_constructors)
+    setdiff(exports, except)
+  }))
+}
