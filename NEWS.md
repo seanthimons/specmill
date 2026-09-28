@@ -1,6 +1,40 @@
 
 
 
+## specmill 0.1.7 (2026-09-28)
+
+#### New features
+
+- propose operation mappings for hand-written wrappers
+  ([0a3dc8e](https://github.com/seanthimons/specmill/tree/0a3dc8e4e1992452b5051e9d1873a0b13b303363))
+- verify configured operations against hand-written wrappers
+  ([ec55290](https://github.com/seanthimons/specmill/tree/ec5529044232250e36284d6890b88d2edfdc12d7))
+
+#### Bug fixes
+
+- render public defaults and examples as plain data literals
+  ([6f957c2](https://github.com/seanthimons/specmill/tree/6f957c2f207f4a8a755fba65d3fb7e35b8d38267))
+- render whole-number defaults for number parameters as doubles
+  ([896f1a7](https://github.com/seanthimons/specmill/tree/896f1a7842b48e62df1bffc2f1e4a0ed2c8d589a))
+
+#### CI
+
+- cut a patch release on every merge to main
+  ([074f176](https://github.com/seanthimons/specmill/tree/074f176b2c0d134f3ba66bfb0da1c4e4be87a14f))
+
+#### Docs
+
+- use propose_mappings and verify_adoption in the adoption guide
+  ([135dbaf](https://github.com/seanthimons/specmill/tree/135dbaf0db0f05997f7fd8533149567d7e131dd8))
+
+#### Other changes
+
+- release v0.1.7 \[skip ci\]
+  ([0954e5d](https://github.com/seanthimons/specmill/tree/0954e5d533bbf0e0a0c30db07aeb4435a4209084))
+
+Full set of changes:
+[`v0.1.6...v0.1.7`](https://github.com/seanthimons/specmill/compare/v0.1.6...v0.1.7)
+
 ## specmill 0.1.6 (2026-09-25)
 
 #### Bug fixes
@@ -11,7 +45,7 @@
 #### Other changes
 
 - release v0.1.6 \[skip ci\]
-  ([7ad3149](https://github.com/seanthimons/specmill/tree/7ad3149d8848c973d0a124abe466acc53696482d))
+  ([66c5e1f](https://github.com/seanthimons/specmill/tree/66c5e1f4d5a8b1a24d4a4946a6d2c1efe9c68d10))
 
 Full set of changes:
 [`v0.1.5...v0.1.6`](https://github.com/seanthimons/specmill/compare/v0.1.5...v0.1.6)
