@@ -49,6 +49,9 @@ transport_arguments <- function(operation) {
 }
 
 render_operation <- function(operation, spec) {
+  guard <- literal_state$guard
+  literal_state$guard <- operation$guard_literals %or% TRUE
+  on.exit(literal_state$guard <- guard, add = TRUE)
   helper <- spec$helper
   callback <- spec$hook_callback %or% 'run_hook'
   if (operation$name %in% c(helper, callback)) {
@@ -93,10 +96,7 @@ render_operation <- function(operation, spec) {
               )
             }
           }
-          paste0(' = ', r_literal(
-            number_value(value, params[[i]]$schema),
-            guard = isTRUE(operation$guard_literals)
-          ))
+          paste0(' = ', r_literal(number_value(value, params[[i]]$schema)))
         } else {
           ''
         }
@@ -546,7 +546,8 @@ generate_client <- function(
   }
   # Public literals stay plain unless the package shadows a base data constructor.
   guard_literals <- any(
-    c(operation_names, names(runtime_definitions)) %in% literal_constructors
+    c(operation_names, names(runtime_definitions), imported_names(root)) %in%
+      literal_constructors
   )
   if (
     !is.null(config) &&
