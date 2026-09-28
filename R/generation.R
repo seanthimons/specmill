@@ -49,6 +49,9 @@ transport_arguments <- function(operation) {
 }
 
 render_operation <- function(operation, spec) {
+  guard <- literal_state$guard
+  literal_state$guard <- operation$guard_literals %or% TRUE
+  on.exit(literal_state$guard <- guard, add = TRUE)
   helper <- spec$helper
   callback <- spec$hook_callback %or% 'run_hook'
   if (operation$name %in% c(helper, callback)) {
@@ -93,10 +96,7 @@ render_operation <- function(operation, spec) {
               )
             }
           }
-          paste0(' = ', r_literal(
-            number_value(value, params[[i]]$schema),
-            guard = isTRUE(operation$guard_literals)
-          ))
+          paste0(' = ', r_literal(number_value(value, params[[i]]$schema)))
         } else {
           ''
         }

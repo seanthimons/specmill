@@ -72,7 +72,13 @@ literal_constructors <- c(
 )
 
 # Escape schema strings as R literals. No remote text is evaluated as code.
-r_literal <- function(x, guard = TRUE) {
+# ponytail: render_operation() sets the guard for its dynamic extent instead of
+# threading it through every renderer. Without generate_client()'s flag, or outside
+# render_operation(), literals stay guarded.
+literal_state <- new.env(parent = emptyenv())
+literal_state$guard <- TRUE
+
+r_literal <- function(x, guard = literal_state$guard) {
   text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
   if (any(utf8ToInt(enc2utf8(text)) > 127L)) {
     # Quoted names allow Unicode escapes; backtick names do not in R.
@@ -87,7 +93,7 @@ r_literal <- function(x, guard = TRUE) {
   }
   # Data constructors must not resolve through generated functions named list/c.
   # Language objects remain caller-owned expressions (development callbacks).
-  # Public formals and examples guard only when the package shadows one of
+  # Generated wrappers guard only when the package shadows one of
   # literal_constructors (operation$guard_literals).
   if (guard && !is.language(x) && !is.function(x) && is.call(str2lang(text))) {
     paste0('base::evalq(', text, ', envir = base::baseenv())')

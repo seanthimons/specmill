@@ -65,6 +65,8 @@ mappings_acceptance <- function() {
     operation,
     selected
   )
+  # generate_client() sets this flag; FALSE means nothing shadows a data constructor.
+  configured$operation$guard_literals <- FALSE
   env <- new.env(parent = baseenv())
   calls <- list()
   order <- character()
@@ -110,8 +112,9 @@ mappings_acceptance <- function() {
       NULL
     })
   ))
+  # Without the flag (standalone rendering), literals stay guarded.
   guarded <- configured$operation
-  guarded$guard_literals <- TRUE
+  guarded$guard_literals <- NULL
   stopifnot(grepl(
     "mode = base::evalq(c('wide', 'raw'), envir = base::baseenv())",
     gsub('"', "'", specmill::render_operation(guarded, configured$spec)),
@@ -130,7 +133,11 @@ mappings_acceptance <- function() {
       '  GET /items/{item_id}:', '    extra_parameters:', '      format: {type: character, default: [compact, tidy]}'
     ), file.path(root, 'service.yml'))
     specmill::generate_client(root, config = 'specmill.yml', mode = 'apply', artifacts = 'wrappers')
-    any(grepl('format = base::evalq(', readLines(file.path(root, 'R/get_item.R')), fixed = TRUE))
+    code <- unlist(lapply(list.files(file.path(root, 'R'), full.names = TRUE), readLines))
+    formal <- any(grepl('format = base::evalq(', code, fixed = TRUE))
+    # Generated bodies follow the same flag (inlined functions always stay wrapped).
+    stopifnot(identical(any(grepl('base::evalq(list(', code, fixed = TRUE)), formal))
+    formal
   }
   stopifnot(
     !guarded_with(character()),
