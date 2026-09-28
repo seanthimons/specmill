@@ -1,3 +1,24 @@
+# Copy a project, without Git metadata, to a temporary directory the caller removes.
+stage_project <- function(root) {
+  stage <- tempfile('specmill-adoption-')
+  dir.create(stage)
+  top <- setdiff(list.files(root, all.files = TRUE, no.. = TRUE), '.git')
+  if (!all(file.copy(file.path(root, top), stage, recursive = TRUE))) {
+    stop('Cannot stage the project for adoption checks')
+  }
+  stage
+}
+
+# The name bound by a top-level `name <- ...` or `name = ...` expression, else NULL.
+definition_name <- function(expr) {
+  if (
+    is.call(expr) && length(expr) == 3L && is.symbol(expr[[2L]]) &&
+      (identical(expr[[1L]], as.name('<-')) || identical(expr[[1L]], as.name('=')))
+  ) {
+    as.character(expr[[2L]])
+  }
+}
+
 # Verify configured operations against the hand-written wrappers they would replace.
 # Generation runs on a temporary copy, so the check covers exactly what apply writes.
 verify_adoption <- function(
@@ -49,20 +70,14 @@ verify_adoption <- function(
   }
 
   # Stage a copy without the candidate definitions (and their roxygen blocks), then generate.
-  stage <- tempfile('specmill-adoption-')
-  dir.create(stage)
+  stage <- stage_project(root)
   on.exit(unlink(stage, recursive = TRUE), add = TRUE)
-  top <- setdiff(list.files(root, all.files = TRUE, no.. = TRUE), '.git')
-  if (!all(file.copy(file.path(root, top), stage, recursive = TRUE))) {
-    stop('Cannot stage the project for adoption checks')
-  }
   whole_files <- character()
   for (file in unique(sources)) {
     exprs <- parse(file.path(root, file), keep.source = TRUE)
     ends <- vapply(attr(exprs, 'srcref'), function(x) x[[3L]], integer(1))
     selected <- vapply(exprs, function(expr) {
-      is.call(expr) && as.character(expr[[1L]]) %in% c('<-', '=') &&
-        is.symbol(expr[[2L]]) && as.character(expr[[2L]]) %in% names(definitions)
+      any(definition_name(expr) %in% names(definitions))
     }, logical(1))
     if (all(selected)) {
       whole_files <- c(whole_files, file)
@@ -130,6 +145,21 @@ verify_adoption <- function(
       'sample'
     )
   }
+  # roc_proc_text() ignores DESCRIPTION, and generated blocks always set @md or @noMd,
+  # so apply the client's markdown default to original blocks that set neither.
+  markdown <- isTRUE(roxygen2::load_options(root)$markdown)
+  markdown_blocks <- function(text) {
+    if (!markdown) {
+      return(text)
+    }
+    lines <- strsplit(text, '\n')[[1L]]
+    roxygen <- grepl("^#'", lines)
+    block <- cumsum(c(TRUE, roxygen[-1L] != roxygen[-length(lines)]))
+    set <- tapply(grepl("^#'\\s*@(md|noMd)\\b", lines), block, any)
+    last <- roxygen & c(block[-1L] != block[-length(lines)], TRUE) & !set[as.character(block)]
+    lines[last] <- paste0(lines[last], "\n#' @md")
+    paste(lines, collapse = '\n')
+  }
   rd_topics <- function(text) {
     topics <- roxygen2::roc_proc_text(roxygen2::rd_roclet(), text)
     # The source-file header differs when grouped wrappers move to their own files.
@@ -192,7 +222,7 @@ verify_adoption <- function(
           break
         }
       }
-      original_docs <- rd_topics(file_text(file.path(root, records[[name]]$file)))
+      original_docs <- rd_topics(markdown_blocks(file_text(file.path(root, records[[name]]$file))))
       generated_docs <- rd_topics(file_text(generated[[name]]$file_path))
       same_docs <- if (length(generated_docs)) {
         identical(generated_docs, original_docs[names(generated_docs)])
@@ -223,4 +253,246 @@ verify_adoption <- function(
     records
   )))]
   list(operations = records, contracts = contracts, files = files)
+}
+
+# Propose explicit operation mappings for hand-written wrappers. Only proposals that
+# verify_adoption() confirms as equivalent are returned; the project is never written.
+propose_mappings <- function(
+  root,
+  files,
+  service,
+  config = 'specmill.yml',
+  callbacks = new.env(parent = emptyenv()),
+  route = NULL,
+  bindings = NULL,
+  prelude = NULL
+) {
+  root <- normalizePath(root, winslash = '/', mustWork = TRUE)
+  project <- load_project(root, config, callbacks)
+  target <- project$services[[service]]
+  if (is.null(target)) {
+    stop('Unknown service: ', service)
+  }
+  keys <- vapply(read_service_operations(target)$operations, `[[`, character(1), 'key')
+  helper <- target$helper
+  data_literal <- function(x) !is.language(x) || all(all.names(x) %in% literal_constructors)
+  unescape <- function(x) gsub('@@', '@', gsub('\\\\([\\\\{}%])', '\\1', x))
+
+  bind <- function(x, formal_names) {
+    if (is.symbol(x) && as.character(x) %in% formal_names) {
+      return(list(from = list('params', as.character(x))))
+    }
+    if (data_literal(x)) {
+      return(list(value = eval(x, baseenv())))
+    }
+    if (is.call(x) && identical(x[[1L]], as.name('list'))) {
+      children <- lapply(as.list(x)[-1L], bind, formal_names)
+      if (!any(vapply(children, is.null, logical(1)))) {
+        if (is.null(names(children))) {
+          return(list(array = unname(children)))
+        }
+        if (all(nzchar(names(children)))) {
+          return(list(object = children))
+        }
+      }
+    }
+    if (!is.null(bindings)) bindings(x)
+  }
+
+  documentation <- function(block, name, fn) {
+    tags <- roxygen2::parse_text(c(block, paste(name, '<- NULL')), env = NULL)[[1L]]$tags
+    docs <- list()
+    parameters <- list()
+    for (tag in tags) {
+      if (tag$tag == 'title') {
+        docs$title <- unescape(tag$val)
+      } else if (tag$tag == 'description') {
+        badge <- regmatches(tag$val, regexpr('`r lifecycle::badge\\("[a-z-]+"\\)`', tag$val))
+        if (length(badge)) {
+          docs$lifecycle <- sub('.*"([a-z-]+)".*', '\\1', badge)
+        }
+        prose <- trimws(sub('`r lifecycle::badge\\("[a-z-]+"\\)`', '', tag$val))
+        if (nzchar(prose)) {
+          docs$description <- unescape(prose)
+        }
+      } else if (tag$tag == 'param') {
+        parameters[[tag$val$name]] <- unescape(tag$val$description)
+      } else if (tag$tag == 'return') {
+        docs$return <- unescape(tag$val)
+      } else if (tag$tag == 'examples') {
+        text <- strsplit(tag$val, '\n')[[1L]]
+        docs$examples <- lapply(parse(text = text[!text %in% c('\\dontrun{', '}')]), function(call) {
+          if (!is.call(call) || !identical(call[[1L]], as.name(name))) {
+            stop('Example is not a call to ', name)
+          }
+          inputs <- as.list(match.call(fn, call))[-1L]
+          if (!all(vapply(inputs, data_literal, logical(1)))) {
+            stop('Computed example')
+          }
+          lapply(setNames(inputs, names(inputs) %or% character()), eval, baseenv())
+        })
+      } else if (!tag$tag %in% c('export', 'md', 'noMd')) {
+        stop('Unsupported roxygen tag @', tag$tag)
+      }
+    }
+    list(docs = docs, parameters = parameters)
+  }
+
+  screen <- function(name, fn, block) {
+    code <- body(fn)
+    code <- if (is.call(code) && identical(code[[1L]], as.name('{'))) as.list(code)[-1L] else list(code)
+    arguments <- list()
+    found <- if (!is.null(prelude)) prelude(code)
+    if (!is.null(found)) {
+      code <- code[-seq_len(found$statements)]
+      arguments <- found$arguments
+    }
+    call <- if (length(code) == 1L) code[[1L]]
+    if (is.call(call) && identical(call[[1L]], as.name('return')) && length(call) == 2L) {
+      call <- call[[2L]]
+    }
+    # `result <- helper(...); result` (or `return(result)`)
+    if (
+      length(code) == 2L && is.call(code[[1L]]) && identical(code[[1L]][[1L]], as.name('<-')) &&
+        is.symbol(code[[1L]][[2L]]) &&
+        (identical(code[[2L]], code[[1L]][[2L]]) || identical(code[[2L]], call('return', code[[1L]][[2L]])))
+    ) {
+      call <- code[[1L]][[3L]]
+    }
+    if (!is.call(call) || !identical(call[[1L]], as.name(helper))) {
+      stop('Body is not a single call to ', helper)
+    }
+    args <- as.list(call)[-1L]
+    if (!length(args) || is.null(names(args)) || !all(nzchar(names(args)))) {
+      stop('Helper arguments must all be named')
+    }
+    key <- if (is.null(route)) {
+      method <- args[['method']]
+      path <- args[['path']]
+      if (!is.character(method) || !is.character(path)) {
+        stop('Helper call has no literal method and path; supply route')
+      }
+      paste(toupper(method), path)
+    } else {
+      route(name, call)
+    }
+    if (!is.character(key) || length(key) != 1L || !key %in% keys) {
+      stop('No selected operation matches ', paste(key, collapse = ', '))
+    }
+    formal_list <- as.list(formals(fn))
+    if ('...' %in% names(formal_list)) {
+      stop('Wrappers with ... need manual mapping')
+    }
+    documented <- if (length(block)) documentation(block, name, fn) else list(docs = list(), parameters = list())
+    inputs <- lapply(setNames(names(formal_list), names(formal_list)), function(input) {
+      # A missing default cannot be bound to a variable, so index each time.
+      settings <- if (identical(formal_list[[input]], quote(expr = ))) {
+        list(required = TRUE)
+      } else if (data_literal(formal_list[[input]])) {
+        value <- eval(formal_list[[input]], baseenv())
+        type <- if (is.character(value)) {
+          'character'
+        } else if (is.logical(value)) {
+          'logical'
+        } else if (is.integer(value)) {
+          'integer'
+        } else if (is.numeric(value)) 'numeric'
+        c(if (!is.null(type)) list(type = type), list(default = value))
+      } else {
+        stop('Computed default for ', input)
+      }
+      settings$description <- documented$parameters[[input]]
+      settings
+    })
+    request <- lapply(setNames(names(args), names(args)), function(arg) {
+      binding <- arguments[[arg]] %or% bind(args[[arg]], names(formal_list))
+      if (is.null(binding)) {
+        stop('Unmapped helper argument: ', arg)
+      }
+      binding
+    })
+    proposal <- list(
+      name = name,
+      inputs = if (length(inputs)) inputs else setNames(list(), character()),
+      request = list(arguments = request)
+    )
+    if (length(documented$docs)) {
+      proposal$docs <- documented$docs
+    }
+    list(key = key, proposal = proposal)
+  }
+
+  records <- list()
+  proposals <- list()
+  for (file in files) {
+    path <- project_path(root, file)
+    exprs <- parse(path, keep.source = TRUE)
+    lines <- readLines(path, warn = FALSE, encoding = 'UTF-8')
+    for (i in seq_along(exprs)) {
+      name <- definition_name(exprs[[i]])
+      value <- exprs[[i]][[3L]]
+      if (is.null(name) || !is.call(value) || !identical(value[[1L]], as.name('function'))) {
+        next
+      }
+      # The roxygen block is the run of comment lines directly above the definition.
+      above <- rev(lines[seq_len(attr(exprs, 'srcref')[[i]][[1L]] - 1L)])
+      block <- rev(above[seq_len(match(FALSE, grepl('^#', above), nomatch = length(above) + 1L) - 1L)])
+      screened <- tryCatch(
+        screen(name, eval(value, baseenv()), grep("^#'", block, value = TRUE)),
+        error = identity
+      )
+      record <- list(file = file, status = 'retained', reason = NULL, key = screened$key)
+      if (inherits(screened, 'error')) {
+        record$reason <- conditionMessage(screened)
+      } else if (!is.null(proposals[[screened$key]])) {
+        record$reason <- paste('Operation already proposed for', proposals[[screened$key]]$name)
+      } else {
+        record$status <- 'proposed'
+        proposals[[screened$key]] <- screened$proposal
+      }
+      records[[name]] <- record
+    }
+  }
+  empty <- list(operations = records, proposals = list(), yaml = '', contracts = list(), files = character())
+  if (!length(proposals)) {
+    return(empty)
+  }
+
+  # Verify the proposals merged into a staged copy of the service file.
+  services <- unlist(read_config_yaml(project_path(root, config))$services)
+  service_file <- Filter(function(x) identical(read_config_yaml(project_path(root, x))$id, service), services)
+  if (length(service_file) != 1L) {
+    stop('Service must be defined in its own service file: ', service)
+  }
+  stage <- stage_project(root)
+  on.exit(unlink(stage, recursive = TRUE), add = TRUE)
+  staged <- file.path(stage, service_file)
+  settings <- yaml::read_yaml(staged, handlers = list(seq = function(x) as.list(x)))
+  settings$operations[names(proposals)] <- proposals
+  yaml::write_yaml(settings, staged)
+  wrappers <- vapply(proposals, `[[`, character(1), 'name')
+  checked <- tryCatch(verify_adoption(stage, config, callbacks, unname(wrappers)), error = identity)
+  for (name in wrappers) {
+    reason <- if (inherits(checked, 'error')) {
+      paste('Verification failed:', conditionMessage(checked))
+    } else {
+      checked$operations[[name]]$reason
+    }
+    if (!is.null(reason)) {
+      records[[name]]$status <- 'retained'
+      records[[name]]$reason <- reason
+    }
+  }
+  if (inherits(checked, 'error')) {
+    empty$operations <- records
+    return(empty)
+  }
+  proposals <- proposals[wrappers %in% names(Filter(function(x) x$status == 'proposed', records))]
+  list(
+    operations = records,
+    proposals = proposals,
+    yaml = if (length(proposals)) yaml::as.yaml(list(operations = proposals)) else '',
+    contracts = checked$contracts,
+    files = checked$files
+  )
 }
