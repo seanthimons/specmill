@@ -31,6 +31,8 @@ reference:
 - title: Inspect and verify
   contents:
   - inspect_client
+  - verify_adoption
+  - propose_mappings
   - read_operations
   - operation_fixtures
   - check_requests
