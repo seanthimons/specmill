@@ -21,11 +21,11 @@ below or [the maintenance loop](maintenance.html).
 
 ## 1. Record the existing contract
 
-Before adding configuration, run the package's targeted tests and record its
-wrapper names, argument order/defaults, exports, help text, examples, lifecycle
-policy, hooks, and expected helper calls. Include manual wrappers absent from
-schemas. Keep authentication, response classes, pagination, and batching behavior:
-a schema alone cannot describe all of those decisions.
+Before adding configuration, run the package's targeted tests and record what a
+schema cannot describe: authentication, hooks, response classes, pagination,
+batching, lifecycle policy, and manual wrappers absent from schemas. Wrapper
+names, formals, helper calls, and documentation are checked mechanically in
+step 6, so they need no manual inventory.
 
 Do not run `initialize_client()` on an established client merely to add YAML.
 It adds a new httr2 helper and refuses conflicts with existing scaffold files.
@@ -188,10 +188,39 @@ Keep those files manual or separate them deliberately before adoption.
 
 ## 6. Verify and expand
 
-Compare formals, exports, documentation, examples, lifecycle, and independently
-expected helper calls with the baseline. Run generated contract tests and
-existing bespoke tests. Check that a second apply is a no-op. Only then add more
-operations/services.
+Once a service file exists (step 2), propose mappings for the wrappers you want
+specmill to own. Nothing in the project is written:
+
+```{r propose, eval=FALSE}
+proposal <- specmill::propose_mappings(root, c('R/items.R', 'R/search.R'), service = 'catalogue')
+proposal$operations # Status, reason, and matched operation for every wrapper.
+cat(proposal$yaml)
+```
+
+A wrapper is proposed only when its body is a single call to the service helper,
+its defaults and examples are plain literals, and the generated replacement passes
+`verify_adoption()`. Everything else is retained with a reason: keep it with
+`implementation: existing`, or map it by hand. When helper calls do not carry
+literal `method` and `path` arguments, pass a `route` callback. Pass a `bindings`
+callback for computed helper arguments, and a `prelude` callback for statements
+that build helper arguments before the call. The `propose_mappings()` help page
+shows a prelude that turns an optional-query idiom into `compact_object`.
+
+After copying reviewed YAML into the service file, or writing mappings by hand,
+check them against the wrappers they replace:
+
+```{r verify, eval=FALSE}
+verified <- specmill::verify_adoption(root, config = 'specmill.yml')
+Filter(function(x) x$status == 'failed', verified$operations)
+```
+
+Verification generates on a temporary copy and compares formals, helper calls,
+arguments, and results across required, explicit, falsy, and missing inputs, plus
+the Rd each roxygen block produces. Save `verified$contracts` with `saveRDS()` to the service
+`contracts_file`, delete the files named in `verified$files`, and apply. Deletion
+is the adoption step here: adoption hashes do not lift lifecycle protection.
+Run generated contract tests and existing bespoke tests, and check that a second
+apply is a no-op. Only then add more operations/services.
 
 Commit policy, schemas, callbacks, fixtures, generated output, and manifest
 together. Keep the prior toolkit pin with matching output available for rollback.
