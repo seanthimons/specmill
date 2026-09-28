@@ -196,7 +196,7 @@ operation_documentation <- function(op, policy = list()) {
                     paste0(
                       name,
                       ' = ',
-                      r_literal(value)
+                      r_literal(value, guard = isTRUE(op$guard_literals))
                     )
                   },
                   character(1)

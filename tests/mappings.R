@@ -103,12 +103,19 @@ mappings_acceptance <- function() {
     formals(fn),
     formals(function(
       identifier,
-      mode = base::evalq(c('wide', 'raw'), envir = base::baseenv()),
+      mode = c('wide', 'raw'),
       language = 'fr',
       enabled = FALSE
     ) {
       NULL
     })
+  ))
+  guarded <- configured$operation
+  guarded$guard_literals <- TRUE
+  stopifnot(grepl(
+    "mode = base::evalq(c('wide', 'raw'), envir = base::baseenv())",
+    gsub('"', "'", specmill::render_operation(guarded, configured$spec)),
+    fixed = TRUE
   ))
   stopifnot(identical(fn(' sample '), 'complete'))
   stopifnot(identical(
