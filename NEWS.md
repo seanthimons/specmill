@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.8 (2026-09-28)
+
+#### Refactorings
+
+- guard generated body literals only when a constructor is shadowed
+  ([b617713](https://github.com/seanthimons/specmill/tree/b617713825edd2825812819926372478bec4e84a))
+
+#### Other changes
+
+- release v0.1.8 \[skip ci\]
+  ([3305676](https://github.com/seanthimons/specmill/tree/33056768ae1607a284c6b8eee211a57f278049ba))
+
+Full set of changes:
+[`v0.1.7...v0.1.8`](https://github.com/seanthimons/specmill/compare/v0.1.7...v0.1.8)
+
 ## specmill 0.1.7 (2026-09-28)
 
 #### New features
@@ -12,6 +27,8 @@
 
 #### Bug fixes
 
+- guard literals when the client’s imports shadow a data constructor
+  ([20ddd2a](https://github.com/seanthimons/specmill/tree/20ddd2aefd60a812103de34ddede86f3d17e9566))
 - render public defaults and examples as plain data literals
   ([6f957c2](https://github.com/seanthimons/specmill/tree/6f957c2f207f4a8a755fba65d3fb7e35b8d38267))
 - render whole-number defaults for number parameters as doubles
@@ -30,7 +47,7 @@
 #### Other changes
 
 - release v0.1.7 \[skip ci\]
-  ([0954e5d](https://github.com/seanthimons/specmill/tree/0954e5d533bbf0e0a0c30db07aeb4435a4209084))
+  ([909d378](https://github.com/seanthimons/specmill/tree/909d37819311a8a121b7fcf1b73e471750bf2868))
 
 Full set of changes:
 [`v0.1.6...v0.1.7`](https://github.com/seanthimons/specmill/compare/v0.1.6...v0.1.7)
