@@ -72,7 +72,13 @@ literal_constructors <- c(
 )
 
 # Escape schema strings as R literals. No remote text is evaluated as code.
-r_literal <- function(x, guard = TRUE) {
+# ponytail: render_operation() sets the guard for its dynamic extent instead of
+# threading it through every renderer. Without generate_client()'s flag, or outside
+# render_operation(), literals stay guarded.
+literal_state <- new.env(parent = emptyenv())
+literal_state$guard <- TRUE
+
+r_literal <- function(x, guard = literal_state$guard) {
   text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
   if (any(utf8ToInt(enc2utf8(text)) > 127L)) {
     # Quoted names allow Unicode escapes; backtick names do not in R.
@@ -87,7 +93,7 @@ r_literal <- function(x, guard = TRUE) {
   }
   # Data constructors must not resolve through generated functions named list/c.
   # Language objects remain caller-owned expressions (development callbacks).
-  # Public formals and examples guard only when the package shadows one of
+  # Generated wrappers guard only when the package shadows one of
   # literal_constructors (operation$guard_literals).
   if (guard && !is.language(x) && !is.function(x) && is.call(str2lang(text))) {
     paste0('base::evalq(', text, ', envir = base::baseenv())')
@@ -192,4 +198,21 @@ local_ref <- function(
     value[names(siblings)[annotations]] <- siblings[annotations]
   }
   value
+}
+
+# Names a client's NAMESPACE imports; imports shadow base in namespace lookup.
+# An uninstalled package imported whole is assumed to shadow every constructor.
+imported_names <- function(root) {
+  if (!file.exists(file.path(root, 'NAMESPACE'))) {
+    return(character())
+  }
+  imports <- parseNamespaceFile(basename(root), dirname(root))$imports
+  unlist(lapply(imports, function(entry) {
+    except <- if (identical(names(entry), c('', 'except'))) entry$except
+    if (length(entry) == 2L && is.null(except)) {
+      return(entry[[2L]])
+    }
+    exports <- tryCatch(getNamespaceExports(entry[[1L]]), error = function(e) literal_constructors)
+    setdiff(exports, except)
+  }))
 }
