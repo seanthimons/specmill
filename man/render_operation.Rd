@@ -10,7 +10,7 @@ render_operation(operation, spec)
 \item{operation}{Supported operation record or named list of records.}
 }
 \value{A single character string containing generated wrapper source and optional roxygen comments.}
-\details{This low-level function returns text only; it does not validate an entire project, run roxygen, write files, or check ownership. Prefer generate_client() for normal maintenance. The default helper takes method, path, path_params, query, and body. JSON array values should remain R lists to preserve one-element arrays.}
+\details{This low-level function returns text only; it does not validate an entire project, run roxygen, write files, or check ownership. Prefer generate_client() for normal maintenance. The default helper takes method, path, path_params, query, and body. JSON array values should remain R lists to preserve one-element arrays. Set \code{operation$guard_literals <- TRUE} to wrap literal defaults as \code{base::evalq(..., envir = base::baseenv())}; generate_client() sets it only when the client's functions or imports shadow a base data constructor such as \code{c} or \code{list}. It defaults to FALSE, which matches generation for most clients.}
 \seealso{\href{https://seanthimons.github.io/specmill/articles/configuration.html}{Step-by-step guide}.}
 \examples{
 schema <- system.file('catalogue/schema.json', package = 'specmill')

@@ -102,8 +102,10 @@ generated_names_acceptance <- function() {
       logical(1)
     ))
   )
+  # Standalone rendering opts in to guards, as generate_client() does for shadowing names.
   body_operation <- base::list(
     name = 'list',
+    guard_literals = TRUE,
     method = 'POST',
     path = '/list',
     body_required = TRUE,
@@ -146,6 +148,7 @@ generated_names_acceptance <- function() {
   runtime$api_request <- function(...) base::list(...)
   operation <- base::list(
     name = 'c',
+    guard_literals = TRUE,
     method = 'GET',
     path = '/c',
     parameters = base::list(base::list(

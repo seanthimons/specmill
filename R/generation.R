@@ -50,7 +50,7 @@ transport_arguments <- function(operation) {
 
 render_operation <- function(operation, spec) {
   guard <- literal_state$guard
-  literal_state$guard <- operation$guard_literals %or% TRUE
+  literal_state$guard <- operation$guard_literals %or% FALSE
   on.exit(literal_state$guard <- guard, add = TRUE)
   helper <- spec$helper
   callback <- spec$hook_callback %or% 'run_hook'
