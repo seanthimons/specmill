@@ -179,7 +179,9 @@ form_value <- function(value, schema, validate, allow_empty = TRUE) {
       )
     }
   }
-  value <- validate(value, schema)
+  value <- tryCatch(validate(value, schema), error = function(e) {
+    stop('Invalid body: ', conditionMessage(e), call. = FALSE)
+  })
   for (name in names(original)) {
     value[name] <- original[name]
   }
