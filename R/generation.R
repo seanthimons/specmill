@@ -680,6 +680,14 @@ generate_client <- function(
           op$response_policy
         )
       }
+      retry_policy <- op$request_controls$retry_policy
+      if (
+        !is.null(retry_policy) &&
+          (!retry_policy %in% names(runtime_definitions) ||
+            retry_policy %in% operation_names)
+      ) {
+        stop('Missing client retry policy or wrapper collision: ', retry_policy)
+      }
       op$guard_literals <- guard_literals
       operation_spec <- configured$spec
       op$batch <- if (is.null(op$body)) {

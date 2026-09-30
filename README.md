@@ -138,6 +138,37 @@ call including Retry-After waits. Exhausted HTTP and JSON errors retain status
 and media type without response bodies or credentials; connection errors use a
 fixed credential-safe message.
 
+Select a client-owned retry predicate when an API needs another status policy.
+For example, put this function in the generated client's `R/retry_policy.R`:
+
+```r
+retry_server_errors <- function(response) {
+  status <- httr2::resp_status(response)
+  status == 429L || (status >= 500L && status < 600L)
+}
+```
+
+Select its name in reviewed YAML:
+
+```yaml
+defaults:
+  request_controls:
+    max_retries: 2
+    retry_policy: retry_server_errors
+```
+
+This retries 429 and all 5xx responses, excludes 408 and permanent 4xx, and
+allows three total attempts. A narrower predicate can select individual statuses
+or inspect response headers. Predicates receive one httr2 response and must
+return one nonmissing logical value. YAML contains a function name, never R code;
+generation verifies that the name resolves to a client function and does not
+collide with a wrapper. Runtime `catalogueclient.request` options also accept a
+function or its client-local name in `retry_policy`. Omission retains the native
+status set; `retry_policy: null` clears an inherited YAML policy.
+Policy selection does not authorize POST/PATCH replay; `retry_writes` still
+controls that. Invalid names and controls fail before HTTP. Predicate errors and
+invalid results produce credential-safe errors after the response arrives.
+
 Existing `R/api_request.R` files remain client-owned and are never refreshed by
 normal generation. New scaffolds retain their substituted baseline under
 `.specmill/helpers/`. Use `inspect_client(root)$helpers` for read-only baseline,
@@ -153,7 +184,7 @@ Keep your authentication and response handling. Generation checks that custom
 helpers accept the `server` and configured `request_controls` arguments or `...`; accepting and ignoring it is
 not an implementation of server selection. Complete request mappings retain
 control of their own helper arguments. Proxy/TLS settings, streaming,
-cancellation, custom retry predicates, and per-API runtime controls still require
+cancellation and per-API runtime controls still require
 a custom helper.
 
 ## Explicit pagination

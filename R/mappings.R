@@ -113,9 +113,15 @@ validate_settings <- function(
     controls <- settings$request_controls
     config_fields(
       controls,
-      c('timeout', 'max_retries', 'retry_writes'),
+      c('timeout', 'max_retries', 'retry_writes', 'retry_policy'),
       paste(label, 'request_controls')
     )
+    if (!is.null(controls$retry_policy)) {
+      name <- config_string(controls$retry_policy, paste(label, 'retry_policy'))
+      if (!identical(make.names(name), name)) {
+        stop('request_controls.retry_policy must be a client function name')
+      }
+    }
     for (field in intersect(names(controls), c('timeout', 'max_retries'))) {
       value <- controls[[field]]
       if (
