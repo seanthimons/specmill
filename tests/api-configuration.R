@@ -63,7 +63,7 @@ api_configuration_acceptance <- function() {
     one$helper == 'one_request'
   )
   run <- function() {
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
   }
   hashes <- function() {
     tools::md5sum(list.files(

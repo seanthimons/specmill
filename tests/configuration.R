@@ -8,7 +8,7 @@ configuration_acceptance <- function() {
     recursive = TRUE
   )))
   writeLines(
-    c('config_version: 1', 'services: [catalogue.yml]'),
+    c('config_version: 1', 'validation: false', 'services: [catalogue.yml]'),
     file.path(root, 'specmill.yml')
   )
   service <- c(
@@ -33,7 +33,7 @@ configuration_acceptance <- function() {
     ))
   }
   original <- hashes()
-  plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+  plan <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
   stopifnot(
     length(plan$operations) == 3L,
     length(plan$inventory) == 4L,
@@ -61,11 +61,11 @@ configuration_acceptance <- function() {
     stopifnot(inherits(e, 'error'))
     if (!is.null(pattern)) stopifnot(grepl(pattern, conditionMessage(e)))
   }
-  fails(specmill::generate_client(root, config = 'specmill.yml'), 'stale')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  fails(specmill::generate_client(validation = FALSE, root, config = 'specmill.yml'), 'stale')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   applied <- hashes()
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   stopifnot(identical(applied, hashes()))
   # Explicit renaming is a paired replacement; an edited original blocks it.
   put(c(service, 'names:', '  GET /items: renamed_items'))
@@ -73,21 +73,21 @@ configuration_acceptance <- function() {
   old_text <- readLines(old_path)
   writeLines(c(old_text, '# local edit'), old_path)
   fails(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply'),
     'Protected original'
   )
   stopifnot(!file.exists(file.path(root, 'R/renamed_items.R')))
   writeLines(old_text, old_path)
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     !file.exists(old_path),
     file.exists(file.path(root, 'R/renamed_items.R'))
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   put(c(service, 'names:', '  GET /items: list_items'))
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   put(service)
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   inspected <- specmill::inspect_client(root)
   stopifnot(
     inspected$coverage$catalogue$total == 3L,
@@ -139,13 +139,13 @@ configuration_acceptance <- function() {
     identical(loaded$services$catalogue$contracts, fixed),
     normalizePath(fixture_path, winslash = '/') %in% loaded$inputs
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
   fixed$list_items$result <- function() NULL
   saveRDS(fixed, fixture_path)
   fails(specmill::load_project(root), 'only R data')
   put(service)
   fails(
-    specmill::generate_client(root, list(), config = 'specmill.yml'),
+    specmill::generate_client(validation = FALSE, root, list(), config = 'specmill.yml'),
     'exactly one'
   )
   invalid <- list(
@@ -171,7 +171,7 @@ configuration_acceptance <- function() {
   )
   for (lines in invalid) {
     put(lines)
-    fails(specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'))
+    fails(specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'))
   }
   writeLines(
     'strict_request <- function(endpoint) NULL',
@@ -184,7 +184,7 @@ configuration_acceptance <- function() {
     fixed = TRUE
   ))
   fails(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
     'Missing required helper arguments'
   )
   old <- options(yaml.eval.expr = TRUE)
@@ -217,6 +217,7 @@ configuration_acceptance <- function() {
   put(c(service, 'prepare: mutate'))
   fails(
     specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       callbacks = callbacks,

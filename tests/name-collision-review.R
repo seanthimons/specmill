@@ -61,6 +61,7 @@ name_collision_review_acceptance <- function() {
 
   service <- file.path(root, 'apis/default_api.yml')
   message <- collision_error(specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'
@@ -110,12 +111,14 @@ name_collision_review_acceptance <- function() {
     )
   ))
   specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply',
     artifacts = 'wrappers'
   )
   specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'check',
@@ -123,6 +126,7 @@ name_collision_review_acceptance <- function() {
   )
   wrappers <- readLines(file.path(root, 'R/default_api.R'))
   specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply',

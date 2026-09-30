@@ -60,11 +60,18 @@ plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
 plan$files
 plan$drift
 plan$diagnostics
+plan$validation
 # After reviewing the change:
 specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
 specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 testthat::test_local(root, filter = 'contract-', stop_on_failure = TRUE)
 ```
+
+Generation validates new or changed schema bytes through the configured Swagger
+Validator before translating operations. Unchanged inputs reuse cached reports.
+Invalid documents, unavailable validation, and unsupported coverage block apply
+and check; inspect `plan$validation` for the full findings. OpenAPI 3.1 and
+references outside the document currently lack complete validator coverage.
 
 Supply the same explicit `callbacks` environment on each call when your policy
 uses callbacks. Run the relevant manual/helper tests too. Reapplying unchanged

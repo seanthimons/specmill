@@ -9,7 +9,7 @@ commands_acceptance <- function() {
     recursive = TRUE
   )))
   writeLines(
-    c('config_version: 1', 'services: [catalogue.yml]'),
+    c('config_version: 1', 'validation: false', 'services: [catalogue.yml]'),
     file.path(root, 'specmill.yml')
   )
   service <- c(

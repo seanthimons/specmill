@@ -181,9 +181,9 @@ new_client_acceptance <- function() {
   original <- hashes()
   fails(specmill::initialize_client(root, schema, base_url = base_url))
   stopifnot(identical(original, hashes()))
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
   stopifnot(identical(original, hashes()))
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   controls <- paste0('temporarycatalogue_', c('dry_run', 'run_verbose'))
   control_docs <- file.path(root, 'man', paste0(controls, '.Rd'))
   stopifnot(all(file.exists(control_docs)))
@@ -193,22 +193,22 @@ new_client_acceptance <- function() {
       paste0('\\alias{', controls[[i]], '}') %in% readLines(control_docs[[i]])
     )
   }
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   # Client edits to both the scaffold and its help survive documentation runs.
   options_file <- file.path(root, 'R/api_options.R')
   cat('\n# Client customization.\n', file = options_file, append = TRUE)
   cat('\n% Client help customization.\n', file = control_docs[[1L]], append = TRUE)
   control_hashes <- tools::md5sum(c(options_file, control_docs))
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   # Text inputs keep the same fingerprint after a Git line-ending conversion.
   writeBin(charToRaw('word\r\nlist\r\n'), file.path(root, 'inst/WORDLIST'))
   writeBin(
     charToRaw('[format]\r\nline-width = 80\r\n'),
     file.path(root, 'air.toml')
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   applied <- hashes()
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     identical(applied, hashes()),
     identical(control_hashes, tools::md5sum(names(control_hashes))),
@@ -226,16 +226,16 @@ new_client_acceptance <- function() {
     ),
     policy_path
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     !file.exists(file.path(root, 'R/list_items.R')),
     !file.exists(file.path(root, 'man/list_items.Rd')),
     file.exists(file.path(root, 'man/renamed_items.Rd')),
     'export(renamed_items)' %in% readLines(file.path(root, 'NAMESPACE'))
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   writeLines(policy, policy_path)
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   library <- tempfile('standalone-client-library-')
   dir.create(library)
   install_log <- tempfile('client-install-')

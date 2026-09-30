@@ -15,6 +15,12 @@ Swagger 2.0 format. It supports a subset of each standard; parsing is not full
 OpenAPI validation. These guides follow the current development version, so
 check your toolkit pin if an older release rejects a documented feature.
 
+Generation additionally requires a cached or fresh Swagger Validator report.
+OAS 3.1 and references outside the document currently lack complete coverage and
+block generation by default. Inspect `plan$validation` for schema errors,
+unavailable validation, or unsupported coverage; configure a private validator
+for private definitions. See [validation policy](configuration.html#schema-validation).
+
 | Feature | Current behavior |
 |---|---|
 | Schema references | Same-document and local-file references are supported; remote references are not downloaded |
@@ -61,8 +67,8 @@ existing `status` values used for selection and file ownership:
 | Classification | Meaning and action |
 |---|---|
 | `ready` | Parsing found no blocker in the supported subset; verify the generated request before relying on live results |
-| `policy_exclusion` | Project or service selection excluded the operation; review its `reason` to reconsider it. Excluded schemas are not validated |
-| `schema_defect` | A source-contract problem was detected; verify and correct it or explicitly retain an existing implementation |
+| `policy_exclusion` | Project or service selection excluded the operation; review its `reason` to reconsider it. Source documents still undergo validation |
+| `schema_defect` | A source-contract problem was detected; correct it. Mappings and retained implementations cannot bypass validator errors |
 | `capability_gap` | specmill cannot handle the construct; consider a supported complete client mapping or leave it visible pending implementation |
 | `review_required` | An unclassified error needs source/configuration review; no schema-validity claim is made |
 

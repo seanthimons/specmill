@@ -146,7 +146,8 @@ writeLines(c(
   '    path_params = list(item_id = item_id), query = list(language = language), body = NULL)',
   '}'
 ), legacy)
-plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+# Offline fixture only; real schemas use the required validation gate.
+plan <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
 Filter(function(x) x$action == 'protected', plan$files)
 ```
 
@@ -158,13 +159,13 @@ endings, and no terminal newline:
 text <- paste(readLines(legacy, warn = FALSE, encoding = 'UTF-8'), collapse = '\n')
 hash <- digest::digest(enc2utf8(text), algo = 'sha256', serialize = FALSE)
 adopt <- list('R/get_item.R' = hash)
-reviewed <- specmill::generate_client(
+reviewed <- specmill::generate_client(validation = FALSE,
   root, config = 'specmill.yml', mode = 'plan', adopt = adopt
 )
-applied <- specmill::generate_client(
+applied <- specmill::generate_client(validation = FALSE,
   root, config = 'specmill.yml', mode = 'apply', adopt = adopt
 )
-checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+checked <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
 stopifnot(!any(vapply(checked$files, function(x) x$action == 'protected', logical(1))))
 ```
 

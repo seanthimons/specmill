@@ -186,6 +186,7 @@ local_references_acceptance <- function() {
     winslash = '/'
   )
   first <- specmill::generate_client(
+    validation = FALSE,
     tracking,
     config = 'specmill.yml',
     mode = 'plan'
@@ -193,6 +194,7 @@ local_references_acceptance <- function() {
   stopifnot(dependency %in% names(first$manifest$inputs))
   write(list(Page = list(type = 'integer', default = 8L)), dependency)
   second <- specmill::generate_client(
+    validation = FALSE,
     tracking,
     config = 'specmill.yml',
     mode = 'plan'
@@ -219,6 +221,7 @@ local_references_acceptance <- function() {
   )
   unlink(root, recursive = TRUE)
   generated <- specmill::generate_client(
+    validation = FALSE,
     client,
     config = 'specmill.yml',
     mode = 'plan'

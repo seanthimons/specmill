@@ -40,7 +40,7 @@ swagger_security_acceptance <- function() {
     author = list(given = 'Test', family = 'User', email = 'test@example.org'),
     license = 'MIT + file LICENSE'
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)

@@ -82,12 +82,13 @@ native_transport_acceptance <- function(extra_checks = NULL) {
     naming = 'tag_prefix'
   )
   result <- specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'
   )
   stopifnot(length(result$operations) == 19L, !length(result$diagnostics))
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)
@@ -366,7 +367,7 @@ native_transport_acceptance <- function(extra_checks = NULL) {
     file.path(root, 'R/api_request.R')
   )
   error <- tryCatch(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
     error = identity
   )
   stopifnot(

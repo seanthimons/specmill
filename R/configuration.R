@@ -167,7 +167,8 @@ load_project <- function(
       'selection',
       'helper',
       'documentation',
-      'defaults'
+      'defaults',
+      'validation'
     ),
     'project'
   )
@@ -706,6 +707,7 @@ load_project <- function(
     root = root,
     package = package,
     formatter = project$formatter,
-    authentication = project$authentication
+    authentication = project$authentication,
+    validation = schema_validation_policy(project$validation %or% TRUE, root)
   )
 }

@@ -86,6 +86,7 @@ schema_loading_acceptance <- function() {
     before <- tools::md5sum(protected)
     for (mode in c('plan', 'apply', 'check')) {
       plan <- specmill::generate_client(
+        validation = FALSE,
         client,
         config = 'specmill.yml',
         mode = mode
@@ -106,6 +107,7 @@ schema_loading_acceptance <- function() {
     service$schemas$files <- list(basename(path))
     yaml::write_yaml(service, service_path)
     direct <- specmill::generate_client(
+      validation = FALSE,
       client,
       config = 'specmill.yml',
       mode = 'plan'
@@ -151,6 +153,7 @@ schema_loading_acceptance <- function() {
     license = 'MIT + file LICENSE'
   )
   multi_plan <- specmill::generate_client(
+    validation = FALSE,
     multi,
     config = 'specmill.yml',
     mode = 'plan'

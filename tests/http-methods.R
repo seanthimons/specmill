@@ -140,7 +140,7 @@ http_methods_acceptance <- function() {
     identical(unlist(service$selection$methods), methods)
   )
   run <- function(mode) {
-    specmill::generate_client(root, config = 'specmill.yml', mode = mode)
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = mode)
   }
   generated <- run('apply')
   stopifnot(length(generated$operations) == 9L, !length(generated$diagnostics))

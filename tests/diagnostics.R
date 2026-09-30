@@ -214,6 +214,7 @@ diagnostics_acceptance <- function() {
   }
   before <- snapshot()
   plan <- specmill::generate_client(
+    validation = FALSE,
     client,
     config = 'specmill.yml',
     mode = 'plan'
