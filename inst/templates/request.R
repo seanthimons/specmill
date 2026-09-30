@@ -208,6 +208,10 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     if (body_media == 'application/x-www-form-urlencoded') request <- httr2::req_body_raw(request, base::paste(pairs, collapse = '&'), type = body_media)
     else request <- base::do.call(httr2::req_body_multipart, base::c(base::list(request), parts))
   } else if (!base::is.null(body)) {
+    if (base::identical(body_media, 'text/plain')) {
+      if (!base::is.character(body) || base::is.object(body) || !base::is.null(base::dim(body)) || !base::is.null(base::names(body)) || base::length(body) != 1L || base::anyNA(body)) base::stop('Plain-text body must be one nonmissing character string', call. = FALSE)
+      body <- base::charToRaw(base::enc2utf8(body))
+    }
     if (!base::is.null(batch$max_bytes)) {
       bytes <- if (base::identical(body_media, 'application/json')) {
         base::charToRaw(base::enc2utf8(base::as.character(jsonlite::toJSON(body, auto_unbox = TRUE, null = 'null', digits = 22))))
@@ -216,7 +220,9 @@ api_request <- function(method, path, path_params, query, body, headers = base::
       if (base::length(bytes) > batch$max_bytes) base::stop('Batch exceeds max_bytes (', batch$max_bytes, ')')
       request <- httr2::req_body_raw(request, bytes, type = body_media)
     } else
-    if (base::identical(body_media, 'application/octet-stream')) {
+    if (base::identical(body_media, 'text/plain')) {
+      request <- httr2::req_body_raw(request, body, type = body_media)
+    } else if (base::identical(body_media, 'application/octet-stream')) {
       if (!base::is.raw(body)) base::stop('Binary body must be a raw vector')
       request <- httr2::req_body_raw(request, body, type = body_media)
     } else if (base::identical(body_media, 'application/json')) {
