@@ -27,9 +27,9 @@ schema_stress_acceptance <- function() {
   status <- vapply(parsed$inventory, `[[`, character(1), 'status')
   stopifnot(
     length(status) == 43L,
-    sum(status == 'selected') == 35L,
-    sum(status == 'unsupported') == 8L,
-    length(parsed$diagnostics) == 8L
+    sum(status == 'selected') == 40L,
+    sum(status == 'unsupported') == 3L,
+    length(parsed$diagnostics) == 3L
   )
   reasons <- setNames(
     vapply(
@@ -40,13 +40,27 @@ schema_stress_acceptance <- function() {
     vapply(parsed$inventory, `[[`, character(1), 'key')
   )
   stopifnot(
-    reasons[['POST /chem/standardize']] == 'Unsupported body media type',
+    reasons[['POST /chem/standardize']] == '',
     reasons[['POST /convert/cdx-to-mol']] == '',
     reasons[['POST /ocsr/process-upload']] == '',
     reasons[['POST /convert/batch']] == '',
     reasons[['GET /chem/tanimoto']] == 'Unsupported parameter composition',
     reasons[['GET /depict/2D_enhanced']] == 'Unsupported parameter composition'
   )
+  text <- Filter(
+    function(op) identical(op$body_media, 'text/plain'),
+    parsed$operations
+  )
+  stopifnot(setequal(
+    vapply(text, `[[`, character(1), 'key'),
+    c(
+      'POST /chem/standardize',
+      'POST /chem/all_filters',
+      'POST /chem/all_filters_detailed',
+      'POST /convert/molblock',
+      'POST /convert/xyz'
+    )
+  ))
   uploads <- Filter(
     function(op) identical(unname(op$body_media), 'multipart/form-data'),
     parsed$operations
@@ -76,7 +90,8 @@ schema_stress_acceptance <- function() {
               method = request$REQUEST_METHOD,
               path = request$PATH_INFO,
               query = request$QUERY_STRING,
-              body = rawToChar(request$rook.input$read())
+              body = rawToChar(request$rook.input$read()),
+              type = request$CONTENT_TYPE
             ),
             request_file
           )
@@ -159,7 +174,8 @@ schema_stress_acceptance <- function() {
   selected <- c(
     '/chem/HOSEcode',
     '/chem/classyfire/{jobid}/result',
-    '/ocsr/process'
+    '/ocsr/process',
+    '/chem/standardize'
   )
   service$selection <- list(
     exclude = as.list(paste0(
@@ -171,7 +187,8 @@ schema_stress_acceptance <- function() {
   service$names <- list(
     'GET /chem/HOSEcode' = 'hose_code',
     'GET /chem/classyfire/{jobid}/result' = 'job_result',
-    'POST /ocsr/process' = 'process_image'
+    'POST /ocsr/process' = 'process_image',
+    'POST /chem/standardize' = 'standardize_text'
   )
   yaml::write_yaml(service, service_path)
   generated <- specmill::generate_client(
@@ -179,7 +196,7 @@ schema_stress_acceptance <- function() {
     config = 'specmill.yml',
     mode = 'apply'
   )
-  stopifnot(length(generated$operations) == 3L, !length(generated$diagnostics))
+  stopifnot(length(generated$operations) == 4L, !length(generated$diagnostics))
   before <- hashes()
   specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
   specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
@@ -241,8 +258,17 @@ schema_stress_acceptance <- function() {
     request$path == '/latest/ocsr/process',
     identical(jsonlite::fromJSON(request$body, simplifyVector = FALSE), body)
   )
+  text <- '\n  CDK α\n\n  1  0  0  0\nM  END\n'
+  runtime$standardize_text(body = text)
+  request <- readRDS(request_file)
+  stopifnot(
+    request$method == 'POST',
+    request$path == '/latest/chem/standardize',
+    request$type == 'text/plain',
+    identical(charToRaw(request$body), charToRaw(enc2utf8(text)))
+  )
   cat(
-    'Schema stress: 43 visible operations, 35 supported, 8 diagnosed; multipart fixtures and three local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
+    'Schema stress: 43 visible operations, 40 supported, 3 diagnosed; multipart fixtures and four local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
   )
 }
 if (sys.nframe() == 0L) {
