@@ -54,6 +54,7 @@ validate_settings <- function(
       'query_array_style',
       'exclude_parameters',
       'routes',
+      'route_guard',
       'specialization'
     ),
     label
@@ -246,6 +247,30 @@ validate_settings <- function(
         )
     ) {
       stop(label, ': routes must be unique schema-file METHOD /path references')
+    }
+  }
+  if ('route_guard' %in% names(settings)) {
+    guard <- settings$route_guard
+    if (is.logical(guard)) {
+      if (length(guard) != 1L || is.na(guard)) {
+        stop('route_guard must be true, false or a method/path argument map')
+      }
+    } else {
+      config_fields(guard, c('method', 'path'), 'route_guard')
+      if (!setequal(names(guard), c('method', 'path'))) {
+        stop('route_guard requires method and path argument names')
+      }
+      for (name in guard) {
+        config_string(name, 'route_guard argument')
+      }
+      if (identical(guard$method, guard$path)) {
+        stop('route_guard method and path must name distinct arguments')
+      }
+    }
+    if (
+      !identical(guard, FALSE) && identical(settings$implementation, 'existing')
+    ) {
+      stop('route_guard requires a generated implementation')
     }
   }
   if ('docs' %in% names(settings)) {
