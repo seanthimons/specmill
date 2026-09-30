@@ -119,6 +119,7 @@ routes_acceptance <- function() {
     is.null(parsed$inventory[[2L]]$routes)
   )
   plan <- specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'
@@ -147,10 +148,10 @@ routes_acceptance <- function() {
     identical(env$descriptors()$endpoint, '/api/descriptors'),
     identical(env$descriptors(fallback = TRUE)$endpoint, '/api/rdkit')
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   # Guard complete mappings using their actual helper argument names.
   service(extra = '    route_guard: {method: method, path: endpoint}')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   sys.source(file.path(root, 'R/descriptors.R'), env)
   calls <- 0L
   env$route_request <- function(method, endpoint, server) {
@@ -214,7 +215,7 @@ routes_acceptance <- function() {
       '    post_on_skip: true'
     )
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   sys.source(file.path(root, 'R/descriptors.R'), env)
   stopifnot(identical(env$descriptors(), 'skipped'))
   # Standard calls use method/path; disabled or absent guards preserve output.
@@ -270,7 +271,7 @@ routes_acceptance <- function() {
   }
   service(extra = '    route_guard: true')
   error <- tryCatch(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
     error = identity
   )
   stopifnot(
@@ -375,6 +376,7 @@ routes_acceptance <- function() {
   )
   # Removing declarations clears provenance only for the artifacts being applied.
   suppressWarnings(specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply',

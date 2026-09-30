@@ -510,16 +510,18 @@ validated_service_operations <- function(service, reports) {
   )
   readable <- service
   readable$files <- setdiff(service$files, excluded_files)
-  readable$policy$names <- service$policy$names[
-    !names(service$policy$names) %in% excluded_keys
-  ]
+  for (field in union(
+    'names',
+    grep('_overrides$', names(service$policy), value = TRUE)
+  )) {
+    readable$policy[[field]] <- service$policy[[field]][
+      !names(service$policy[[field]]) %in% excluded_keys
+    ]
+  }
   readable$policy$override_keys <- setdiff(
     service$policy$override_keys,
     excluded_keys
   )
-  readable$policy$query_array_style_overrides <- service$policy$query_array_style_overrides[
-    !names(service$policy$query_array_style_overrides) %in% excluded_keys
-  ]
   readable$policy$validation_blocked_keys <- unique(unlist(
     lapply(blocked, function(report) {
       unlist(
@@ -536,6 +538,42 @@ validated_service_operations <- function(service, reports) {
     }),
     use.names = FALSE
   ))
+  blocked_routes <- names(Filter(
+    function(routes) {
+      any(vapply(
+        routes,
+        function(route) {
+          any(vapply(
+            blocked,
+            function(report) {
+              same_source <- identical(route$source, report$source) ||
+                endsWith(report$source, paste0('/', route$source))
+              keys <- if (report$source %in% excluded_files) {
+                vapply(report$operations, `[[`, character(1), 'key')
+              } else {
+                unlist(
+                  lapply(
+                    Filter(function(x) x$level == 'error', report$findings),
+                    `[[`,
+                    'keys'
+                  ),
+                  use.names = FALSE
+                )
+              }
+              same_source && route$key %in% keys
+            },
+            logical(1)
+          ))
+        },
+        logical(1)
+      ))
+    },
+    service$policy[['routes_overrides']] %or% list()
+  ))
+  readable$policy$validation_blocked_keys <- union(
+    readable$policy$validation_blocked_keys,
+    blocked_routes
+  )
   if (!is.null(service$policy$include)) {
     readable$policy$include <- setdiff(service$policy$include, excluded_keys)
   }
@@ -550,6 +588,29 @@ validated_service_operations <- function(service, reports) {
       retained_diagnostics = list(),
       server_diagnostics = list()
     )
+  }
+  for (i in seq_along(parsed$inventory)) {
+    operation <- parsed$inventory[[i]]
+    if (!operation$key %in% blocked_routes) {
+      next
+    }
+    selection <- operation_selection_reason(
+      operation$key,
+      operation$path,
+      operation$method,
+      service$policy
+    )
+    if (length(selection)) {
+      operation$reason <- paste(selection, collapse = '; ')
+    } else {
+      operation$status <- 'unsupported'
+      operation$reason <- 'A declared hook route is blocked by schema validation.'
+      operation$classification <- 'schema_defect'
+      operation$code <- 'schema_validation_route_blocked'
+      operation$guidance <- 'Correct every declared route before generating this wrapper.'
+      parsed$diagnostics[[length(parsed$diagnostics) + 1L]] <- operation
+    }
+    parsed$inventory[[i]] <- operation
   }
   for (report in blocked) {
     full <- report$source %in% excluded_files

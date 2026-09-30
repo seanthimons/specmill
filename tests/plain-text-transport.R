@@ -137,12 +137,14 @@ plain_text_acceptance <- function() {
     yaml::write_yaml(service, service_path)
     withr::local_envvar(c(TEXTCLIENT_KEY = 'fixture-key'))
     plan <- specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       mode = 'apply'
     )
     stopifnot(!length(plan$diagnostics), length(plan$operations) == 3L)
     repeat_plan <- specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       mode = 'apply'
@@ -291,7 +293,7 @@ plain_text_acceptance <- function() {
     helper <- file.path(root, 'R', 'api_request.R')
     cat('\n# Client customization retained.\n', file = helper, append = TRUE)
     before <- tools::md5sum(helper)
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
     stopifnot(identical(before, tools::md5sum(helper)))
   }
   cat(

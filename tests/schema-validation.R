@@ -404,6 +404,20 @@ schema_validation_acceptance <- function() {
       )
   )
   mapped$policy$include <- 'GET /safe'
+  mapped$policy$routes_overrides <- list(
+    'GET /safe' = list(list(
+      key = 'GET /a.b~',
+      source = basename(schema)
+    ))
+  )
+  routed <- specmill::generate_client(
+    root,
+    mapped,
+    mode = 'plan',
+    validation = policy
+  )
+  stopifnot(!length(routed$operations), length(routed$diagnostics) > 0L)
+  mapped$policy$routes_overrides <- NULL
   selected <- specmill::generate_client(
     root,
     mapped,
