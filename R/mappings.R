@@ -49,6 +49,7 @@ validate_settings <- function(
       'docs',
       'batch',
       'request_controls',
+      'response_policy',
       'body_media',
       'query_array_style',
       'exclude_parameters',
@@ -89,6 +90,15 @@ validate_settings <- function(
     names(settings)
   )) {
     config_string(settings[[name]], paste(label, name))
+  }
+  if (!is.null(settings$response_policy)) {
+    name <- config_string(
+      settings$response_policy,
+      paste(label, 'response_policy')
+    )
+    if (!identical(make.names(name), name)) {
+      stop('response_policy must be a client function name')
+    }
   }
   if ('request_controls' %in% names(settings)) {
     controls <- settings$request_controls
@@ -384,6 +394,7 @@ configure_operation <- function(operation, service) {
       public_names
     )]
   }
+  operation$response_policy <- settings$response_policy
   operation$request_controls <- config_data(settings$request_controls)
   operation$parameters <- parameters
   spec <- merge_settings(service, settings)

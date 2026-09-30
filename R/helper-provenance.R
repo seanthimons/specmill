@@ -45,9 +45,9 @@ request_helper_substitute <- function(template, settings) {
     template,
     fixed = TRUE
   )
-  code <- sub(
-    'api_request <-',
-    paste0(settings$helper, ' <-'),
+  code <- gsub(
+    'api_request',
+    settings$helper,
     code,
     fixed = TRUE
   )

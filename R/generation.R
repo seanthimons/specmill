@@ -2,6 +2,7 @@ transport_arguments <- function(operation) {
   c(
     if (!is.null(operation$server)) 'server',
     if (length(operation$request_controls)) 'request_controls',
+    if (!is.null(operation$response_policy)) 'response_policy',
     if (any(vapply(operation$parameters, extended_parameter, logical(1)))) {
       'parameter_serialization'
     },
@@ -278,6 +279,9 @@ render_operation <- function(operation, spec) {
     } else {
       paste0('params[[', r_literal(body_name), ']]')
     },
+    if ('response_policy' %in% transport_arguments(operation)) {
+      paste0(', response_policy = ', r_literal(operation$response_policy))
+    },
     if ('request_controls' %in% transport_arguments(operation)) {
       paste0(', request_controls = ', r_literal(operation$request_controls))
     },
@@ -544,6 +548,17 @@ generate_client <- function(
   if (any(operation_names %in% controls)) {
     stop('Operation collides with a client session control; supply a name override')
   }
+  companions <- unlist(
+    lapply(services, function(x) {
+      paste0(x$helper, c('_delimited', '_records', '_table'))
+    }),
+    use.names = FALSE
+  )
+  if (
+    any(operation_names %in% intersect(companions, names(runtime_definitions)))
+  ) {
+    stop('Operation collides with a response companion; supply a name override')
+  }
   # Public literals stay plain unless the package shadows a base data constructor.
   guard_literals <- any(
     c(operation_names, names(runtime_definitions), imported_names(root)) %in%
@@ -577,6 +592,16 @@ generate_client <- function(
     for (op in parsed[[i]]$operations) {
       configured <- configure_operation(op, service)
       op <- configured$operation
+      if (
+        !is.null(op$response_policy) &&
+          (!op$response_policy %in% names(runtime_definitions) ||
+            op$response_policy %in% operation_names)
+      ) {
+        stop(
+          'Missing client response policy or wrapper collision: ',
+          op$response_policy
+        )
+      }
       op$guard_literals <- guard_literals
       operation_spec <- configured$spec
       op$batch <- if (is.null(op$body)) {

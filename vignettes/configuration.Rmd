@@ -121,6 +121,115 @@ follow [adoption](existing-clients.html); initialization would conflict with its
 scaffold. Updating the catalogue does not automatically merge service YAML or
 refresh client-owned helpers.
 
+### Response policy and selected formatting
+
+New request helpers accept `response_policy`. Select a retained client function
+once under project, API/group, or service defaults:
+
+```yaml
+defaults:
+  response_policy: observe_response
+```
+
+The name must resolve to a function in client source. YAML contains a name,
+never executable R. Operation overrides can select a different function;
+`response_policy: null` removes the generated selection and restores the helper
+default. Complete `request.arguments` mappings own the entire call and must pass
+`response_policy` explicitly, using a literal function name binding.
+
+The contract is `function(response, context, decode)`. It runs once on the final
+`httr2_response`, after any retries, before HTTP errors and decoding. `context`
+contains only `method`, `status`, and normalized actual response `media`, with no
+URL, parameters, credentials, request headers, or body. The response itself can
+contain sensitive information; client policy owns its observation and logging.
+Policies do not run for dry runs or transport failures without a response.
+
+```r
+observe_response <- function(response, context, decode) {
+  # Call a client-owned observer here, including on 4xx/5xx responses.
+  decode()
+}
+```
+
+`decode()` applies the existing status check and native JSON/list, text/string,
+binary/raw, or empty/NULL decoding. Calling it delegates. Any callback return
+value, including `NULL`, is a replacement result. Warnings and errors propagate.
+A policy may call `decode(check_status = FALSE)` to read a selected error body,
+or return a replacement without decoding malformed content. Policies can retain
+metadata for a future paginator by returning
+`list(response = response, result = decode())`. Native defaults do not attach
+metadata or discard envelope fields.
+
+For direct helper calls, pass a function or a client function name. A package
+option such as `options(myclient.response_policy = observe_response)` selects a
+shared helper default. Its prefix follows the package request-option prefix.
+An explicit helper argument overrides that option, including `NULL`. Generated
+YAML selections are explicit arguments and take precedence over the option.
+Named functions resolve in the helper's enclosing client environment.
+
+For CSV/TSV, select the emitted `<helper>_delimited` policy:
+
+```yaml
+defaults:
+  response_policy: api_request_delimited
+```
+
+It calls `decode(format = 'delimited')`. The actual response Content-Type selects
+CSV for `text/csv` or `application/csv`, and TSV for
+`text/tab-separated-values` or `text/tsv`. Other media retain native decoding,
+including plain text. Empty delimited input returns a data frame with zero
+columns; header-only input retains its columns. Parsing uses
+`utils::read.table()`, preserves column names, respects quoted separators and
+newlines, disables comments, and rejects ragged rows and parser warnings such as
+unterminated quotes. Parser errors propagate. Native JSON errors retain safe
+HTTP/media diagnostics.
+
+Type inference follows `read.table()`. Select known identifier or date types
+with `decode(format = 'delimited', col_classes = c(id = 'character'))` in a shared
+client policy. Without a selected policy, CSV/TSV remain text strings.
+
+Decoded-result transformations belong in existing `post_response` hooks.
+The helper emits two reusable functions, named with that helper's prefix:
+
+```r
+format_results <- function(state) {
+  records <- api_request_records(
+    state$result, collection = c('payload', 'records'),
+    query = state$params$id, null_to_na = TRUE
+  )
+  api_request_table(records, type_convert = TRUE, as_table = tibble::as_tibble)
+}
+```
+
+`api_request_records()` extracts only the selected path. It wraps a named object
+as one record, preserves arrays and nested fields, converts data frames to rows,
+and returns `list()` for NULL or empty input. Query attribution must have length
+one or match the record count; it becomes each record's `query` attribute.
+NULL-to-NA cleanup is shallow and opt-in. Use `keyed = TRUE` for a named outer
+record collection, then `api_request_table(records, names_to = 'query_id')` to
+retain those keys in a column.
+
+`api_request_table()` is explicitly lossy compatibility formatting. It unions
+heterogeneous fields, represents missing fields as NA, collapses nested values
+with `'; '`, and optionally recovers types with `utils::type.convert()`. Set
+`type_convert = FALSE` to keep strings such as `'001'`. It rejects attribution
+that would overwrite a record field. Its default output is a base data frame,
+including for empty results. Passing `tibble::as_tibble` selects a tibble, also
+for empty results, and requires `tibble` in the client's `DESCRIPTION` Imports.
+The generated helpers have no tibble or specmill runtime dependency.
+
+Reuse a shared formatting function in the existing hook executor when a whole
+service needs it; routine policy does not require one callback per endpoint.
+Hooks receive decoded results and public parameters. They cannot inspect failed
+responses or replace policy before decoding, and no new wrapper stage is added.
+
+Existing helpers are never rewritten by normal generation. Review
+`inspect_client(root)$helpers` and manually adopt the proposed template, keeping
+client customizations and the recorded baseline. Emitted companion names also
+follow helper renames, preventing multi-service helper collisions. EPA settings,
+observer registries, PubChem Fault handling, and image conversion remain client
+code. This capability does not migrate any downstream client.
+
 ### Request controls and batch limits
 
 Generated project YAML includes request defaults:
