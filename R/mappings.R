@@ -52,6 +52,7 @@ validate_settings <- function(
       'body_media',
       'query_array_style',
       'exclude_parameters',
+      'routes',
       'specialization'
     ),
     label
@@ -222,6 +223,20 @@ validate_settings <- function(
       settings$exclude_parameters,
       paste(label, 'exclude_parameters')
     )
+  }
+  if ('routes' %in% names(settings)) {
+    routes <- config_sequence(settings[['routes']], paste(label, 'routes'))
+    if (
+      anyDuplicated(routes) ||
+        !all(
+          grepl(
+            '^.+ (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE) /[^[:space:]]*$',
+            routes
+          )
+        )
+    ) {
+      stop(label, ': routes must be unique schema-file METHOD /path references')
+    }
   }
   if ('docs' %in% names(settings)) {
     validate_documentation(settings$docs)

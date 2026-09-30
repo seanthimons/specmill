@@ -242,6 +242,14 @@ apply_files <- function(
         hash = text_hash(desired[[entry$file]]),
         operations = attr(desired, 'operations')[[entry$file]]
       )
+      routes <- attr(desired, 'routes')
+      routes <- routes[intersect(
+        names(routes),
+        attr(desired, 'operations')[[entry$file]]
+      )]
+      if (length(routes)) {
+        manifest$files[[entry$file]]$routes <- routes
+      }
     }
   }
   manifest$files <- manifest$files[sort(

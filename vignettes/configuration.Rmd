@@ -541,6 +541,38 @@ request body are unaffected. The operation's inventory record lists
 `excluded_parameters`. The direct reader accepts
 `read_operations(file, policy = list(exclude_parameters_overrides = list('POST /api/hazard' = c('files[]', 'request'))))`.
 
+### Hook-selected routes
+
+When a pre-request hook chooses another schema route, declare it on the keyed
+operation:
+
+```yaml
+operations:
+  GET /api/descriptors:
+    routes:
+      - 'chemi-rdkit-prod.json GET /api/rdkit'
+```
+
+Each reference is `schema-file METHOD /path`. Use a unique basename or a path
+relative to the project root. The file must be loaded by the same service;
+ambiguous basenames and unknown routes fail configuration loading. Targets need
+not be selected for wrapper generation. `routes` belongs under operations, not
+defaults, and duplicate declarations are rejected.
+
+The keyed route and every target must use the same effective helper, resolved
+schema server URL, and selected request body media, including absence of a body.
+Unresolved servers fail this comparison. Binding `server` from `hook_state` does
+not relax the schema-server check; runtime server overrides remain client-owned.
+This declaration does not verify the hook's parameters or runtime route choices.
+
+For operations with declarations, the inventory's optional `routes` field lists
+the keyed route followed by its targets, with project-relative schema paths,
+schema hashes, operation keys, helpers, servers, and body media. Generated-file
+provenance records the same list under
+`.specmill/manifest.json` → `files` → output filename → `routes` → operation ID.
+A hook-bound `endpoint` or `method` without declarations emits a configuration
+warning. A runtime route guard is not generated.
+
 For APIs that explicitly require repeated bracketed query-array names, opt in:
 
 ```yaml
