@@ -92,7 +92,10 @@ media_type_acceptance <- function() {
   ambiguous <- specmill::read_operations(file)
   stopifnot(
     identical(unsupported$diagnostics[[1L]]$code, 'body_media_type'),
-    identical(unsupported$diagnostics[[1L]]$reason, 'Unsupported body media type'),
+    identical(
+      unsupported$diagnostics[[1L]]$reason,
+      'Unsupported body media type'
+    ),
     identical(ambiguous$diagnostics[[1L]]$code, 'body_media_type'),
     identical(ambiguous$diagnostics[[1L]]$reason, 'Ambiguous body media type')
   )
@@ -226,7 +229,7 @@ media_type_acceptance <- function() {
     grepl('body_media', conditionMessage(error)),
     identical(before, tools::md5sum(helper))
   )
-  service$operations[['POST /invalid']] <- list(body_media = 'text/plain')
+  service$operations[['POST /invalid']] <- list(body_media = 'application/xml')
   yaml::write_yaml(service, service_path)
   invalid <- tryCatch(specmill::load_project(root), error = identity)
   stopifnot(

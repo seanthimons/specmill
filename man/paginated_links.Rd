@@ -9,7 +9,11 @@ paginated_links(
   items,
   next_link = function(response) httr2::resp_link_url(response, "next"),
   max_pages = 100,
-  max_items = 10000
+  max_items = 10000,
+  warn_limits = FALSE,
+  error_policy = "stop",
+  format = NULL,
+  policy = list()
 )
 }
 \arguments{
@@ -23,11 +27,15 @@ Defaults to the HTTP Link header's next relation. NULL or an empty string
 means completion. Relative links resolve against the current response URL.}
 
 \item{max_pages, max_items}{Finite positive retrieval limits, as in \code{\link[=paginated]{paginated()}}.}
+
+\item{warn_limits, error_policy, format, policy}{As in \code{\link[=paginated]{paginated()}}. Policy is
+passed to iteration; link security checks still apply before every request.}
 }
 \value{
 The same structure as \code{\link[=paginated]{paginated()}}, with \code{no_next_link} for completion
 without another link. Request, extraction, repeated-link, redirect, and
-cross-origin errors abort without returning partial results.
+cross-origin errors abort by default. Selected error recovery applies only
+to request failures; redirects and unsafe links always abort.
 }
 \description{
 Retrieve bounded pages through same-origin next links

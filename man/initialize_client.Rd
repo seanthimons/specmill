@@ -7,7 +7,7 @@ initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
     license = NULL, base_url = NULL,
     naming = c("operation_id", "tag_prefix"), group_by = c("tag", "none"),
     name_case = c("asis", "snake_case", "camel_case", "pascal_case",
-        "screaming_snake_case", "dot_case"))
+        "screaming_snake_case", "dot_case"), companions = character())
 }
 \arguments{
 \item{root}{Destination client directory; it may be created when absent.}
@@ -19,6 +19,7 @@ initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
 \item{base_url}{Optional absolute HTTP(S) override for all operations in the new client-owned transport. Overrides schema servers; a runtime option can override it.}
 \item{naming}{Preserve operationId names by default, or propose tag-prefixed snake_case names. See configure_client.}
 \item{group_by}{Group operations by first tag (default), or use one default group with none. Multi-API initialization writes one YAML file per API with nested groups; single-schema initialization keeps flat group files.}
+\item{companions}{Optional selection of \code{batching} and/or \code{pagination}. Emits reusable, exported, helper-prefixed companions into the client-owned request helper and records their baseline. Empty by default. Pagination adds digest to new-client Imports; an existing DESCRIPTION must declare it.}
 \item{name_case}{Case convention for proposed names. Choices are as-is, snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, and dot.case. See configure_client.}
 }
 \value{A list of applied file records, each containing file, path, and action. The configuration attribute contains proposed files, operation assignments, and diagnostics. Stops before application for invalid metadata, tag filename collisions, or conflicting scaffold paths.}
