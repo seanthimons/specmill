@@ -311,7 +311,7 @@ parameter_transport_acceptance <- function() {
       'query',
       value = list(R = list(1L)),
       invalid = TRUE,
-      expected = 'Invalid public input'
+      expected = 'Invalid query parameter p: '
     )
     check(
       array,
@@ -332,7 +332,8 @@ parameter_transport_acceptance <- function() {
       'query',
       value = c(1, NA),
       invalid = TRUE,
-      expected = 'Invalid public input'
+      # GH #62: parameter errors name their location, never the body.
+      expected = '^Invalid query parameter p: Invalid scalar type$'
     )
     for (format in c('csv', 'ssv', 'tsv', 'pipes', 'multi')) {
       expected <- switch(

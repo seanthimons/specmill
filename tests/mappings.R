@@ -65,8 +65,6 @@ mappings_acceptance <- function() {
     operation,
     selected
   )
-  # generate_client() sets this flag; FALSE means nothing shadows a data constructor.
-  configured$operation$guard_literals <- FALSE
   env <- new.env(parent = baseenv())
   calls <- list()
   order <- character()
@@ -112,9 +110,9 @@ mappings_acceptance <- function() {
       NULL
     })
   ))
-  # Without the flag (standalone rendering), literals stay guarded.
+  # Standalone rendering matches unshadowed generation; the flag opts in to guards.
   guarded <- configured$operation
-  guarded$guard_literals <- NULL
+  guarded$guard_literals <- TRUE
   stopifnot(grepl(
     "mode = base::evalq(c('wide', 'raw'), envir = base::baseenv())",
     gsub('"', "'", specmill::render_operation(guarded, configured$spec)),
