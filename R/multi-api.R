@@ -5,7 +5,8 @@ multi_api_proposal <- function(
   naming,
   group_by,
   name_case = 'asis',
-  reviewed_names = list()
+  reviewed_names = list(),
+  companions = character()
 ) {
   required <- c('schema', 'api', 'base_url', 'include')
   if (
@@ -85,7 +86,8 @@ multi_api_proposal <- function(
       helper,
       apis$base_url[[i]],
       apis$base_url[[i]],
-      dry_run_env(package)
+      dry_run_env(package),
+      companions
     )
     helpers[[paste0('R/', helper, '.R')]] <- scaffold$code
     helpers[[paste0(
@@ -199,7 +201,8 @@ initialize_apis <- function(
   license,
   naming,
   group_by,
-  name_case
+  name_case,
+  companions = character()
 ) {
   if (file.exists(file.path(root, 'DESCRIPTION'))) {
     stop('Multi-API initialization requires a new package directory')
@@ -210,7 +213,8 @@ initialize_apis <- function(
     package,
     naming,
     group_by,
-    name_case
+    name_case,
+    companions = companions
   )
   first <- apis[apis$include, , drop = FALSE][1L, ]
   stage <- tempfile('multi-api-initialization-')
@@ -225,7 +229,8 @@ initialize_apis <- function(
     first$base_url,
     naming,
     group_by,
-    name_case
+    name_case,
+    companions
   )
   metadata <- c('DESCRIPTION', 'NAMESPACE', 'LICENSE', '.Rbuildignore', 'R/api_options.R')
   metadata <- metadata[file.exists(file.path(stage, metadata))]
