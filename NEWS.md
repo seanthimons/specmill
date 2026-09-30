@@ -1,6 +1,54 @@
 
 
 
+## specmill 0.1.9 (2026-09-30)
+
+#### New features
+
+- integrate request policies and client iteration (#63, #64, #65, #66,
+  #67)
+  ([40ce8aa](https://github.com/seanthimons/specmill/tree/40ce8aac66317a3721349d60a65291fda5de709b))
+- emit owned batching and pagination companions (#64, #65)
+  ([a5bb28d](https://github.com/seanthimons/specmill/tree/a5bb28ddf7c613e621d5c752b604be515ab5d09a))
+- support explicit bounded iteration policies (#65)
+  ([8765c02](https://github.com/seanthimons/specmill/tree/8765c021415a3b91c394245bafa406a9060fe860))
+- support explicit sequential batching policies (#64)
+  ([02706e2](https://github.com/seanthimons/specmill/tree/02706e2cec72331c6e5321fae0d4202320777723))
+- select client-owned retry predicates (#67)
+  ([d1cc4a7](https://github.com/seanthimons/specmill/tree/d1cc4a72f52deff4a237098f525ceeccce159fc0))
+- support declared plain-text bodies (#66)
+  ([42e4726](https://github.com/seanthimons/specmill/tree/42e47264a24e56f6b5d3d65e91e582891cadd035))
+- support selected response policies and decoding (#63)
+  ([35fff37](https://github.com/seanthimons/specmill/tree/35fff373ca1ce47a0f8275a10ef01f50f5f25687))
+- optionally guard hook-selected routes before requests (#69)
+  ([e8c1e9f](https://github.com/seanthimons/specmill/tree/e8c1e9f25f13e46deb5e925655128fbdb8809973))
+- declare schema routes for hook-owned requests
+  ([62d7f60](https://github.com/seanthimons/specmill/tree/62d7f6059ee828d600706786e9e68907e3fa1845))
+- exclude reviewed schema parameters per operation
+  ([638b1cd](https://github.com/seanthimons/specmill/tree/638b1cd9c03c3c882a674809b625c92faaa8dbe6))
+
+#### Bug fixes
+
+- name the input location in generated validation errors
+  ([210cdfd](https://github.com/seanthimons/specmill/tree/210cdfd10bb9fe95423bb847064510122ea6263f))
+- render standalone operations without literal guards by default
+  ([576198b](https://github.com/seanthimons/specmill/tree/576198bcf945e6f338e2527177c41a3846c7fdf4))
+
+#### Docs
+
+- review general request ports and client policy boundaries
+  ([5e4f00c](https://github.com/seanthimons/specmill/tree/5e4f00ce4d3ac8383396925b01288d5a1e330084))
+
+#### Other changes
+
+- release v0.1.9 \[skip ci\]
+  ([a4e0adb](https://github.com/seanthimons/specmill/tree/a4e0adb87d60f99c6f424f3cf8f16b04dd158f72))
+- preserve route guards with response policies
+  ([86362b9](https://github.com/seanthimons/specmill/tree/86362b9e19e568b8db0c4ea7248f6e7de8196249))
+
+Full set of changes:
+[`v0.1.8...v0.1.9`](https://github.com/seanthimons/specmill/compare/v0.1.8...v0.1.9)
+
 ## specmill 0.1.8 (2026-09-28)
 
 #### Refactorings
@@ -11,7 +59,7 @@
 #### Other changes
 
 - release v0.1.8 \[skip ci\]
-  ([3305676](https://github.com/seanthimons/specmill/tree/33056768ae1607a284c6b8eee211a57f278049ba))
+  ([2df2657](https://github.com/seanthimons/specmill/tree/2df2657b7f3576ef7af8072c21ed6b1f6aa9ce8c))
 
 Full set of changes:
 [`v0.1.7...v0.1.8`](https://github.com/seanthimons/specmill/compare/v0.1.7...v0.1.8)
