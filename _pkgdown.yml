@@ -9,6 +9,7 @@ articles:
 - title: Start here
   navbar: Start here
   contents:
+  - workflow
   - specmill
   - existing-clients
 - title: Maintain a client

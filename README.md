@@ -257,6 +257,10 @@ See [pagination configuration](https://seanthimons.github.io/specmill/articles/c
 
 ## Learn the workflow
 
+See the [workflow flowcharts](https://seanthimons.github.io/specmill/articles/workflow.html)
+for new/existing client setup, tailoring and remediation, plus the parsing,
+selection, routing, generation and runtime pipeline used to debug wrapper behavior.
+
 | Guide | What it covers |
 |---|---|
 | [Runtime hooks](https://seanthimons.github.io/specmill/articles/hooks.html) | Client-owned executor setup, pre/post examples, testing, and regeneration |
