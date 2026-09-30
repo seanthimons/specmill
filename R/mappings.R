@@ -49,7 +49,9 @@ validate_settings <- function(
       'docs',
       'batch',
       'request_controls',
+      'response_policy',
       'body_media',
+      'text_encoding',
       'query_array_style',
       'exclude_parameters',
       'routes',
@@ -65,11 +67,18 @@ validate_settings <- function(
         c(
           'application/json',
           'application/octet-stream',
+          'text/plain',
           'application/x-www-form-urlencoded',
           'multipart/form-data'
         )
     ) {
       stop('Unsupported body_media')
+    }
+  }
+  if (!is.null(settings$text_encoding)) {
+    config_string(settings$text_encoding, paste(label, 'text_encoding'))
+    if (!settings$text_encoding %in% c('scalar', 'lines')) {
+      stop('text_encoding must be scalar or lines')
     }
   }
   if (!is.null(settings$query_array_style)) {
@@ -91,13 +100,28 @@ validate_settings <- function(
   )) {
     config_string(settings[[name]], paste(label, name))
   }
+  if (!is.null(settings$response_policy)) {
+    name <- config_string(
+      settings$response_policy,
+      paste(label, 'response_policy')
+    )
+    if (!identical(make.names(name), name)) {
+      stop('response_policy must be a client function name')
+    }
+  }
   if ('request_controls' %in% names(settings)) {
     controls <- settings$request_controls
     config_fields(
       controls,
-      c('timeout', 'max_retries', 'retry_writes'),
+      c('timeout', 'max_retries', 'retry_writes', 'retry_policy'),
       paste(label, 'request_controls')
     )
+    if (!is.null(controls$retry_policy)) {
+      name <- config_string(controls$retry_policy, paste(label, 'retry_policy'))
+      if (!identical(make.names(name), name)) {
+        stop('request_controls.retry_policy must be a client function name')
+      }
+    }
     for (field in intersect(names(controls), c('timeout', 'max_retries'))) {
       value <- controls[[field]]
       if (
@@ -409,6 +433,7 @@ configure_operation <- function(operation, service) {
       public_names
     )]
   }
+  operation$response_policy <- settings$response_policy
   operation$request_controls <- config_data(settings$request_controls)
   operation$parameters <- parameters
   spec <- merge_settings(service, settings)

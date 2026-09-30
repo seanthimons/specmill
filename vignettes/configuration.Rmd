@@ -121,6 +121,115 @@ follow [adoption](existing-clients.html); initialization would conflict with its
 scaffold. Updating the catalogue does not automatically merge service YAML or
 refresh client-owned helpers.
 
+### Response policy and selected formatting
+
+New request helpers accept `response_policy`. Select a retained client function
+once under project, API/group, or service defaults:
+
+```yaml
+defaults:
+  response_policy: observe_response
+```
+
+The name must resolve to a function in client source. YAML contains a name,
+never executable R. Operation overrides can select a different function;
+`response_policy: null` removes the generated selection and restores the helper
+default. Complete `request.arguments` mappings own the entire call and must pass
+`response_policy` explicitly, using a literal function name binding.
+
+The contract is `function(response, context, decode)`. It runs once on the final
+`httr2_response`, after any retries, before HTTP errors and decoding. `context`
+contains only `method`, `status`, and normalized actual response `media`, with no
+URL, parameters, credentials, request headers, or body. The response itself can
+contain sensitive information; client policy owns its observation and logging.
+Policies do not run for dry runs or transport failures without a response.
+
+```r
+observe_response <- function(response, context, decode) {
+  # Call a client-owned observer here, including on 4xx/5xx responses.
+  decode()
+}
+```
+
+`decode()` applies the existing status check and native JSON/list, text/string,
+binary/raw, or empty/NULL decoding. Calling it delegates. Any callback return
+value, including `NULL`, is a replacement result. Warnings and errors propagate.
+A policy may call `decode(check_status = FALSE)` to read a selected error body,
+or return a replacement without decoding malformed content. Policies can retain
+metadata for a future paginator by returning
+`list(response = response, result = decode())`. Native defaults do not attach
+metadata or discard envelope fields.
+
+For direct helper calls, pass a function or a client function name. A package
+option such as `options(myclient.response_policy = observe_response)` selects a
+shared helper default. Its prefix follows the package request-option prefix.
+An explicit helper argument overrides that option, including `NULL`. Generated
+YAML selections are explicit arguments and take precedence over the option.
+Named functions resolve in the helper's enclosing client environment.
+
+For CSV/TSV, select the emitted `<helper>_delimited` policy:
+
+```yaml
+defaults:
+  response_policy: api_request_delimited
+```
+
+It calls `decode(format = 'delimited')`. The actual response Content-Type selects
+CSV for `text/csv` or `application/csv`, and TSV for
+`text/tab-separated-values` or `text/tsv`. Other media retain native decoding,
+including plain text. Empty delimited input returns a data frame with zero
+columns; header-only input retains its columns. Parsing uses
+`utils::read.table()`, preserves column names, respects quoted separators and
+newlines, disables comments, and rejects ragged rows and parser warnings such as
+unterminated quotes. Parser errors propagate. Native JSON errors retain safe
+HTTP/media diagnostics.
+
+Type inference follows `read.table()`. Select known identifier or date types
+with `decode(format = 'delimited', col_classes = c(id = 'character'))` in a shared
+client policy. Without a selected policy, CSV/TSV remain text strings.
+
+Decoded-result transformations belong in existing `post_response` hooks.
+The helper emits two reusable functions, named with that helper's prefix:
+
+```r
+format_results <- function(state) {
+  records <- api_request_records(
+    state$result, collection = c('payload', 'records'),
+    query = state$params$id, null_to_na = TRUE
+  )
+  api_request_table(records, type_convert = TRUE, as_table = tibble::as_tibble)
+}
+```
+
+`api_request_records()` extracts only the selected path. It wraps a named object
+as one record, preserves arrays and nested fields, converts data frames to rows,
+and returns `list()` for NULL or empty input. Query attribution must have length
+one or match the record count; it becomes each record's `query` attribute.
+NULL-to-NA cleanup is shallow and opt-in. Use `keyed = TRUE` for a named outer
+record collection, then `api_request_table(records, names_to = 'query_id')` to
+retain those keys in a column.
+
+`api_request_table()` is explicitly lossy compatibility formatting. It unions
+heterogeneous fields, represents missing fields as NA, collapses nested values
+with `'; '`, and optionally recovers types with `utils::type.convert()`. Set
+`type_convert = FALSE` to keep strings such as `'001'`. It rejects attribution
+that would overwrite a record field. Its default output is a base data frame,
+including for empty results. Passing `tibble::as_tibble` selects a tibble, also
+for empty results, and requires `tibble` in the client's `DESCRIPTION` Imports.
+The generated helpers have no tibble or specmill runtime dependency.
+
+Reuse a shared formatting function in the existing hook executor when a whole
+service needs it; routine policy does not require one callback per endpoint.
+Hooks receive decoded results and public parameters. They cannot inspect failed
+responses or replace policy before decoding, and no new wrapper stage is added.
+
+Existing helpers are never rewritten by normal generation. Review
+`inspect_client(root)$helpers` and manually adopt the proposed template, keeping
+client customizations and the recorded baseline. Emitted companion names also
+follow helper renames, preventing multi-service helper collisions. EPA settings,
+observer registries, PubChem Fault handling, and image conversion remain client
+code. This capability does not migrate any downstream client.
+
 ### Request controls and batch limits
 
 Generated project YAML includes request defaults:
@@ -142,6 +251,34 @@ normal generation never overwrites it. Complete request mappings own their helpe
 arguments and must pass any controls explicitly. Write retries still require
 `retry_writes: true`; use that only when replay is safe for the API.
 
+Select a client-owned retry predicate by function name in declarative YAML:
+
+```yaml
+defaults:
+  request_controls:
+    max_retries: 2
+    retry_policy: retry_server_errors
+```
+
+Define the predicate in the client's `R/` source. It receives an httr2 response
+and returns one nonmissing logical value:
+
+```r
+retry_server_errors <- function(response) {
+  status <- httr2::resp_status(response)
+  status == 429L || (status >= 500L && status < 600L)
+}
+```
+
+This selection excludes 408 and includes 501 and 505. A service can select a
+narrower predicate. With no selection, native statuses remain 408, 429, 500,
+502, 503 and 504, and retries remain disabled by default. Runtime
+`<package>.request` options also accept `retry_policy` as a client function name
+or function. YAML accepts names only, never executable code. Invalid selections
+fail before HTTP; predicates that fail or return invalid values abort safely.
+Write replay still requires `retry_writes`, and httr2 still handles Retry-After
+and backoff. Connection and JSON-decode failures are not retried.
+
 Generated defaults expose `batch.max_items` and `batch.max_bytes` as null
 (unconfigured). A top-level array request schema's `maxItems` becomes an
 operation-specific default. Set limits under service defaults or individual
@@ -158,10 +295,9 @@ operations:
 Shared limits apply only to applicable request bodies, so ordinary GET requests
 are unaffected. The helper rejects oversized requests before sending them. Item limits apply
 to top-level array bodies supplied as unnamed lists; byte limits measure the
-serialized UTF-8 JSON or raw binary payload. Limits embedded only in prose need
+serialized UTF-8 JSON, UTF-8 plain text, or raw binary payload. Limits embedded only in prose need
 explicit review; they are not silently treated as schema constraints. Automatic
-chunking, response aggregation, nested-array limits and newline-delimited batches
-remain separate work. Existing client-owned helpers need a `batch` argument
+chunking, response aggregation and nested-array limits remain separate work. Existing client-owned helpers need a `batch` argument
 before using these settings; generation verifies that compatibility.
 
 For a new package, `initialize_client()` writes editable YAML grouped by schema
@@ -497,6 +633,40 @@ client-owned helpers need the optional `body_media`, `body_encoding`, and
 replace them. New clients use the bundled transport and declare `curl` in Imports.
 Adding the default transport to an existing package requires declaring `curl`
 first; retaining a client-owned helper adds no such requirement.
+
+### Plain-text request bodies
+
+OpenAPI `requestBody.content` and Swagger `consumes` may declare `text/plain`
+with a scalar string schema. The generated wrapper validates that schema and
+sends UTF-8 text with `Content-Type: text/plain`. Scalar strings preserve embedded
+and trailing newlines, blank lines and duplicates. An empty string sends an
+explicitly empty body; omitting an optional argument omits the body. Missing
+values and explicit NULL fail validation.
+
+Select `body_media: text/plain` when the schema offers several media types.
+Array, object, binary and composed text schemas remain unsupported. Archived
+schemas are never rewritten to guess a request contract.
+
+For a reviewed vector-of-lines input, select encoding explicitly:
+
+```yaml
+operations:
+  POST /write:
+    body_media: text/plain
+    text_encoding: lines
+    batch:
+      max_items: 100
+      max_bytes: 1048576
+```
+
+`text_encoding: scalar` is the default. `lines` joins a character vector with LF
+and adds no final newline. Empty entries, duplicates and newlines within each
+entry remain unchanged; an empty vector sends an empty body. Item limits count
+input entries before joining. Scalar text has no inferred record boundaries.
+String schema constraints apply to the encoded text, and byte limits count its
+UTF-8 bytes. No automatic splitting is performed. Existing client helpers need
+manual adoption of plain-text transport; generation preserves their code and
+provenance baseline.
 
 ### Parameter serialization
 
@@ -1020,10 +1190,31 @@ Apply only reviewed changes, then run `check` and [the client's tests](testing.h
 
 ## Pagination
 
-Pagination configuration is explicit R code per operation, kept in a companion
-function outside generated files. There is no pagination YAML field in this
-first implementation. `paginated()` follows the existing `batched()` pattern of
-calling an ordinary function; it does not change wrapper generation or transport.
+Select `companions = c('batching', 'pagination')` in `initialize_client()` to emit
+reusable helper-prefixed functions into the existing client-owned request helper.
+They use the same ownership baseline and manual-adoption rules as transport.
+No per-endpoint looping variants are generated; ordinary wrappers remain single
+requests. Emission requires no specmill runtime dependency. Pagination adds digest
+to a new client's Imports; an existing DESCRIPTION must declare it first.
+
+Use a shared policy list in retained client code, or the package/helper-scoped
+options `<package>.<helper>.batching`, `<package>.<helper>.pagination`, and
+`<package>.<helper>.pagination_links`. The package prefix uses the lowercase
+dry-run prefix. For example `catalogueclient.api_request.pagination` applies to
+that helper only. Multi-API helper prefixes keep service policies separate.
+Explicit pagination arguments override policy fields; a supplied batching policy
+replaces the shared list. There is no pagination YAML field or name inference.
+Maintainers supply API knowledge once per service, with operation exceptions;
+the companions supply the loops.
+
+Batching accepts explicit `normalize(items)`, `build(chunk, index)`, and
+`merge(results)` functions. Values/order and unmerged results are preserved by
+default. `on_error = 'drop'` or `'keep'` warns on failures and respectively drops
+them or retains `error_result`. The size must be a positive integer before HTTP.
+Duplicate/missing/empty removal, singleton JSON arrays and raw text construction
+remain selected client choices. Every chunk routes through existing transport.
+An explicit `first_batch_only = TRUE` batching policy preserves ComptoxR's legacy
+pagination of only its first batch. General composition processes every chunk.
 
 The convention inventory used for this implementation is:
 
@@ -1045,8 +1236,8 @@ single-request contract. The helper and companion are client-owned R files.
 For an operation with public arguments `page`, `per_page`, and `category`:
 
 ```{r pagination-page, eval=FALSE}
-list_all_items <- function(category, max_pages = 100, max_items = 10000) {
-  specmill::paginated(
+list_all_items <- function(category, max_pages = 100, max_items = NULL) {
+  api_request_paginated(
     list_items, category = category,
     mode = 'page', parameter = 'page', size_parameter = 'per_page',
     start = 1, page_size = 50, items = function(response) response$data,
@@ -1061,8 +1252,8 @@ result$pages
 For a top-level collection and offset/limit arguments:
 
 ```{r pagination-offset, eval=FALSE}
-search_all <- function(query, max_pages = 100, max_items = 10000) {
-  specmill::paginated(
+search_all <- function(query, max_pages = 100, max_items = NULL) {
+  api_request_paginated(
     search_items, query = query,
     mode = 'offset', parameter = 'offset', size_parameter = 'limit',
     start = 0, page_size = 50, items = identity,
@@ -1074,8 +1265,10 @@ search_all <- function(query, max_pages = 100, max_items = 10000) {
 Use exact public argument names, including any configured renames. Fixed arguments
 must be named and cannot override the pagination arguments. If an operation's
 argument collides with a `paginated()` control such as `items` or `start`, use a
-small adapter function that closes over that fixed value. Add specmill to Imports
-if shipping these companions in a client package. Existing generated functions
+small adapter function that closes over that fixed value. Use exact nested paths
+such as `parameter = c('body', 'pagination', 'cursor')` and
+`size_parameter = c('body', 'pagination', 'limit')` to update request state without
+rebuilding filters, options or sort fields. Companions and generated functions
 remain independent of specmill at runtime.
 
 The extractor must return a list, atomic vector, or data frame. Data frames count
@@ -1085,16 +1278,29 @@ uses that convention. Extracted pages retain their collection type and are not
 merged. Empty pages are omitted and produce `stop_reason = 'empty_page'`.
 Short pages continue; a full final page therefore requires another call to discover
 an empty page. Page numbers advance by one, offsets by the fixed requested size.
-Offset APIs that cap or change the stride require custom orchestration.
+For response-selected offsets, supply
+`advance = function(response, position, page_size) position + response$recordsCount`.
+Select Spring completion with `completed = function(response, state) response$last`
+or compare `state$requests` to an explicit `response$totalPages`. Nested hasNext
+metadata belongs in the same callback. `stop_on_short = TRUE` selects short-page
+termination.
 
-`max_pages` and `max_items` must be finite positive integers. Their defaults are
-100 and 10000. The last collection is sliced to meet the item limit without
+`max_pages` and an optional `max_items` must be finite positive integers. Emitted
+companions default to 100 calls and no item cap, and warn on truncation. The toolkit
+functions retain 100/10000 and silent-limit defaults for backward compatibility. The last collection is sliced to meet the item limit without
 changing the request size. Limits bound calls and retained items, not response
 bytes or total time. Transport retries can make multiple HTTP attempts per call.
 A limit produces `max_pages` or `max_items`, with the item limit taking precedence
 when both are reached. Neither means that all available items were fetched.
 Repeated nonempty pages terminate at these limits without deduplication. Request,
-decode, and extraction errors propagate immediately; no partial result is returned.
+decode, and extraction errors propagate immediately by default. Explicit
+`error_policy = 'partial'` or `'empty'` warns after a failed request and returns
+successful pages or an empty collection respectively. Extraction and security
+failures still propagate. Keep #63 response policy output as a decoded envelope,
+or retain `{response, result}` explicitly and extract from result. Totals and
+cursor metadata must survive until iteration finishes. A selected
+`format(result)` runs once afterward; post-response hooks that remove metadata
+must be omitted or adapted for these fetches.
 
 ### Cursor responses, including AMOS
 
@@ -1111,7 +1317,7 @@ for `/api/amos/method_keyset_pagination/{limit}` as follows:
 
 ```{r pagination-cursor, eval=FALSE}
 all_methods <- function(max_pages = 10, max_items = 500) {
-  specmill::paginated(
+  api_request_paginated(
     amos_page, mode = 'cursor', parameter = 'cursor',
     size_parameter = 'limit', page_size = 50,
     items = function(x) x$results,
@@ -1154,13 +1360,13 @@ request <- httr2::request('https://example.org/items?limit=50') %>%
   httr2::req_timeout(20)
 
 # HTTP Link header, rel="next", is the default next-link extractor.
-result <- specmill::paginated_links(
+result <- api_request_paginated_links(
   request, items = function(response) httr2::resp_body_json(response)$data,
   max_pages = 10, max_items = 500
 )
 
 # A body-provided next URL uses the same retrieval and origin checks.
-result <- specmill::paginated_links(
+result <- api_request_paginated_links(
   request, items = function(response) httr2::resp_body_json(response)$data,
   next_link = function(response) httr2::resp_body_json(response)$next,
   max_pages = 10, max_items = 500

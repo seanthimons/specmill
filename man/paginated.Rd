@@ -15,7 +15,14 @@ paginated(
   items,
   max_pages = 100,
   max_items = 10000,
-  next_cursor = NULL
+  next_cursor = NULL,
+  completed = NULL,
+  advance = NULL,
+  stop_on_short = FALSE,
+  error_policy = "stop",
+  warn_limits = FALSE,
+  format = NULL,
+  policy = list()
 )
 }
 \arguments{
@@ -25,7 +32,8 @@ paginated(
 
 \item{mode}{One of \code{"page"}, \code{"offset"}, or \code{"cursor"}.}
 
-\item{parameter}{Exact public argument name for the page, offset, or cursor.}
+\item{parameter}{Exact argument name or character-vector nested argument path
+for the page, offset, or cursor. For example \code{c('body', 'pagination', 'cursor')}.}
 
 \item{size_parameter}{Exact public argument name for the requested page size.
 May be NULL in cursor mode if the size is fixed by the caller.}
@@ -43,15 +51,36 @@ error; return an empty collection for an empty page.}
 \item{max_pages}{Positive integer maximum number of calls. Default 100.}
 
 \item{max_items}{Positive integer maximum number of retained items. Default
-10000. The last page is sliced if necessary; the request size stays fixed.}
+10000. NULL removes the item cap. The last page is sliced if necessary;
+the request size stays fixed.}
 
 \item{next_cursor}{Cursor-mode function extracting the next opaque string from
 a response. NULL or an empty string means completion. Repeated tokens error.}
+
+\item{completed}{Optional function of \verb{(response, state)} returning one logical
+value. State contains position, requests, item_count, and page_size. Select
+total/last-page or nested hasNext metadata explicitly in this function.}
+
+\item{advance}{Optional function of \verb{(response, position, page_size)} returning
+the next numeric position for page/offset mode. It must advance strictly.}
+
+\item{stop_on_short}{Stop on a page shorter than page_size, default FALSE.}
+
+\item{error_policy}{One of stop, partial, or empty. Partial/empty recover only
+request errors, warn, and respectively retain or discard successful pages.}
+
+\item{warn_limits}{Warn when a page or item limit truncates retrieval.}
+
+\item{format}{Optional function applied to the completed result after metadata
+iteration. Response decoding remains the single-request function's responsibility.}
+
+\item{policy}{Named list of shared pagination defaults. Explicit arguments
+override policy. Callbacks allow service defaults and operation exceptions.}
 }
 \value{
 A list with \code{pages} (extracted, unmerged collections), \code{requests},
 \code{item_count}, and \code{stop_reason} (\code{empty_page}, \code{max_pages}, \code{max_items}, or
-\code{no_next_cursor}).
+\code{no_next_cursor}, \code{completed}, \code{short_page}, or \code{request_error}).
 Empty pages are not retained. An item limit takes precedence over a page
 limit. Reaching a limit does not imply that the API has no more items.
 }
@@ -64,7 +93,9 @@ Page numbers advance by one; offsets advance by \code{page_size}.
 Only an empty collection signals completion; short pages do not. Servers
 must honor the configured offset stride. Repeated nonempty pages terminate
 at the limits, without deduplication. Request and extraction errors propagate
-immediately, with no partial result returned. Transport retries still apply
+immediately by default. Selected request-error recovery warns and returns
+partial or empty results. Extraction and metadata-policy errors always abort.
+Transport retries still apply
 independently to each call. Cursor tokens are never interpreted as URLs.
 Use \code{\link[=paginated_links]{paginated_links()}} for same-origin next-link retrieval. Empty pages and
 limits stop before extracting another cursor. Single-request functions are

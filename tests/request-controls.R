@@ -7,11 +7,19 @@ request_controls_acceptance <- function() {
     function(port_file) {
       port <- httpuv::randomPort()
       counts <- list()
+      history <- list()
       server <- httpuv::startServer(
         '127.0.0.1',
         port,
         list(call = function(req) {
           path <- req$PATH_INFO
+          if (path == '/history') {
+            return(list(
+              status = 200L,
+              headers = list('Content-Type' = 'application/json'),
+              body = jsonlite::toJSON(history, auto_unbox = TRUE)
+            ))
+          }
           if (path == '/counts') {
             return(list(
               status = 200L,
@@ -26,6 +34,15 @@ request_controls_acceptance <- function() {
             counts[[key]] + 1L
           }
           n <- counts[[key]]
+          request_body <- req$rook.input$read()
+          history[[key]] <<- c(
+            history[[key]],
+            list(list(
+              body = as.integer(request_body),
+              authorization = req$HTTP_AUTHORIZATION,
+              query = req$QUERY_STRING
+            ))
+          )
           if (path == '/timeout') {
             Sys.sleep(0.3)
           }
@@ -39,6 +56,10 @@ request_controls_acceptance <- function() {
             400L
           } else {
             200L
+          }
+          if (grepl('^/policy-', path)) {
+            status <- as.integer(sub('^/policy-([0-9]+).*$', '\\1', path))
+            if (grepl('recover', path) && n == 3L) status <- 200L
           }
           if (path == '/decode' && n == 3L) {
             status <- 200L
@@ -55,7 +76,7 @@ request_controls_acceptance <- function() {
                 method = req$REQUEST_METHOD,
                 path = path,
                 query = req$QUERY_STRING,
-                body = rawToChar(req$rook.input$read()),
+                body = rawToChar(request_body),
                 count = n,
                 secret = 'body-secret'
               ),
@@ -325,6 +346,159 @@ request_controls_acceptance <- function() {
     'GET /default-exhaust' = 1L
   )
   stopifnot(identical(unlist(totals[names(expected)]), expected))
+  # Client-owned predicates replace only HTTP status selection.
+  runtime$compat_retry <- function(response) {
+    status <- httr2::resp_status(response)
+    status == 429L || (status >= 500L && status < 600L)
+  }
+  runtime$narrow_retry <- function(response) {
+    httr2::resp_status(response) == 501L
+  }
+  options(
+    controlsclient.request = list(
+      base_url = origin,
+      max_retries = 2,
+      retry_policy = 'compat_retry'
+    )
+  )
+  for (status in c(408L, 429L, 501L, 505L, 404L)) {
+    path <- paste0('/policy-', status, '-compat-exhaust')
+    error(request(path), paste('HTTP', status))
+    expected_attempts <- if (status == 429L || status >= 500L) 3L else 1L
+    stopifnot(counts()[[paste('GET', path)]] == expected_attempts)
+  }
+  stopifnot(request('/policy-505-compat-recover')$count == 3L)
+  waits <- numeric()
+  stopifnot(
+    request('/policy-505-after-recover')$count == 3L,
+    identical(waits, c(7, 7))
+  )
+  options(
+    controlsclient.request = list(
+      base_url = origin,
+      max_retries = 2,
+      retry_policy = runtime$narrow_retry
+    )
+  )
+  stopifnot(request('/policy-501-narrow-recover')$count == 3L)
+  error(request('/policy-429-narrow'), 'HTTP 429')
+  stopifnot(counts()[['GET /policy-429-narrow']] == 1L)
+  options(controlsclient.request = list(base_url = origin, max_retries = 2))
+  for (status in c(408L, 429L, 500L, 501L, 502L, 503L, 504L, 505L, 404L)) {
+    path <- paste0('/policy-', status, '-native')
+    error(request(path), paste('HTTP', status))
+    expected_attempts <- if (
+      status %in% c(408L, 429L, 500L, 502L, 503L, 504L)
+    ) {
+      3L
+    } else {
+      1L
+    }
+    stopifnot(counts()[[paste('GET', path)]] == expected_attempts)
+  }
+  options(
+    controlsclient.request = list(
+      base_url = origin,
+      retry_policy = 'compat_retry'
+    )
+  )
+  error(request('/policy-501-default'), 'HTTP 501')
+  stopifnot(counts()[['GET /policy-501-default']] == 1L)
+  before <- counts()
+  for (value in list(
+    NA_character_,
+    '',
+    'missing_retry',
+    'function(x) TRUE',
+    1,
+    list(),
+    c('a', 'b')
+  )) {
+    options(
+      controlsclient.request = list(base_url = origin, retry_policy = value)
+    )
+    error(request('/policy-invalid'), '[Pp]olicy')
+  }
+  stopifnot(identical(before, counts()))
+  options(
+    controlsclient.request = list(
+      base_url = origin,
+      max_retries = 2,
+      retry_policy = 'compat_retry'
+    )
+  )
+  error(request('/policy-501-write', 'POST'), 'HTTP 501')
+  stopifnot(counts()[['POST /policy-501-write']] == 1L)
+  options(
+    controlsclient.request = list(
+      base_url = origin,
+      max_retries = 2,
+      retry_policy = 'compat_retry',
+      retry_writes = TRUE
+    )
+  )
+  stopifnot(request('/policy-501-write-recover', 'POST')$count == 3L)
+  history <- httr2::resp_body_json(httr2::req_perform(httr2::request(paste0(
+    origin,
+    '/history'
+  ))))
+  attempts <- history[['POST /policy-501-write-recover']]
+  stopifnot(
+    length(attempts) == 3L,
+    all(vapply(attempts, function(x) identical(x, attempts[[1L]]), logical(1)))
+  )
+  stopifnot(
+    identical(
+      as.integer(unlist(attempts[[1L]]$body)),
+      as.integer(charToRaw('{"value":1}'))
+    ),
+    attempts[[1L]]$authorization == 'Bearer header-secret',
+    attempts[[1L]]$query == '?api_key=query-secret'
+  )
+  text <- 'caf\u00e9\n\nfinal\n'
+  result <- runtime$api_request(
+    'POST',
+    '/policy-505-text-recover',
+    list(),
+    list(api_key = 'query-secret'),
+    text,
+    headers = list(Authorization = 'Bearer header-secret'),
+    body_media = 'text/plain'
+  )
+  stopifnot(result$count == 3L)
+  history <- httr2::resp_body_json(httr2::req_perform(httr2::request(paste0(
+    origin,
+    '/history'
+  ))))
+  attempts <- history[['POST /policy-505-text-recover']]
+  stopifnot(
+    length(attempts) == 3L,
+    all(vapply(attempts, function(x) identical(x, attempts[[1L]]), logical(1))),
+    identical(
+      as.integer(unlist(attempts[[1L]]$body)),
+      as.integer(charToRaw(enc2utf8(text)))
+    ),
+    attempts[[1L]]$authorization == 'Bearer header-secret',
+    attempts[[1L]]$query == '?api_key=query-secret'
+  )
+  for (value in list(NA, 1, c(TRUE, FALSE), NULL)) {
+    options(
+      controlsclient.request = list(
+        base_url = origin,
+        max_retries = 2,
+        retry_policy = function(response) value
+      )
+    )
+    error(request('/policy-501-invalid-return'), 'HTTP request failed')
+  }
+  options(
+    controlsclient.request = list(
+      base_url = origin,
+      max_retries = 2,
+      retry_policy = function(response) stop('header-secret')
+    )
+  )
+  error(request('/policy-501-predicate-error'), 'HTTP request failed')
   Sys.setenv(CONTROLSCLIENT_DRY_RUN = 'true')
   on.exit(Sys.unsetenv('CONTROLSCLIENT_DRY_RUN'), add = TRUE)
   options(controlsclient.request = list(base_url = origin, max_retries = 2))
@@ -451,7 +625,17 @@ request_controls_acceptance <- function() {
   project$defaults$request_controls <- list(
     timeout = 9,
     max_retries = 1L,
-    retry_writes = FALSE
+    retry_writes = FALSE,
+    retry_policy = 'compat_retry'
+  )
+  writeLines(
+    c(
+      'compat_retry <- function(response) {',
+      '  status <- httr2::resp_status(response)',
+      '  status == 429L || (status >= 500L && status < 600L)',
+      '}'
+    ),
+    file.path(root, 'R/retry_policy.R')
   )
   yaml::write_yaml(project, project_file)
   service_file <- file.path(root, project$services[[1L]])
@@ -459,6 +643,9 @@ request_controls_acceptance <- function() {
   service$defaults$request_controls <- list(max_retries = 2L)
   service$operations[['GET /root']] <- list(
     request_controls = list(timeout = 4, retry_writes = TRUE)
+  )
+  service$operations[['GET /path']] <- list(
+    request_controls = list(retry_policy = NULL)
   )
   yaml::write_yaml(service, service_file)
   specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
@@ -476,7 +663,19 @@ request_controls_acceptance <- function() {
     path_request$options$timeout_ms == 9000,
     root_request$policies$retry_max_tries == 3,
     path_request$policies$retry_max_tries == 3,
-    length(formals(runtime$root_call)) == 0L
+    length(formals(runtime$root_call)) == 0L,
+    root_request$policies$retry_is_transient(httr2::response(
+      status_code = 501L
+    )),
+    !root_request$policies$retry_is_transient(httr2::response(
+      status_code = 408L
+    )),
+    path_request$policies$retry_is_transient(httr2::response(
+      status_code = 408L
+    )),
+    !path_request$policies$retry_is_transient(httr2::response(
+      status_code = 501L
+    ))
   )
   # Runtime options can disable inherited retries and override timeout per field.
   options(controlsclient.request = list(timeout = 2, max_retries = 0))
@@ -486,6 +685,40 @@ request_controls_acceptance <- function() {
   )
   options(controlsclient.request = NULL)
   Sys.unsetenv('CONTROLSCLIENT_DRY_RUN')
+  stopifnot(
+    !grepl(
+      'specmill',
+      read.dcf(file.path(root, 'DESCRIPTION'))[1L, 'Imports'],
+      fixed = TRUE
+    )
+  )
+  # The generated client runs in a fresh process without loading specmill.
+  standalone <- callr::r(
+    function(root, origin) {
+      stopifnot(!isNamespaceLoaded('specmill'))
+      runtime <- new.env(parent = baseenv())
+      for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+        sys.source(file, runtime)
+      }
+      testthat::local_mocked_bindings(
+        sys_sleep = function(...) NULL,
+        .package = 'httr2'
+      )
+      options(controlsclient.request = list(base_url = origin))
+      result <- runtime$api_request(
+        'GET',
+        '/policy-505-standalone-recover',
+        list(),
+        list(),
+        NULL,
+        request_controls = list(max_retries = 2, retry_policy = 'compat_retry')
+      )
+      stopifnot(!isNamespaceLoaded('specmill'))
+      result$count
+    },
+    list(root, origin)
+  )
+  stopifnot(standalone == 3L)
   for (bad in list(
     list(timeout = 0),
     list(timeout = Inf),
@@ -494,15 +727,35 @@ request_controls_acceptance <- function() {
     list(max_retries = 0.5),
     list(max_retries = Inf),
     list(retry_writes = 'yes'),
+    list(retry_policy = 1),
+    list(retry_policy = NA_character_),
+    list(retry_policy = ''),
+    list(retry_policy = 'function(response) TRUE'),
+    list(retry_policy = list('compat_retry')),
     list(max_tries = 2),
     list(timeout = NULL)
   )) {
     invalid <- project
     invalid$defaults$request_controls <- bad
     yaml::write_yaml(invalid, project_file)
-    error(specmill::load_project(root), 'request_controls')
+    error(specmill::load_project(root), 'request_controls|retry_policy')
   }
   yaml::write_yaml(project, project_file)
+  for (name in c('missing_retry', 'root_call')) {
+    invalid <- project
+    invalid$defaults$request_controls$retry_policy <- name
+    yaml::write_yaml(invalid, project_file)
+    error(
+      specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+      'client retry policy'
+    )
+  }
+  yaml::write_yaml(project, project_file)
+  write('# Client customization retained.', helper, append = TRUE)
+  customized_hash <- tools::md5sum(helper)
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  stopifnot(identical(customized_hash, tools::md5sum(helper)))
   # Generation exposes diagnostics; an old helper must explicitly adopt server metadata.
   write_schema(document)
   writeLines(
@@ -522,7 +775,7 @@ request_controls_acceptance <- function() {
     'Unknown helper arguments.*request_controls'
   )
   cat(
-    'Request controls: server precedence, overrides, diagnostics, validation, timeouts, bounded retries, write safety, redaction, and helper ownership passed.\n'
+    'Request controls: server precedence, overrides, diagnostics, validation, timeouts, bounded native/client retry predicates, write safety, exact replay, redaction, standalone runtime, and helper ownership passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

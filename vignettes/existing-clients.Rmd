@@ -276,6 +276,17 @@ cannot establish whether a helper behaves correctly.
    Commit the toolkit pin, policy, helper edits, output, and manifest together.
 
 You can keep an existing helper when no newly selected feature requires changes.
-Generated wrappers need no specmill runtime dependency. Adding a companion that
-calls `specmill::paginated()`, `paginated_links()`, or `batched()` does require
-specmill in the client's Imports.
+Generated wrappers and emitted companions need no specmill runtime dependency.
+Select `companions = c('batching', 'pagination')` during new-client initialization.
+Existing clients must manually review and adopt the companion additions with
+the request helper. Initialize a temporary client from the reviewed local schema
+with the same package/helper settings and selected companions, then compare its
+helper against your current helper and recorded baseline. Merge the reviewed
+additions while preserving client customizations. Keep the matching scaffold
+record in `.specmill/helpers/` when recording adoption, and rerun your contract
+checks. Normal regeneration never overwrites runtime code. The emitted
+names use your helper prefix, for example `api_request_batched` and
+`api_request_paginated`. Pagination needs digest in Imports and next links need
+httr2 >= 1.3.0. Calling toolkit `specmill::paginated()` or `batched()` directly
+still requires specmill at runtime, so use emitted companions for independent
+clients. Keep response metadata until pagination finishes and format afterward.

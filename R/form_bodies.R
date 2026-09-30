@@ -9,7 +9,8 @@ request_body_media <- function(available, preferred = NULL, at = '#') {
     'application/json',
     'application/octet-stream',
     'application/x-www-form-urlencoded',
-    'multipart/form-data'
+    'multipart/form-data',
+    'text/plain'
   )
   available <- unlist(available, use.names = FALSE)
   selected <- if (is.null(preferred)) {
@@ -226,4 +227,57 @@ form_fixture <- function(schema, allow_empty = TRUE) {
     }
   }
   form_value(value, schema, body_value, allow_empty)
+}
+
+# Explicit lines encoding happens before validating the declared scalar schema.
+text_value <- function(value, encoding = 'scalar', max_items = NULL) {
+  if (
+    !is.character(encoding) ||
+      length(encoding) != 1L ||
+      is.na(encoding) ||
+      !encoding %in% c('scalar', 'lines')
+  ) {
+    stop('Text encoding must be scalar or lines')
+  }
+  if (
+    !is.character(value) ||
+      is.object(value) ||
+      !is.null(dim(value)) ||
+      !is.null(names(value)) ||
+      anyNA(value)
+  ) {
+    stop('Text body must be a character value without missing values')
+  }
+  if (encoding == 'scalar' && length(value) != 1L) {
+    stop('Scalar text body must contain exactly one string')
+  }
+  if (encoding == 'lines') {
+    if (!is.null(max_items) && length(value) > max_items) {
+      stop(
+        'Batch exceeds max_items (',
+        max_items,
+        '); split the input into smaller requests'
+      )
+    }
+    value <- paste(value, collapse = '\n')
+  }
+  value
+}
+
+text_checks <- function(operation, value) {
+  c(
+    paste0(
+      value,
+      ' <- base::evalq(',
+      r_literal(text_value),
+      ', envir = base::baseenv())(',
+      value,
+      ', ',
+      r_literal(operation$text_encoding %or% 'scalar'),
+      ', ',
+      r_literal(operation$batch$max_items),
+      ')'
+    ),
+    body_checks(operation$body, value)
+  )
 }

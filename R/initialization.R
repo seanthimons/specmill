@@ -15,8 +15,10 @@ initialize_client <- function(
     'pascal_case',
     'screaming_snake_case',
     'dot_case'
-  )
+  ),
+  companions = character()
 ) {
+  companions <- validate_companions(companions)
   if (is.data.frame(schema)) {
     return(initialize_apis(
       root,
@@ -27,7 +29,8 @@ initialize_client <- function(
       license,
       match.arg(naming),
       match.arg(group_by),
-      match.arg(name_case)
+      match.arg(name_case),
+      companions
     ))
   }
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
@@ -78,7 +81,15 @@ initialize_client <- function(
       Description = paste(title, 'Client generated from a local API schema.'),
       License = license,
       Encoding = 'UTF-8',
-      Imports = 'httr2, jsonlite, curl',
+      Imports = paste(
+        c(
+          'httr2',
+          'jsonlite',
+          'curl',
+          if ('pagination' %in% companions) 'digest'
+        ),
+        collapse = ', '
+      ),
       Suggests = 'testthat'
     )
   }
@@ -105,11 +116,17 @@ initialize_client <- function(
       'Existing DESCRIPTION must declare curl before adding the default transport'
     )
   }
+  if (existing && 'pagination' %in% companions && !'digest' %in% imports) {
+    stop(
+      'Existing DESCRIPTION must declare digest before adding pagination companions'
+    )
+  }
   scaffold <- request_helper_scaffold(
     'api_request',
     base_url,
     base_url_override,
-    dry_run_env(package)
+    dry_run_env(package),
+    companions
   )
   proposal <- configuration_proposal(
     schema,

@@ -248,6 +248,22 @@ pagination_cursors_acceptance <- function() {
   )
   permissive <- httr2::req_options(permissive, followlocation = TRUE)
   error(specmill::paginated_links(permissive, items), 'redirect refused')
+  error(
+    specmill::paginated_links(permissive, items, error_policy = 'partial'),
+    'redirect refused'
+  )
+  stopifnot(identical(
+    linked('/body', policy = list(format = function(x) x$stop_reason)),
+    'no_next_link'
+  ))
+  stopifnot(
+    linked(
+      '/body',
+      format = NULL,
+      policy = list(format = function(x) stop('unused formatter'))
+    )$stop_reason ==
+      'no_next_link'
+  )
   sent <- counts()
   stopifnot(
     sent$other == 0,
