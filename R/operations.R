@@ -154,6 +154,10 @@ read_operations <- function(files, policy = list()) {
         if (selected && length(excluded)) {
           record$excluded_parameters <- excluded
         }
+        routes <- policy[['routes_overrides']][[key]]
+        if (selected && length(routes)) {
+          record$routes <- routes
+        }
         inventory[[length(inventory) + 1L]] <- record
         if (!selected) {
           next
@@ -709,6 +713,9 @@ read_operations <- function(files, policy = list()) {
           }
         )
         if (!is.null(operation)) {
+          if (length(routes)) {
+            operation$routes <- routes
+          }
           if (length(excluded)) {
             operation$excluded_parameters <- excluded
           }

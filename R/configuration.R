@@ -403,8 +403,11 @@ load_project <- function(
     defaults <- merge_settings(project_defaults, service$defaults %or% list())
     overrides <- service$operations %or% list()
     validate_settings(defaults, paste(id, 'defaults'), callbacks)
-    if ('exclude_parameters' %in% names(defaults)) {
-      stop(id, ': exclude_parameters belongs under operations, not defaults')
+    for (field in intersect(
+      c('exclude_parameters', 'routes'),
+      names(defaults)
+    )) {
+      stop(id, ': ', field, ' belongs under operations, not defaults')
     }
     config_fields(overrides, names(overrides), 'operations')
     for (key in names(overrides)) {
@@ -541,6 +544,155 @@ load_project <- function(
   ids <- vapply(services, `[[`, character(1), 'id')
   if (anyDuplicated(ids)) {
     stop('Duplicate service ID')
+  }
+  for (i in seq_along(services)) {
+    service <- services[[i]]
+    hook_route <- function(settings) {
+      arguments <- settings[['request']]$arguments
+      any(vapply(
+        arguments[intersect(names(arguments), c('endpoint', 'method'))],
+        function(binding) {
+          identical(unlist(binding$from, use.names = FALSE)[1L], 'hook_state')
+        },
+        logical(1)
+      ))
+    }
+    settings <- lapply(service$operations, function(x) {
+      merge_settings(service$defaults, x)
+    })
+    declared <- Filter(function(x) length(x[['routes']]), settings)
+    if (
+      !length(declared) &&
+        !any(vapply(
+          c(list(service$defaults), settings),
+          hook_route,
+          logical(1)
+        ))
+    ) {
+      next
+    }
+    parsed <- read_operations(service$files, service[['policy']])
+    for (operation in Filter(
+      function(x) x$status != 'excluded',
+      parsed$inventory
+    )) {
+      effective <- settings[[operation$key]] %or% service$defaults
+      if (hook_route(effective) && !length(effective[['routes']])) {
+        warning(
+          operation$id,
+          ': hook-bound endpoint or method has no declared routes',
+          call. = FALSE
+        )
+      }
+    }
+    # Resolve only reviewed route targets; selection need not generate their wrappers.
+    for (key in names(declared)) {
+      keyed <- Filter(function(x) x$key == key, parsed$inventory)
+      if (!length(keyed)) {
+        stop(
+          service$id,
+          ': routes require a known operation: ',
+          key
+        )
+      }
+      read_route <- function(file, route_key) {
+        policy <- service[['policy']]
+        policy$include <- route_key
+        policy$methods <- strsplit(route_key, ' ', fixed = TRUE)[[1L]][1L]
+        policy[['exclude']] <- character()
+        policy$names <- list()
+        policy$override_keys <- character()
+        for (field in c(
+          'body_media_overrides',
+          'query_array_style_overrides',
+          'exclude_parameters_overrides'
+        )) {
+          policy[[field]] <- policy[[field]][intersect(
+            names(policy[[field]]),
+            route_key
+          )]
+        }
+        target <- tryCatch(read_operations(file, policy), error = function(e) {
+          stop(
+            service$id,
+            ': unknown or unparseable route: ',
+            basename(file),
+            ' ',
+            route_key,
+            '; ',
+            conditionMessage(e),
+            call. = FALSE
+          )
+        })
+        records <- c(target$operations, target$unsupported_operations)
+        if (length(records) != 1L) {
+          stop(
+            service$id,
+            ': unknown or unparseable route: ',
+            basename(file),
+            ' ',
+            route_key
+          )
+        }
+        record <- records[[1L]]
+        target_settings <- merge_settings(
+          service$defaults,
+          service$operations[[route_key]] %or% list()
+        )
+        list(
+          source = substring(record$source, nchar(root) + 2L),
+          source_hash = record$source_hash,
+          key = record$key,
+          helper = target_settings$helper %or% service$helper,
+          server = record$server,
+          body_media = if (is.null(record$body)) NULL else record$body_media
+        )
+      }
+      routes <- list(read_route(keyed[[1L]]$source, key))
+      references <- config_sequence(
+        declared[[key]][['routes']],
+        paste(key, 'routes')
+      )
+      for (reference in references) {
+        schema <- sub(
+          ' (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE) /.*$',
+          '',
+          reference
+        )
+        route_key <- substring(reference, nchar(schema) + 2L)
+        files <- if (grepl('[/\\\\]', schema)) {
+          intersect(service$files, project_path(root, schema))
+        } else {
+          service$files[basename(service$files) == schema]
+        }
+        if (length(files) != 1L) {
+          stop(
+            service$id,
+            ': route schema must identify one loaded service file: ',
+            schema
+          )
+        }
+        route <- read_route(files[[1L]], route_key)
+        for (field in c('helper', 'server', 'body_media')) {
+          if (
+            (field == 'server' && is.null(route$server$url)) ||
+              !identical(route[[field]], routes[[1L]][[field]])
+          ) {
+            stop(
+              service$id,
+              ': route ',
+              reference,
+              ' disagrees with ',
+              key,
+              ' ',
+              field
+            )
+          }
+        }
+        routes[[length(routes) + 1L]] <- route
+      }
+      services[[i]][['policy']][['routes_overrides']][[key]] <- routes
+    }
   }
   list(
     services = stats::setNames(services, ids),

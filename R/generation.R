@@ -884,6 +884,19 @@ generate_client <- function(
     owners[['R/api_auth.R']] <- 'specmill authentication'
   }
   attr(desired, 'operations') <- owners
+  attr(desired, 'routes') <- stats::setNames(
+    lapply(
+      Filter(function(op) length(op$routes), configured_operations),
+      `[[`,
+      'routes'
+    ),
+    vapply(
+      Filter(function(op) length(op$routes), configured_operations),
+      `[[`,
+      character(1),
+      'id'
+    )
+  )
   if (!is.null(formatter)) {
     desired <- format_output(root, desired, formatter)
   }
