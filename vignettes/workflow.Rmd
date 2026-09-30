@@ -12,6 +12,15 @@ vignette: >
 cat(readLines('workflow.md', encoding = 'UTF-8')[-1L], sep = '\n')
 ```
 
+<style>
+@media (min-width: 1200px) {
+  .container.template-article { max-width: calc(100% - 2rem); }
+  .template-article .row > main { flex: 1; min-width: 0; max-width: none; }
+  .template-article .row > aside { width: 12rem; margin-left: 0; }
+}
+.mermaid svg { min-width: 48rem; }
+</style>
+
 <script type="module">
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.esm.min.mjs';
 for (const code of document.querySelectorAll('pre.mermaid > code, code.language-mermaid, code.mermaid')) {
@@ -21,6 +30,6 @@ for (const code of document.querySelectorAll('pre.mermaid > code, code.language-
   diagram.textContent = code.textContent;
   code.closest('pre').replaceWith(diagram);
 }
-mermaid.initialize({ startOnLoad: false, flowchart: { useMaxWidth: false } });
+mermaid.initialize({ startOnLoad: false, flowchart: { useMaxWidth: true } });
 await mermaid.run();
 </script>
