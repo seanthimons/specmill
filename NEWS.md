@@ -1,6 +1,40 @@
 
 
 
+## specmill 0.1.10 (2026-09-30)
+
+#### New features
+
+- require cached Swagger schema validation before generation
+  ([4dec895](https://github.com/seanthimons/specmill/tree/4dec895edba077e8acc3a8711a2b60cadc41d3fe))
+
+#### Bug fixes
+
+- enforce schema checks on declared hook routes
+  ([fa6317b](https://github.com/seanthimons/specmill/tree/fa6317bdfc356dfc81c6a50affb941007af11990))
+
+#### Tests
+
+- normalize cache paths in Windows assertions
+  ([c3b420a](https://github.com/seanthimons/specmill/tree/c3b420acfba5b0875a3b4bf75b9df675d108c0b7))
+
+#### Docs
+
+- add schema validator to the reference index
+  ([1267261](https://github.com/seanthimons/specmill/tree/12672613f35eb81ed3f8b353b24e98b47713d0c6))
+- widen the workflow article and fit desktop charts
+  ([8a1ba5f](https://github.com/seanthimons/specmill/tree/8a1ba5fe35cdcff5b02602b90617c7df08966715))
+- add client workflow and pipeline flowcharts
+  ([7b50eeb](https://github.com/seanthimons/specmill/tree/7b50eeb953edc4ba8f887138634099bfebe4cac9))
+
+#### Other changes
+
+- release v0.1.10 \[skip ci\]
+  ([032d046](https://github.com/seanthimons/specmill/tree/032d0460824ee19cd4469cf64f7284445c263433))
+
+Full set of changes:
+[`v0.1.9...v0.1.10`](https://github.com/seanthimons/specmill/compare/v0.1.9...v0.1.10)
+
 ## specmill 0.1.9 (2026-09-30)
 
 #### New features
@@ -42,7 +76,7 @@
 #### Other changes
 
 - release v0.1.9 \[skip ci\]
-  ([a4e0adb](https://github.com/seanthimons/specmill/tree/a4e0adb87d60f99c6f424f3cf8f16b04dd158f72))
+  ([d9907d8](https://github.com/seanthimons/specmill/tree/d9907d8e641421fe33f9dba5417fd9fe70e8e910))
 - preserve route guards with response policies
   ([86362b9](https://github.com/seanthimons/specmill/tree/86362b9e19e568b8db0c4ea7248f6e7de8196249))
 
