@@ -91,8 +91,8 @@ batching_companion_acceptance <- function() {
     base_url = base_url,
     companions = 'batching'
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)

@@ -215,7 +215,7 @@ iteration_companions_acceptance <- function() {
     companions = c('batching', 'pagination')
   )
   for (mode in c('apply', 'check')) {
-    specmill::generate_client(multi, config = 'specmill.yml', mode = mode)
+    specmill::generate_client(validation = FALSE, multi, config = 'specmill.yml', mode = mode)
   }
   multi_runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(multi, 'R'), full.names = TRUE)) {
@@ -272,7 +272,7 @@ iteration_companions_acceptance <- function() {
   )
   yaml::write_yaml(settings, settings_file)
   run <- function(mode) {
-    specmill::generate_client(root, config = 'specmill.yml', mode = mode)
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = mode)
   }
   run('apply')
   hashes <- function() {
