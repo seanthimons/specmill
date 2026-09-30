@@ -51,6 +51,7 @@ validate_settings <- function(
       'request_controls',
       'response_policy',
       'body_media',
+      'text_encoding',
       'query_array_style',
       'exclude_parameters',
       'routes',
@@ -66,11 +67,18 @@ validate_settings <- function(
         c(
           'application/json',
           'application/octet-stream',
+          'text/plain',
           'application/x-www-form-urlencoded',
           'multipart/form-data'
         )
     ) {
       stop('Unsupported body_media')
+    }
+  }
+  if (!is.null(settings$text_encoding)) {
+    config_string(settings$text_encoding, paste(label, 'text_encoding'))
+    if (!settings$text_encoding %in% c('scalar', 'lines')) {
+      stop('text_encoding must be scalar or lines')
     }
   }
   if (!is.null(settings$query_array_style)) {

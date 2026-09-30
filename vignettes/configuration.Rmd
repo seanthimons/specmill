@@ -267,10 +267,9 @@ operations:
 Shared limits apply only to applicable request bodies, so ordinary GET requests
 are unaffected. The helper rejects oversized requests before sending them. Item limits apply
 to top-level array bodies supplied as unnamed lists; byte limits measure the
-serialized UTF-8 JSON or raw binary payload. Limits embedded only in prose need
+serialized UTF-8 JSON, UTF-8 plain text, or raw binary payload. Limits embedded only in prose need
 explicit review; they are not silently treated as schema constraints. Automatic
-chunking, response aggregation, nested-array limits and newline-delimited batches
-remain separate work. Existing client-owned helpers need a `batch` argument
+chunking, response aggregation and nested-array limits remain separate work. Existing client-owned helpers need a `batch` argument
 before using these settings; generation verifies that compatibility.
 
 For a new package, `initialize_client()` writes editable YAML grouped by schema
@@ -606,6 +605,40 @@ client-owned helpers need the optional `body_media`, `body_encoding`, and
 replace them. New clients use the bundled transport and declare `curl` in Imports.
 Adding the default transport to an existing package requires declaring `curl`
 first; retaining a client-owned helper adds no such requirement.
+
+### Plain-text request bodies
+
+OpenAPI `requestBody.content` and Swagger `consumes` may declare `text/plain`
+with a scalar string schema. The generated wrapper validates that schema and
+sends UTF-8 text with `Content-Type: text/plain`. Scalar strings preserve embedded
+and trailing newlines, blank lines and duplicates. An empty string sends an
+explicitly empty body; omitting an optional argument omits the body. Missing
+values and explicit NULL fail validation.
+
+Select `body_media: text/plain` when the schema offers several media types.
+Array, object, binary and composed text schemas remain unsupported. Archived
+schemas are never rewritten to guess a request contract.
+
+For a reviewed vector-of-lines input, select encoding explicitly:
+
+```yaml
+operations:
+  POST /write:
+    body_media: text/plain
+    text_encoding: lines
+    batch:
+      max_items: 100
+      max_bytes: 1048576
+```
+
+`text_encoding: scalar` is the default. `lines` joins a character vector with LF
+and adds no final newline. Empty entries, duplicates and newlines within each
+entry remain unchanged; an empty vector sends an empty body. Item limits count
+input entries before joining. Scalar text has no inferred record boundaries.
+String schema constraints apply to the encoded text, and byte limits count its
+UTF-8 bytes. No automatic splitting is performed. Existing client helpers need
+manual adoption of plain-text transport; generation preserves their code and
+provenance baseline.
 
 ### Parameter serialization
 

@@ -321,6 +321,22 @@ read_operations <- function(files, policy = list()) {
             body_required <- FALSE
             body_media <- 'application/json'
             body_encoding <- list()
+            text_encoding <- policy$text_encoding_overrides[[key]] %or%
+              policy$text_encoding %or%
+              'scalar'
+            if (
+              !is.character(text_encoding) ||
+                length(text_encoding) != 1L ||
+                is.na(text_encoding) ||
+                !text_encoding %in% c('scalar', 'lines')
+            ) {
+              schema_problem(
+                'text_encoding',
+                'review_required',
+                'Text encoding must be scalar or lines',
+                body_location
+              )
+            }
             body_example <- list()
             preferred_media <- policy$body_media_overrides[[key]] %or%
               policy$body_media
@@ -634,6 +650,31 @@ read_operations <- function(files, policy = list()) {
                     source_location = body_location,
                     allow_composition = !form_media(body_media)
                   )
+                  if (
+                    body_media == 'text/plain' &&
+                      (!identical(supported$type, 'string') ||
+                        isTRUE(supported$format %in% c('binary', 'byte')) ||
+                        length(intersect(
+                          names(supported),
+                          c('oneOf', 'anyOf', 'allOf')
+                        )) ||
+                        length(body_encoding))
+                  ) {
+                    schema_problem(
+                      'text_body_schema',
+                      'capability_gap',
+                      'Plain-text bodies require a scalar string schema without media encoding',
+                      body_location
+                    )
+                  }
+                  if (text_encoding != 'scalar' && body_media != 'text/plain') {
+                    schema_problem(
+                      'text_encoding',
+                      'review_required',
+                      'Lines encoding requires text/plain media',
+                      body_location
+                    )
+                  }
                   if (form_media(body_media)) {
                     body_encoding <- form_encoding(
                       supported,
@@ -651,6 +692,14 @@ read_operations <- function(files, policy = list()) {
                   unsupported(conditionMessage(e), e)
                   body
                 }
+              )
+            }
+            if (text_encoding != 'scalar' && !body_present) {
+              schema_problem(
+                'text_encoding',
+                'review_required',
+                'Lines encoding requires a text/plain request body',
+                body_location
               )
             }
             candidate <- op$operationId
@@ -681,6 +730,7 @@ read_operations <- function(files, policy = list()) {
               body_required = body_required,
               body_media = body_media,
               body_encoding = body_encoding,
+              text_encoding = text_encoding,
               body_example = body_example,
               security = if ('security' %in% names(op)) {
                 op[['security']]
@@ -934,7 +984,8 @@ compare_operations <- function(old, new) {
       !identical(a$body, b$body) ||
         !identical(a$body_required, b$body_required) ||
         !identical(a$body_media, b$body_media) ||
-        !identical(a$body_encoding, b$body_encoding)
+        !identical(a$body_encoding, b$body_encoding) ||
+        !identical(a$text_encoding, b$text_encoding)
     ) {
       add(key, 'review', 'Body changed')
     }

@@ -518,6 +518,10 @@ load_project <- function(
         names = names,
         override_keys = names(overrides),
         body_media = defaults$body_media,
+        text_encoding = defaults$text_encoding,
+        text_encoding_overrides = lapply(overrides, function(x) {
+          x$text_encoding
+        }),
         body_media_overrides = lapply(overrides, function(x) x$body_media),
         query_array_style = defaults$query_array_style,
         query_array_style_overrides = lapply(
@@ -604,6 +608,7 @@ load_project <- function(
         policy$override_keys <- character()
         for (field in c(
           'body_media_overrides',
+          'text_encoding_overrides',
           'query_array_style_overrides',
           'exclude_parameters_overrides'
         )) {
@@ -645,7 +650,8 @@ load_project <- function(
           key = record$key,
           helper = target_settings$helper %or% service$helper,
           server = record$server,
-          body_media = if (is.null(record$body)) NULL else record$body_media
+          body_media = if (is.null(record$body)) NULL else record$body_media,
+          text_encoding = record$text_encoding
         )
       }
       routes <- list(read_route(keyed[[1L]]$source, key))
@@ -673,7 +679,7 @@ load_project <- function(
           )
         }
         route <- read_route(files[[1L]], route_key)
-        for (field in c('helper', 'server', 'body_media')) {
+        for (field in c('helper', 'server', 'body_media', 'text_encoding')) {
           if (
             (field == 'server' && is.null(route$server$url)) ||
               !identical(route[[field]], routes[[1L]][[field]])

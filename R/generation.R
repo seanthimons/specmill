@@ -204,6 +204,8 @@ render_operation <- function(operation, spec) {
         body_name,
         ')) base::stop("Binary body must be a raw vector")'
       )
+    } else if (identical(operation$body_media, 'text/plain')) {
+      text_checks(operation, body_name)
     } else if (form_media(operation$body_media)) {
       form_checks(operation$body, body_name, operation$body_media)
     } else {
@@ -343,7 +345,16 @@ render_operation <- function(operation, spec) {
       )
     },
     if ('batch' %in% transport_arguments(operation)) {
-      paste0(', batch = ', r_literal(operation$batch))
+      paste0(
+        ', batch = ',
+        r_literal(
+          if (identical(operation$body_media, 'text/plain')) {
+            operation$batch[setdiff(names(operation$batch), 'max_items')]
+          } else {
+            operation$batch
+          }
+        )
+      )
     },
     ')'
   )
@@ -676,7 +687,12 @@ generate_client <- function(
       } else {
         Filter(Negate(is.null), operation_spec$batch %or% list())
       }
-      if (!is.null(op$batch$max_items) && !identical(op$body$type, 'array')) {
+      if (
+        !is.null(op$batch$max_items) &&
+          !identical(op$body$type, 'array') &&
+          !(identical(op$body_media, 'text/plain') &&
+            identical(op$text_encoding, 'lines'))
+      ) {
         if (!is.null(service$operations[[op$key]]$batch$max_items)) {
           stop('max_items requires a top-level array request body: ', op$id)
         }
@@ -686,7 +702,7 @@ generate_client <- function(
         length(op$batch) &&
           (is.null(op$body) ||
             !op$body_media %in%
-              c('application/json', 'application/octet-stream'))
+              c('application/json', 'application/octet-stream', 'text/plain'))
       ) {
         stop('Batch limits require a supported request body: ', op$id)
       }
