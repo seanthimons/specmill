@@ -148,6 +148,136 @@ routes_acceptance <- function() {
     identical(env$descriptors(fallback = TRUE)$endpoint, '/api/rdkit')
   )
   specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  # Guard complete mappings using their actual helper argument names.
+  service(extra = '    route_guard: {method: method, path: endpoint}')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  sys.source(file.path(root, 'R/descriptors.R'), env)
+  calls <- 0L
+  env$route_request <- function(method, endpoint, server) {
+    calls <<- calls + 1L
+    list(method = method, endpoint = endpoint, server = server)
+  }
+  stopifnot(
+    identical(env$descriptors()$endpoint, '/api/descriptors'),
+    identical(env$descriptors(TRUE)$endpoint, '/api/rdkit'),
+    calls == 2L
+  )
+  selected_method <- 'GET'
+  selected_path <- '/api/rdkit'
+  evaluations <- 0L
+  env$choose_route <- function(state) {
+    state$request <- new.env(parent = emptyenv())
+    makeActiveBinding(
+      'method',
+      function() {
+        evaluations <<- evaluations + 1L
+        selected_method
+      },
+      state$request
+    )
+    state$request$endpoint <- selected_path
+    state$request$server <- 'https://staging.invalid'
+    state
+  }
+  stopifnot(
+    identical(env$descriptors()$server, 'https://staging.invalid'),
+    evaluations == 1L
+  )
+  for (choice in list(
+    list('GET', '/api/unknown'),
+    list('POST', '/api/rdkit'),
+    list(NULL, '/api/rdkit'),
+    list(NA_character_, '/api/rdkit'),
+    list(c('GET', 'POST'), '/api/rdkit'),
+    list('GET', character()),
+    list('GET', NA_character_),
+    list('GET', 1),
+    list('get', '/api/rdkit'),
+    list('GET', 'https://other.invalid/api/rdkit')
+  )) {
+    selected_method <- choice[[1L]]
+    selected_path <- choice[[2L]]
+    before <- calls
+    error <- tryCatch(env$descriptors(), error = identity)
+    stopifnot(inherits(error, 'error'), calls == before)
+  }
+  # Skip paths never evaluate the guarded request, including post-on-skip.
+  env$choose_route <- function(state) {
+    state$skip_request <- TRUE
+    state$result <- 'skipped'
+    state
+  }
+  stopifnot(identical(env$descriptors(), 'skipped'))
+  service(
+    extra = c(
+      '    route_guard: {method: method, path: endpoint}',
+      '    post_on_skip: true'
+    )
+  )
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  sys.source(file.path(root, 'R/descriptors.R'), env)
+  stopifnot(identical(env$descriptors(), 'skipped'))
+  # Standard calls use method/path; disabled or absent guards preserve output.
+  operation <- parsed$operations[[1L]]
+  standard <- list(helper = 'standard_request')
+  unguarded <- specmill::render_operation(operation, standard)
+  standard$route_guard <- FALSE
+  stopifnot(identical(
+    specmill::render_operation(operation, standard),
+    unguarded
+  ))
+  standard$route_guard <- TRUE
+  env$standard_request <- function(method, path, ...) {
+    list(method = method, path = path)
+  }
+  eval(parse(text = specmill::render_operation(operation, standard)), env)
+  stopifnot(identical(env$descriptors()$path, '/api/descriptors'))
+  custom <- list(
+    helper = 'custom_request',
+    route_guard = list(method = 'verb', path = 'resource'),
+    request = list(
+      arguments = list(
+        verb = list(value = 'GET'),
+        resource = list(value = '/api/rdkit')
+      )
+    )
+  )
+  env$custom_request <- function(verb, resource) {
+    list(method = verb, path = resource)
+  }
+  eval(parse(text = specmill::render_operation(operation, custom)), env)
+  stopifnot(identical(env$descriptors()$path, '/api/rdkit'))
+  operation$routes <- NULL
+  error <- tryCatch(
+    specmill::render_operation(operation, standard),
+    error = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('requires declared routes', conditionMessage(error))
+  )
+  # Opt-in configuration rejects malformed guards and missing mapped arguments.
+  for (guard in c(
+    'null',
+    '[]',
+    '{method: method}',
+    '{method: method, path: method}',
+    '1'
+  )) {
+    service(extra = paste0('    route_guard: ', guard))
+    error <- tryCatch(specmill::load_project(root), error = identity)
+    stopifnot(inherits(error, 'error'))
+  }
+  service(extra = '    route_guard: true')
+  error <- tryCatch(
+    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    error = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('mapped helper arguments', conditionMessage(error))
+  )
+  service()
   # Explicit root-relative references resolve to the same record.
   service("      - 'schemas/rdkit.json GET /api/rdkit'")
   stopifnot(identical(

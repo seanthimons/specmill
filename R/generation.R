@@ -372,6 +372,73 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  if (!is.null(spec$route_guard) && !identical(spec$route_guard, FALSE)) {
+    if (!length(operation$routes)) {
+      stop('route_guard requires declared routes: ', operation$id)
+    }
+    route_fields <- if (isTRUE(spec$route_guard)) {
+      list(method = 'method', path = 'path')
+    } else {
+      spec$route_guard
+    }
+    call <- parse(text = request)[[1L]][[3L]]
+    arguments <- as.list(call)[-1L]
+    if (!all(unlist(route_fields, use.names = FALSE) %in% names(arguments))) {
+      stop(
+        'route_guard names must identify mapped helper arguments: ',
+        operation$id
+      )
+    }
+    variable <- tail(
+      make.unique(c(
+        formal_names,
+        helper,
+        callback,
+        'params',
+        'state',
+        'result',
+        '.route_args'
+      )),
+      1L
+    )
+    call[[1L]] <- quote(base::list)
+    method <- paste0(variable, '[[', r_literal(route_fields$method), ']]')
+    path <- paste0(variable, '[[', r_literal(route_fields$path), ']]')
+    request <- c(
+      paste0('  ', variable, ' <- ', paste(deparse(call), collapse = '\n')),
+      vapply(
+        c(method, path),
+        function(value) {
+          paste0(
+            '  if (!base::is.character(',
+            value,
+            ') || base::length(',
+            value,
+            ') != 1L || base::is.na(',
+            value,
+            ')) base::stop("Invalid guarded route")'
+          )
+        },
+        character(1)
+      ),
+      paste0(
+        '  if (!base::paste(',
+        method,
+        ', ',
+        path,
+        ') %in% ',
+        r_literal(unique(vapply(operation$routes, `[[`, character(1), 'key'))),
+        ') base::stop("Undeclared guarded route")'
+      ),
+      paste0(
+        '  result <- base::do.call(',
+        helper,
+        ', ',
+        variable,
+        ', quote = TRUE)'
+      )
+    )
+  }
   if (isTRUE(spec$post_on_skip)) {
     if (!length(hooks$pre_request)) {
       stop('post_on_skip requires a pre-request hook')
