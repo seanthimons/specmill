@@ -62,12 +62,13 @@ helper_provenance_acceptance <- function() {
   stopifnot(inspect()$upstream_changed, !inspect()$customized)
   customize <- function(code) {
     sub(
-      "if (base::identical(body_media, 'application/octet-stream')) {",
+      '  } else if (!base::is.null(body)) {',
       paste0(
-        "if (base::identical(body_media, 'text/plain')) {\n",
-        "      # Client-owned plain-text extension is retained.\n",
-        "      request <- httr2::req_body_raw(request, base::paste(body, collapse = '\\n'), type = body_media)\n",
-        "    } else if (base::identical(body_media, 'application/octet-stream')) {"
+        '  } else if (!base::is.null(body)) {\n',
+        "    if (base::identical(body_media, 'text/plain')) {\n",
+        '      # Client-owned plain-text extension is retained.\n',
+        "      body <- base::paste(body, collapse = '\\n')\n",
+        '    }'
       ),
       code,
       fixed = TRUE
@@ -108,7 +109,7 @@ helper_provenance_acceptance <- function() {
     body_media = 'text/plain'
   )
   stopifnot(
-    identical(charToRaw(text_request$body$data), charToRaw('one\ntwo')),
+    identical(text_request$body$data, charToRaw('one\ntwo')),
     identical(text_request$body$content_type, 'text/plain')
   )
   failure <- tryCatch(

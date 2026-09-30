@@ -2,6 +2,7 @@ transport_arguments <- function(operation) {
   c(
     if (!is.null(operation$server)) 'server',
     if (length(operation$request_controls)) 'request_controls',
+    if (!is.null(operation$response_policy)) 'response_policy',
     if (any(vapply(operation$parameters, extended_parameter, logical(1)))) {
       'parameter_serialization'
     },
@@ -203,6 +204,8 @@ render_operation <- function(operation, spec) {
         body_name,
         ')) base::stop("Binary body must be a raw vector")'
       )
+    } else if (identical(operation$body_media, 'text/plain')) {
+      text_checks(operation, body_name)
     } else if (form_media(operation$body_media)) {
       form_checks(operation$body, body_name, operation$body_media)
     } else {
@@ -278,6 +281,9 @@ render_operation <- function(operation, spec) {
     } else {
       paste0('params[[', r_literal(body_name), ']]')
     },
+    if ('response_policy' %in% transport_arguments(operation)) {
+      paste0(', response_policy = ', r_literal(operation$response_policy))
+    },
     if ('request_controls' %in% transport_arguments(operation)) {
       paste0(', request_controls = ', r_literal(operation$request_controls))
     },
@@ -339,7 +345,16 @@ render_operation <- function(operation, spec) {
       )
     },
     if ('batch' %in% transport_arguments(operation)) {
-      paste0(', batch = ', r_literal(operation$batch))
+      paste0(
+        ', batch = ',
+        r_literal(
+          if (identical(operation$body_media, 'text/plain')) {
+            operation$batch[setdiff(names(operation$batch), 'max_items')]
+          } else {
+            operation$batch
+          }
+        )
+      )
     },
     ')'
   )
@@ -611,6 +626,28 @@ generate_client <- function(
   if (any(operation_names %in% controls)) {
     stop('Operation collides with a client session control; supply a name override')
   }
+  companions <- unlist(
+    lapply(services, function(x) {
+      paste0(
+        x$helper,
+        c(
+          '_delimited',
+          '_records',
+          '_table',
+          '_batched',
+          '_paginated',
+          '_pagination_token',
+          '_paginated_links'
+        )
+      )
+    }),
+    use.names = FALSE
+  )
+  if (
+    any(operation_names %in% intersect(companions, names(runtime_definitions)))
+  ) {
+    stop('Operation collides with a client companion; supply a name override')
+  }
   # Public literals stay plain unless the package shadows a base data constructor.
   guard_literals <- any(
     c(operation_names, names(runtime_definitions), imported_names(root)) %in%
@@ -644,6 +681,24 @@ generate_client <- function(
     for (op in parsed[[i]]$operations) {
       configured <- configure_operation(op, service)
       op <- configured$operation
+      if (
+        !is.null(op$response_policy) &&
+          (!op$response_policy %in% names(runtime_definitions) ||
+            op$response_policy %in% operation_names)
+      ) {
+        stop(
+          'Missing client response policy or wrapper collision: ',
+          op$response_policy
+        )
+      }
+      retry_policy <- op$request_controls$retry_policy
+      if (
+        !is.null(retry_policy) &&
+          (!retry_policy %in% names(runtime_definitions) ||
+            retry_policy %in% operation_names)
+      ) {
+        stop('Missing client retry policy or wrapper collision: ', retry_policy)
+      }
       op$guard_literals <- guard_literals
       operation_spec <- configured$spec
       op$batch <- if (is.null(op$body)) {
@@ -651,7 +706,12 @@ generate_client <- function(
       } else {
         Filter(Negate(is.null), operation_spec$batch %or% list())
       }
-      if (!is.null(op$batch$max_items) && !identical(op$body$type, 'array')) {
+      if (
+        !is.null(op$batch$max_items) &&
+          !identical(op$body$type, 'array') &&
+          !(identical(op$body_media, 'text/plain') &&
+            identical(op$text_encoding, 'lines'))
+      ) {
         if (!is.null(service$operations[[op$key]]$batch$max_items)) {
           stop('max_items requires a top-level array request body: ', op$id)
         }
@@ -661,7 +721,7 @@ generate_client <- function(
         length(op$batch) &&
           (is.null(op$body) ||
             !op$body_media %in%
-              c('application/json', 'application/octet-stream'))
+              c('application/json', 'application/octet-stream', 'text/plain'))
       ) {
         stop('Batch limits require a supported request body: ', op$id)
       }

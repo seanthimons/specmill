@@ -7,9 +7,12 @@
 #'   Defaults to the HTTP Link header's next relation. NULL or an empty string
 #'   means completion. Relative links resolve against the current response URL.
 #' @param max_pages,max_items Finite positive retrieval limits, as in [paginated()].
+#' @param warn_limits,error_policy,format,policy As in [paginated()]. Policy is
+#'   passed to iteration; link security checks still apply before every request.
 #' @return The same structure as [paginated()], with `no_next_link` for completion
 #'   without another link. Request, extraction, repeated-link, redirect, and
-#'   cross-origin errors abort without returning partial results.
+#'   cross-origin errors abort by default. Selected error recovery applies only
+#'   to request failures; redirects and unsafe links always abort.
 #' @details Requires httr2 1.3.0 or later. Only GET requests without a body are
 #'   supported. Every link must use the initial request's scheme, hostname, and
 #'   effective port. URL credentials and fragments are rejected. Redirects are
@@ -23,8 +26,18 @@ paginated_links <- function(
   items,
   next_link = function(response) httr2::resp_link_url(response, 'next'),
   max_pages = 100,
-  max_items = 10000
+  max_items = 10000,
+  warn_limits = FALSE,
+  error_policy = 'stop',
+  format = NULL,
+  policy = list()
 ) {
+  if (missing(format) && is.list(policy)) {
+    format <- policy$format
+  }
+  if (!is.null(format) && !is.function(format)) {
+    stop('format must be a function')
+  }
   if (
     !requireNamespace('httr2', quietly = TRUE) ||
       utils::packageVersion('httr2') < '1.3.0'
@@ -64,7 +77,15 @@ paginated_links <- function(
     list(
       tolower(parsed$scheme),
       tolower(parsed$hostname),
-      as.character(parsed$port %or% if (parsed$scheme == 'https') 443 else 80)
+      as.character(
+        if (!is.null(parsed$port)) {
+          parsed$port
+        } else if (parsed$scheme == 'https') {
+          443
+        } else {
+          80
+        }
+      )
     )
   }
   initial <- parse_url(httr2::req_get_url(request))
@@ -87,6 +108,12 @@ paginated_links <- function(
     }
     httr2::url_build(parsed)
   }
+  security_abort <- function(message) {
+    stop(structure(
+      list(message = message, call = NULL),
+      class = c('pagination_security_error', 'error', 'condition')
+    ))
+  }
   fetch <- function(url) {
     req <- httr2::req_url(request, checked_url(url))
     req <- httr2::req_options(req, followlocation = FALSE)
@@ -95,13 +122,13 @@ paginated_links <- function(
     if (
       httr2::resp_status(response) >= 300 && httr2::resp_status(response) < 400
     ) {
-      stop('Pagination redirect refused')
+      security_abort('Pagination redirect refused')
     }
     httr2::resp_check_status(response)
     response
   }
-  result <- paginated(
-    fetch,
+  iteration <- list(
+    fn = fetch,
     mode = 'cursor',
     parameter = 'url',
     start = checked_url(httr2::req_get_url(request)),
@@ -114,11 +141,18 @@ paginated_links <- function(
       }
       checked_url(link, httr2::resp_url(response))
     },
-    max_pages = max_pages,
-    max_items = max_items
+    policy = policy
   )
+  for (name in c('max_pages', 'max_items', 'warn_limits', 'error_policy')) {
+    if (!name %in% names(policy) || name %in% names(match.call())) {
+      iteration[name] <- list(get(name))
+    }
+  }
+  # Link completion is renamed before optional final formatting.
+  iteration['format'] <- list(NULL)
+  result <- do.call(paginated, iteration)
   if (result$stop_reason == 'no_next_cursor') {
     result$stop_reason <- 'no_next_link'
   }
-  result
+  if (is.null(format)) result else format(result)
 }
