@@ -187,61 +187,73 @@ control of their own helper arguments. Proxy/TLS settings, streaming,
 cancellation and per-API runtime controls still require
 a custom helper.
 
-## Explicit pagination
+## Client-owned batching and pagination
 
-Keep the generated single-request function and put per-operation pagination
-settings in a separate, client-owned R function:
-
-```r
-list_all_items <- function(category, max_pages = 100, max_items = 10000) {
-  specmill::paginated(
-    list_items, category = category,
-    mode = 'page', parameter = 'page', size_parameter = 'per_page',
-    start = 1, page_size = 50, items = function(response) response$data,
-    max_pages = max_pages, max_items = max_items
-  )
-}
-```
-
-Use the actual public argument names and collection extractor for your operation.
-For an offset API, configure `mode = 'offset'`, `parameter = 'offset'`,
-`size_parameter = 'limit'`, and `start = 0`. Offsets advance by `page_size`;
-page numbers advance by one. No pagination is inferred from a schema or a name.
-
-The result contains unmerged extracted `pages`, `requests`, `item_count`, and
-`stop_reason`. Empty pages stop retrieval and are omitted. Short pages continue.
-Finite page and item limits are mandatory, with defaults of 100 and 10000.
-The item limit slices the last collection; it bounds retained items, not response
-bytes. Request size stays fixed, so the server must honor the configured offset
-stride. Check `stop_reason`: reaching a limit does not prove retrieval is complete.
-Errors propagate immediately without returning partial results. Repeated pages
-are not deduplicated and stop at the configured limits. Each call retains its
-transport timeout and retry policy; there is no total elapsed-time limit.
-
-This companion uses specmill at runtime; add it to the client package's Imports
-if you include the companion there. Ordinary generated functions still need no
-specmill runtime dependency and retain their signatures and return types.
-Cursor mode uses an explicit `next_cursor` extractor and rejects repeated tokens.
-For AMOS dev/staging keyset responses:
+Select reusable companions when initializing a client:
 
 ```r
-specmill::paginated(
-  amos_page, mode = 'cursor', parameter = 'cursor',
-  size_parameter = 'limit', page_size = 50,
-  items = function(x) x$results,
-  next_cursor = function(x) {
-    if (isTRUE(x$pagination$hasNext)) x$pagination$nextCursor else NULL
-  },
-  max_pages = 10, max_items = 500
+specmill::initialize_client(
+  root, schema, package = 'catalogueclient', title = 'Catalogue Client',
+  author = list(given = 'Example', family = 'Maintainer', email = 'you@example.org'),
+  license = 'MIT + file LICENSE', companions = c('batching', 'pagination')
 )
 ```
 
-`amos_page` is a single-request wrapper for the keyset endpoint. Cursor tokens
-remain opaque; NULL or an empty next token ends retrieval. `paginated_links()`
-accepts an httr2 GET request and extracts body or HTTP Link-header URLs. It checks
-every link against the initial origin and disables redirects before sending
-credentials. See [pagination configuration](https://seanthimons.github.io/specmill/articles/configuration.html#pagination)
-and the [AMOS live validation report](https://github.com/seanthimons/specmill/blob/main/dev/audits/pagination/README.md).
+This emits `api_request_batched()`, `api_request_paginated()`, and
+`api_request_paginated_links()` in the existing client-owned request helper.
+Multi-API clients use their own helper prefixes. Generated clients need no
+specmill runtime dependency. Pagination declares `digest`; next-link retrieval
+requires httr2 1.3.0 or later. Ordinary wrappers still make one request.
+
+Configure shared policy once per package and helper, with call-specific exceptions:
+
+```r
+options(catalogueclient.api_request.pagination = list(
+  mode = 'page', parameter = 'page', size_parameter = 'per_page',
+  start = 1, page_size = 50, items = function(response) response$data
+))
+result <- catalogueclient::api_request_paginated(list_items, category = 'books')
+```
+
+The package option prefix is lowercase, with punctuation replaced by underscores.
+Use the actual helper name in the option key. Explicit pagination arguments override
+policy fields. A supplied batching `policy` replaces its shared policy. Keep
+persistent service policy in client-owned R code that passes the same list to
+these companions; do not set global options while loading a package.
+
+Batching validates an explicit positive integer size before any request, preserves
+input order and values, and returns unmerged chunk results. Normalization,
+`build(chunk, index)` body construction, `merge(results)`, and warning-based
+`on_error = 'drop'` or `'keep'` recovery are explicit policy choices. Every chunk
+uses the supplied wrapper's authentication, query parameters, retries and response
+policy. The oversized single-request guard remains.
+
+Pagination accepts exact argument names or nested paths such as
+`c('body', 'pagination', 'cursor')`, preserving unrelated body state. Select
+`completed(response, state)`, `advance(response, position, page_size)`,
+`stop_on_short`, and `next_cursor` explicitly for your API. No parameter names
+or response collections are guessed. Defaults stop on empty pages, propagate
+errors, and preserve unmerged pages. Emitted companions bound requests with
+`max_pages = 100`, warn on truncation, and have no item cap unless `max_items`
+is explicitly supplied. Toolkit `specmill::paginated()` retains its original
+10,000-item cap and silent-limit defaults.
+
+Keep response envelopes and metadata intact in the #63 response policy during
+fetches. A selected `format(result)` runs once after iteration finishes. A
+single-request `post_response` hook that removes totals or tokens must be omitted
+or adapted for paginated fetching. No decoder is duplicated. Explicit
+`error_policy = 'partial'` or `'empty'` warns and retains or discards successful
+pages; extraction and security failures still propagate.
+
+Composing batching around pagination visits every chunk by default. The batching
+policy `first_batch_only = TRUE` explicitly preserves ComptoxR's historical
+first-batch-only pagination. It is a compatibility choice, never a default.
+Next-link retrieval retains same-origin credential checks and refuses redirects.
+Repeated cursors or links fail before another request.
+
+Emission is deterministic and recorded in `.specmill/helpers/`. Regeneration
+preserves customized helpers; existing clients require reviewed manual adoption.
+See [pagination configuration](https://seanthimons.github.io/specmill/articles/configuration.html#pagination).
 
 ## Learn the workflow
 

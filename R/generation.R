@@ -628,14 +628,25 @@ generate_client <- function(
   }
   companions <- unlist(
     lapply(services, function(x) {
-      paste0(x$helper, c('_delimited', '_records', '_table'))
+      paste0(
+        x$helper,
+        c(
+          '_delimited',
+          '_records',
+          '_table',
+          '_batched',
+          '_paginated',
+          '_pagination_token',
+          '_paginated_links'
+        )
+      )
     }),
     use.names = FALSE
   )
   if (
     any(operation_names %in% intersect(companions, names(runtime_definitions)))
   ) {
-    stop('Operation collides with a response companion; supply a name override')
+    stop('Operation collides with a client companion; supply a name override')
   }
   # Public literals stay plain unless the package shadows a base data constructor.
   guard_literals <- any(
