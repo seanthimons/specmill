@@ -38,6 +38,7 @@ reference:
   - operation_fixtures
   - check_requests
   - validate_hooks
+  - validate_schema
 - title: Maintenance commands
   contents:
   - generation_command
