@@ -518,7 +518,7 @@ schema_validation_acceptance <- function() {
   )
   stopifnot(identical(
     specmill::load_project(root)$validation$cache_dir,
-    file.path(root, '.cache')
+    file.path(normalizePath(root, winslash = '/', mustWork = TRUE), '.cache')
   ))
   cat(
     'Schema validation: cache, failures, coverage, exact bytes and generation gate passed.\n'
