@@ -1,0 +1,24 @@
+{
+  "source": "/home/sxthi/.t3/worktrees/specmill/t3code-08d41886/dev/audits/swagger-validator/amos-production-schema.json",
+  "source_sha256": "4591f49840d0f0f5c8e092fd588c43087a8582e8555c3d477ef4c1a98390eaf4",
+  "checked_at": "2026-09-30T19:31:45Z",
+  "validator_url": "https://validator.swagger.io/validator/debug",
+  "http_status": 200,
+  "report": {
+    "messages": [
+      "attribute paths.'/api/amos/add_aqc_spectrum/'(post).responses is missing",
+      "attribute paths.'/api/amos/add_new_fact_sheet/'(post).responses is missing",
+      "attribute paths.'/api/amos/add_new_method/'(post).responses is missing",
+      "attribute paths.'/api/amos/add_new_product_declaration/'(post).responses is missing",
+      "attribute paths.'/api/amos/add_new_safety_data_sheet/'(post).responses is missing",
+      "attribute paths.'/api/amos/dtxsids/'(post).responses is missing",
+      "attribute paths.'/api/amos/search_for_document_ids/{record_type}'(post).responses is missing",
+      "attribute definitions.NewAnalyticalQCSpectrum.items is missing",
+      "attribute definitions.dtxsids_search_schema.items is missing",
+      "attribute paths.'/api/amos/get_similar_structures/{identifier_type}/{identifier}'. Declared path parameter identifier_type needs to be defined as a path parameter in path or operation level",
+      "attribute paths.'/api/amos/get_similar_structures/{identifier_type}/{identifier}'. Declared path parameter identifier needs to be defined as a path parameter in path or operation level",
+      "attribute paths.'/api/amos/list_sources_by_record_type/{record_type}'. Declared path parameter record_type needs to be defined as a path parameter in path or operation level"
+    ],
+    "schemaValidationMessages": []
+  }
+}

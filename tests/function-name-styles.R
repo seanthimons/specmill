@@ -111,6 +111,7 @@ function_name_styles_acceptance <- function() {
   }
   before <- hashes()
   dry_run <- specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'plan'
@@ -120,6 +121,7 @@ function_name_styles_acceptance <- function() {
     identical(dry_run$operations[[1L]]$name, 'get.pet.by.id')
   )
   specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'

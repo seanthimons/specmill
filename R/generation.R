@@ -508,7 +508,8 @@ generate_client <- function(
   config = NULL,
   callbacks = new.env(parent = emptyenv()),
   adopt = list(),
-  artifacts = c('wrappers', 'tests', 'documentation')
+  artifacts = c('wrappers', 'tests', 'documentation'),
+  validation = NULL
 ) {
   mode <- match.arg(mode)
   authentication <- NULL
@@ -548,6 +549,16 @@ generate_client <- function(
     inputs <- spec$files
     formatter <- spec$formatter
   }
+  configured_validation <- if (!is.null(config)) project$validation else spec$validation %or% TRUE
+  if (isTRUE(validation) && is.list(configured_validation)) validation <- configured_validation
+  if (is.list(validation) && is.list(configured_validation)) {
+    validation <- merge_settings(configured_validation, validation)
+  }
+  validation <- schema_validation_policy(validation %or% configured_validation, root)
+  schema_files <- unique(normalizePath(
+    unlist(lapply(services, `[[`, 'files'), use.names = FALSE),
+    winslash = '/', mustWork = TRUE
+  ))
   # Runtime definitions and documentation are generation inputs too.
   input_directories <- c(
     'R',
@@ -601,7 +612,17 @@ generate_client <- function(
   }
   callbacks_before <- callback_hash()
   drift <- list()
-  parsed <- lapply(services, read_service_operations)
+  validation_reports <- stats::setNames(lapply(schema_files, function(file) {
+    if (identical(validation, FALSE)) {
+      return(list(source = file, status = 'skipped', reason = 'Schema validation was explicitly disabled.'))
+    }
+    do.call(validate_schema, c(list(file = file), validation))
+  }), schema_files)
+  parsed <- if (identical(validation, FALSE)) {
+    lapply(services, read_service_operations)
+  } else {
+    lapply(services, validated_service_operations, reports = validation_reports)
+  }
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
   inventory <- do.call(c, unname(lapply(parsed, `[[`, 'inventory')))
@@ -1118,6 +1139,7 @@ generate_client <- function(
   # Documentation can recreate NAMESPACE after all its previous owners are excluded.
   removals <- setdiff(removals, names(desired))
   selected_artifact <- function(paths) {
+    paths <- paths %or% character()
     kind <- ifelse(
       startsWith(paths, 'R/'),
       'wrappers',
@@ -1272,6 +1294,7 @@ generate_client <- function(
       operations = configured_operations,
       drift = drift,
       diagnostics = diagnostics,
+      validation = validation_reports,
       server_diagnostics = do.call(
         c,
         unname(lapply(parsed, `[[`, 'server_diagnostics'))
@@ -1302,6 +1325,13 @@ generate_client <- function(
 }
 
 print.specmill_generation <- function(x, ...) {
+  if (length(x$validation)) {
+    cat('Schema validation\n')
+    for (report in x$validation) {
+      cat('  ', basename(report$source), ': ', report$status,
+          if (isTRUE(report$cached)) ' (cached)' else '', '\n', sep = '')
+    }
+  }
   cat('Selected operations (', length(x$operations), ')\n', sep = '')
   for (op in x$operations) {
     cat('  ', op$service, ': ', op$key, ' -> ', op$name, '\n', sep = '')

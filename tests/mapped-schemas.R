@@ -8,7 +8,7 @@ mapped_schema_acceptance <- function() {
     file.path(root, 'R/helper.R')
   )
   writeLines(
-    c('config_version: 1', 'services: [service.yml]'),
+    c('config_version: 1', 'validation: false', 'services: [service.yml]'),
     file.path(root, 'specmill.yml')
   )
   writeLines(
@@ -68,6 +68,7 @@ mapped_schema_acceptance <- function() {
         if (unsupported) 'unsupported' else 'selected'
     )
     result <- specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       mode = 'apply'
@@ -94,7 +95,7 @@ mapped_schema_acceptance <- function() {
     sys.source(file.path(root, 'R/submit_records.R'), env)
     payload <- list(arbitrary = list(FALSE, 0, NULL))
     stopifnot(identical(env$submit_records(payload), payload))
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   }
   for (schema in list(
     list(type = 'dict'),
@@ -110,7 +111,7 @@ mapped_schema_acceptance <- function() {
       length(parsed$diagnostics) == 1L
     )
     error <- tryCatch(
-      specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'),
+      specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply'),
       error = identity
     )
     stopifnot(

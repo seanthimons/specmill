@@ -66,7 +66,7 @@ dry_run_acceptance <- function() {
     license = 'MIT + file LICENSE',
     base_url = base_url
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)
@@ -174,7 +174,7 @@ dry_run_acceptance <- function() {
   service <- yaml::read_yaml(service_file, handlers = list(seq = function(x) x))
   service$names[['GET /items/{item_id}']] <- 'requestclient_dry_run'
   yaml::write_yaml(service, service_file)
-  collision <- tryCatch(specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'), error = identity)
+  collision <- tryCatch(specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'), error = identity)
   stopifnot(inherits(collision, 'error'), grepl('session control', conditionMessage(collision)))
   cat(
     'Session controls: exported setters, option precedence, legacy flags, private logging and no-network dry runs passed.\n'

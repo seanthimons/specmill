@@ -130,7 +130,7 @@ boundary_acceptance <- function() {
     files = system.file('catalogue/schema.json', package = 'specmill'),
     helper = 'request_helper'
   )
-  specmill::generate_client(generation_root, spec, 'apply')
+  specmill::generate_client(validation = FALSE, generation_root, spec, 'apply')
   previous <- tools::md5sum(list.files(
     file.path(generation_root, 'R'),
     full.names = TRUE
@@ -141,7 +141,7 @@ boundary_acceptance <- function() {
     }
     specmill::render_operation(operation, spec)
   }
-  fails(specmill::generate_client(generation_root, spec, 'apply'))
+  fails(specmill::generate_client(validation = FALSE, generation_root, spec, 'apply'))
   stopifnot(identical(
     previous,
     tools::md5sum(list.files(

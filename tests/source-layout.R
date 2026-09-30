@@ -45,7 +45,7 @@ source_layout_acceptance <- function() {
     file.path(root, 'R/helper.R')
   )
   writeLines(
-    c('config_version: 1', 'services: [service.yml]'),
+    c('config_version: 1', 'validation: false', 'services: [service.yml]'),
     file.path(root, 'specmill.yml')
   )
   service <- c(
@@ -56,7 +56,7 @@ source_layout_acceptance <- function() {
   )
   put <- function(lines) writeLines(lines, file.path(root, 'service.yml'))
   run <- function(mode) {
-    specmill::generate_client(root, config = 'specmill.yml', mode = mode)
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = mode)
   }
   put(service)
   result <- run('apply')
@@ -103,6 +103,7 @@ source_layout_acceptance <- function() {
     'R/generated.R' = getFromNamespace('output_hash', 'specmill')(path)
   )
   specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply',
@@ -116,6 +117,7 @@ source_layout_acceptance <- function() {
   writeLines(c(original, '# Changed since review'), path)
   error <- tryCatch(
     specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       mode = 'apply',

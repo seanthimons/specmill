@@ -102,6 +102,7 @@ configuration_scaffold_acceptance <- function() {
     'pet_get_by_id' %in% project$services[[1L]]$policy$names
   )
   generation <- specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'plan'
@@ -185,6 +186,7 @@ configuration_scaffold_acceptance <- function() {
     base_url = 'https://example.invalid'
   )
   generated <- specmill::generate_client(
+    validation = FALSE,
     tagged_root,
     config = 'specmill.yml',
     mode = 'apply'
@@ -197,6 +199,7 @@ configuration_scaffold_acceptance <- function() {
     )))
   )
   specmill::generate_client(
+    validation = FALSE,
     tagged_root,
     config = 'specmill.yml',
     mode = 'check'
@@ -289,6 +292,7 @@ configuration_scaffold_acceptance <- function() {
   )
   error <- tryCatch(
     specmill::generate_client(
+      validation = FALSE,
       tagged_root,
       config = 'specmill.yml',
       mode = 'plan'

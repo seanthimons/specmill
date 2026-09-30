@@ -221,7 +221,7 @@ media_type_acceptance <- function() {
   )
   before <- tools::md5sum(helper)
   error <- tryCatch(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
     error = identity
   )
   stopifnot(

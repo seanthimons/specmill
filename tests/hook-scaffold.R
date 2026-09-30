@@ -71,8 +71,8 @@ hook_scaffold_acceptance <- function() {
   service <- yaml::read_yaml(service_path, handlers = list(seq = function(x) x))
   service$hook_config <- 'inst/hooks.yml'
   yaml::write_yaml(service, service_path)
-  specmill::generate_client(root, mode = 'apply', config = 'specmill.yml')
-  specmill::generate_client(root, mode = 'check', config = 'specmill.yml')
+  specmill::generate_client(validation = FALSE, root, mode = 'apply', config = 'specmill.yml')
+  specmill::generate_client(validation = FALSE, root, mode = 'check', config = 'specmill.yml')
   stopifnot(identical(before, tools::md5sum(paths)))
   status <- system2(
     file.path(R.home('bin'), 'R'),

@@ -87,7 +87,7 @@ generated_names_acceptance <- function() {
     license = 'MIT + file LICENSE',
     base_url = paste0('http://127.0.0.1:', readLines(port_file))
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)

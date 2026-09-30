@@ -157,6 +157,7 @@ authentication_acceptance <- function() {
     variables
   ))
   result <- specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'
@@ -169,7 +170,7 @@ authentication_acceptance <- function() {
         readLines(file.path(root, 'NAMESPACE'))
     )
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)
@@ -332,7 +333,7 @@ authentication_acceptance <- function() {
     license = 'MIT + file LICENSE',
     base_url = 'http://127.0.0.1'
   )
-  specmill::generate_client(oauth_root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, oauth_root, config = 'specmill.yml', mode = 'apply')
   stopifnot(identical(
     specmill::load_project(oauth_root)$authentication,
     setNames(list(), character())
@@ -340,7 +341,7 @@ authentication_acceptance <- function() {
   # Changed environment mappings regenerate helpers; edited helpers stay protected.
   cat('\n# user edit\n', file = file.path(root, 'R/api_auth.R'), append = TRUE)
   error <- tryCatch(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply'),
     error = identity
   )
   stopifnot(inherits(error, 'error'))

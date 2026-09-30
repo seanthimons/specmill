@@ -1,0 +1,151 @@
+{
+  "checked_at": "2026-09-30T19:37:30.940920+00:00",
+  "source": "dev/audits/swagger-validator/amos-production-schema.json",
+  "source_sha256": "4591f49840d0f0f5c8e092fd588c43087a8582e8555c3d477ef4c1a98390eaf4",
+  "service_version": "2.1.9",
+  "advertised_debug_post_options": [
+    "resolve",
+    "resolveFully",
+    "validateInternalRefs",
+    "validateExternalRefs",
+    "resolveRequestBody",
+    "resolveCombinators",
+    "allowEmptyStrings",
+    "legacyYamlDeserialization",
+    "inferSchemaType",
+    "jsonSchemaValidation",
+    "legacyJsonSchemaValidation"
+  ],
+  "profiles": [
+    {
+      "profile": "default",
+      "options": {},
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    },
+    {
+      "profile": "explicit_json_validation",
+      "options": {
+        "jsonSchemaValidation": true
+      },
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    },
+    {
+      "profile": "modern",
+      "options": {
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false
+      },
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 140,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "cbbcc5d9f40686cefd90205360af5db498563f188a080c4254f54ecfb9b42bd0",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    },
+    {
+      "profile": "all_true",
+      "options": {
+        "resolve": true,
+        "resolveFully": true,
+        "validateInternalRefs": true,
+        "validateExternalRefs": true,
+        "resolveRequestBody": true,
+        "resolveCombinators": true,
+        "allowEmptyStrings": true,
+        "legacyYamlDeserialization": true,
+        "inferSchemaType": true,
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": true
+      },
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    },
+    {
+      "profile": "all_true_modern",
+      "options": {
+        "resolve": true,
+        "resolveFully": true,
+        "validateInternalRefs": true,
+        "validateExternalRefs": true,
+        "resolveRequestBody": true,
+        "resolveCombinators": true,
+        "allowEmptyStrings": true,
+        "legacyYamlDeserialization": true,
+        "inferSchemaType": true,
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false
+      },
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 140,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "cbbcc5d9f40686cefd90205360af5db498563f188a080c4254f54ecfb9b42bd0",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    },
+    {
+      "profile": "references_modern",
+      "options": {
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false,
+        "resolve": true,
+        "validateInternalRefs": true,
+        "validateExternalRefs": true
+      },
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 140,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "cbbcc5d9f40686cefd90205360af5db498563f188a080c4254f54ecfb9b42bd0",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    },
+    {
+      "profile": "nontransforming_modern",
+      "options": {
+        "resolve": false,
+        "resolveFully": false,
+        "validateInternalRefs": true,
+        "validateExternalRefs": false,
+        "resolveRequestBody": false,
+        "resolveCombinators": false,
+        "allowEmptyStrings": false,
+        "legacyYamlDeserialization": false,
+        "inferSchemaType": false,
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false
+      },
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 140,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "cbbcc5d9f40686cefd90205360af5db498563f188a080c4254f54ecfb9b42bd0",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    },
+    {
+      "profile": "json_validation_off",
+      "options": {
+        "jsonSchemaValidation": false,
+        "legacyJsonSchemaValidation": false
+      },
+      "http_status": 200,
+      "semantic_message_count": 12,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "schema_findings_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "semantic_messages_sha256": "bc6cf6041ce61d23c00c235df031ff0cff88a40eaa4bee1bdd32d1ee88f42fd6"
+    }
+  ]
+}

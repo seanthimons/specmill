@@ -1,3 +1,43 @@
+operation_selection_reason <- function(key, path, method, policy) {
+  if (key %in% policy$validation_blocked_keys) return('Blocked by schema validation')
+  reason <- character()
+  if (!is.null(policy$include) && !key %in% policy$include) {
+    reason <- 'Not in service include'
+  } else {
+    if (!method %in% (policy$methods %or% c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE'))) {
+      reason <- if (
+        !is.null(policy$project_methods) &&
+          !method %in% policy$project_methods
+      ) {
+        'Prohibited by project methods'
+      } else if (
+        !is.null(policy$api_methods) &&
+          !method %in% policy$api_methods
+      ) {
+        paste('Prohibited by API methods:', policy$api)
+      } else {
+        'Prohibited by service methods'
+      }
+    }
+    for (pattern in policy[['exclude']] %or% character()) {
+      if (stringr::str_detect(path, pattern)) {
+        level <- if (pattern %in% policy$project_exclude) {
+          'project'
+        } else if (pattern %in% policy$api_exclude) {
+          paste('API', policy$api)
+        } else {
+          'service'
+        }
+        reason <- c(
+          reason,
+          paste('Matches', level, 'exclusion:', pattern)
+        )
+      }
+    }
+  }
+  reason
+}
+
 read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
@@ -24,8 +64,6 @@ read_operations <- function(files, policy = list()) {
     )
   )
   exclusion_errors <- character()
-  methods <- policy$methods %or%
-    c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
   patterns <- policy[['exclude']] %or% character()
   include <- policy$include
   for (pattern in patterns) {
@@ -91,41 +129,7 @@ read_operations <- function(files, policy = list()) {
         )
         source_location <- operation_location
         diagnostic_context <- NULL
-        reason <- character()
-        if (!is.null(include) && !key %in% include) {
-          reason <- 'Not in service include'
-        } else {
-          if (!toupper(method) %in% methods) {
-            reason <- if (
-              !is.null(policy$project_methods) &&
-                !toupper(method) %in% policy$project_methods
-            ) {
-              'Prohibited by project methods'
-            } else if (
-              !is.null(policy$api_methods) &&
-                !toupper(method) %in% policy$api_methods
-            ) {
-              paste('Prohibited by API methods:', policy$api)
-            } else {
-              'Prohibited by service methods'
-            }
-          }
-          for (pattern in patterns) {
-            if (stringr::str_detect(path, pattern)) {
-              level <- if (pattern %in% policy$project_exclude) {
-                'project'
-              } else if (pattern %in% policy$api_exclude) {
-                paste('API', policy$api)
-              } else {
-                'service'
-              }
-              reason <- c(
-                reason,
-                paste('Matches', level, 'exclusion:', pattern)
-              )
-            }
-          }
-        }
+        reason <- operation_selection_reason(key, path, toupper(method), policy)
         selected <- !length(reason)
         record <- list(
           id = id,

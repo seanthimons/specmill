@@ -17,6 +17,7 @@ method_selection_acceptance <- function() {
   )
   run <- function(mode) {
     specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       mode = mode

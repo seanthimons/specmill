@@ -131,13 +131,14 @@ multi_api_acceptance <- function() {
   project$defaults$batch <- list(max_items = 1L, max_bytes = 64L)
   yaml::write_yaml(project, project_path)
   plan <- specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'plan'
   )
   stopifnot(length(plan$operations) == 3L, !length(plan$diagnostics))
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)

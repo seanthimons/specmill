@@ -182,9 +182,10 @@ validation gate. Request-helper transport checks still apply.
 Preview, inspect the generated source, then apply:
 
 ```{r generate}
-plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+# Offline fixture only; real schemas use the required validation gate.
+plan <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
 plan
-specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
 wrapper <- readLines(file.path(root, 'R/get_item.R'))
 cat(grep('run_hook|skip_request|changed|result <- api_request', wrapper, value = TRUE), sep = '\n')
 ```
@@ -214,7 +215,7 @@ specmill::check_client_hooks(
   root, yaml::read_yaml(file.path(root, 'inst/hooks.yml')),
   hooks = client
 )
-specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
 ```
 
 Keep an equivalent check in your client's tests. Test chain order, representative

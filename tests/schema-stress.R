@@ -163,6 +163,7 @@ schema_stress_acceptance <- function() {
     ))
   }
   fails(specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'
@@ -192,14 +193,15 @@ schema_stress_acceptance <- function() {
   )
   yaml::write_yaml(service, service_path)
   generated <- specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'
   )
   stopifnot(length(generated$operations) == 4L, !length(generated$diagnostics))
   before <- hashes()
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   stopifnot(identical(before, hashes()))
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)) {

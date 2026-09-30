@@ -97,10 +97,11 @@ and manual tests.
 ## 4. Generate and run the test
 
 ```{r generate}
-plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+# Offline fixture only; real schemas use the required validation gate.
+plan <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
 stopifnot(!length(plan$diagnostics), length(plan$operations) == 1L)
-applied <- specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
-checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+applied <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+checked <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
 stopifnot(file.exists(file.path(root, 'tests/testthat/test-contract-get_item.R')))
 ```
 
