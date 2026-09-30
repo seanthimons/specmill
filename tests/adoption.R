@@ -8,7 +8,7 @@ adoption_acceptance <- function() {
     dir.create(root)
     fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
     stopifnot(all(file.copy(list.files(fixture, full.names = TRUE), root, recursive = TRUE)))
-    writeLines(c('config_version: 1', 'services: [service.yml]'), file.path(root, 'specmill.yml'))
+    writeLines(c('config_version: 1', 'validation: false', 'services: [service.yml]'), file.path(root, 'specmill.yml'))
     writeLines(c(
       'id: mapped',
       'schemas: {files: [schema.json]}',
@@ -27,7 +27,7 @@ adoption_acceptance <- function() {
   }
   # The generated wrapper, minus its header, stands in for an equivalent hand-written one.
   scratch <- setup()
-  invisible(specmill::generate_client(scratch, config = 'specmill.yml', mode = 'apply', artifacts = 'wrappers'))
+  invisible(specmill::generate_client(validation = FALSE, scratch, config = 'specmill.yml', mode = 'apply', artifacts = 'wrappers'))
   text <- grep('^# Generated', readLines(file.path(scratch, 'R/get_item.R')), value = TRUE, invert = TRUE)
   verify <- function(edit = identity) {
     root <- setup()

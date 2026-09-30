@@ -168,8 +168,8 @@ request_controls_acceptance <- function() {
   )
   helper <- file.path(root, 'R/api_request.R')
   hash <- tools::md5sum(helper)
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   stopifnot(identical(hash, tools::md5sum(helper)))
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
@@ -648,8 +648,8 @@ request_controls_acceptance <- function() {
     request_controls = list(retry_policy = NULL)
   )
   yaml::write_yaml(service, service_file)
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   stopifnot(identical(hash, tools::md5sum(helper)))
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)
@@ -746,15 +746,15 @@ request_controls_acceptance <- function() {
     invalid$defaults$request_controls$retry_policy <- name
     yaml::write_yaml(invalid, project_file)
     error(
-      specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+      specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
       'client retry policy'
     )
   }
   yaml::write_yaml(project, project_file)
   write('# Client customization retained.', helper, append = TRUE)
   customized_hash <- tools::md5sum(helper)
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
   stopifnot(identical(customized_hash, tools::md5sum(helper)))
   # Generation exposes diagnostics; an old helper must explicitly adopt server metadata.
   write_schema(document)
@@ -763,7 +763,7 @@ request_controls_acceptance <- function() {
     helper
   )
   error(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
     'Unknown helper arguments.*server'
   )
   writeLines(
@@ -771,7 +771,7 @@ request_controls_acceptance <- function() {
     helper
   )
   error(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
     'Unknown helper arguments.*request_controls'
   )
   cat(

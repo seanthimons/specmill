@@ -148,8 +148,13 @@ select methods, exclude paths, name functions, and improve their help and exampl
 
 ## 5. Preview changes before applying them
 
+Generation normally validates schema bytes through the configured Swagger
+Validator and reuses cached reports. This offline tutorial explicitly bypasses
+that check for its bundled fixture; use the default gate for real schemas and
+configure a private validator before submitting private schemas.
+
 ```{r plan}
-plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan', validation = FALSE)
 data.frame(
   file = vapply(plan$files, `[[`, character(1), 'file'),
   action = vapply(plan$files, `[[`, character(1), 'action')
@@ -166,8 +171,8 @@ appears as `remove`. Manifest metadata can also appear in the plan.
 ## 6. Apply, then check reproducibility
 
 ```{r apply}
-applied <- specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
-checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+applied <- specmill::generate_client(root, config = 'specmill.yml', mode = 'apply', validation = FALSE)
+checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check', validation = FALSE)
 stopifnot(all(vapply(
   checked$files, function(x) x$action %in% c('unchanged', 'retained'), logical(1)
 )))

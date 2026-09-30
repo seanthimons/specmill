@@ -151,7 +151,7 @@ bracket_transport_acceptance <- function() {
       ),
       config
     )
-    plan <- specmill::generate_client(config_root, config = 'specmill.yml', mode = 'plan')
+    plan <- specmill::generate_client(validation = FALSE, config_root, config = 'specmill.yml', mode = 'plan')
     stopifnot(identical(
       plan$operations$search$parameters[[1L]]$style,
       'brackets'
@@ -166,7 +166,7 @@ bracket_transport_acceptance <- function() {
       ),
       service
     )
-    plan <- specmill::generate_client(config_root, config = 'specmill.yml', mode = 'plan')
+    plan <- specmill::generate_client(validation = FALSE, config_root, config = 'specmill.yml', mode = 'plan')
     stopifnot(identical(plan$operations$search$parameters[[1L]]$style, 'form'))
     writeLines(
       sub(
@@ -177,14 +177,14 @@ bracket_transport_acceptance <- function() {
       ),
       service
     )
-    specmill::generate_client(config_root, config = 'specmill.yml', mode = 'apply')
+    specmill::generate_client(validation = FALSE, config_root, config = 'specmill.yml', mode = 'apply')
     helper <- file.path(config_root, 'R', 'api_request.R')
     writeLines(
       'api_request <- function(method, path, path_params, query, body) NULL',
       helper
     )
     error <- tryCatch(
-      specmill::generate_client(config_root, config = 'specmill.yml', mode = 'plan'),
+      specmill::generate_client(validation = FALSE, config_root, config = 'specmill.yml', mode = 'plan'),
       error = identity
     )
     stopifnot(

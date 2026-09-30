@@ -114,7 +114,7 @@ response_policy_acceptance <- function() {
     file.path(root, 'R/response_policy.R')
   )
   run <- function(mode) {
-    specmill::generate_client(root, config = 'specmill.yml', mode = mode)
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = mode)
   }
   run('apply')
   hashes <- function() {

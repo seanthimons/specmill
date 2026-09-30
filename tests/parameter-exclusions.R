@@ -160,6 +160,7 @@ parameter_exclusions_acceptance <- function() {
     '    exclude_parameters: ["files[]", request]'
   ))
   specmill::generate_client(
+    validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply',

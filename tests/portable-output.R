@@ -16,7 +16,7 @@ portable_output_acceptance <- function() {
   specmill::initialize_client(root, schema, package = 'portableoutput', title = 'Portable Output',
     author = list(given = 'Test', family = 'Maintainer', email = 'test@example.org'),
     license = 'MIT + file LICENSE', base_url = 'https://example.invalid')
-  run <- function(mode) specmill::generate_client(root, config = 'specmill.yml', mode = mode,
+  run <- function(mode) specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = mode,
     artifacts = c('wrappers', 'documentation'))
   run('apply')
   portable <- getFromNamespace('portable_output_path', 'specmill')

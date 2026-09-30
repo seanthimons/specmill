@@ -129,7 +129,7 @@ parameter_diagnostics_acceptance <- function() {
     license = 'MIT + file LICENSE',
     base_url = 'http://127.0.0.1'
   )
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   helper <- file.path(root, 'R/api_request.R')
   writeLines(
     'api_request <- function(method, path, path_params, query, body) NULL',
@@ -137,7 +137,7 @@ parameter_diagnostics_acceptance <- function() {
   )
   before <- tools::md5sum(helper)
   error <- tryCatch(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
     error = identity
   )
   stopifnot(

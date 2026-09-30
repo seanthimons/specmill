@@ -1,0 +1,162 @@
+{
+  "checked_at": "2026-09-30T19:51:23.673211+00:00",
+  "source_url": "https://hcd.rtpnc.epa.gov/api/opera/swagger.json",
+  "source_sha256": "f1e4b6ab1aba9f641c6b3a04e3b09c48659f98c8eb432efcf3d2dad34a518c6a",
+  "openapi": "3.0.3",
+  "validator_url": "https://validator.swagger.io/validator/debug",
+  "service_version": "2.1.9",
+  "profiles": [
+    {
+      "profile": "default",
+      "options": {},
+      "http_status": 200,
+      "semantic_message_count": 0,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "report": {
+        "schemaValidationMessages": []
+      }
+    },
+    {
+      "profile": "modern",
+      "options": {
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false
+      },
+      "http_status": 200,
+      "semantic_message_count": 0,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "report": {
+        "schemaValidationMessages": []
+      }
+    },
+    {
+      "profile": "all_true",
+      "options": {
+        "resolve": true,
+        "resolveFully": true,
+        "validateInternalRefs": true,
+        "validateExternalRefs": true,
+        "resolveRequestBody": true,
+        "resolveCombinators": true,
+        "allowEmptyStrings": true,
+        "legacyYamlDeserialization": true,
+        "inferSchemaType": true,
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": true
+      },
+      "http_status": 200,
+      "semantic_message_count": 0,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "report": {
+        "schemaValidationMessages": []
+      }
+    },
+    {
+      "profile": "all_true_modern",
+      "options": {
+        "resolve": true,
+        "resolveFully": true,
+        "validateInternalRefs": true,
+        "validateExternalRefs": true,
+        "resolveRequestBody": true,
+        "resolveCombinators": true,
+        "allowEmptyStrings": true,
+        "legacyYamlDeserialization": true,
+        "inferSchemaType": true,
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false
+      },
+      "http_status": 200,
+      "semantic_message_count": 0,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "report": {
+        "schemaValidationMessages": []
+      }
+    },
+    {
+      "profile": "references_modern",
+      "options": {
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false,
+        "resolve": true,
+        "validateInternalRefs": true,
+        "validateExternalRefs": true
+      },
+      "http_status": 200,
+      "semantic_message_count": 0,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "report": {
+        "schemaValidationMessages": []
+      }
+    },
+    {
+      "profile": "nontransforming_modern",
+      "options": {
+        "resolve": false,
+        "resolveFully": false,
+        "validateInternalRefs": true,
+        "validateExternalRefs": false,
+        "resolveRequestBody": false,
+        "resolveCombinators": false,
+        "allowEmptyStrings": false,
+        "legacyYamlDeserialization": false,
+        "inferSchemaType": false,
+        "jsonSchemaValidation": true,
+        "legacyJsonSchemaValidation": false
+      },
+      "http_status": 200,
+      "semantic_message_count": 0,
+      "schema_error_count": 0,
+      "instance_pointer_count": 0,
+      "report": {
+        "schemaValidationMessages": []
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "profile": "default",
+      "removed_field": "#/paths/~1api~1opera/get/responses",
+      "report": {
+        "messages": [
+          "attribute paths.'/api/opera'(get).responses is missing"
+        ],
+        "schemaValidationMessages": [
+          {
+            "level": "error",
+            "domain": "validation",
+            "keyword": "required",
+            "message": "object has missing required properties ([\"responses\"])",
+            "schema": {
+              "loadingURI": "#",
+              "pointer": "/definitions/Operation"
+            },
+            "instance": {
+              "pointer": "/paths/~1api~1opera/get"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "profile": "modern",
+      "removed_field": "#/paths/~1api~1opera/get/responses",
+      "report": {
+        "messages": [
+          "attribute paths.'/api/opera'(get).responses is missing"
+        ],
+        "schemaValidationMessages": [
+          {
+            "level": "error",
+            "message": "$.paths./api/opera.get: required property 'responses' not found"
+          }
+        ]
+      }
+    }
+  ]
+}

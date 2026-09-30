@@ -56,6 +56,26 @@ on the original download directory. JSON and YAML share these rules.
 
 ## Project file: specmill.yml
 
+### Schema validation
+
+Generation requires validation by default. New or changed schemas are sent to
+`https://validator.swagger.io/validator`; unchanged bytes reuse cached reports.
+For private schemas, configure your own Swagger Validator before generation:
+
+```yaml
+validation:
+  validator_url: https://validator.example.org/validator
+  cache_dir: .specmill/validation
+  timeout: 30
+```
+
+Relative cache paths resolve against the client root. The default cache uses
+R's user cache directory. `validate_schema()` returns a standalone report;
+`refresh = TRUE` rechecks unchanged bytes after a validator upgrade. Explicit
+`validation: false` bypasses the gate and should be a reviewed project decision.
+OpenAPI 3.1 and references outside the document currently return unsupported
+coverage. Request mappings and retained implementations cannot bypass the gate.
+
 ### Review multiple APIs once
 
 Put the downloaded JSON or YAML schemas in the project root. The API catalogue proposes

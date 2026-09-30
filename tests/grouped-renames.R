@@ -23,6 +23,7 @@ grouped_rename_acceptance <- function() {
   writeLines(baseline, policy)
   run <- function(mode) {
     specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       mode = mode,
