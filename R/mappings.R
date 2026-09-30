@@ -51,6 +51,9 @@ validate_settings <- function(
       'request_controls',
       'body_media',
       'query_array_style',
+      'exclude_parameters',
+      'routes',
+      'route_guard',
       'specialization'
     ),
     label
@@ -215,6 +218,50 @@ validate_settings <- function(
   }
   if ('parameter_order' %in% names(settings)) {
     config_sequence(settings$parameter_order, 'parameter_order')
+  }
+  if ('exclude_parameters' %in% names(settings)) {
+    config_sequence(
+      settings$exclude_parameters,
+      paste(label, 'exclude_parameters')
+    )
+  }
+  if ('routes' %in% names(settings)) {
+    routes <- config_sequence(settings[['routes']], paste(label, 'routes'))
+    if (
+      anyDuplicated(routes) ||
+        !all(
+          grepl(
+            '^.+ (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE) /[^[:space:]]*$',
+            routes
+          )
+        )
+    ) {
+      stop(label, ': routes must be unique schema-file METHOD /path references')
+    }
+  }
+  if ('route_guard' %in% names(settings)) {
+    guard <- settings$route_guard
+    if (is.logical(guard)) {
+      if (length(guard) != 1L || is.na(guard)) {
+        stop('route_guard must be true, false or a method/path argument map')
+      }
+    } else {
+      config_fields(guard, c('method', 'path'), 'route_guard')
+      if (!setequal(names(guard), c('method', 'path'))) {
+        stop('route_guard requires method and path argument names')
+      }
+      for (name in guard) {
+        config_string(name, 'route_guard argument')
+      }
+      if (identical(guard$method, guard$path)) {
+        stop('route_guard method and path must name distinct arguments')
+      }
+    }
+    if (
+      !identical(guard, FALSE) && identical(settings$implementation, 'existing')
+    ) {
+      stop('route_guard requires a generated implementation')
+    }
   }
   if ('docs' %in% names(settings)) {
     validate_documentation(settings$docs)

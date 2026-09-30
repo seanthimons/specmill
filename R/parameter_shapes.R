@@ -127,7 +127,7 @@ query_array_style <- function(style, label = 'query_array_style') {
 
 # Validate public schema inputs before client-owned request transformations.
 # Parameters retain their vector representation; JSON validation uses lists.
-parameter_values <- function(values, schemas, validate) {
+parameter_values <- function(values, schemas, validate, locations) {
   for (name in names(values)) {
     value <- values[[name]]
     if (is.null(value)) {
@@ -145,7 +145,9 @@ parameter_values <- function(values, schemas, validate) {
     }
     tryCatch(validate(value, schema), error = function(e) {
       stop(
-        'Invalid public input ',
+        'Invalid ',
+        locations[[name]],
+        ' parameter ',
         name,
         ': ',
         conditionMessage(e),
@@ -189,7 +191,12 @@ parameter_checks <- function(params, formal_names) {
     )),
     ', base::evalq(',
     r_literal(body_value),
-    ', envir = base::baseenv()))'
+    ', envir = base::baseenv()), ',
+    r_literal(setNames(
+      vapply(params[selected], `[[`, character(1), 'location'),
+      formal_names[selected]
+    )),
+    ')'
   )
 }
 

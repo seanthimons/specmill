@@ -73,8 +73,8 @@ literal_constructors <- c(
 
 # Escape schema strings as R literals. No remote text is evaluated as code.
 # ponytail: render_operation() sets the guard for its dynamic extent instead of
-# threading it through every renderer. Without generate_client()'s flag, or outside
-# render_operation(), literals stay guarded.
+# threading it through every renderer. render_operation() defaults the flag to FALSE,
+# matching generate_client() when nothing is shadowed; outside it, literals stay guarded.
 literal_state <- new.env(parent = emptyenv())
 literal_state$guard <- TRUE
 

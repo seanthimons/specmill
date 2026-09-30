@@ -155,10 +155,10 @@ nested_body_acceptance <- function() {
     deep <- list(id = 1L, child = deep)
   }
   error <- tryCatch(runtime$submit_records(deep), error = identity)
-  stopifnot(grepl('depth limit', conditionMessage(error)))
+  stopifnot(grepl('Invalid body: Depth limit', conditionMessage(error)))
   wide <- list(id = 1L, unknown = rep(list(1L), 20000L))
   error <- tryCatch(runtime$submit_records(wide), error = identity)
-  stopifnot(grepl('node limit', conditionMessage(error)), calls == before)
+  stopifnot(grepl('Invalid body: Node limit', conditionMessage(error)), calls == before)
   # Recursive targets retain request direction and OpenAPI 3.1 siblings stay guarded.
   document$components$schemas$Node$readOnly <- TRUE
   directional <- read()

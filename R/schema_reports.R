@@ -45,6 +45,7 @@ schema_report_operations <- function(path, policy) {
     keys
   )
   policy$override_keys <- NULL
+  policy$exclude_parameters_overrides <- NULL
   parsed <- read_operations(path, policy)
   canonical <- function(node, references) {
     if (!is.list(node)) {

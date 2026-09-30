@@ -522,6 +522,82 @@ Parameter `content` and `allowReserved: true`
 remain explicitly diagnosed rather than guessed. Binary parameters require
 source-contract review, especially files declared in query strings (#16).
 
+Some generators publish an upload variant as extra query parameters on a JSON
+operation; Springdoc, for example, adds `files[]` (binary) and `request`
+(object) beside an `application/json` body. After review, drop them for that
+operation only, keeping the schema snapshot verbatim:
+
+```yaml
+operations:
+  POST /api/hazard:
+    exclude_parameters: ["files[]", request]
+```
+
+Quote names containing brackets; unquoted `[files[], request]` is not valid
+YAML. Only query, header, and cookie parameters can be excluded, and each name
+must exist on the operation. The setting is per operation, not a default; other
+operations keep their diagnostics, and real uploads declared as a multipart
+request body are unaffected. The operation's inventory record lists
+`excluded_parameters`. The direct reader accepts
+`read_operations(file, policy = list(exclude_parameters_overrides = list('POST /api/hazard' = c('files[]', 'request'))))`.
+
+### Hook-selected routes
+
+When a pre-request hook chooses another schema route, declare it on the keyed
+operation:
+
+```yaml
+operations:
+  GET /api/descriptors:
+    routes:
+      - 'chemi-rdkit-prod.json GET /api/rdkit'
+```
+
+Each reference is `schema-file METHOD /path`. Use a unique basename or a path
+relative to the project root. The file must be loaded by the same service;
+ambiguous basenames and unknown routes fail configuration loading. Targets need
+not be selected for wrapper generation. `routes` belongs under operations, not
+defaults, and duplicate declarations are rejected.
+
+The keyed route and every target must use the same effective helper, resolved
+schema server URL, and selected request body media, including absence of a body.
+Unresolved servers fail this comparison. Binding `server` from `hook_state` does
+not relax the schema-server check; runtime server overrides remain client-owned.
+This declaration does not verify the hook's parameters or runtime route choices.
+
+For operations with declarations, the inventory's optional `routes` field lists
+the keyed route followed by its targets, with project-relative schema paths,
+schema hashes, operation keys, helpers, servers, and body media. Generated-file
+provenance records the same list under
+`.specmill/manifest.json` → `files` → output filename → `routes` → operation ID.
+A hook-bound `endpoint` or `method` without declarations emits a configuration
+warning. Runtime guarding is opt-in. For standard generated helper calls, set
+`route_guard: true` on the operation. For complete request mappings, name the
+helper arguments that carry the method and schema path explicitly:
+
+```yaml
+operations:
+  GET /api/descriptors:
+    routes:
+      - 'chemi-rdkit-prod.json GET /api/rdkit'
+    route_guard: {method: method, path: endpoint}
+```
+
+The guard evaluates the final mapped arguments once after pre-request hooks and
+rejects a method/path pair absent from the reviewed routes before calling the
+helper. It accepts the keyed route and declared targets, using exact uppercase
+methods and schema paths, including any unexpanded path placeholders. Both
+values must be single nonmissing strings. Full URLs are not schema paths.
+Complete mappings must supply both named arguments; names are never inferred.
+The guard requires declared routes and a generated implementation. Set
+`route_guard: false` or omit it to preserve existing behavior. Skipped requests
+bypass the guard, including `post_on_skip` handling.
+
+Runtime server overrides are independent of method/path review and remain
+available. This guard does not validate the destination server, redirects,
+parameters, or changes made inside a custom helper. Generated guards use base R
+and do not require specmill at runtime.
+
 For APIs that explicitly require repeated bracketed query-array names, opt in:
 
 ```yaml
