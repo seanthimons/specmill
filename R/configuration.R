@@ -403,6 +403,9 @@ load_project <- function(
     defaults <- merge_settings(project_defaults, service$defaults %or% list())
     overrides <- service$operations %or% list()
     validate_settings(defaults, paste(id, 'defaults'), callbacks)
+    if ('exclude_parameters' %in% names(defaults)) {
+      stop(id, ': exclude_parameters belongs under operations, not defaults')
+    }
     config_fields(overrides, names(overrides), 'operations')
     for (key in names(overrides)) {
       validate_settings(overrides[[key]], key, callbacks)
@@ -517,6 +520,10 @@ load_project <- function(
         query_array_style_overrides = lapply(
           overrides,
           function(x) x$query_array_style
+        ),
+        exclude_parameters_overrides = Filter(
+          length,
+          lapply(overrides, function(x) x$exclude_parameters)
         )
       ),
       policy_version = service$policy_version %or% '1',

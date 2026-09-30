@@ -522,6 +522,25 @@ Parameter `content` and `allowReserved: true`
 remain explicitly diagnosed rather than guessed. Binary parameters require
 source-contract review, especially files declared in query strings (#16).
 
+Some generators publish an upload variant as extra query parameters on a JSON
+operation; Springdoc, for example, adds `files[]` (binary) and `request`
+(object) beside an `application/json` body. After review, drop them for that
+operation only, keeping the schema snapshot verbatim:
+
+```yaml
+operations:
+  POST /api/hazard:
+    exclude_parameters: ["files[]", request]
+```
+
+Quote names containing brackets; unquoted `[files[], request]` is not valid
+YAML. Only query, header, and cookie parameters can be excluded, and each name
+must exist on the operation. The setting is per operation, not a default; other
+operations keep their diagnostics, and real uploads declared as a multipart
+request body are unaffected. The operation's inventory record lists
+`excluded_parameters`. The direct reader accepts
+`read_operations(file, policy = list(exclude_parameters_overrides = list('POST /api/hazard' = c('files[]', 'request'))))`.
+
 For APIs that explicitly require repeated bracketed query-array names, opt in:
 
 ```yaml

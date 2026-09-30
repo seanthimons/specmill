@@ -18,11 +18,15 @@ read_operations <- function(files, policy = list()) {
   policy$query_array_style_overrides <- query_array_style_overrides
   policy$override_keys <- union(
     policy$override_keys %or% character(),
-    names(query_array_style_overrides)
+    union(
+      names(query_array_style_overrides),
+      names(policy$exclude_parameters_overrides)
+    )
   )
+  exclusion_errors <- character()
   methods <- policy$methods %or%
     c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
-  patterns <- policy$exclude %or% character()
+  patterns <- policy[['exclude']] %or% character()
   include <- policy$include
   for (pattern in patterns) {
     stringr::str_detect('', pattern)
@@ -141,6 +145,15 @@ read_operations <- function(files, policy = list()) {
             'Review project and service selection policy to reconsider this operation; its schema was not validated.'
           }
         )
+        # Reviewed schema parameters dropped before validation (#59), e.g. the
+        # multipart upload variant Springdoc folds into JSON operations.
+        excluded <- as.character(unlist(
+          policy$exclude_parameters_overrides[[key]],
+          use.names = FALSE
+        ))
+        if (selected && length(excluded)) {
+          record$excluded_parameters <- excluded
+        }
         inventory[[length(inventory) + 1L]] <- record
         if (!selected) {
           next
@@ -261,6 +274,43 @@ read_operations <- function(files, policy = list()) {
             keep <- !duplicated(ids, fromLast = TRUE)
             params <- params[keep]
             parameter_locations <- parameter_locations[keep]
+            if (length(excluded)) {
+              drop <- vapply(
+                params,
+                function(p) {
+                  is.character(p$name) &&
+                    length(p$name) == 1L &&
+                    p$name %in% excluded
+                },
+                logical(1)
+              )
+              locations <- vapply(
+                params[drop],
+                function(p) as.character(p[['in']]),
+                character(1)
+              )
+              unmatched <- setdiff(
+                excluded,
+                vapply(params[drop], `[[`, character(1), 'name')
+              )
+              if (length(unmatched)) {
+                exclusion_errors <- c(
+                  exclusion_errors,
+                  paste0(key, ': no schema parameter ', unmatched)
+                )
+              }
+              if (!all(locations %in% c('query', 'header', 'cookie'))) {
+                exclusion_errors <- c(
+                  exclusion_errors,
+                  paste0(
+                    key,
+                    ': only query, header, and cookie parameters can be excluded'
+                  )
+                )
+              }
+              params <- params[!drop]
+              parameter_locations <- parameter_locations[!drop]
+            }
             body <- op$requestBody
             body_location <- schema_location(operation_location, 'requestBody')
             body_present <- !is.null(body)
@@ -659,6 +709,9 @@ read_operations <- function(files, policy = list()) {
           }
         )
         if (!is.null(operation)) {
+          if (length(excluded)) {
+            operation$excluded_parameters <- excluded
+          }
           operations[[length(operations) + 1L]] <- operation
           if (length(operation$transport_diagnostics)) {
             diagnostics[[length(diagnostics) + 1L]] <- c(
@@ -737,6 +790,13 @@ read_operations <- function(files, policy = list()) {
   )
   if (length(unknown)) {
     stop('Unknown operation override: ', paste(unknown, collapse = ', '))
+  }
+  if (length(exclusion_errors)) {
+    stop(
+      'Invalid exclude_parameters: ',
+      paste(exclusion_errors, collapse = '; '),
+      call. = FALSE
+    )
   }
   operation_names <- vapply(operations, `[[`, character(1), 'name')
   if (anyDuplicated(operation_names)) {
