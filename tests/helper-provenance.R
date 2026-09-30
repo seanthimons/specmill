@@ -157,6 +157,7 @@ helper_provenance_acceptance <- function() {
   unlink(file.path(root, 'R/kept.R'))
   run <- function(mode) {
     specmill::generate_client(
+      validation = FALSE,
       root,
       config = 'specmill.yml',
       mode = mode,

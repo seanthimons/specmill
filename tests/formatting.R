@@ -59,12 +59,12 @@ formatting_acceptance <- function() {
     ))
   }
   before <- hashes()
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
   stopifnot(identical(before, hashes()))
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   before <- hashes()
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
-  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     identical(before, hashes()),
     identical(
@@ -76,7 +76,7 @@ formatting_acceptance <- function() {
   yaml::write_yaml(project, file.path(root, 'specmill.yml'))
   before <- hashes()
   error <- tryCatch(
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'),
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply'),
     error = identity
   )
   stopifnot(

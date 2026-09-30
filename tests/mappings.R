@@ -21,7 +21,7 @@ mappings_acceptance <- function() {
     recursive = TRUE
   )))
   writeLines(
-    c('config_version: 1', 'services: [service.yml]'),
+    c('config_version: 1', 'validation: false', 'services: [service.yml]'),
     file.path(root, 'specmill.yml')
   )
   service <- c(
@@ -125,12 +125,12 @@ mappings_acceptance <- function() {
     fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
     stopifnot(all(file.copy(list.files(fixture, full.names = TRUE), root, recursive = TRUE)))
     write(imports, file.path(root, 'NAMESPACE'), append = TRUE)
-    writeLines(c('config_version: 1', 'services: [service.yml]'), file.path(root, 'specmill.yml'))
+    writeLines(c('config_version: 1', 'validation: false', 'services: [service.yml]'), file.path(root, 'specmill.yml'))
     writeLines(c(
       'id: s', 'schemas: {files: [schema.json]}', 'helper: catalogue_request', 'operations:',
       '  GET /items/{item_id}:', '    extra_parameters:', '      format: {type: character, default: [compact, tidy]}'
     ), file.path(root, 'service.yml'))
-    specmill::generate_client(root, config = 'specmill.yml', mode = 'apply', artifacts = 'wrappers')
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply', artifacts = 'wrappers')
     code <- unlist(lapply(list.files(file.path(root, 'R'), full.names = TRUE), readLines))
     formal <- any(grepl('format = base::evalq(', code, fixed = TRUE))
     # Generated bodies follow the same flag (inlined functions always stay wrapped).
@@ -264,7 +264,7 @@ mappings_acceptance <- function() {
   fails <- function(lines, pattern) {
     put(lines)
     error <- tryCatch(
-      specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
+      specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
       error = identity
     )
     stopifnot(inherits(error, 'error'), grepl(pattern, conditionMessage(error)))

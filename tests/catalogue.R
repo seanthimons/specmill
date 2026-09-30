@@ -71,9 +71,9 @@ catalogue_acceptance <- function() {
     )
   }
   manual <- tools::md5sum(file.path(root, 'R/helper.R'))
-  first <- specmill::generate_client(root, spec, 'apply')
+  first <- specmill::generate_client(validation = FALSE, root, spec, 'apply')
   stopifnot(length(first$operations) == 4L, length(first$diagnostics) == 0L)
-  second <- specmill::generate_client(root, spec, 'apply')
+  second <- specmill::generate_client(validation = FALSE, root, spec, 'apply')
   stopifnot(
     all(vapply(second$files, function(f) f$action == 'unchanged', logical(1))),
     identical(manual, tools::md5sum(file.path(root, 'R/helper.R')))
@@ -172,7 +172,7 @@ catalogue_acceptance <- function() {
   sequence_spec <- spec
   sequence_spec$contracts_file <- 'tests/testthat/fixtures/contracts.rds'
   sequence_spec$contracts[names(fixed)] <- fixed
-  specmill::generate_client(root, sequence_spec, 'apply')
+  specmill::generate_client(validation = FALSE, root, sequence_spec, 'apply')
   testthat::test_file(
     file.path(root, 'tests/testthat/test-contract-refresh.R'),
     stop_on_failure = TRUE
@@ -382,8 +382,8 @@ catalogue_acceptance <- function() {
   jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
   spec$files <- changed_file
   before <- tools::md5sum(file.path(root, 'R/create_item.R'))
-  unsupported <- specmill::generate_client(root, spec, 'plan')
-  fails(specmill::generate_client(root, spec, 'apply'))
+  unsupported <- specmill::generate_client(validation = FALSE, root, spec, 'plan')
+  fails(specmill::generate_client(validation = FALSE, root, spec, 'apply'))
   stopifnot(
     length(unsupported$diagnostics) == 1L,
     unsupported$diagnostics[[1L]]$reason ==

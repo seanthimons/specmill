@@ -58,6 +58,12 @@ GitHub release descriptions use the generated NEWS section.
 
 ## Corpus diagnostics
 
+The offline generation fixtures explicitly set `validation = FALSE` or
+`validation: false`. Their transport and ownership checks do not contact the
+hosted validator. `tests/schema-validation.R` exercises required validation,
+cache reuse, service failures and operation/document blocking against a local
+HTTP server. Run it with the workspace package loaded or installed.
+
 `audit_testing_specs()` writes `DIAGNOSTICS.md` alongside its CSV results when
 `report = TRUE`, including native runs. The report identifies blocked operations,
 source locations, guidance, and document failures. Missing request media requires

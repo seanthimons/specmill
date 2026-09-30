@@ -1,0 +1,134 @@
+{
+  "operation_count": 6,
+  "diagnostics": [],
+  "server_diagnostics": {
+    "operation_1": {
+      "id": "default GET /api/opera/version",
+      "key": "GET /api/opera/version",
+      "source": "/home/sxthi/.t3/worktrees/specmill/t3code-08d41886/dev/audits/swagger-validator/opera-production-schema.json",
+      "code": "server_selection",
+      "reason": "Relative server URL requires a recorded origin or explicit base URL override"
+    },
+    "operation_2": {
+      "id": "default GET /api/opera/metadata",
+      "key": "GET /api/opera/metadata",
+      "source": "/home/sxthi/.t3/worktrees/specmill/t3code-08d41886/dev/audits/swagger-validator/opera-production-schema.json",
+      "code": "server_selection",
+      "reason": "Relative server URL requires a recorded origin or explicit base URL override"
+    },
+    "operation_3": {
+      "id": "default GET /api/opera",
+      "key": "GET /api/opera",
+      "source": "/home/sxthi/.t3/worktrees/specmill/t3code-08d41886/dev/audits/swagger-validator/opera-production-schema.json",
+      "code": "server_selection",
+      "reason": "Relative server URL requires a recorded origin or explicit base URL override"
+    },
+    "operation_4": {
+      "id": "default POST /api/opera",
+      "key": "POST /api/opera",
+      "source": "/home/sxthi/.t3/worktrees/specmill/t3code-08d41886/dev/audits/swagger-validator/opera-production-schema.json",
+      "code": "server_selection",
+      "reason": "Relative server URL requires a recorded origin or explicit base URL override"
+    },
+    "operation_5": {
+      "id": "default POST /api/opera/file",
+      "key": "POST /api/opera/file",
+      "source": "/home/sxthi/.t3/worktrees/specmill/t3code-08d41886/dev/audits/swagger-validator/opera-production-schema.json",
+      "code": "server_selection",
+      "reason": "Relative server URL requires a recorded origin or explicit base URL override"
+    },
+    "operation_6": {
+      "id": "default GET /api/opera/report",
+      "key": "GET /api/opera/report",
+      "source": "/home/sxthi/.t3/worktrees/specmill/t3code-08d41886/dev/audits/swagger-validator/opera-production-schema.json",
+      "code": "server_selection",
+      "reason": "Relative server URL requires a recorded origin or explicit base URL override"
+    }
+  },
+  "inventory": [
+    {
+      "id": "default GET /api/opera/version",
+      "key": "GET /api/opera/version",
+      "service": "default",
+      "method": "GET",
+      "path": "/api/opera/version",
+      "source": "dev/audits/swagger-validator/opera-production-schema.json",
+      "source_hash": "518d0e0aafa76900e5b14a0345cff234",
+      "status": "selected",
+      "reason": "",
+      "classification": "ready",
+      "source_location": "#/paths/~1api~1opera~1version/get",
+      "guidance": "Verify generated requests before relying on live results."
+    },
+    {
+      "id": "default GET /api/opera/metadata",
+      "key": "GET /api/opera/metadata",
+      "service": "default",
+      "method": "GET",
+      "path": "/api/opera/metadata",
+      "source": "dev/audits/swagger-validator/opera-production-schema.json",
+      "source_hash": "518d0e0aafa76900e5b14a0345cff234",
+      "status": "selected",
+      "reason": "",
+      "classification": "ready",
+      "source_location": "#/paths/~1api~1opera~1metadata/get",
+      "guidance": "Verify generated requests before relying on live results."
+    },
+    {
+      "id": "default GET /api/opera",
+      "key": "GET /api/opera",
+      "service": "default",
+      "method": "GET",
+      "path": "/api/opera",
+      "source": "dev/audits/swagger-validator/opera-production-schema.json",
+      "source_hash": "518d0e0aafa76900e5b14a0345cff234",
+      "status": "selected",
+      "reason": "",
+      "classification": "ready",
+      "source_location": "#/paths/~1api~1opera/get",
+      "guidance": "Verify generated requests before relying on live results."
+    },
+    {
+      "id": "default POST /api/opera",
+      "key": "POST /api/opera",
+      "service": "default",
+      "method": "POST",
+      "path": "/api/opera",
+      "source": "dev/audits/swagger-validator/opera-production-schema.json",
+      "source_hash": "518d0e0aafa76900e5b14a0345cff234",
+      "status": "selected",
+      "reason": "",
+      "classification": "ready",
+      "source_location": "#/paths/~1api~1opera/post",
+      "guidance": "Verify generated requests before relying on live results."
+    },
+    {
+      "id": "default POST /api/opera/file",
+      "key": "POST /api/opera/file",
+      "service": "default",
+      "method": "POST",
+      "path": "/api/opera/file",
+      "source": "dev/audits/swagger-validator/opera-production-schema.json",
+      "source_hash": "518d0e0aafa76900e5b14a0345cff234",
+      "status": "selected",
+      "reason": "",
+      "classification": "ready",
+      "source_location": "#/paths/~1api~1opera~1file/post",
+      "guidance": "Verify generated requests before relying on live results."
+    },
+    {
+      "id": "default GET /api/opera/report",
+      "key": "GET /api/opera/report",
+      "service": "default",
+      "method": "GET",
+      "path": "/api/opera/report",
+      "source": "dev/audits/swagger-validator/opera-production-schema.json",
+      "source_hash": "518d0e0aafa76900e5b14a0345cff234",
+      "status": "selected",
+      "reason": "",
+      "classification": "ready",
+      "source_location": "#/paths/~1api~1opera~1report/get",
+      "guidance": "Verify generated requests before relying on live results."
+    }
+  ]
+}

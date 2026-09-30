@@ -271,6 +271,31 @@ selection, routing, generation and runtime pipeline used to debug wrapper behavi
 | [Function reference](https://seanthimons.github.io/specmill/reference/index.html) | Arguments, results, and examples for every exported function |
 
 Generation uses local JSON or YAML schemas and reports unsupported operations explicitly.
+Generation now requires Swagger validation for new or changed schema bytes.
+Matching reports are cached outside the client, so unchanged schemas can be
+regenerated without contacting the validator. Inspect `plan$validation` and
+`plan$diagnostics`; apply and check refuse selected-operation and document
+validation blockers. Both validation engines are checked for OAS 3.0; Swagger 2.0
+uses the alternate engine. OAS 3.1 structural coverage and schemas with external
+references currently remain unsupported by this gate.
+
+The default uploads the original schema to `https://validator.swagger.io/validator`.
+For private schemas, configure a self-hosted service in project YAML:
+
+```yaml
+validation:
+  validator_url: https://validator.example.org/validator
+  cache_dir: .specmill/validation
+  timeout: 30
+```
+
+Use `specmill::validate_schema(path, refresh = TRUE)` to refresh a cached report
+after a validator upgrade, supplying the same URL and cache directory when
+configured. Located errors block affected operations; shared or unlocated errors
+block the document. Request mappings cannot bypass these findings. A reviewed
+legacy workflow can explicitly set `validation: false` in YAML or pass
+`validation = FALSE`; the result records `skipped`.
+
 Reviewing generated output and passing helper-call tests do not establish live
 API compatibility. See the guides for the supported subset and verification steps.
 
