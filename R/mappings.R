@@ -51,6 +51,7 @@ validate_settings <- function(
       'request_controls',
       'body_media',
       'query_array_style',
+      'exclude_parameters',
       'specialization'
     ),
     label
@@ -215,6 +216,12 @@ validate_settings <- function(
   }
   if ('parameter_order' %in% names(settings)) {
     config_sequence(settings$parameter_order, 'parameter_order')
+  }
+  if ('exclude_parameters' %in% names(settings)) {
+    config_sequence(
+      settings$exclude_parameters,
+      paste(label, 'exclude_parameters')
+    )
   }
   if ('docs' %in% names(settings)) {
     validate_documentation(settings$docs)
