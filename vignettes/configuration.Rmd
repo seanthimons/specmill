@@ -251,6 +251,34 @@ normal generation never overwrites it. Complete request mappings own their helpe
 arguments and must pass any controls explicitly. Write retries still require
 `retry_writes: true`; use that only when replay is safe for the API.
 
+Select a client-owned retry predicate by function name in declarative YAML:
+
+```yaml
+defaults:
+  request_controls:
+    max_retries: 2
+    retry_policy: retry_server_errors
+```
+
+Define the predicate in the client's `R/` source. It receives an httr2 response
+and returns one nonmissing logical value:
+
+```r
+retry_server_errors <- function(response) {
+  status <- httr2::resp_status(response)
+  status == 429L || (status >= 500L && status < 600L)
+}
+```
+
+This selection excludes 408 and includes 501 and 505. A service can select a
+narrower predicate. With no selection, native statuses remain 408, 429, 500,
+502, 503 and 504, and retries remain disabled by default. Runtime
+`<package>.request` options also accept `retry_policy` as a client function name
+or function. YAML accepts names only, never executable code. Invalid selections
+fail before HTTP; predicates that fail or return invalid values abort safely.
+Write replay still requires `retry_writes`, and httr2 still handles Retry-After
+and backoff. Connection and JSON-decode failures are not retried.
+
 Generated defaults expose `batch.max_items` and `batch.max_bytes` as null
 (unconfigured). A top-level array request schema's `maxItems` becomes an
 operation-specific default. Set limits under service defaults or individual

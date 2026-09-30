@@ -14,8 +14,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   for (flag in base::list(verbose = verbose, dry_run = dry)) {
     if (!base::is.logical(flag) || base::length(flag) != 1L || base::is.na(flag)) base::stop('run_verbose and dry_run options must be TRUE or FALSE', call. = FALSE)
   }
-  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes')))) base::stop('Request controls must be a named list of base_url, timeout, max_retries, retry_writes', call. = FALSE)
-  for (name in base::c('timeout', 'max_retries', 'retry_writes')) {
+  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy')))) base::stop('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy', call. = FALSE)
+  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy')) {
     if (base::is.null(controls[[name]])) controls[[name]] <- request_controls[[name]]
   }
   timeout <- if (base::is.null(controls$timeout)) 30 else controls$timeout
@@ -24,6 +24,19 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (!base::is.numeric(timeout) || base::length(timeout) != 1L || !base::is.finite(timeout) || timeout <= 0) base::stop('timeout must be a finite positive number of seconds', call. = FALSE)
   if (!base::is.numeric(retries) || base::length(retries) != 1L || !base::is.finite(retries) || retries < 0 || retries != base::trunc(retries) || retries >= base::.Machine$integer.max) base::stop('max_retries must be a nonnegative integer below .Machine$integer.max', call. = FALSE)
   if (!base::is.logical(writes) || base::length(writes) != 1L || base::is.na(writes)) base::stop('retry_writes must be TRUE or FALSE', call. = FALSE)
+  retry_policy <- controls$retry_policy
+  if (base::is.character(retry_policy) && base::length(retry_policy) == 1L && !base::is.na(retry_policy) && base::identical(base::make.names(retry_policy), retry_policy)) {
+    retry_policy <- base::get0(retry_policy, envir = base::parent.env(base::environment()), mode = 'function', inherits = FALSE)
+    if (base::is.null(retry_policy)) base::stop('Missing client retry policy', call. = FALSE)
+  }
+  if (!base::is.null(retry_policy) && !base::is.function(retry_policy)) base::stop('retry_policy must be NULL, a function, or a client function name', call. = FALSE)
+  is_transient <- if (base::is.null(retry_policy)) {
+    function(response) httr2::resp_status(response) %in% base::c(408L, 429L, 500L, 502L, 503L, 504L)
+  } else function(response) {
+    transient <- base::tryCatch(retry_policy(response), error = function(e) base::stop('Client retry policy failed', call. = FALSE))
+    if (!base::is.logical(transient) || base::length(transient) != 1L || base::is.na(transient)) base::stop('Client retry policy must return TRUE or FALSE', call. = FALSE)
+    transient
+  }
   base_url_override <- NULL # Initialization override
   base_url <- controls$base_url
   if (base::is.null(base_url)) base_url <- base_url_override
@@ -240,7 +253,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   request <- httr2::req_timeout(request, timeout)
   if (retries > 0 && (base::toupper(method) %in% base::c('GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE') || writes)) {
     request <- httr2::req_retry(request, max_tries = retries + 1,
-      is_transient = function(response) httr2::resp_status(response) %in% base::c(408L, 429L, 500L, 502L, 503L, 504L))
+      is_transient = is_transient)
   }
   if (verbose) base::message(base::toupper(method), if (dry) ' request (dry run)' else ' request')
   if (dry) base::return(request)
