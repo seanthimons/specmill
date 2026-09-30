@@ -7,3 +7,11 @@ evidence/
 docs/
 .docs-lib/
 artifacts/
+# Root-local workspace files (from baseline templates/config/.gitignore). Blocks
+# every root dot-directory and root markdown file; add !/<name> to opt one in.
+/.*/
+/*.md
+!/.github/
+!/README.md
+!/NEWS.md
+!/HANDOFF.md
