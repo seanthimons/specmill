@@ -28,8 +28,42 @@ schema_validation_operations <- function(document) {
   operations
 }
 
-schema_validation_findings <- function(errors, operations) {
+# Internal reference targets each operation reaches, following $ref chains.
+schema_validation_references <- function(document, operations) {
+  direct <- new.env(parent = emptyenv())
+  refs <- function(node) {
+    if (!is.list(node)) {
+      return(character())
+    }
+    ref <- node[['$ref']]
+    own <- if (is.character(ref) && length(ref) == 1L && startsWith(ref, '#')) {
+      ref
+    }
+    unique(c(own, unlist(lapply(node, refs), use.names = FALSE)))
+  }
+  lapply(operations, function(operation) {
+    item <- document$paths[[operation$path]]
+    queue <- refs(list(item[[tolower(operation$method)]], item$parameters))
+    seen <- character()
+    while (length(queue)) {
+      ref <- queue[[1L]]
+      queue <- queue[-1L]
+      if (ref %in% seen) {
+        next
+      }
+      seen <- c(seen, ref)
+      if (is.null(direct[[ref]])) {
+        direct[[ref]] <- refs(schema_reference_pointer(document, ref, ref))
+      }
+      queue <- c(queue, setdiff(direct[[ref]], seen))
+    }
+    sub('^#', '', utils::URLdecode(seen))
+  })
+}
+
+schema_validation_findings <- function(errors, operations, document) {
   findings <- list()
+  references <- NULL
   for (error in errors) {
     pointer <- error$pointer
     parts <- strsplit(sub('^/', '', pointer), '/', fixed = TRUE)[[1L]]
@@ -53,9 +87,21 @@ schema_validation_findings <- function(errors, operations) {
         if (length(by_method)) matched <- by_method
       }
       keys <- vapply(matched, `[[`, character(1), 'key')
+    } else if (nzchar(pointer)) {
+      # Shared definitions block the operations that reference them, directly
+      # or through other definitions. Unreferenced and root errors block the
+      # document.
+      references <- references %or%
+        schema_validation_references(document, operations)
+      used <- vapply(
+        references,
+        function(targets) {
+          any(pointer == targets | startsWith(pointer, paste0(targets, '/')))
+        },
+        logical(1)
+      )
+      keys <- vapply(operations[used], `[[`, character(1), 'key')
     }
-    # ponytail: shared or unlocated errors block the document; reverse-reference
-    # attribution can narrow shared-component errors when needed.
     findings[[length(findings) + 1L]] <- list(
       level = 'error',
       message = paste0('#', pointer, ' ', error$message),
@@ -268,7 +314,7 @@ validate_schema <- function(file) {
     sprintf('validate_document("%s", document)', substr(version, 1L, 3L)),
     simplifyVector = FALSE
   )
-  report$findings <- schema_validation_findings(errors, operations)
+  report$findings <- schema_validation_findings(errors, operations, document)
   if (length(report$findings)) {
     result(
       'invalid',
