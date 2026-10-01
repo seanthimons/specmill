@@ -1,6 +1,46 @@
 
 
 
+## specmill 0.1.11 (2026-10-01)
+
+#### Breaking changes
+
+- validate schemas offline against official OpenAPI schemas
+  ([059d2f5](https://github.com/seanthimons/specmill/tree/059d2f5b853b969108bf0e96c6289bef158521c1))
+
+#### New features
+
+- attribute shared definition errors to the operations that reference
+  them
+  ([2462a00](https://github.com/seanthimons/specmill/tree/2462a00d93fcc4779d29b01a27742c8a43a8cea8))
+
+#### Bug fixes
+
+- report only the selected oneOf branch for Swagger 2.0 and OpenAPI 3.0
+  ([6e9f26f](https://github.com/seanthimons/specmill/tree/6e9f26fb06e2e767a282453eaed876a807c55cbf))
+- report Swagger 2.0 parameter errors for their declared location only
+  ([82837dd](https://github.com/seanthimons/specmill/tree/82837dd18ef11c33a14d5df4d21e1578fd751fc7))
+
+#### Build
+
+- import jsonvalidate to satisfy the dependency check
+  ([6594dab](https://github.com/seanthimons/specmill/tree/6594dab37fd61f848e1bb0f695eac0b8e693e1b0))
+
+#### Docs
+
+- describe local schema validation
+  ([0958a83](https://github.com/seanthimons/specmill/tree/0958a8307dd972412f01cac279608f0786f569cc))
+
+#### Other changes
+
+- release v0.1.11 \[skip ci\]
+  ([b2069f2](https://github.com/seanthimons/specmill/tree/b2069f2e600c8ba881dfe24ae1f1d5cbbfbbfba2))
+- remove hosted validator audit scripts
+  ([4b0a1a7](https://github.com/seanthimons/specmill/tree/4b0a1a720414beafc12f7dfe9e7c3703caeaaeb9))
+
+Full set of changes:
+[`v0.1.11...v0.1.11`](https://github.com/seanthimons/specmill/compare/v0.1.11...v0.1.11)
+
 ## specmill 0.1.10 (2026-09-30)
 
 #### New features
@@ -30,7 +70,7 @@
 #### Other changes
 
 - release v0.1.10 \[skip ci\]
-  ([032d046](https://github.com/seanthimons/specmill/tree/032d0460824ee19cd4469cf64f7284445c263433))
+  ([e293b8d](https://github.com/seanthimons/specmill/tree/e293b8d8f28410ccee20959e5c918907ce61a592))
 
 Full set of changes:
 [`v0.1.9...v0.1.10`](https://github.com/seanthimons/specmill/compare/v0.1.9...v0.1.10)
