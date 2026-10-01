@@ -2,453 +2,306 @@ schema_validation_acceptance <- function() {
   workspace <- tempfile('schema-validation-')
   dir.create(workspace)
   on.exit(unlink(workspace, recursive = TRUE), add = TRUE)
-  port_file <- file.path(workspace, 'port')
-  log_file <- file.path(workspace, 'requests')
-  server <- callr::r_bg(
-    function(port_file, log_file) {
-      port <- httpuv::randomPort()
-      http <- httpuv::startServer(
-        '127.0.0.1',
-        port,
-        list(call = function(request) {
-          response <- function(text, status = 200L, headers = list()) {
-            list(
-              status = status,
-              headers = c(list('Content-Type' = 'application/json'), headers),
-              body = text
-            )
-          }
-          if (endsWith(request$PATH_INFO, '/openapi.json')) {
-            cat('metadata\n', file = log_file, append = TRUE)
-            return(response('{"info":{"version":"2.1.9"}}'))
-          }
-          bytes <- request$rook.input$read()
-          cat(
-            request$CONTENT_TYPE,
-            digest::digest(bytes, algo = 'sha256', serialize = FALSE),
-            '\n',
-            file = log_file,
-            append = TRUE
-          )
-          document <- if (grepl('yaml', request$CONTENT_TYPE)) {
-            yaml::yaml.load(rawToChar(bytes))
-          } else {
-            jsonlite::fromJSON(rawToChar(bytes), simplifyVector = FALSE)
-          }
-          title <- document$info$title
-          legacy <- grepl(
-            'legacyJsonSchemaValidation=true',
-            request$QUERY_STRING
-          )
-          if (title == 'unavailable') {
-            return(response('{"error":"sensitive upstream body"}', 503L))
-          }
-          if (title == 'redirect') {
-            return(response(
-              '{"schemaValidationMessages":[]}',
-              302L,
-              list(Location = '/other/debug')
-            ))
-          }
-          if (title == 'timeout') {
-            Sys.sleep(1)
-          }
-          if (title == 'malformed') {
-            return(response('{}'))
-          }
-          if (title == 'bad-array') {
-            return(response('{"schemaValidationMessages":{}}'))
-          }
-          if (title == 'unknown-level') {
-            return(response(
-              '{"schemaValidationMessages":[{"level":"fatal","message":"oops"}]}'
-            ))
-          }
-          if (title == 'semantic') {
-            return(response(
-              '{"messages":["schema needs review"],"schemaValidationMessages":[]}'
-            ))
-          }
-          if (title == 'modern' && !legacy) {
-            return(response(
-              '{"schemaValidationMessages":[{"level":"error","message":"unlocated error"}]}'
-            ))
-          }
-          if (
-            title %in% c('structured', 'path', 'component', 'root') && legacy
-          ) {
-            pointer <- switch(
-              title,
-              structured = '/paths/~1a.b~0/get/parameters/0',
-              path = '/paths/~1a.b~0/parameters',
-              component = '/components/schemas/Shared',
-              root = ''
-            )
-            return(response(jsonlite::toJSON(
-              list(
-                schemaValidationMessages = list(list(
-                  level = 'error',
-                  message = 'invalid declaration',
-                  instance = list(pointer = pointer)
-                ))
-              ),
-              auto_unbox = TRUE
-            )))
-          }
-          response('{"schemaValidationMessages":[]}')
-        })
-      )
-      on.exit(http$stop(), add = TRUE)
-      writeLines(as.character(port), port_file)
-      repeat {
-        httpuv::service(50)
-      }
-    },
-    list(port_file, log_file),
-    supervise = TRUE
-  )
-  on.exit(server$kill(), add = TRUE)
-  for (i in seq_len(200L)) {
-    if (file.exists(port_file)) {
-      break
-    }
-    if (!server$is_alive()) {
-      server$get_result()
-    }
-    Sys.sleep(0.025)
-  }
-  stopifnot(file.exists(port_file))
-  url <- paste0('http://127.0.0.1:', readLines(port_file))
-  cache <- file.path(workspace, 'cache')
   schema <- file.path(workspace, 'schema.json')
-  make_schema <- function(title, version = '3.0.3') {
+  ok <- list('200' = list(description = 'OK'))
+  make_schema <- function(defect = 'none', version = '3.0.3') {
     document <- list(
       openapi = version,
-      info = list(title = title, version = '1'),
+      info = list(title = 'api', version = '1'),
       paths = list(
         '/a.b~' = list(
-          get = list(
-            operationId = 'fetch',
-            responses = list('200' = list(description = 'OK'))
-          ),
-          post = list(
-            operationId = 'create',
-            responses = list('200' = list(description = 'OK'))
-          )
+          get = list(operationId = 'fetch', responses = ok),
+          post = list(operationId = 'create', responses = ok)
         ),
-        '/safe' = list(
-          get = list(
-            operationId = 'safe',
-            responses = list('200' = list(description = 'OK'))
-          )
-        )
+        '/safe' = list(get = list(operationId = 'safe', responses = ok))
       )
     )
+    if (defect == 'operation') {
+      document$paths[['/a.b~']]$get$parameters <- list(list(name = 'q'))
+    }
+    if (defect == 'path') {
+      document$paths[['/a.b~']]$parameters <- list(list(name = 'q'))
+    }
+    if (defect == 'component') {
+      document$components <- list(schemas = list(Shared = list(type = 5L)))
+    }
+    if (defect == 'root') {
+      document$info <- NULL
+    }
+    if (defect == 'schema_object') {
+      document$components <- list(
+        schemas = list(Shared = list(type = 'strng'))
+      )
+    }
+    if (defect == 'referenced') {
+      # GET uses Wrapper, whose property chains to the invalid Shared schema.
+      section <- if (version == '2.0') {
+        '#/definitions/'
+      } else {
+        '#/components/schemas/'
+      }
+      schemas <- list(
+        Wrapper = list(
+          type = 'object',
+          properties = list(item = list('$ref' = paste0(section, 'Shared')))
+        ),
+        Shared = list(type = 5L)
+      )
+      body <- list(schema = list('$ref' = paste0(section, 'Wrapper')))
+      if (version == '2.0') {
+        document$definitions <- schemas
+        document$paths[['/a.b~']]$get$responses[['200']]$schema <- body$schema
+      } else {
+        document$components <- list(schemas = schemas)
+        document$paths[['/a.b~']]$get$responses[['200']]$content <- list(
+          'application/json' = body
+        )
+      }
+    }
+    if (version == '2.0') {
+      document$swagger <- document$openapi
+      document$openapi <- NULL
+    }
     jsonlite::write_json(document, schema, auto_unbox = TRUE, pretty = TRUE)
     invisible(document)
   }
-  validate <- function(...) specmill::validate_schema(schema, url, cache, ...)
-  requests <- function() {
-    if (file.exists(log_file)) length(readLines(log_file)) else 0L
-  }
+  validate <- function() specmill::validate_schema(schema)
   error <- function(expr) {
     result <- tryCatch(force(expr), error = identity)
     stopifnot(inherits(result, 'error'))
     result
   }
-  make_schema('passed')
-  first <- validate()
-  stopifnot(
-    first$status == 'passed',
-    !first$cached,
-    requests() == 3L,
-    identical(
-      first$source_sha256,
-      digest::digest(file = schema, algo = 'sha256')
-    )
-  )
-  stopifnot(validate()$cached, requests() == 3L)
-  validate(refresh = TRUE)
-  stopifnot(requests() == 6L)
-  different <- specmill::validate_schema(schema, paste0(url, '/other'), cache)
-  stopifnot(different$status == 'passed', !different$cached, requests() == 9L)
-  cache_file <- file.path(cache, paste0(first$identity, '.json'))
-  cached <- jsonlite::read_json(cache_file)
-  cached$responses$modern <- list(
-    messages = list('cached error'),
-    schemaValidationMessages = list()
-  )
-  cached$status <- 'passed'
-  jsonlite::write_json(cached, cache_file, auto_unbox = TRUE, null = 'null')
-  stopifnot(validate()$status == 'invalid', requests() == 9L)
-  writeLines('{', cache_file)
-  stopifnot(validate()$status == 'passed', requests() == 12L)
-  make_schema('semantic')
-  semantic <- validate()
-  stopifnot(
-    semantic$status == 'invalid',
-    semantic$findings[[1L]]$scope == 'document'
-  )
-  make_schema('structured')
-  structured <- validate()
-  stopifnot(
-    structured$status == 'invalid',
-    identical(structured$findings[[1L]]$keys, list('GET /a.b~'))
-  )
-  make_schema('root')
-  stopifnot(validate()$findings[[1L]]$scope == 'document')
-  make_schema('passed', '3.1.0')
-  stopifnot(validate()$status == 'unsupported')
-  make_schema('passed', '2.0')
-  document <- jsonlite::read_json(schema)
-  document$swagger <- document$openapi
-  document$openapi <- NULL
-  jsonlite::write_json(document, schema, auto_unbox = TRUE)
-  swagger <- validate()
-  stopifnot(
-    swagger$status == 'passed',
-    identical(names(swagger$responses), 'modern')
-  )
-  for (title in c(
-    'unavailable',
-    'malformed',
-    'bad-array',
-    'unknown-level',
-    'redirect'
-  )) {
-    make_schema(title)
-    count <- requests()
-    failed <- validate()
-    stopifnot(
-      failed$status == 'unverified',
-      !grepl('sensitive', failed$reason),
-      !file.exists(file.path(cache, paste0(failed$identity, '.json')))
-    )
-    validate()
-    stopifnot(requests() > count)
+  keys <- function(report) {
+    unlist(lapply(report$findings, `[[`, 'keys'), use.names = FALSE)
   }
-  make_schema('timeout')
-  stopifnot(validate(timeout = 0.1)$status == 'unverified')
-  before <- requests()
-  writeLines('{', schema)
-  stopifnot(validate()$status == 'invalid', requests() == before)
-  document <- make_schema('passed')
+  scopes <- function(report) {
+    vapply(report$findings, `[[`, character(1), 'scope')
+  }
+
+  for (version in c('2.0', '3.0.3', '3.1.0')) {
+    make_schema(version = version)
+    passed <- validate()
+    stopifnot(
+      passed$status == 'passed',
+      !length(passed$findings),
+      passed$schema_version == version,
+      length(passed$operations) == 3L,
+      identical(
+        passed$source_sha256,
+        digest::digest(file = schema, algo = 'sha256')
+      )
+    )
+    make_schema('operation', version)
+    operation <- validate()
+    stopifnot(
+      operation$status == 'invalid',
+      all(scopes(operation) == 'operation'),
+      identical(unique(keys(operation)), 'GET /a.b~')
+    )
+    make_schema('path', version)
+    path <- validate()
+    stopifnot(
+      path$status == 'invalid',
+      setequal(keys(path), c('GET /a.b~', 'POST /a.b~'))
+    )
+    make_schema('root', version)
+    root_report <- validate()
+    stopifnot(
+      root_report$status == 'invalid',
+      'document' %in% scopes(root_report)
+    )
+  }
+  # Swagger 2.0 parameter errors come only from the location named by `in`.
+  document <- make_schema(version = '2.0')
+  document$paths[['/safe']]$get$parameters <- list(
+    list(name = 'q', `in` = 'query', type = 'dict'),
+    list(name = 'c', `in` = 'cookie', type = 'string'),
+    list(name = 'b', `in` = 'body')
+  )
+  jsonlite::write_json(document, schema, auto_unbox = TRUE)
+  located <- vapply(validate()$findings, `[[`, character(1), 'message')
+  stopifnot(
+    length(located) == 3L,
+    any(grepl('parameters/0/type .*: string', located)),
+    any(grepl(
+      'parameters/1/in .*: body, header, formData, query, path',
+      located
+    )),
+    any(grepl("parameters/2 must have required property 'schema'", located))
+  )
+  # Keyed oneOfs report only the branch the instance selects.
+  messages <- function(document) {
+    jsonlite::write_json(document, schema, auto_unbox = TRUE)
+    vapply(validate()$findings, `[[`, character(1), 'message')
+  }
+  document$paths[['/safe']]$get$parameters <- NULL
+  document$securityDefinitions <- list(
+    k = list(type = 'apiKey', name = 'k', `in` = 'cookie'),
+    o = list(type = 'oauth2', flow = 'device', scopes = list(a = 'a'))
+  )
+  security <- messages(document)
+  stopifnot(
+    length(security) == 2L,
+    any(grepl('k/in .*: header, query$', security)),
+    any(grepl(
+      'o/flow .*: implicit, password, application, accessCode',
+      security
+    ))
+  )
+  document <- make_schema()
+  document$paths[['/safe']]$get$parameters <- list(
+    list(name = 'p', `in` = 'path', schema = list(type = 'string')),
+    list(
+      name = 'q',
+      `in` = 'query',
+      schema = list(type = 'string'),
+      example = 1L,
+      examples = list(a = list(value = 1L))
+    )
+  )
+  document$components <- list(
+    securitySchemes = list(s = list(type = 'http'))
+  )
+  oneof <- messages(document)
+  stopifnot(
+    length(oneof) == 3L,
+    any(grepl("parameters/0 must have required property 'required'", oneof)),
+    any(grepl('parameters/1 must not define both example and examples', oneof)),
+    any(grepl("s must have required property 'scheme'", oneof))
+  )
+  for (version in c('2.0', '3.0.3')) {
+    make_schema('referenced', version)
+    referenced <- validate()
+    stopifnot(
+      referenced$status == 'invalid',
+      all(scopes(referenced) == 'operation'),
+      identical(unique(keys(referenced)), 'GET /a.b~')
+    )
+  }
+  make_schema('component')
+  stopifnot(all(scopes(validate()) == 'document'))
+  stopifnot(length(validate()$findings) == 1L)
+  # OAS 3.1 Schema Objects are checked against the JSON Schema 2020-12 dialect.
+  make_schema('schema_object', '3.1.0')
+  stopifnot(validate()$status == 'invalid')
+  make_schema(version = '3.2.0')
+  stopifnot(validate()$status == 'unsupported')
+
+  document <- make_schema()
   document$components <- list(
     schemas = list(External = list('$ref' = 'sibling.json#/Value'))
   )
   jsonlite::write_json(document, schema, auto_unbox = TRUE)
-  stopifnot(validate()$status == 'unsupported', requests() == before)
-  document$components <- list(
-    schemas = list(
-      Value = list(
-        type = 'object',
-        properties = list(example = list('$ref' = 'sibling.json#/Value'))
-      )
-    )
-  )
-  jsonlite::write_json(document, schema, auto_unbox = TRUE)
-  stopifnot(validate()$status == 'unsupported', requests() == before)
-  error(specmill::validate_schema(
-    schema,
-    'https://user:password@example.org/validator'
-  ))
-  error(validate(timeout = Inf))
+  stopifnot(validate()$status == 'unsupported')
+  writeLines('{', schema)
+  stopifnot(validate()$status == 'invalid')
+  writeLines('{"openapi": "3.0.3", "openapi": "3.0.3"}', schema)
+  stopifnot(validate()$status == 'invalid')
 
-  # The transport must preserve YAML bytes, including empty maps and arrays.
+  # Empty YAML maps and arrays must reach the validator as {} and [].
   yaml_file <- file.path(workspace, 'schema.yaml')
   writeLines(
     c(
       'openapi: 3.0.3',
-      'info: {title: passed, version: "1"}',
+      'info: {title: api, version: "1"}',
       'paths: {}',
-      'x-map: {}',
-      'x-array: []'
+      'tags: []',
+      'x-map: {}'
     ),
     yaml_file
   )
-  yaml_report <- specmill::validate_schema(yaml_file, url, cache)
-  stopifnot(
-    yaml_report$status == 'passed',
-    any(grepl(
-      paste0('application/yaml ', yaml_report$source_sha256),
-      readLines(log_file),
-      fixed = TRUE
-    ))
+  stopifnot(specmill::validate_schema(yaml_file)$status == 'passed')
+  writeLines(
+    c(
+      'openapi: 3.0.3',
+      'info: {title: api, version: "1"}',
+      'paths: []'
+    ),
+    yaml_file
   )
+  stopifnot(specmill::validate_schema(yaml_file)$status == 'invalid')
 
   root <- file.path(workspace, 'client')
   dir.create(root)
   dir.create(file.path(root, 'R'))
   writeLines('helper <- function(...) NULL', file.path(root, 'R/helper.R'))
   spec <- list(files = schema, helper = 'helper', documentation = FALSE)
-  policy <- list(validator_url = url, cache_dir = cache)
-  document <- make_schema('passed')
-  document[['x-generation-check']] <- TRUE
-  jsonlite::write_json(document, schema, auto_unbox = TRUE)
-  before <- requests()
-  applied <- specmill::generate_client(
-    root,
-    spec,
-    mode = 'apply',
-    validation = policy
-  )
-  stopifnot(length(applied$operations) == 3L)
-  count <- requests()
-  specmill::generate_client(root, spec, mode = 'check', validation = policy)
-  stopifnot(count > before, requests() == count)
-  make_schema('structured')
-  hashes <- tools::md5sum(list.files(
-    root,
-    full.names = TRUE,
-    recursive = TRUE,
-    all.files = TRUE
-  ))
-  plan <- specmill::generate_client(
-    root,
-    spec,
-    mode = 'plan',
-    validation = policy
-  )
-  stopifnot(
-    length(plan$operations) == 2L,
-    any(vapply(
-      plan$diagnostics,
-      function(x) x$code == 'schema_validation_invalid',
-      logical(1)
-    )),
-    identical(
-      hashes,
-      tools::md5sum(list.files(
-        root,
-        full.names = TRUE,
-        recursive = TRUE,
-        all.files = TRUE
-      ))
-    )
-  )
-  error(specmill::generate_client(
-    root,
-    spec,
-    mode = 'apply',
-    validation = policy
-  ))
-  stopifnot(identical(
-    hashes,
+  snapshot <- function() {
     tools::md5sum(list.files(
       root,
       full.names = TRUE,
       recursive = TRUE,
       all.files = TRUE
     ))
-  ))
-  make_schema('path')
-  stopifnot(
-    length(
-      specmill::generate_client(
-        root,
-        spec,
-        mode = 'plan',
-        validation = policy
-      )$operations
-    ) ==
-      1L
-  )
-  for (title in c('component', 'modern', 'semantic')) {
-    make_schema(title)
-    plan <- specmill::generate_client(
+  }
+  plan <- function(spec, validation = TRUE) {
+    specmill::generate_client(
       root,
       spec,
       mode = 'plan',
-      validation = policy
+      validation = validation
     )
-    stopifnot(!length(plan$operations), length(plan$inventory) == 3L)
   }
-  make_schema('passed', '3.1.0')
+  make_schema()
+  applied <- specmill::generate_client(root, spec, mode = 'apply')
+  stopifnot(length(applied$operations) == 3L)
+  specmill::generate_client(root, spec, mode = 'check')
+  make_schema('operation')
+  hashes <- snapshot()
+  planned <- plan(spec)
   stopifnot(
-    !length(
-      specmill::generate_client(
-        root,
-        spec,
-        mode = 'plan',
-        validation = policy
-      )$operations
-    )
+    length(planned$operations) == 2L,
+    any(vapply(
+      planned$diagnostics,
+      function(x) x$code == 'schema_validation_invalid',
+      logical(1)
+    )),
+    identical(hashes, snapshot())
   )
-  count <- requests()
-  skipped <- specmill::generate_client(
-    root,
-    spec,
-    mode = 'plan',
-    validation = FALSE
-  )
+  error(specmill::generate_client(root, spec, mode = 'apply'))
+  stopifnot(identical(hashes, snapshot()))
+  make_schema('path')
+  stopifnot(length(plan(spec)$operations) == 1L)
+  make_schema('referenced')
+  stopifnot(length(plan(spec)$operations) == 2L)
+  for (defect in c('component', 'root')) {
+    make_schema(defect)
+    blocked <- plan(spec)
+    stopifnot(!length(blocked$operations), length(blocked$inventory) == 3L)
+  }
+  make_schema('schema_object', '3.1.0')
+  stopifnot(!length(plan(spec)$operations))
+  skipped <- plan(spec, FALSE)
   stopifnot(
     length(skipped$operations) == 3L,
-    skipped$validation[[1L]]$status == 'skipped',
-    requests() == count
+    skipped$validation[[1L]]$status == 'skipped'
   )
-  make_schema('structured')
+  error(plan(spec, list(timeout = 1)))
+
+  make_schema('operation')
   mapped <- spec
   mapped$operations <- list(
     'GET /a.b~' = list(implementation = 'existing', inputs = list())
   )
   mapped$policy <- list(names = list('GET /a.b~' = 'fetch'))
-  stopifnot(
-    !'fetch' %in%
-      names(
-        specmill::generate_client(
-          root,
-          mapped,
-          mode = 'plan',
-          validation = policy
-        )$operations
-      )
-  )
+  stopifnot(!'fetch' %in% names(plan(mapped)$operations))
   mapped$policy$include <- 'GET /safe'
   mapped$policy$routes_overrides <- list(
-    'GET /safe' = list(list(
-      key = 'GET /a.b~',
-      source = basename(schema)
-    ))
+    'GET /safe' = list(list(key = 'GET /a.b~', source = basename(schema)))
   )
-  routed <- specmill::generate_client(
-    root,
-    mapped,
-    mode = 'plan',
-    validation = policy
-  )
+  routed <- plan(mapped)
   stopifnot(!length(routed$operations), length(routed$diagnostics) > 0L)
   mapped$policy$routes_overrides <- NULL
-  selected <- specmill::generate_client(
-    root,
-    mapped,
-    mode = 'plan',
-    validation = policy
-  )
+  selected <- plan(mapped)
   stopifnot(!length(selected$diagnostics), length(selected$operations) == 1L)
-  make_schema('semantic')
-  stopifnot(
-    length(
-      specmill::generate_client(
-        root,
-        mapped,
-        mode = 'plan',
-        validation = policy
-      )$diagnostics
-    ) >
-      0L
-  )
+  make_schema('component')
+  stopifnot(length(plan(mapped)$diagnostics) > 0L)
 
   # Project configuration drives the default gate without a call-site opt-in.
-  make_schema('passed')
+  make_schema('operation')
   file.copy(schema, file.path(root, 'schema.json'))
   writeLines(
-    c(
-      'config_version: 1',
-      'services: [api.yml]',
-      'validation:',
-      paste0('  validator_url: ', url),
-      paste0('  cache_dir: ', cache)
-    ),
+    c('config_version: 1', 'services: [api.yml]'),
     file.path(root, 'specmill.yml')
   )
   writeLines(
@@ -466,48 +319,29 @@ schema_validation_acceptance <- function() {
     mode = 'plan'
   )
   stopifnot(
-    configured$validation[[1L]]$status == 'passed',
-    length(configured$operations) == 3L
+    configured$validation[[1L]]$status == 'invalid',
+    length(configured$operations) == 2L,
+    isTRUE(specmill::load_project(root)$validation)
   )
-  count <- requests()
+  writeLines(
+    c('config_version: 1', 'services: [api.yml]', 'validation: false'),
+    file.path(root, 'specmill.yml')
+  )
+  disabled <- specmill::generate_client(
+    root,
+    config = 'specmill.yml',
+    mode = 'plan'
+  )
   enabled <- specmill::generate_client(
     root,
     config = 'specmill.yml',
     mode = 'plan',
     validation = TRUE
   )
-  override <- specmill::generate_client(
-    root,
-    config = 'specmill.yml',
-    mode = 'plan',
-    validation = list(timeout = 1)
-  )
   stopifnot(
-    enabled$validation[[1L]]$validator_url == url,
-    override$validation[[1L]]$validator_url == url,
-    requests() == count
+    disabled$validation[[1L]]$status == 'skipped',
+    enabled$validation[[1L]]$status == 'invalid'
   )
-  writeLines(
-    c('config_version: 1', 'services: [api.yml]', 'validation: false'),
-    file.path(root, 'specmill.yml')
-  )
-  stopifnot(
-    specmill::generate_client(
-      root,
-      config = 'specmill.yml',
-      mode = 'plan'
-    )$validation[[1L]]$status ==
-      'skipped'
-  )
-  writeLines(
-    c(
-      'config_version: 1',
-      'services: [api.yml]',
-      'validation: {unknown: true}'
-    ),
-    file.path(root, 'specmill.yml')
-  )
-  error(specmill::load_project(root))
   writeLines(
     c(
       'config_version: 1',
@@ -516,12 +350,9 @@ schema_validation_acceptance <- function() {
     ),
     file.path(root, 'specmill.yml')
   )
-  stopifnot(identical(
-    specmill::load_project(root)$validation$cache_dir,
-    file.path(normalizePath(root, winslash = '/', mustWork = TRUE), '.cache')
-  ))
+  error(specmill::load_project(root))
   cat(
-    'Schema validation: cache, failures, coverage, exact bytes and generation gate passed.\n'
+    'Schema validation: Swagger 2.0, OpenAPI 3.0 and 3.1 findings, YAML and generation gate passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

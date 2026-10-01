@@ -1,18 +1,4 @@
-schema_validation_options <- function(legacy = FALSE) {
-  list(
-    jsonSchemaValidation = TRUE,
-    legacyJsonSchemaValidation = legacy,
-    resolve = FALSE,
-    resolveFully = FALSE,
-    validateInternalRefs = TRUE,
-    validateExternalRefs = FALSE,
-    resolveRequestBody = FALSE,
-    resolveCombinators = FALSE,
-    allowEmptyStrings = FALSE,
-    legacyYamlDeserialization = FALSE,
-    inferSchemaType = FALSE
-  )
-}
+schema_validation_state <- new.env(parent = emptyenv())
 
 schema_validation_operations <- function(document) {
   operations <- list()
@@ -42,167 +28,150 @@ schema_validation_operations <- function(document) {
   operations
 }
 
-schema_validation_findings <- function(raw, operations, version) {
-  sequence <- function(x) is.list(x) && is.null(names(x))
-  if (
-    !is.list(raw) ||
-      is.null(names(raw)) ||
-      anyDuplicated(names(raw)) ||
-      (!length(raw) && !startsWith(version, '3.1.')) ||
-      (length(raw) &&
-        !any(c('messages', 'schemaValidationMessages') %in% names(raw)))
-  ) {
-    stop('Unrecognized validator report')
-  }
-  findings <- list()
-  add <- function(message, level, pointer = NULL) {
-    keys <- character()
-    if (!is.null(pointer)) {
-      if (!is.character(pointer) || length(pointer) != 1L || is.na(pointer)) {
-        stop('Invalid instance pointer')
-      }
-      if (nzchar(pointer) && !startsWith(pointer, '/')) {
-        stop('Invalid instance pointer')
-      }
-      if (grepl('~([^01]|$)', pointer)) {
-        stop('Invalid instance pointer escape')
-      }
-      parts <- strsplit(sub('^/', '', pointer), '/', fixed = TRUE)[[1L]]
-      parts <- gsub(
-        '~0',
-        '~',
-        gsub('~1', '/', parts, fixed = TRUE),
-        fixed = TRUE
-      )
-      if (length(parts) >= 2L && identical(parts[[1L]], 'paths')) {
-        matched <- Filter(
-          function(op) identical(op$path, parts[[2L]]),
-          operations
-        )
-        if (
-          length(parts) >= 3L &&
-            parts[[3L]] %in%
-              c(
-                'get',
-                'post',
-                'put',
-                'patch',
-                'delete',
-                'head',
-                'options',
-                'trace'
-              )
-        ) {
-          matched <- Filter(
-            function(op) identical(tolower(op$method), parts[[3L]]),
-            matched
-          )
-        }
-        keys <- vapply(matched, `[[`, character(1), 'key')
-      }
+# Internal reference targets each operation reaches, following $ref chains.
+schema_validation_references <- function(document, operations) {
+  direct <- new.env(parent = emptyenv())
+  refs <- function(node) {
+    if (!is.list(node)) {
+      return(character())
     }
-    # ponytail: shared or unlocated errors block the document; reverse-reference
-    # attribution can narrow shared-component errors when needed.
-    findings[[length(findings) + 1L]] <<- list(
-      level = level,
-      message = message,
-      source_location = paste0('#', pointer %or% ''),
+    ref <- node[['$ref']]
+    own <- if (is.character(ref) && length(ref) == 1L && startsWith(ref, '#')) {
+      ref
+    }
+    unique(c(own, unlist(lapply(node, refs), use.names = FALSE)))
+  }
+  lapply(operations, function(operation) {
+    item <- document$paths[[operation$path]]
+    queue <- refs(list(item[[tolower(operation$method)]], item$parameters))
+    seen <- character()
+    while (length(queue)) {
+      ref <- queue[[1L]]
+      queue <- queue[-1L]
+      if (ref %in% seen) {
+        next
+      }
+      seen <- c(seen, ref)
+      if (is.null(direct[[ref]])) {
+        direct[[ref]] <- refs(schema_reference_pointer(document, ref, ref))
+      }
+      queue <- c(queue, setdiff(direct[[ref]], seen))
+    }
+    sub('^#', '', utils::URLdecode(seen))
+  })
+}
+
+schema_validation_findings <- function(errors, operations, document) {
+  findings <- list()
+  references <- NULL
+  for (error in errors) {
+    pointer <- error$pointer
+    parts <- strsplit(sub('^/', '', pointer), '/', fixed = TRUE)[[1L]]
+    parts <- gsub(
+      '~0',
+      '~',
+      gsub('~1', '/', parts, fixed = TRUE),
+      fixed = TRUE
+    )
+    keys <- character()
+    if (length(parts) >= 2L && identical(parts[[1L]], 'paths')) {
+      matched <- Filter(
+        function(op) identical(op$path, parts[[2L]]),
+        operations
+      )
+      if (length(parts) >= 3L) {
+        by_method <- Filter(
+          function(op) identical(tolower(op$method), parts[[3L]]),
+          matched
+        )
+        if (length(by_method)) matched <- by_method
+      }
+      keys <- vapply(matched, `[[`, character(1), 'key')
+    } else if (nzchar(pointer)) {
+      # Shared definitions block the operations that reference them, directly
+      # or through other definitions. Unreferenced and root errors block the
+      # document.
+      references <- references %or%
+        schema_validation_references(document, operations)
+      used <- vapply(
+        references,
+        function(targets) {
+          any(pointer == targets | startsWith(pointer, paste0(targets, '/')))
+        },
+        logical(1)
+      )
+      keys <- vapply(operations[used], `[[`, character(1), 'key')
+    }
+    findings[[length(findings) + 1L]] <- list(
+      level = 'error',
+      message = paste0('#', pointer, ' ', error$message),
+      source_location = paste0('#', pointer),
       scope = if (length(keys)) 'operation' else 'document',
       keys = as.list(keys)
     )
   }
-  if ('messages' %in% names(raw)) {
-    if (!sequence(raw$messages)) {
-      stop('Validator messages must be an array')
-    }
-    for (message in raw$messages) {
-      add(config_string(message, 'validator message'), 'error')
-    }
-  }
-  if ('schemaValidationMessages' %in% names(raw)) {
-    if (!sequence(raw$schemaValidationMessages)) {
-      stop('Validator schema messages must be an array')
-    }
-    for (error in raw$schemaValidationMessages) {
-      if (
-        !is.list(error) ||
-          is.null(names(error)) ||
-          !is.character(error$level) ||
-          length(error$level) != 1L ||
-          is.na(error$level) ||
-          !error$level %in% c('error', 'warning', 'info')
-      ) {
-        stop('Unknown validator error level')
-      }
-      pointer <- if ('instance' %in% names(error)) {
-        if (!is.list(error$instance) || !'pointer' %in% names(error$instance)) {
-          stop('Invalid validator instance')
-        }
-        error$instance$pointer
-      } else {
-        NULL
-      }
-      add(
-        config_string(error$message, 'validator error message'),
-        error$level,
-        pointer
-      )
-    }
-  }
   findings
 }
 
-validate_schema <- function(
-  file,
-  validator_url = 'https://validator.swagger.io/validator',
-  cache_dir = tools::R_user_dir('specmill', 'cache'),
-  timeout = 30,
-  refresh = FALSE
-) {
-  config_string(file, 'schema file')
-  file <- normalizePath(file, winslash = '/', mustWork = TRUE)
-  if (!valid_server_url(validator_url)) {
-    stop(
-      'validator_url must be an absolute HTTP(S) URL without credentials, query or fragment'
+schema_validator <- function() {
+  if (!is.null(schema_validation_state$v8)) {
+    return(schema_validation_state$v8)
+  }
+  read <- function(name) {
+    paste(
+      readLines(
+        system.file('validation', name, package = 'specmill', mustWork = TRUE),
+        encoding = 'UTF-8',
+        warn = FALSE
+      ),
+      collapse = '\n'
     )
   }
-  validator_url <- sub('/+$', '', validator_url)
-  if (
-    !is.numeric(timeout) ||
-      length(timeout) != 1L ||
-      is.na(timeout) ||
-      !is.finite(timeout) ||
-      timeout <= 0
-  ) {
-    stop('validation timeout must be finite and positive')
-  }
-  if (!is.logical(refresh) || length(refresh) != 1L || is.na(refresh)) {
-    stop('refresh must be true or false')
-  }
-  if (!is.null(cache_dir)) {
-    config_string(cache_dir, 'validation cache directory')
-  }
-  bytes <- readBin(file, 'raw', n = file.info(file)$size)
-  source_hash <- digest::digest(bytes, algo = 'sha256', serialize = FALSE)
-  version <- ''
-  operations <- list()
-  report <- list(
-    report_version = 1L,
-    source = file,
-    source_sha256 = source_hash,
-    validator_url = validator_url,
-    validator_version = NULL,
-    schema_version = version,
-    checked_at = format(Sys.time(), '%Y-%m-%dT%H:%M:%SZ', tz = 'UTC'),
-    status = 'unverified',
-    coverage = 'incomplete',
-    reason = '',
-    operations = operations,
-    findings = list(),
-    responses = list(),
-    cached = FALSE
+  # The bundled ajv mis-resolves OAS 3.1's dynamic dialect binding and rejects
+  # valid Schema Objects, so bind the default dialect statically.
+  oas31 <- gsub(
+    '"$dynamicRef": "#meta"',
+    '"$ref": "https://spec.openapis.org/oas/3.1/dialect/base"',
+    read('openapi-3.1.json'),
+    fixed = TRUE
   )
-  fail <- function(status, reason) {
+  v8 <- V8::v8()
+  # ponytail: reuses the ajv build shipped with jsonvalidate; vendor ajv if
+  # jsonvalidate stops shipping AjvSchema2020/AjvSchema4/addFormats.
+  v8$source(system.file('bundle.js', package = 'jsonvalidate', mustWork = TRUE))
+  v8$assign('swagger20', V8::JS(read('swagger-2.0.json')))
+  v8$assign('oas30', V8::JS(read('openapi-3.0.json')))
+  v8$assign('oas31', V8::JS(oas31))
+  v8$assign('dialect31', V8::JS(read('openapi-3.1-dialect.json')))
+  v8$assign('meta31', V8::JS(read('openapi-3.1-meta.json')))
+  v8$source(system.file(
+    'validation',
+    'validate.js',
+    package = 'specmill',
+    mustWork = TRUE
+  ))
+  schema_validation_state$v8 <- v8
+  v8
+}
+
+validate_schema <- function(file) {
+  config_string(file, 'schema file')
+  file <- normalizePath(file, winslash = '/', mustWork = TRUE)
+  report <- list(
+    source = file,
+    source_sha256 = digest::digest(file = file, algo = 'sha256'),
+    schema_version = '',
+    validator = paste0(
+      'jsonvalidate ',
+      utils::packageVersion('jsonvalidate'),
+      ' (ajv)'
+    ),
+    status = 'invalid',
+    reason = '',
+    operations = list(),
+    findings = list()
+  )
+  result <- function(status, reason) {
     report$status <- status
     report$reason <- reason
     report
@@ -212,10 +181,10 @@ validate_schema <- function(
     error = identity
   )
   if (inherits(document, 'error')) {
-    return(fail('invalid', 'Cannot parse the local schema document.'))
+    return(result('invalid', 'Cannot parse the local schema document.'))
   }
   if (!is.list(document) || is.null(names(document))) {
-    return(fail('invalid', 'Schema root must be an object.'))
+    return(result('invalid', 'Schema root must be an object.'))
   }
   operations <- schema_validation_operations(document)
   duplicate_keys <- function(node) {
@@ -224,7 +193,7 @@ validate_schema <- function(
         any(vapply(node, duplicate_keys, logical(1))))
   }
   if (duplicate_keys(document)) {
-    return(fail('invalid', 'Duplicate schema object keys are ambiguous.'))
+    return(result('invalid', 'Duplicate schema object keys are ambiguous.'))
   }
   report$operations <- operations
   version <- document$openapi %or% document$swagger %or% ''
@@ -234,9 +203,9 @@ validate_schema <- function(
       is.na(version) ||
       !grepl('^(2[.]0$|3[.][01][.])', version)
   ) {
-    return(fail(
+    return(result(
       'unsupported',
-      'Validator coverage is not established for this schema version.'
+      'Validation covers Swagger 2.0 and OpenAPI 3.0 and 3.1 only.'
     ))
   }
   report$schema_version <- version
@@ -258,219 +227,41 @@ validate_schema <- function(
     any(vapply(node, external_refs, logical(1)))
   }
   if (external_refs(document)) {
-    return(fail(
+    return(result(
       'unsupported',
       'Validation requires a self-contained schema; bundle external references before generation.'
     ))
   }
-  engines <- if (startsWith(version, '3.0.')) {
-    c('legacy', 'modern')
+  # Parsed maps, sequences and empty containers stay distinct, so the JSON
+  # matches the source for JSON and YAML alike.
+  json <- jsonlite::toJSON(
+    document,
+    auto_unbox = TRUE,
+    null = 'null',
+    digits = NA
+  )
+  v8 <- schema_validator()
+  v8$assign('document', V8::JS(json))
+  errors <- v8$get(
+    sprintf('validate_document("%s", document)', substr(version, 1L, 3L)),
+    simplifyVector = FALSE
+  )
+  report$findings <- schema_validation_findings(errors, operations, document)
+  if (length(report$findings)) {
+    result(
+      'invalid',
+      'The schema does not conform to its OpenAPI specification.'
+    )
   } else {
-    'modern'
+    result('passed', 'The schema conforms to its OpenAPI specification.')
   }
-  options <- stats::setNames(
-    lapply(engines, function(engine) {
-      schema_validation_options(engine == 'legacy')
-    }),
-    engines
-  )
-  report$options <- options
-  identity <- digest::digest(
-    list(
-      report_version = report$report_version,
-      source_hash = source_hash,
-      type = tolower(tools::file_ext(file)),
-      validator_url = validator_url,
-      options = options
-    ),
-    algo = 'sha256'
-  )
-  report$identity <- identity
-  cache_file <- if (!is.null(cache_dir)) {
-    file.path(cache_dir, paste0(identity, '.json'))
-  } else {
-    NULL
-  }
-  finish <- function(result) {
-    result$findings <- unlist(
-      lapply(
-        result$responses,
-        schema_validation_findings,
-        operations = operations,
-        version = version
-      ),
-      recursive = FALSE
-    )
-    result$coverage <- if (startsWith(version, '3.1.')) {
-      'incomplete'
-    } else {
-      'structural'
-    }
-    errors <- Filter(function(x) x$level == 'error', result$findings)
-    result$status <- if (length(errors)) {
-      'invalid'
-    } else if (result$coverage == 'incomplete') {
-      'unsupported'
-    } else {
-      'passed'
-    }
-    result$reason <- switch(
-      result$status,
-      invalid = 'The validator reported schema errors.',
-      unsupported = 'Swagger Validator does not provide OAS 3.1 structural coverage.',
-      'No errors reported within the supported structural coverage.'
-    )
-    result$operations <- operations
-    result$source <- file
-    result
-  }
-  if (!refresh && !is.null(cache_file) && file.exists(cache_file)) {
-    cached <- tryCatch(jsonlite::read_json(cache_file), error = function(e) {
-      NULL
-    })
-    if (
-      is.list(cached) &&
-        identical(cached$report_version, report$report_version) &&
-        identical(cached$identity, identity) &&
-        identical(cached$source_sha256, source_hash) &&
-        identical(cached$options, options) &&
-        identical(cached$validator_url, validator_url) &&
-        identical(cached$schema_version, version) &&
-        identical(names(cached$responses), engines) &&
-        is.character(cached$validator_version) &&
-        length(cached$validator_version) == 1L &&
-        !is.na(cached$validator_version) &&
-        nzchar(cached$validator_version)
-    ) {
-      cached <- tryCatch(finish(cached), error = function(e) NULL)
-      if (!is.null(cached)) {
-        if (
-          !identical(digest::digest(file = file, algo = 'sha256'), source_hash)
-        ) {
-          return(fail(
-            'unverified',
-            'The schema changed during validation; retry with the current source.'
-          ))
-        }
-        cached$cached <- TRUE
-        return(cached)
-      }
-    }
-  }
-  if (!requireNamespace('httr2', quietly = TRUE)) {
-    return(fail('unverified', 'Install httr2 to contact the schema validator.'))
-  }
-  request <- function(url) {
-    httr2::request(url) %>%
-      httr2::req_timeout(timeout) %>%
-      httr2::req_error(is_error = function(response) FALSE) %>%
-      httr2::req_options(followlocation = FALSE) %>%
-      httr2::req_headers(Accept = 'application/json')
-  }
-  result <- tryCatch(
-    {
-      metadata_response <- httr2::req_perform(request(paste0(
-        validator_url,
-        '/openapi.json'
-      )))
-      report$http_status <- httr2::resp_status(metadata_response)
-      if (httr2::resp_status(metadata_response) != 200L) {
-        stop('Unexpected validator metadata status')
-      }
-      metadata <- httr2::resp_body_json(
-        metadata_response,
-        simplifyVector = FALSE
-      )
-      report$validator_version <- config_string(
-        metadata$info$version,
-        'validator version'
-      )
-      for (engine in engines) {
-        report$http_status <- NULL
-        call <- request(paste0(validator_url, '/debug'))
-        call <- do.call(
-          httr2::req_url_query,
-          c(
-            list(call),
-            lapply(options[[engine]], function(x) if (x) 'true' else 'false')
-          )
-        )
-        response <- call %>%
-          httr2::req_body_raw(
-            bytes,
-            type = if (tolower(tools::file_ext(file)) %in% c('yaml', 'yml')) {
-              'application/yaml'
-            } else {
-              'application/json'
-            }
-          ) %>%
-          httr2::req_perform()
-        report$http_status <- httr2::resp_status(response)
-        if (httr2::resp_status(response) != 200L) {
-          stop('Unexpected validator status')
-        }
-        report$responses[[engine]] <- httr2::resp_body_json(
-          response,
-          simplifyVector = FALSE
-        )
-      }
-      finish(report)
-    },
-    error = function(e) {
-      fail(
-        'unverified',
-        if (!is.null(report$http_status) && report$http_status != 200L) {
-          paste0(
-            'Validator returned HTTP ',
-            report$http_status,
-            '; the schema remains unverified.'
-          )
-        } else {
-          'Validator request failed or returned an unrecognized report; the schema remains unverified.'
-        }
-      )
-    }
-  )
-  if (!identical(digest::digest(file = file, algo = 'sha256'), source_hash)) {
-    return(fail(
-      'unverified',
-      'The schema changed during validation; retry with the current source.'
-    ))
-  }
-  if (result$status != 'unverified' && !is.null(cache_file)) {
-    dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE, mode = '0700')
-    temporary <- tempfile('validation-', tmpdir = cache_dir)
-    on.exit(unlink(temporary), add = TRUE)
-    jsonlite::write_json(
-      result,
-      temporary,
-      pretty = TRUE,
-      auto_unbox = TRUE,
-      null = 'null'
-    )
-    Sys.chmod(temporary, '0600')
-    if (!file.rename(temporary, cache_file)) {
-      stop('Cannot save schema validation report')
-    }
-  }
-  result
 }
 
-schema_validation_policy <- function(policy, root) {
-  if (is.logical(policy) && length(policy) == 1L && !is.na(policy)) {
-    return(if (policy) list() else FALSE)
-  }
-  config_fields(
-    policy,
-    c('validator_url', 'cache_dir', 'timeout'),
-    'validation'
-  )
-  if (
-    !is.null(policy$cache_dir) && !grepl('^(/|[A-Za-z]:)', policy$cache_dir)
-  ) {
-    policy$cache_dir <- project_path(
-      root,
-      config_string(policy$cache_dir, 'validation cache_dir')
+schema_validation_policy <- function(policy) {
+  if (!is.logical(policy) || length(policy) != 1L || is.na(policy)) {
+    stop(
+      'validation must be true or false; validator_url, cache_dir and timeout ',
+      'were removed because validation now runs locally'
     )
   }
   policy
@@ -485,7 +276,7 @@ validated_service_operations <- function(service, reports) {
   )]
   blocked <- Filter(
     function(report) {
-      report$status %in% c('invalid', 'unverified', 'unsupported')
+      report$status %in% c('invalid', 'unsupported')
     },
     source_reports
   )
@@ -635,7 +426,7 @@ validated_service_operations <- function(service, reports) {
       } else {
         '#'
       },
-      guidance = 'Correct the source or restore validator coverage before generation; request mappings cannot bypass schema validation.'
+      guidance = 'Correct or bundle the source before generation; request mappings cannot bypass schema validation.'
     )
     for (operation in report$operations) {
       if (!operation$key %in% keys) {

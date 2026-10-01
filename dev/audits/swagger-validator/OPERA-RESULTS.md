@@ -64,16 +64,9 @@ no findings on this unmodified OPERA schema.
 
 ## Repeat
 
-Run from the Specmill checkout:
-
-```sh
-python3 dev/check_epa_validator.py
-```
-
-The [stdlib-only check](../../check_epa_validator.py) refreshes the EPA snapshot,
-runs the six baseline profiles, and asserts that both negative controls are
-rejected. It completed successfully. New downloads are fingerprinted so future
-results can be distinguished from this snapshot.
+The check script was removed once `validate_schema()` stopped calling the hosted
+validator; it remains in git history. Use `specmill::validate_schema()` for the
+current local check.
 
 For a narrow offline workspace-parser comparison:
 
