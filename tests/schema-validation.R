@@ -86,8 +86,27 @@ schema_validation_acceptance <- function() {
       'document' %in% scopes(root_report)
     )
   }
+  # Swagger 2.0 parameter errors come only from the location named by `in`.
+  document <- make_schema(version = '2.0')
+  document$paths[['/safe']]$get$parameters <- list(
+    list(name = 'q', `in` = 'query', type = 'dict'),
+    list(name = 'c', `in` = 'cookie', type = 'string'),
+    list(name = 'b', `in` = 'body')
+  )
+  jsonlite::write_json(document, schema, auto_unbox = TRUE)
+  located <- vapply(validate()$findings, `[[`, character(1), 'message')
+  stopifnot(
+    length(located) == 3L,
+    any(grepl('parameters/0/type .*: string', located)),
+    any(grepl(
+      'parameters/1/in .*: body, header, formData, query, path',
+      located
+    )),
+    any(grepl("parameters/2 must have required property 'schema'", located))
+  )
   make_schema('component')
   stopifnot(all(scopes(validate()) == 'document'))
+  stopifnot(length(validate()$findings) == 1L)
   # OAS 3.1 Schema Objects are checked against the JSON Schema 2020-12 dialect.
   make_schema('schema_object', '3.1.0')
   stopifnot(validate()$status == 'invalid')
