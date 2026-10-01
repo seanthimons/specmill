@@ -139,84 +139,16 @@ schema_validator <- function() {
   # ponytail: reuses the ajv build shipped with jsonvalidate; vendor ajv if
   # jsonvalidate stops shipping AjvSchema2020/AjvSchema4/addFormats.
   v8$source(system.file('bundle.js', package = 'jsonvalidate', mustWork = TRUE))
-  v8$eval(sprintf(
-    paste(
-      'var options = {allErrors: true, strict: false, logger: false};',
-      'var ajv04 = new AjvSchema4(options); addFormats(ajv04);',
-      'var ajv2020 = new AjvSchema2020(options); addFormats(ajv2020);',
-      'ajv2020.addFormat("media-range", true);',
-      'ajv2020.addSchema(%s); ajv2020.addSchema(%s);',
-      'var validators = {"2.0": ajv04.compile(%s), "3.0": ajv04.compile(%s),',
-      '  "3.1": ajv2020.compile(%s)};',
-      # Swagger 2.0 parameters are a oneOf over locations, so a bad parameter
-      # reports every location's errors. Recheck it against the location named
-      # by its own `in` instead.
-      'var swagger = "http://swagger.io/v2/schema.json#/definitions/";',
-      'var locations = {body: {$ref: swagger + "bodyParameter"}};',
-      '["header", "formData", "query", "path"].forEach(function (name) {',
-      '  locations[name] = {type: "object", required: ["name", "in", "type"],',
-      '    allOf: [{$ref: swagger + name + "ParameterSubSchema"}]}; });',
-      'Object.keys(locations).forEach(function (name) {',
-      '  locations[name] = ajv04.compile(locations[name]); });',
-      'function resolve(document, pointer) {',
-      '  return pointer.split("/").slice(1).reduce(function (node, part) {',
-      '    return node == null ? node :',
-      '      node[part.replace(/~1/g, "/").replace(/~0/g, "~")]; }, document); }',
-      'function parameter_errors(errors, document) {',
-      '  var parameters = {};',
-      '  errors.forEach(function (a) {',
-      '    if (a.keyword === "enum" && /\\/in$/.test(a.instancePath))',
-      '      parameters[a.instancePath.slice(0, -3)] = true; });',
-      '  Object.keys(parameters).forEach(function (pointer) {',
-      '    var parameter = resolve(document, pointer);',
-      '    var check = locations[parameter && parameter["in"]];',
-      '    var replacement = [{instancePath: pointer + "/in", keyword: "enum",',
-      '      message: "must be equal to one of the allowed values",',
-      '      params: {allowedValues: Object.keys(locations)}}];',
-      '    if (check) replacement = check(parameter) ? [] :',
-      '      check.errors.map(function (a) { return Object.assign({}, a,',
-      '        {instancePath: pointer + a.instancePath}); });',
-      '    errors = errors.filter(function (a) {',
-      '      return a.instancePath !== pointer &&',
-      '        a.instancePath.indexOf(pointer + "/") !== 0;',
-      '    }).concat(replacement);',
-      '  });',
-      '  return errors;',
-      '}',
-      'function validate_document(version, document) {',
-      '  var validate = validators[version];',
-      '  if (validate(document)) return [];',
-      '  var combinators = ["oneOf", "anyOf", "if", "not", "$ref"];',
-      '  var errors = validate.errors;',
-      '  if (version === "2.0") errors = parameter_errors(errors, document);',
-      '  errors = errors.filter(function (a) {',
-      '    return combinators.indexOf(a.keyword) < 0; });',
-      # An anyOf over `type` reports both alternatives; the enum error names
-      # the allowed values, so the sibling type error adds nothing.
-      '  errors = errors.filter(function (a) { return a.keyword !== "type" ||',
-      '    !errors.some(function (b) { return b !== a && b.keyword !== "type" &&',
-      '      b.instancePath === a.instancePath; }); });',
-      # Ancestor errors only restate a deeper failure in the same subtree.
-      '  errors = errors.filter(function (a) { return !errors.some(function (b) {',
-      '    return b.instancePath.indexOf(a.instancePath + "/") === 0; }); });',
-      '  var seen = {}, out = [];',
-      '  errors.forEach(function (a) {',
-      '    var detail = a.params.allowedValues || a.params.additionalProperty ||',
-      '      a.params.unevaluatedProperty;',
-      '    var message = a.message + (detail === undefined ? "" :',
-      '      ": " + [].concat(detail).join(", "));',
-      '    var key = a.instancePath + " " + message;',
-      '    if (!seen[key]) { seen[key] = true;',
-      '      out.push({pointer: a.instancePath, message: message}); }',
-      '  });',
-      '  return out;',
-      '}'
-    ),
-    read('openapi-3.1-dialect.json'),
-    read('openapi-3.1-meta.json'),
-    read('swagger-2.0.json'),
-    read('openapi-3.0.json'),
-    oas31
+  v8$assign('swagger20', V8::JS(read('swagger-2.0.json')))
+  v8$assign('oas30', V8::JS(read('openapi-3.0.json')))
+  v8$assign('oas31', V8::JS(oas31))
+  v8$assign('dialect31', V8::JS(read('openapi-3.1-dialect.json')))
+  v8$assign('meta31', V8::JS(read('openapi-3.1-meta.json')))
+  v8$source(system.file(
+    'validation',
+    'validate.js',
+    package = 'specmill',
+    mustWork = TRUE
   ))
   schema_validation_state$v8 <- v8
   v8
