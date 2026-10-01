@@ -708,6 +708,6 @@ load_project <- function(
     package = package,
     formatter = project$formatter,
     authentication = project$authentication,
-    validation = schema_validation_policy(project$validation %or% TRUE, root)
+    validation = schema_validation_policy(project$validation %or% TRUE)
   )
 }
