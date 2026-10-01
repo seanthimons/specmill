@@ -33,6 +33,31 @@ schema_validation_acceptance <- function() {
         schemas = list(Shared = list(type = 'strng'))
       )
     }
+    if (defect == 'referenced') {
+      # GET uses Wrapper, whose property chains to the invalid Shared schema.
+      section <- if (version == '2.0') {
+        '#/definitions/'
+      } else {
+        '#/components/schemas/'
+      }
+      schemas <- list(
+        Wrapper = list(
+          type = 'object',
+          properties = list(item = list('$ref' = paste0(section, 'Shared')))
+        ),
+        Shared = list(type = 5L)
+      )
+      body <- list(schema = list('$ref' = paste0(section, 'Wrapper')))
+      if (version == '2.0') {
+        document$definitions <- schemas
+        document$paths[['/a.b~']]$get$responses[['200']]$schema <- body$schema
+      } else {
+        document$components <- list(schemas = schemas)
+        document$paths[['/a.b~']]$get$responses[['200']]$content <- list(
+          'application/json' = body
+        )
+      }
+    }
     if (version == '2.0') {
       document$swagger <- document$openapi
       document$openapi <- NULL
@@ -104,6 +129,15 @@ schema_validation_acceptance <- function() {
     )),
     any(grepl("parameters/2 must have required property 'schema'", located))
   )
+  for (version in c('2.0', '3.0.3')) {
+    make_schema('referenced', version)
+    referenced <- validate()
+    stopifnot(
+      referenced$status == 'invalid',
+      all(scopes(referenced) == 'operation'),
+      identical(unique(keys(referenced)), 'GET /a.b~')
+    )
+  }
   make_schema('component')
   stopifnot(all(scopes(validate()) == 'document'))
   stopifnot(length(validate()$findings) == 1L)
@@ -188,6 +222,8 @@ schema_validation_acceptance <- function() {
   stopifnot(identical(hashes, snapshot()))
   make_schema('path')
   stopifnot(length(plan(spec)$operations) == 1L)
+  make_schema('referenced')
+  stopifnot(length(plan(spec)$operations) == 2L)
   for (defect in c('component', 'root')) {
     make_schema(defect)
     blocked <- plan(spec)
