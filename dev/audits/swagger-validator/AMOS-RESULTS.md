@@ -71,19 +71,9 @@ change production generation behavior.
 
 ## Repeat the check
 
-Run from the Specmill checkout. This uploads the saved public AMOS definition to
-both validator backends, checks that each reports a failure, runs the workspace
-parser with unique names to avoid unrelated function-name collisions, and
-refreshes the three evidence files. It needs the existing development packages
-`pkgload` and `httr2`.
-
-```sh
-Rscript dev/check_amos_validator.R dev/audits/swagger-validator/amos-production-schema.json
-```
-
-The [check](../../check_amos_validator.R) completed successfully. Its assertions
-require AMOS to fail validation, but allow error counts to change if the hosted
-validator improves.
+The check script was removed once `validate_schema()` stopped calling the hosted
+validator; it remains in git history. Use `specmill::validate_schema()` for the
+current local check.
 
 ## Do the other toggles help?
 
