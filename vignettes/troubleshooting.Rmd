@@ -15,11 +15,10 @@ Swagger 2.0 format. It supports a subset of each standard; parsing is not full
 OpenAPI validation. These guides follow the current development version, so
 check your toolkit pin if an older release rejects a documented feature.
 
-Generation additionally requires a cached or fresh Swagger Validator report.
-OAS 3.1 and references outside the document currently lack complete coverage and
-block generation by default. Inspect `plan$validation` for schema errors,
-unavailable validation, or unsupported coverage; configure a private validator
-for private definitions. See [validation policy](configuration.html#schema-validation).
+Generation additionally requires each schema to pass local validation against
+its official OpenAPI JSON Schema. References outside the document lack coverage
+and block generation by default. Inspect `plan$validation` for schema errors or
+unsupported coverage. See [validation policy](configuration.html#schema-validation).
 
 | Feature | Current behavior |
 |---|---|
