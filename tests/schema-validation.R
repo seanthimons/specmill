@@ -129,6 +129,46 @@ schema_validation_acceptance <- function() {
     )),
     any(grepl("parameters/2 must have required property 'schema'", located))
   )
+  # Keyed oneOfs report only the branch the instance selects.
+  messages <- function(document) {
+    jsonlite::write_json(document, schema, auto_unbox = TRUE)
+    vapply(validate()$findings, `[[`, character(1), 'message')
+  }
+  document$paths[['/safe']]$get$parameters <- NULL
+  document$securityDefinitions <- list(
+    k = list(type = 'apiKey', name = 'k', `in` = 'cookie'),
+    o = list(type = 'oauth2', flow = 'device', scopes = list(a = 'a'))
+  )
+  security <- messages(document)
+  stopifnot(
+    length(security) == 2L,
+    any(grepl('k/in .*: header, query$', security)),
+    any(grepl(
+      'o/flow .*: implicit, password, application, accessCode',
+      security
+    ))
+  )
+  document <- make_schema()
+  document$paths[['/safe']]$get$parameters <- list(
+    list(name = 'p', `in` = 'path', schema = list(type = 'string')),
+    list(
+      name = 'q',
+      `in` = 'query',
+      schema = list(type = 'string'),
+      example = 1L,
+      examples = list(a = list(value = 1L))
+    )
+  )
+  document$components <- list(
+    securitySchemes = list(s = list(type = 'http'))
+  )
+  oneof <- messages(document)
+  stopifnot(
+    length(oneof) == 3L,
+    any(grepl("parameters/0 must have required property 'required'", oneof)),
+    any(grepl('parameters/1 must not define both example and examples', oneof)),
+    any(grepl("s must have required property 'scheme'", oneof))
+  )
   for (version in c('2.0', '3.0.3')) {
     make_schema('referenced', version)
     referenced <- validate()

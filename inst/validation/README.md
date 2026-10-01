@@ -23,3 +23,12 @@ dialect. This applies the default dialect only; documents declaring another
 
 To update, download the sources above, compare hashes, and rerun
 `Rscript tests/schema-validation.R`.
+
+## Error reporting
+
+`validate.js` is specmill code, not upstream. For Swagger 2.0 and OAS 3.0 it
+compiles a second, diagnostic copy of the schema in which each `oneOf` keyed
+by `$ref`, `in`, `type` or a similar enum property becomes an `allOf` of
+guarded branches, so a failing instance reports only the branch it selects.
+The unmodified schema still decides validity; the copy only words the
+findings. OAS 3.1 already selects branches with `if`/`then`.
