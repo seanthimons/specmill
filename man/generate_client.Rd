@@ -20,7 +20,7 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
 \item{callbacks}{Explicit environment containing named development callbacks.}
 \item{adopt}{Reviewed legacy files as a named list of relative paths and SHA-256 hashes of UTF-8/LF text without a final newline. Changed hashes fail; lifecycle and mixed-file protection still apply.}
 \item{artifacts}{Output kinds to reconcile. Defaults to all; thin wrapper/test commands can select their own artifacts while retaining one generation contract.}
-\item{validation}{Validation policy. By default, use project YAML or legacy specification \code{validation}, falling back to required validation with the public Swagger Validator. \code{TRUE} enables the configured validator. A list overrides individual \code{validator_url}, \code{cache_dir}, and \code{timeout} settings; project-relative cache directories are resolved against \code{root}. \code{FALSE} explicitly skips validation and is recorded in the result.}
+\item{validation}{\code{TRUE} or \code{FALSE}. By default, use project YAML or legacy specification \code{validation}, falling back to required validation. \code{FALSE} explicitly skips validation and is recorded in the result.}
 }
 \value{A list of class \code{specmill_generation} with files (file/path/action records), configured operations, excluded operations with reasons, drift, diagnostics, server_diagnostics, mapping_diagnostics, retained_diagnostics, unused_hooks, inventory, retained_sources, and manifest (toolkit version, input hashes, policy versions). Printing separates selected and excluded operations and reports removals and protections. Operations outside a service's include list remain in inventory but are omitted from the excluded summary to avoid repeating other services' endpoints. File actions include write, unchanged, protected, remove, and retained. Check errors on actions other than unchanged or retained.}
 \details{Supply exactly one of spec and config. Check is the default and errors when reconciled output is stale or protected; plan returns file actions without modifying the client; apply reconciles verified owned output. Both read-only modes stage candidate output. Development callbacks must be deterministic and are resolved only in callbacks. Unsupported operations remain diagnostics and never authorize removal. Check success does not establish complete schema support or passing tests. Adoption accepts only individually reviewed current hashes and does not override lifecycle or mixed-file protection.}
@@ -37,18 +37,16 @@ uses the same filenames. Unicode in executable schema literals uses R escapes
 that preserve the original runtime strings; documentation text remains UTF-8.
 }
 \section{Required schema validation}{
-New or changed schemas are checked with \code{\link{validate_schema}} before
-operation translation. Matching cached reports avoid further network calls.
+Every source schema is checked with \code{\link{validate_schema}} before
+operation translation. Validation runs locally and uploads nothing.
 Plans expose reports in \code{validation} and blockers in existing diagnostics;
 apply and check refuse validation blockers. Located errors block affected
-operations. Shared or unlocated errors, service failures, and unsupported coverage
+operations. Shared or unlocated errors and unsupported coverage
 block the source document, even when its operations were policy-excluded.
 Explicit request mappings and retained implementations cannot bypass this gate.
 
-Plans and checks do not write client output, but uncached validation may upload
-schema bytes and write the configured report cache. The default cache lives
-outside the client. Use a self-hosted validator for private schemas. OAS 3.1 and
-external references currently have unsupported coverage. An explicit
+Plans and checks do not write client output. Schemas with external references
+must be bundled first. An explicit
 \code{validation = FALSE} is an auditable escape for reviewed legacy workflows,
 not a declaration that the schema is compliant.
 }

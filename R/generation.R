@@ -550,11 +550,7 @@ generate_client <- function(
     formatter <- spec$formatter
   }
   configured_validation <- if (!is.null(config)) project$validation else spec$validation %or% TRUE
-  if (isTRUE(validation) && is.list(configured_validation)) validation <- configured_validation
-  if (is.list(validation) && is.list(configured_validation)) {
-    validation <- merge_settings(configured_validation, validation)
-  }
-  validation <- schema_validation_policy(validation %or% configured_validation, root)
+  validation <- schema_validation_policy(validation %or% configured_validation)
   schema_files <- unique(normalizePath(
     unlist(lapply(services, `[[`, 'files'), use.names = FALSE),
     winslash = '/', mustWork = TRUE
@@ -613,12 +609,12 @@ generate_client <- function(
   callbacks_before <- callback_hash()
   drift <- list()
   validation_reports <- stats::setNames(lapply(schema_files, function(file) {
-    if (identical(validation, FALSE)) {
+    if (!validation) {
       return(list(source = file, status = 'skipped', reason = 'Schema validation was explicitly disabled.'))
     }
-    do.call(validate_schema, c(list(file = file), validation))
+    validate_schema(file)
   }), schema_files)
-  parsed <- if (identical(validation, FALSE)) {
+  parsed <- if (!validation) {
     lapply(services, read_service_operations)
   } else {
     lapply(services, validated_service_operations, reports = validation_reports)
@@ -1328,8 +1324,7 @@ print.specmill_generation <- function(x, ...) {
   if (length(x$validation)) {
     cat('Schema validation\n')
     for (report in x$validation) {
-      cat('  ', basename(report$source), ': ', report$status,
-          if (isTRUE(report$cached)) ' (cached)' else '', '\n', sep = '')
+      cat('  ', basename(report$source), ': ', report$status, '\n', sep = '')
     }
   }
   cat('Selected operations (', length(x$operations), ')\n', sep = '')
