@@ -67,11 +67,10 @@ specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 testthat::test_local(root, filter = 'contract-', stop_on_failure = TRUE)
 ```
 
-Generation validates new or changed schema bytes through the configured Swagger
-Validator before translating operations. Unchanged inputs reuse cached reports.
-Invalid documents, unavailable validation, and unsupported coverage block apply
-and check; inspect `plan$validation` for the full findings. OpenAPI 3.1 and
-references outside the document currently lack complete validator coverage.
+Generation validates each schema locally against its official OpenAPI JSON
+Schema before translating operations. Invalid documents and unsupported coverage
+block apply and check; inspect `plan$validation` for the full findings.
+References outside the document must be bundled first.
 
 Supply the same explicit `callbacks` environment on each call when your policy
 uses callbacks. Run the relevant manual/helper tests too. Reapplying unchanged

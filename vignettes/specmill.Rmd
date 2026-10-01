@@ -148,10 +148,9 @@ select methods, exclude paths, name functions, and improve their help and exampl
 
 ## 5. Preview changes before applying them
 
-Generation normally validates schema bytes through the configured Swagger
-Validator and reuses cached reports. This offline tutorial explicitly bypasses
-that check for its bundled fixture; use the default gate for real schemas and
-configure a private validator before submitting private schemas.
+Generation normally validates each schema locally against its official
+OpenAPI JSON Schema. This tutorial explicitly bypasses that check for its
+bundled fixture; use the default gate for real schemas.
 
 ```{r plan}
 plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan', validation = FALSE)

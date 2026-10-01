@@ -58,23 +58,16 @@ on the original download directory. JSON and YAML share these rules.
 
 ### Schema validation
 
-Generation requires validation by default. New or changed schemas are sent to
-`https://validator.swagger.io/validator`; unchanged bytes reuse cached reports.
-For private schemas, configure your own Swagger Validator before generation:
+Generation requires validation by default. Each schema is checked locally
+against the official Swagger 2.0, OpenAPI 3.0 or OpenAPI 3.1 JSON Schema;
+nothing is uploaded. `validate_schema()` returns a standalone report. Explicit
+`validation: false` bypasses the gate and should be a reviewed project decision:
 
 ```yaml
-validation:
-  validator_url: https://validator.example.org/validator
-  cache_dir: .specmill/validation
-  timeout: 30
+validation: false
 ```
 
-Relative cache paths resolve against the client root. The default cache uses
-R's user cache directory. `validate_schema()` returns a standalone report;
-`refresh = TRUE` rechecks unchanged bytes after a validator upgrade. Explicit
-`validation: false` bypasses the gate and should be a reviewed project decision.
-OpenAPI 3.1 and references outside the document currently return unsupported
-coverage. Request mappings and retained implementations cannot bypass the gate.
+References outside the document return unsupported coverage; bundle them first. Request mappings and retained implementations cannot bypass the gate.
 
 ### Review multiple APIs once
 
