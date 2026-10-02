@@ -64,6 +64,10 @@ nested_body_acceptance <- function() {
   parsed <- read()
   stopifnot(!length(parsed$diagnostics))
   runtime <- new.env(parent = baseenv())
+  eval(
+    parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+    runtime
+  )
   calls <- 0L
   runtime$request <- function(...) {
     calls <<- calls + 1L

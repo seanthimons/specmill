@@ -1027,6 +1027,14 @@ generate_client <- function(
     )
     owners[['R/api_auth.R']] <- 'specmill authentication'
   }
+  wrapper_sources <- desired[grepl('^R/', names(desired))]
+  if (any(grepl('.api_validation$', wrapper_sources, fixed = TRUE))) {
+    if ('R/api_validation.R' %in% names(desired)) {
+      stop('Validation helper file conflicts with wrappers')
+    }
+    desired[['R/api_validation.R']] <- validation_runtime()
+    owners[['R/api_validation.R']] <- 'specmill validation'
+  }
   attr(desired, 'operations') <- owners
   attr(desired, 'routes') <- stats::setNames(
     lapply(

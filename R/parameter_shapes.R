@@ -170,9 +170,7 @@ parameter_checks <- function(params, formal_names) {
     return(character())
   }
   paste0(
-    '  base::evalq(',
-    r_literal(parameter_values),
-    ', envir = base::baseenv())(',
+    '  .api_validation$parameter_values(',
     'base::list(',
     paste(
       vapply(
@@ -189,9 +187,7 @@ parameter_checks <- function(params, formal_names) {
       lapply(params[selected], `[[`, 'schema'),
       formal_names[selected]
     )),
-    ', base::evalq(',
-    r_literal(body_value),
-    ', envir = base::baseenv()), ',
+    ', .api_validation$body_value, ',
     r_literal(setNames(
       vapply(params[selected], `[[`, character(1), 'location'),
       formal_names[selected]
