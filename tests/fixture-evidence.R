@@ -48,6 +48,10 @@ fixture_evidence_acceptance <- function() {
     inputs(parsed, list(sample = list(range = '3:4')))$range == '3:4'
   )
   runtime <- new.env(parent = baseenv())
+  eval(
+    parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+    runtime
+  )
   runtime$request <- function(...) list(...)
   eval(
     parse(

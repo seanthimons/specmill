@@ -32,6 +32,8 @@ adoption_acceptance <- function() {
   verify <- function(edit = identity) {
     root <- setup()
     writeLines(edit(text), file.path(root, 'R/items.R'))
+    # The hand-written client already carries the shared validators the wrapper calls.
+    file.copy(file.path(scratch, 'R/api_validation.R'), file.path(root, 'R'))
     before <- tools::md5sum(list.files(root, recursive = TRUE, full.names = TRUE))
     result <- specmill::verify_adoption(root)
     stopifnot(identical(tools::md5sum(list.files(root, recursive = TRUE, full.names = TRUE)), before))

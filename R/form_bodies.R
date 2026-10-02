@@ -192,16 +192,11 @@ form_value <- function(value, schema, validate, allow_empty = TRUE) {
 form_checks <- function(schema, value, media) {
   paste0(
     value,
-    ' <- base::evalq(',
-    r_literal(form_value),
-    ', envir = base::baseenv())(',
+    ' <- .api_validation$form_value(',
     value,
     ', ',
     r_literal(schema),
-    ', base::evalq(',
-    r_literal(body_value),
-    ', envir = base::baseenv())',
-    ', ',
+    ', .api_validation$body_value, ',
     r_literal(identical(media, 'application/x-www-form-urlencoded')),
     ')'
   )
@@ -268,9 +263,7 @@ text_checks <- function(operation, value) {
   c(
     paste0(
       value,
-      ' <- base::evalq(',
-      r_literal(text_value),
-      ', envir = base::baseenv())(',
+      ' <- .api_validation$text_value(',
       value,
       ', ',
       r_literal(operation$text_encoding %or% 'scalar'),

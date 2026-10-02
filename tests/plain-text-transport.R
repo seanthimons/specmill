@@ -239,6 +239,10 @@ plain_text_acceptance <- function() {
     constrained$body$enum <- list('a\nb')
     constrained$body$minLength <- 3L
     context <- new.env(parent = baseenv())
+    eval(
+      parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+      context
+    )
     context$checked_request <- function(...) list(...)
     eval(
       parse(

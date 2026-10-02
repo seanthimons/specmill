@@ -47,6 +47,10 @@ boundary_acceptance <- function() {
   duplicated$paths[['/items/{item_id}']]$get$parameters[[2L]]$name <- 'item_id'
   duplicate_op <- read(duplicated)$operations$get_item
   context <- new.env(parent = baseenv())
+  eval(
+    parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+    context
+  )
   context$request_helper <- function(...) list(...)
   eval(
     parse(

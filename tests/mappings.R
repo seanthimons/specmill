@@ -66,6 +66,10 @@ mappings_acceptance <- function() {
     selected
   )
   env <- new.env(parent = baseenv())
+  eval(
+    parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+    env
+  )
   calls <- list()
   order <- character()
   skip <- FALSE

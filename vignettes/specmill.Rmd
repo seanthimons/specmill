@@ -221,6 +221,10 @@ serialized body, and response handling.
 
 ## 8. Install and use your client
 
+Wrappers that validate schema parameters or bodies call shared validators that
+generation writes once to `R/api_validation.R`. That file is regenerated with the
+wrappers; do not edit it. The client still needs no specmill at runtime.
+
 For schemas with API-key or HTTP bearer security, initialization also proposes
 an `authentication` map in `specmill.yml`. Generation creates `R/api_auth.R` with
 `set_api_token()` and `api_token()`. Configure the token at runtime; keep it out
