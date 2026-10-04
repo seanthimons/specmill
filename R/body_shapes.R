@@ -453,6 +453,17 @@ body_value <- function(value, schema) {
     if (is.object(value) || !is.null(dim(value))) {
       stop('Value must contain plain JSON values')
     }
+    # A list survives auto_unbox, so c('x') still sends ['x']. Union and
+    # composed schemas (strict) keep rejecting vectors as ambiguous.
+    if (
+      !strict &&
+        identical(type, 'array') &&
+        is.atomic(value) &&
+        !is.null(value) &&
+        is.null(names(value))
+    ) {
+      value <- as.list(value)
+    }
     scalar <- is.atomic(value) &&
       length(value) == 1L &&
       !anyNA(value) &&
