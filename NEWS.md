@@ -1,6 +1,36 @@
 
 
 
+## specmill 0.1.12 (2026-10-04)
+
+#### Breaking changes
+
+- emit shared request validators once per client
+  ([302a28d](https://github.com/seanthimons/specmill/tree/302a28dbfb9e394ae3fedefe04639c3fc571bff0))
+
+#### New features
+
+- resolve per-service base URLs through a client server resolver
+  ([2a5fb07](https://github.com/seanthimons/specmill/tree/2a5fb0764fca4fd443084adaeeb8b71dae806cb2))
+
+#### Bug fixes
+
+- accept atomic vectors for JSON array bodies
+  ([1933a3f](https://github.com/seanthimons/specmill/tree/1933a3f6a1bbe663d237a82a23e9772436434ee2))
+
+#### Docs
+
+- source shared validators in the offline wrapper example
+  ([1400893](https://github.com/seanthimons/specmill/tree/1400893bdeae98f8827bae0a08334c530313c755))
+
+#### Other changes
+
+- release v0.1.12 \[skip ci\]
+  ([3552089](https://github.com/seanthimons/specmill/tree/355208934fe6ee8295b3e9253c3b46bbaed5db2c))
+
+Full set of changes:
+[`v0.1.11...v0.1.12`](https://github.com/seanthimons/specmill/compare/v0.1.11...v0.1.12)
+
 ## specmill 0.1.11 (2026-10-01)
 
 #### Breaking changes
@@ -34,7 +64,7 @@
 #### Other changes
 
 - release v0.1.11 \[skip ci\]
-  ([b2069f2](https://github.com/seanthimons/specmill/tree/b2069f2e600c8ba881dfe24ae1f1d5cbbfbbfba2))
+  ([d590143](https://github.com/seanthimons/specmill/tree/d59014365b8b30bde2ce319b5e60d9c3f94fe48f))
 - remove hosted validator audit scripts
   ([4b0a1a7](https://github.com/seanthimons/specmill/tree/4b0a1a720414beafc12f7dfe9e7c3703caeaaeb9))
 
