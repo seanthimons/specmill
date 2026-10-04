@@ -50,6 +50,7 @@ validate_settings <- function(
       'batch',
       'request_controls',
       'response_policy',
+      'server',
       'body_media',
       'text_encoding',
       'query_array_style',
@@ -107,6 +108,19 @@ validate_settings <- function(
     )
     if (!identical(make.names(name), name)) {
       stop('response_policy must be a client function name')
+    }
+  }
+  if ('server' %in% names(settings)) {
+    config_fields(settings$server, c('resolver', 'key'), paste(label, 'server'))
+    name <- config_string(
+      settings$server$resolver,
+      paste(label, 'server resolver')
+    )
+    if (!identical(make.names(name), name)) {
+      stop('server.resolver must be a client function name')
+    }
+    if (!is.null(settings$server$key)) {
+      config_string(settings$server$key, paste(label, 'server key'))
     }
   }
   if ('request_controls' %in% names(settings)) {
@@ -434,6 +448,17 @@ configure_operation <- function(operation, service) {
     )]
   }
   operation$response_policy <- settings$response_policy
+  if (!is.null(settings$server)) {
+    operation$server_resolver <- c(
+      list(
+        name = settings$server$resolver,
+        key = settings$server$key %or% operation$service
+      ),
+      if (!is.null(operation$server_relative)) {
+        list(relative = operation$server_relative)
+      }
+    )
+  }
   operation$request_controls <- config_data(settings$request_controls)
   operation$parameters <- parameters
   spec <- merge_settings(service, settings)

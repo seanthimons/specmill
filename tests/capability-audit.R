@@ -10,6 +10,10 @@ capability_audit_acceptance <- function() {
   }
   invoke <- function(op, ...) {
     runtime <- new.env(parent = baseenv())
+    eval(
+      parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+      runtime
+    )
     runtime$request_helper <- function(...) list(...)
     eval(
       parse(text = specmill::render_operation(

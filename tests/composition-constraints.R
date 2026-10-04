@@ -147,6 +147,30 @@ composition_constraints_acceptance <- function() {
   fails(validate(NA_character_, list(type = 'string')))
   fails(validate(stats::setNames('x', 'named'), list(type = 'string')))
 
+  # Atomic vectors become lists for exact array types, so length 1 stays an array.
+  strings <- list(type = 'array', items = list(type = 'string'))
+  stopifnot(identical(validate(c('a', 'b'), strings), list('a', 'b')))
+  stopifnot(identical(validate('a', strings), list('a')))
+  stopifnot(identical(validate(character(), strings), list()))
+  stopifnot(identical(
+    as.character(jsonlite::toJSON(validate('a', strings), auto_unbox = TRUE)),
+    '["a"]'
+  ))
+  fails(validate(1:2, strings))
+  stopifnot(identical(
+    validate(
+      list(ids = c('a', 'b')),
+      list(type = 'object', properties = list(ids = strings))
+    ),
+    list(ids = list('a', 'b'))
+  ))
+  fails(validate(c('a', NA), strings))
+  fails(validate(c(a = 'x'), strings))
+  fails(validate(c('a', 'b'), list(type = c('string', 'array'))))
+  fails(validate(c('a', 'b'), list(oneOf = list(strings))))
+  fails(validate(c('a', 'b'), list(allOf = list(strings), type = 'array')))
+  fails(validate(c('a', 'b'), list()))
+
   # JSON equality is structural: object keys are unordered, 1L equals 1, and {} differs from [].
   stopifnot(identical(
     validate(list(a = 1L, b = 2L), list(enum = list(list(b = 2, a = 1)))),

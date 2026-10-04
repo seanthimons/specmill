@@ -39,6 +39,10 @@ media_type_acceptance <- function() {
       operation <- parsed$operations[[1L]]
       stopifnot(operation$body$type == 'object', operation$body_required)
       context <- new.env(parent = baseenv())
+      eval(
+        parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+        context
+      )
       context$request_helper <- function(...) list(...)
       eval(
         parse(

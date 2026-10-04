@@ -54,6 +54,10 @@ schema_version_acceptance <- function() {
         !is.null(operation$body_schema_full)
       )
       context <- new.env(parent = baseenv())
+      eval(
+        parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+        context
+      )
       context$request_helper <- function(...) list(...)
       eval(
         parse(

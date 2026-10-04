@@ -265,6 +265,10 @@ local_references_acceptance <- function() {
     siblings$diagnostics[[1L]]$code == 'reference_siblings'
   )
   context <- new.env(parent = baseenv())
+  eval(
+    parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+    context
+  )
   context$request <- function(...) list(...)
   eval(
     parse(

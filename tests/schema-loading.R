@@ -43,6 +43,10 @@ schema_loading_acceptance <- function() {
     parsed <- specmill::read_operations(path)
     stopifnot(identical(contract(parsed), contract(expected)))
     context <- new.env(parent = baseenv())
+    eval(
+      parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+      context
+    )
     context$request <- function(...) list(...)
     eval(
       parse(

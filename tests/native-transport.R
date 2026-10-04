@@ -89,6 +89,28 @@ native_transport_acceptance <- function(extra_checks = NULL) {
   )
   stopifnot(length(result$operations) == 19L, !length(result$diagnostics))
   specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
+  # Wrappers call one shared validator runtime instead of inlining it.
+  sources <- vapply(
+    list.files(file.path(root, 'R'), full.names = TRUE),
+    function(file) paste(readLines(file, warn = FALSE), collapse = '\n'),
+    character(1)
+  )
+  validation_file <- basename(names(sources)) == 'api_validation.R'
+  definitions <- gregexpr('check_json <- function', sources, fixed = TRUE)
+  stopifnot(
+    sum(validation_file) == 1L,
+    sum(lengths(regmatches(sources, definitions))) == 1L,
+    any(grepl(
+      '.api_validation$parameter_values(',
+      sources[!validation_file],
+      fixed = TRUE
+    )),
+    any(grepl(
+      '.api_validation$body_value(',
+      sources[!validation_file],
+      fixed = TRUE
+    ))
+  )
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)

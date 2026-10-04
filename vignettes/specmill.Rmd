@@ -188,13 +188,14 @@ wrapper makes its recorded hash differ and protects it from replacement.
 
 ## 7. Verify a wrapper without sending HTTP
 
-For this small demonstration, source the helper and one wrapper into a private
-environment, then replace the helper there with a recorder. The generated client
-source has no runtime dependency on specmill.
+For this small demonstration, source the helper, the shared validators and one
+wrapper into a private environment, then replace the helper there with a
+recorder. The generated client source has no runtime dependency on specmill.
 
 ```{r offline-call}
 runtime <- new.env(parent = baseenv())
 sys.source(file.path(root, 'R/api_request.R'), runtime)
+sys.source(file.path(root, 'R/api_validation.R'), runtime)
 sys.source(file.path(root, 'R/get_item.R'), runtime)
 captured <- NULL
 runtime$api_request <- function(...) {
@@ -220,6 +221,10 @@ with testthat. Transport tests are separate: they verify the final URL, headers,
 serialized body, and response handling.
 
 ## 8. Install and use your client
+
+Wrappers that validate schema parameters or bodies call shared validators that
+generation writes once to `R/api_validation.R`. That file is regenerated with the
+wrappers; do not edit it. The client still needs no specmill at runtime.
 
 For schemas with API-key or HTTP bearer security, initialization also proposes
 an `authentication` map in `specmill.yml`. Generation creates `R/api_auth.R` with
