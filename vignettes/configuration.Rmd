@@ -640,7 +640,7 @@ Generated form operations take a named `body` list. Omit optional fields by
 leaving their names out; required fields are checked before sending. Explicit
 `NULL` fields and empty arrays are rejected. An empty string is a present field;
 an empty URL-encoded form sends zero bytes with its form content type. Use unnamed
-lists for arrays and named lists for object fields.
+vectors or lists for arrays and named lists for object fields.
 Empty multipart bodies are rejected; omit an optional body argument instead.
 
 ```r
@@ -881,13 +881,18 @@ through the generated client rather than relying on helper return values.
 ### JSON body values
 
 Generated wrappers accept named lists for objects and unnamed lists for arrays,
-including single-item arrays. For a declared object, `list()` becomes `{}`;
+including single-item arrays. Where the schema type is exactly `array`, an
+unnamed atomic vector is also accepted and sent as a JSON array, so
+`c('a')` sends `["a"]` and `character()` sends `[]`. Union types and
+`oneOf`/`anyOf`/`allOf` schemas, including values nested inside them, still
+reject vectors because a length-one vector could be a scalar; pass a list there.
+For a declared object, `list()` becomes `{}`;
 for a declared array it stays `[]`. In unconstrained values, use
 `setNames(list(), character())` for `{}` and `list()` for `[]`.
 Scalars are single strings, finite numbers, or logical values. Heterogeneous
-arrays can contain these scalars, nested lists, and `NULL`. Atomic vectors,
-data frames, classed objects, missing values, and duplicate or empty object
-names are rejected; convert them to plain JSON-shaped lists explicitly.
+arrays can contain these scalars, nested lists, and `NULL`. Other atomic
+vectors, data frames, classed objects, missing values, and duplicate or empty
+object names are rejected; convert them to plain JSON-shaped lists explicitly.
 
 Omit an optional body argument to send no body. Explicit `body = NULL` sends
 JSON `null` when allowed by the schema: unconstrained values, a nullable
