@@ -243,6 +243,38 @@ follow helper renames, preventing multi-service helper collisions. EPA settings,
 observer registries, PubChem Fault handling, and image conversion remain client
 code. This capability does not migrate any downstream client.
 
+### Per-service base URLs
+
+By default every wrapper uses the server URL recorded at generation, and the
+`base_url` override applies to the whole client. To give each service its own
+host, which you can change at call time, select a client-owned resolver:
+
+```yaml
+defaults:
+  server:
+    resolver: service_url
+    key: chemi_burl # Optional; defaults to the service id.
+```
+
+Define the resolver in the client's `R/` source. It receives the key and the
+wrapper's recorded server, and returns an absolute HTTP(S) URL:
+
+```r
+service_url <- function(key, server) {
+  getOption(paste0('myclient.', key), Sys.getenv(key, 'https://example.org'))
+}
+```
+
+Services resolve independently, so changing one key leaves the others in place.
+A relative schema server joins the resolver's host: `/api/chet` gives
+`https://example.org/api/chet` and replaces any path the resolver returned, and
+an empty server keeps the returned URL unchanged. Absolute schema servers use
+the returned URL as is. The `<package>.request` `base_url` option still takes
+precedence; the initialization override applies only to services without a
+resolver. Generation fails if the function is missing. It also fails if the
+client's request helper does not accept `server_resolver`; helpers created
+before this setting need the upstream template change (see `inspect_client()`).
+
 ### Request controls and batch limits
 
 Generated project YAML includes request defaults:
@@ -608,7 +640,7 @@ Generated form operations take a named `body` list. Omit optional fields by
 leaving their names out; required fields are checked before sending. Explicit
 `NULL` fields and empty arrays are rejected. An empty string is a present field;
 an empty URL-encoded form sends zero bytes with its form content type. Use unnamed
-lists for arrays and named lists for object fields.
+vectors or lists for arrays and named lists for object fields.
 Empty multipart bodies are rejected; omit an optional body argument instead.
 
 ```r
@@ -849,13 +881,18 @@ through the generated client rather than relying on helper return values.
 ### JSON body values
 
 Generated wrappers accept named lists for objects and unnamed lists for arrays,
-including single-item arrays. For a declared object, `list()` becomes `{}`;
+including single-item arrays. Where the schema type is exactly `array`, an
+unnamed atomic vector is also accepted and sent as a JSON array, so
+`c('a')` sends `["a"]` and `character()` sends `[]`. Union types and
+`oneOf`/`anyOf`/`allOf` schemas, including values nested inside them, still
+reject vectors because a length-one vector could be a scalar; pass a list there.
+For a declared object, `list()` becomes `{}`;
 for a declared array it stays `[]`. In unconstrained values, use
 `setNames(list(), character())` for `{}` and `list()` for `[]`.
 Scalars are single strings, finite numbers, or logical values. Heterogeneous
-arrays can contain these scalars, nested lists, and `NULL`. Atomic vectors,
-data frames, classed objects, missing values, and duplicate or empty object
-names are rejected; convert them to plain JSON-shaped lists explicitly.
+arrays can contain these scalars, nested lists, and `NULL`. Other atomic
+vectors, data frames, classed objects, missing values, and duplicate or empty
+object names are rejected; convert them to plain JSON-shaped lists explicitly.
 
 Omit an optional body argument to send no body. Explicit `body = NULL` sends
 JSON `null` when allowed by the schema: unconstrained values, a nullable

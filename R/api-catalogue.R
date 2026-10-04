@@ -34,6 +34,8 @@ effective_server <- function(
   operation = list(),
   origin = ''
 ) {
+  # Kept with the diagnostic so a configured client resolver can supply the host.
+  relative <- NULL
   tryCatch(
     {
       if (identical(document$swagger, '2.0')) {
@@ -41,6 +43,15 @@ effective_server <- function(
         host <- document$host
         if (is.null(schemes) || !length(schemes) || is.null(host)) {
           if (!valid_server_url(origin)) {
+            base_path <- document$basePath %or% '/'
+            if (
+              is.character(base_path) &&
+                length(base_path) == 1L &&
+                !is.na(base_path) &&
+                startsWith(base_path, '/')
+            ) {
+              relative <- base_path
+            }
             stop(
               'Swagger host/scheme requires a recorded origin or explicit base URL override'
             )
@@ -112,6 +123,13 @@ effective_server <- function(
       }
       if (any(!grepl('^[A-Za-z][A-Za-z0-9+.-]*:', urls))) {
         if (!nzchar(origin)) {
+          # Network-path references (//host) would replace the resolver's host.
+          if (
+            length(unique(urls)) == 1L &&
+              grepl('^(/(?!/)|$)', urls[[1L]], perl = TRUE)
+          ) {
+            relative <- urls[[1L]]
+          }
           stop(
             'Relative server URL requires a recorded origin or explicit base URL override'
           )
@@ -144,7 +162,12 @@ effective_server <- function(
       }
       list(url = urls)
     },
-    error = function(e) list(diagnostic = conditionMessage(e))
+    error = function(e) {
+      c(
+        list(diagnostic = conditionMessage(e)),
+        if (!is.null(relative)) list(relative = relative)
+      )
+    }
   )
 }
 

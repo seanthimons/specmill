@@ -93,6 +93,10 @@ numeric_fixtures_acceptance <- function() {
 
   invoke <- function(ops, inputs) {
     runtime <- new.env(parent = baseenv())
+    eval(
+      parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+      runtime
+    )
     runtime$request <- function(...) list(...)
     eval(
       parse(

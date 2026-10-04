@@ -720,6 +720,7 @@ read_operations <- function(files, policy = list()) {
             if (!identical(make.names(name), name) || name %in% c('...', '')) {
               stop('Invalid operation name')
             }
+            server <- effective_server(document, item, op)
             list(
               key = key,
               id = paste(policy$service %or% 'default', key),
@@ -728,7 +729,9 @@ read_operations <- function(files, policy = list()) {
               name = name,
               method = toupper(method),
               path = path,
-              server = effective_server(document, item, op),
+              # Only a configured server resolver uses the relative path.
+              server = server[names(server) != 'relative'],
+              server_relative = server$relative,
               parameters = params,
               body = body,
               body_required = body_required,

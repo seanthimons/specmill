@@ -35,7 +35,7 @@ nested_body_acceptance <- function() {
   fails(fixture(schema, list(records = list(list(id = 0L)))))
   fails(fixture(
     schema,
-    list(records = list(list(id = 1L, labels = 'wrong array shape')))
+    list(records = list(list(id = 1L, labels = list(shape = 'object'))))
   ))
   with_example <- schema
   with_example$example <- list(records = list(list(id = 42L)))
@@ -64,6 +64,10 @@ nested_body_acceptance <- function() {
   parsed <- read()
   stopifnot(!length(parsed$diagnostics))
   runtime <- new.env(parent = baseenv())
+  eval(
+    parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+    runtime
+  )
   calls <- 0L
   runtime$request <- function(...) {
     calls <<- calls + 1L
@@ -79,6 +83,9 @@ nested_body_acceptance <- function() {
     runtime
   )
   stopifnot(identical(runtime$submit_records(expected), expected), calls == 1L)
+  vector_labels <- list(records = list(list(id = 1L, labels = 'example')))
+  stopifnot(identical(runtime$submit_records(vector_labels), expected))
+  calls <- 1L
   fails(runtime$submit_records(list(
     records = list(list(labels = list('missing id')))
   )))
@@ -158,7 +165,10 @@ nested_body_acceptance <- function() {
   stopifnot(grepl('Invalid body: Depth limit', conditionMessage(error)))
   wide <- list(id = 1L, unknown = rep(list(1L), 20000L))
   error <- tryCatch(runtime$submit_records(wide), error = identity)
-  stopifnot(grepl('Invalid body: Node limit', conditionMessage(error)), calls == before)
+  stopifnot(
+    grepl('Invalid body: Node limit', conditionMessage(error)),
+    calls == before
+  )
   # Recursive targets retain request direction and OpenAPI 3.1 siblings stay guarded.
   document$components$schemas$Node$readOnly <- TRUE
   directional <- read()

@@ -101,6 +101,10 @@ pagination_acceptance <- function() {
   jsonlite::write_json(document, schema, auto_unbox = TRUE)
   parsed <- specmill::read_operations(schema)
   runtime <- new.env(parent = baseenv())
+  eval(
+    parse(text = getFromNamespace('validation_runtime', 'specmill')()),
+    runtime
+  )
   code <- paste(
     readLines(system.file('templates/request.R', package = 'specmill')),
     collapse = '\n'
