@@ -1,6 +1,7 @@
 transport_arguments <- function(operation) {
   c(
     if (!is.null(operation$server)) 'server',
+    if (!is.null(operation$server_resolver)) 'server_resolver',
     if (length(operation$request_controls)) 'request_controls',
     if (!is.null(operation$response_policy)) 'response_policy',
     if (any(vapply(operation$parameters, extended_parameter, logical(1)))) {
@@ -289,6 +290,9 @@ render_operation <- function(operation, spec) {
     },
     if ('server' %in% transport_arguments(operation)) {
       paste0(', server = ', r_literal(operation$server))
+    },
+    if ('server_resolver' %in% transport_arguments(operation)) {
+      paste0(', server_resolver = ', r_literal(operation$server_resolver))
     },
     if ('auth' %in% transport_arguments(operation)) {
       paste0(', auth = ', r_literal(operation$auth))
@@ -715,6 +719,14 @@ generate_client <- function(
             retry_policy %in% operation_names)
       ) {
         stop('Missing client retry policy or wrapper collision: ', retry_policy)
+      }
+      resolver <- op$server_resolver$name
+      if (
+        !is.null(resolver) &&
+          (!resolver %in% names(runtime_definitions) ||
+            resolver %in% operation_names)
+      ) {
+        stop('Missing client server resolver or wrapper collision: ', resolver)
       }
       op$guard_literals <- guard_literals
       operation_spec <- configured$spec

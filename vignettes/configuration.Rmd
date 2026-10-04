@@ -243,6 +243,38 @@ follow helper renames, preventing multi-service helper collisions. EPA settings,
 observer registries, PubChem Fault handling, and image conversion remain client
 code. This capability does not migrate any downstream client.
 
+### Per-service base URLs
+
+By default every wrapper uses the server URL recorded at generation, and the
+`base_url` override applies to the whole client. To give each service its own
+host, which you can change at call time, select a client-owned resolver:
+
+```yaml
+defaults:
+  server:
+    resolver: service_url
+    key: chemi_burl # Optional; defaults to the service id.
+```
+
+Define the resolver in the client's `R/` source. It receives the key and the
+wrapper's recorded server, and returns an absolute HTTP(S) URL:
+
+```r
+service_url <- function(key, server) {
+  getOption(paste0('myclient.', key), Sys.getenv(key, 'https://example.org'))
+}
+```
+
+Services resolve independently, so changing one key leaves the others in place.
+A relative schema server joins the resolver's host: `/api/chet` gives
+`https://example.org/api/chet` and replaces any path the resolver returned, and
+an empty server keeps the returned URL unchanged. Absolute schema servers use
+the returned URL as is. The `<package>.request` `base_url` option still takes
+precedence; the initialization override applies only to services without a
+resolver. Generation fails if the function is missing. It also fails if the
+client's request helper does not accept `server_resolver`; helpers created
+before this setting need the upstream template change (see `inspect_client()`).
+
 ### Request controls and batch limits
 
 Generated project YAML includes request defaults:
