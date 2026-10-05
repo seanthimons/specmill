@@ -6,6 +6,10 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     if (base::is.null(response_policy)) base::stop('Missing client response policy: ', policy_name, call. = FALSE)
   }
   if (!base::is.null(response_policy) && !base::is.function(response_policy)) base::stop('response_policy must be NULL, a function, or a client function name', call. = FALSE)
+  # Policy attribution: an array body's items, else a sole path value, else a sole URL query value.
+  inputs <- base::Filter(base::Negate(base::is.null), path_params)
+  if (!base::length(inputs)) inputs <- base::Filter(base::Negate(base::is.null), query)
+  policy_query <- if (base::length(body) && !base::is.raw(body) && (base::is.atomic(body) || (base::is.list(body) && base::is.null(base::names(body))))) body else if (base::length(inputs) == 1L) inputs[[1L]]
   # Runtime options use the same package prefix as the dry-run environment flag.
   option_prefix <- base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV))
   controls <- base::getOption(base::paste0(option_prefix, '.request'), base::list())
@@ -308,7 +312,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     httr2::resp_body_raw(response)
   }
   if (base::is.null(response_policy)) base::return(decode())
-  response_policy(response, base::list(method = base::toupper(method), status = status, media = media), decode)
+  response_policy(response, base::c(base::list(method = base::toupper(method), status = status, media = media), if (!base::is.null(policy_query)) base::list(query = policy_query)), decode)
 }
 
 # Select once in service defaults; actual response media chooses the delimiter.
