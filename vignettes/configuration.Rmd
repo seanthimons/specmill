@@ -152,9 +152,13 @@ default. Complete `request.arguments` mappings own the entire call and must pass
 
 The contract is `function(response, context, decode)`. It runs once on the final
 `httr2_response`, after any retries, before HTTP errors and decoding. `context`
-contains only `method`, `status`, and normalized actual response `media`, with no
-URL, parameters, credentials, request headers, or body. The response itself can
-contain sensitive information; client policy owns its observation and logging.
+contains `method`, `status`, and normalized actual response `media`. When the
+request has an input to attribute, `context$query` also holds it. That is the
+items of an array body (an unnamed list or vector), otherwise the value of the
+sole path parameter, otherwise the value of the sole URL query parameter. A query
+value is reported even if it is a credential, since it was already sent in the
+URL. Headers, cookies, object bodies, and the URL itself are never included. The response itself can contain
+sensitive information; client policy owns its observation and logging.
 Policies do not run for dry runs or transport failures without a response.
 
 ```r
@@ -221,6 +225,15 @@ one or match the record count; it becomes each record's `query` attribute.
 NULL-to-NA cleanup is shallow and opt-in. Use `keyed = TRUE` for a named outer
 record collection, then `api_request_table(records, names_to = 'query_id')` to
 retain those keys in a column.
+
+A response policy can attribute rows the same way from `context$query`. A
+single-object response becomes one row with a `query` column:
+
+```r
+attributed_table <- function(response, context, decode) {
+  api_request_table(api_request_records(decode(), query = context$query))
+}
+```
 
 `api_request_table()` is explicitly lossy compatibility formatting. It unions
 heterogeneous fields, represents missing fields as NA, collapses nested values
