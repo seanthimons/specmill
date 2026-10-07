@@ -543,14 +543,25 @@ read_operations <- function(files, policy = list()) {
                 )
               }
               encoding <- tryCatch(
-                parameter_shape(
-                  p,
-                  schema,
-                  version,
-                  source_location,
-                  policy$query_array_style_overrides[[key]] %or%
-                    policy$query_array_style
-                ),
+                {
+                  if (
+                    !is.null(nullable_query_type(schema, version, location))
+                  ) {
+                    schema <- supported_body(
+                      schema,
+                      document,
+                      source_location = source_location
+                    )
+                  }
+                  parameter_shape(
+                    p,
+                    schema,
+                    version,
+                    source_location,
+                    policy$query_array_style_overrides[[key]] %or%
+                      policy$query_array_style
+                  )
+                },
                 error = function(e) {
                   if (identical(e$classification, 'schema_defect')) {
                     stop(e)
@@ -568,6 +579,7 @@ read_operations <- function(files, policy = list()) {
                 required = isTRUE(p$required),
                 allow_empty_value = isTRUE(p$allowEmptyValue),
                 schema = schema,
+                wire_type = encoding$wire_type,
                 example = p[intersect('example', names(p))],
                 source_location = source_location,
                 style = encoding$style,

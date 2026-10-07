@@ -257,7 +257,27 @@ operation_fixtures <- function(
       lapply(parameters, function(p) {
         tryCatch(
           {
-            value <- if (p$name %in% names(overrides[[op$name]])) {
+            value <- if (!is.null(p$wire_type)) {
+              # Restrict candidates to present scalar values while validating
+              # every branch and sibling constraint of the original union.
+              present <- p$schema
+              present$type <- p$wire_type
+              for (field in c('example', 'default')) {
+                if (is.null(present[[field]])) present[[field]] <- NULL
+              }
+              if (p$name %in% names(overrides[[op$name]])) {
+                override <- overrides[[op$name]][[p$name]]
+                if (is.null(override) && !p$required) {
+                  NULL
+                } else {
+                  body_fixture(present, override)
+                }
+              } else if ('example' %in% names(p$example)) {
+                body_fixture(present, p$example$example)
+              } else {
+                body_fixture(present)
+              }
+            } else if (p$name %in% names(overrides[[op$name]])) {
               fixture_value(p$schema, overrides[[op$name]][[p$name]])
             } else if ('example' %in% names(p$example)) {
               fixture_value(p$schema, p$example$example)

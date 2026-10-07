@@ -1,3 +1,41 @@
+# A nullable union has one scalar wire shape, but retains its full schema for
+# validation. NULL remains omission, not a serialized JSON null.
+nullable_query_type <- function(schema, version, location) {
+  if (
+    !startsWith(version, '3.1') ||
+      !identical(location, 'query') ||
+      any(c('oneOf', 'allOf') %in% names(schema)) ||
+      length(schema$anyOf) != 2L
+  ) {
+    return(NULL)
+  }
+  branches <- schema$anyOf
+  null <- vapply(
+    branches,
+    function(s) {
+      identical(s$type, 'null') &&
+        identical(names(s), 'type')
+    },
+    logical(1)
+  )
+  if (sum(null) != 1L) {
+    return(NULL)
+  }
+  scalar <- branches[[which(!null)]]
+  if (
+    length(scalar$type) != 1L ||
+      !scalar$type %in% c('string', 'integer', 'number', 'boolean') ||
+      any(c('oneOf', 'anyOf', 'allOf') %in% names(scalar)) ||
+      identical(scalar$format, 'binary') ||
+      (length(schema$type) &&
+        (!scalar$type %in% schema$type ||
+          !all(schema$type %in% c(scalar$type, 'null'))))
+  ) {
+    return(NULL)
+  }
+  scalar$type
+}
+
 # Normalize only encodings whose flat wire representation is defined.
 parameter_shape <- function(
   p,
@@ -10,6 +48,11 @@ parameter_shape <- function(
     schema_problem(code, classification, message, at)
   }
   location <- p[['in']]
+  wire_type <- nullable_query_type(schema, version, location)
+  if (!is.null(wire_type)) {
+    schema$anyOf <- NULL
+    schema$type <- wire_type
+  }
   if (any(c('oneOf', 'anyOf', 'allOf') %in% names(schema))) {
     fail('parameter_composition', 'Unsupported parameter composition')
   }
@@ -106,6 +149,7 @@ parameter_shape <- function(
     }
   }
   list(
+    wire_type = wire_type,
     style = style,
     explode = explode,
     collection_format = if (identical(schema$type, 'array')) {
