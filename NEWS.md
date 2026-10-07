@@ -1,5 +1,10 @@
+## Development version
 
+- Check effective API parameter defaults before generation, with separate
+  schema-value and transport diagnostics and explicit configuration fixes.
 
+- Support OpenAPI 3.1 scalar/null `anyOf` query parameters while preserving
+  constraints, defaults, optional omission, and required-value checks (#84).
 
 ## specmill 0.1.12 (2026-10-04)
 
