@@ -1,10 +1,34 @@
-## Development version
 
-- Check effective API parameter defaults before generation, with separate
-  schema-value and transport diagnostics and explicit configuration fixes.
 
-- Support OpenAPI 3.1 scalar/null `anyOf` query parameters while preserving
-  constraints, defaults, optional omission, and required-value checks (#84).
+
+## specmill 0.1.14 (2026-10-07)
+
+#### New features
+
+- parse oneOf, anyOf and allOf parameter schemas (#84)
+  ([ec32b03](https://github.com/seanthimons/specmill/tree/ec32b03dbec717dca3075bbd7d7791e7b3f548ee))
+
+#### Bug fixes
+
+- keep schema defaults as written for review (#84)
+  ([d8b2e1b](https://github.com/seanthimons/specmill/tree/d8b2e1b3fa4faeebbd6a307655257e55fa285b85))
+- omit empty query defaults the request check rejects (#84)
+  ([c8e2f27](https://github.com/seanthimons/specmill/tree/c8e2f274a339bb476bf7b1501faff88aa794b092))
+
+#### Style
+
+- simplify the empty default check
+  ([e13c25e](https://github.com/seanthimons/specmill/tree/e13c25e270a0c5272274b52da65440c7d8721956))
+
+#### Other changes
+
+- release v0.1.14 \[skip ci\]
+  ([410bce2](https://github.com/seanthimons/specmill/tree/410bce24afea35c75356430738a9e89f2dd12c47))
+- merge nullable query defaults into composed parameters (#91)
+  ([b8faa2b](https://github.com/seanthimons/specmill/tree/b8faa2baaf256045a2d3dbb16fdc857440d3f514))
+
+Full set of changes:
+[`v0.1.13...v0.1.14`](https://github.com/seanthimons/specmill/compare/v0.1.13...v0.1.14)
 
 ## specmill 0.1.13 (2026-10-07)
 
@@ -13,13 +37,15 @@
 - fan out vector inputs and split array bodies into max_items chunks
   (#81)
   ([eae7769](https://github.com/seanthimons/specmill/tree/eae7769f82ba58be9d3d528967ed26458c65c78a))
+- support nullable query scalars and validate parameter defaults
+  ([3d8fbdc](https://github.com/seanthimons/specmill/tree/3d8fbdc4b3dfc02f4302bf687013f4a0478bc4d3))
 - attribute the request input in policy context (#83)
   ([bf05d98](https://github.com/seanthimons/specmill/tree/bf05d98966e625d24bb14d6679c80bbc62a42d66))
 
 #### Other changes
 
 - release v0.1.13 \[skip ci\]
-  ([f3a1b9b](https://github.com/seanthimons/specmill/tree/f3a1b9b473c3308cca5f7fd0afc3126a761674cf))
+  ([86bf463](https://github.com/seanthimons/specmill/tree/86bf463acf60a9fb5538018980fee88bdb901441))
 - add repository agent instructions
   ([ad4d044](https://github.com/seanthimons/specmill/tree/ad4d0443f3c2f6ac67cad3e6a296a23bcdd37e3d))
 
