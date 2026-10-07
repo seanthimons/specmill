@@ -50,6 +50,50 @@ transport_arguments <- function(operation) {
   )
 }
 
+# Inherited fan_out/split apply only where they fit; operation-level settings must fit.
+iteration_settings <- function(operation, batch, explicit) {
+  fan_out <- batch$fan_out
+  if (!is.null(fan_out)) {
+    hit <- Filter(
+      function(p) p$name == fan_out && p$location %in% c('path', 'query'),
+      operation$parameters
+    )
+    scalar <- length(hit) &&
+      isTRUE(
+        hit[[1L]]$schema$type %in% c('string', 'integer', 'number', 'boolean')
+      )
+    if (!scalar) {
+      if (!is.null(explicit$fan_out)) {
+        stop(
+          'batch.fan_out must name a scalar path or query parameter: ',
+          operation$id
+        )
+      }
+      fan_out <- NULL
+    }
+  }
+  split <- isTRUE(batch$split) && !is.null(operation$batch$max_items)
+  if (isTRUE(explicit$split) && !split) {
+    stop(
+      'batch.split requires batch.max_items on a top-level array request body: ',
+      operation$id
+    )
+  }
+  if (!is.null(fan_out) && split) {
+    stop('batch.fan_out and batch.split cannot be combined: ', operation$id)
+  }
+  if (is.null(fan_out) && !split) {
+    if (!is.null(explicit$on_error)) {
+      stop(
+        'batch.on_error requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
+    return(NULL)
+  }
+  list(fan_out = fan_out, split = split, on_error = batch$on_error %or% 'stop')
+}
+
 render_operation <- function(operation, spec) {
   guard <- literal_state$guard
   literal_state$guard <- operation$guard_literals %or% FALSE
@@ -107,6 +151,12 @@ render_operation <- function(operation, spec) {
     character(1)
   )
   body_name <- if (!is.null(operation$body)) tail(formal_names, 1L) else NULL
+  # A split body may exceed the per-request item limit; each chunk is checked by the helper.
+  whole <- operation
+  if (isTRUE(operation$iterate$split)) {
+    whole$body$maxItems <- NULL
+    whole$batch$max_items <- NULL
+  }
   if (!is.null(body_name)) {
     signature <- c(
       signature,
@@ -187,7 +237,20 @@ render_operation <- function(operation, spec) {
       )
     }
   }
-  lines <- c(lines, parameter_checks(params, formal_names))
+  checked <- params
+  fan_out <- operation$iterate$fan_out
+  for (i in seq_along(checked)) {
+    # A fan-out input is a vector of the parameter's scalar values.
+    if (
+      identical(checked[[i]]$name, fan_out) &&
+        checked[[i]]$location %in% c('path', 'query')
+    ) {
+      checked[[i]]$schema <- list(type = 'array', items = checked[[i]]$schema)
+      fan_out_name <- formal_names[[i]]
+      break
+    }
+  }
+  lines <- c(lines, parameter_checks(checked, formal_names))
   if (!is.null(body_name)) {
     if (operation$body_required) {
       lines <- c(
@@ -206,11 +269,11 @@ render_operation <- function(operation, spec) {
         ')) base::stop("Binary body must be a raw vector")'
       )
     } else if (identical(operation$body_media, 'text/plain')) {
-      text_checks(operation, body_name)
+      text_checks(whole, body_name)
     } else if (form_media(operation$body_media)) {
       form_checks(operation$body, body_name, operation$body_media)
     } else {
-      body_checks(operation$body, body_name)
+      body_checks(whole$body, body_name)
     }
     if (length(checks)) {
       lines <- c(
@@ -247,6 +310,7 @@ render_operation <- function(operation, spec) {
       ))
     }
   }
+  per_request <- length(lines)
   hooks <- spec$hooks[[operation$name]] %or% list()
   if (length(hooks$pre_request)) {
     lines <- c(
@@ -493,7 +557,36 @@ render_operation <- function(operation, spec) {
       )
     )
   }
-  code <- paste(c(lines, '  result', '}'), collapse = '\n')
+  lines <- c(lines, '  result')
+  if (!is.null(operation$iterate)) {
+    # Hooks and the request run once per item or chunk; the helper combines results.
+    input <- if (is.null(fan_out)) body_name else fan_out_name
+    lines <- c(
+      head(lines, per_request),
+      '  send <- function(params) {',
+      paste0('  ', tail(lines, -per_request)),
+      '  }',
+      paste0(
+        '  ',
+        helper,
+        '_each(function(chunk) {'
+      ),
+      paste0('    params[', r_literal(input), '] <- base::list(chunk)'),
+      '    send(params)',
+      paste0(
+        '  }, params[[',
+        r_literal(input),
+        ']], ',
+        r_literal(
+          if (is.null(fan_out)) as.integer(operation$batch$max_items) else 1L
+        ),
+        ', on_error = ',
+        r_literal(operation$iterate$on_error),
+        ')'
+      )
+    )
+  }
+  code <- paste(c(lines, '}'), collapse = '\n')
   if (isTRUE(spec$documentation)) {
     paste(
       operation_documentation(operation, spec$docs %or% list()),
@@ -655,6 +748,8 @@ generate_client <- function(
           '_delimited',
           '_records',
           '_table',
+          '_each',
+          '_combine',
           '_batched',
           '_paginated',
           '_pagination_token',
@@ -730,10 +825,11 @@ generate_client <- function(
       }
       op$guard_literals <- guard_literals
       operation_spec <- configured$spec
+      batch <- Filter(Negate(is.null), operation_spec$batch %or% list())
       op$batch <- if (is.null(op$body)) {
         list()
       } else {
-        Filter(Negate(is.null), operation_spec$batch %or% list())
+        batch[intersect(names(batch), c('max_items', 'max_bytes'))]
       }
       if (
         !is.null(op$batch$max_items) &&
@@ -753,6 +849,29 @@ generate_client <- function(
               c('application/json', 'application/octet-stream', 'text/plain'))
       ) {
         stop('Batch limits require a supported request body: ', op$id)
+      }
+      op$iterate <- iteration_settings(
+        op,
+        batch,
+        service$operations[[op$key]]$batch %or% list()
+      )
+      if (
+        !is.null(op$iterate) &&
+          !is.null(config) &&
+          !all(
+            paste0(operation_spec$helper, c('_each', '_combine')) %in%
+              names(runtime_definitions)
+          )
+      ) {
+        stop(
+          'batch.fan_out and batch.split need ',
+          operation_spec$helper,
+          '_each() and ',
+          operation_spec$helper,
+          '_combine() in the client helper file: ',
+          op$id,
+          '. Compare the helper with the current template and adopt them.'
+        )
       }
       if (!is.null(authentication) && is.null(operation_spec[['request']])) {
         credential_map <- service$authentication

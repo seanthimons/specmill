@@ -107,7 +107,10 @@ operation_documentation <- function(op, policy = list()) {
           policy$parameters[[parameters[[i]]]] %or%
             op$parameters[[i]]$schema$description %or%
             op$parameters[[i]]$name
-        )
+        ),
+        if (identical(op$parameters[[i]]$name, op$iterate$fan_out)) {
+          ' Accepts a vector: one request is sent per element and the results are combined.'
+        }
       )
     },
     character(1)
@@ -117,6 +120,12 @@ operation_documentation <- function(op, policy = list()) {
       docs,
       if (identical(op$body_media, 'application/octet-stream')) {
         '@param body Raw vector of bytes to upload as application/octet-stream.'
+      } else if (isTRUE(op$iterate$split)) {
+        paste0(
+          '@param body Request body. Arrays longer than ',
+          op$batch$max_items,
+          ' items are sent in chunks of that size and the results are combined.'
+        )
       } else {
         '@param body Request body.'
       }

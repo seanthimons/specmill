@@ -152,9 +152,13 @@ default. Complete `request.arguments` mappings own the entire call and must pass
 
 The contract is `function(response, context, decode)`. It runs once on the final
 `httr2_response`, after any retries, before HTTP errors and decoding. `context`
-contains only `method`, `status`, and normalized actual response `media`, with no
-URL, parameters, credentials, request headers, or body. The response itself can
-contain sensitive information; client policy owns its observation and logging.
+contains `method`, `status`, and normalized actual response `media`. When the
+request has an input to attribute, `context$query` also holds it. That is the
+items of an array body (an unnamed list or vector), otherwise the value of the
+sole path parameter, otherwise the value of the sole URL query parameter. A query
+value is reported even if it is a credential, since it was already sent in the
+URL. Headers, cookies, object bodies, and the URL itself are never included. The response itself can contain
+sensitive information; client policy owns its observation and logging.
 Policies do not run for dry runs or transport failures without a response.
 
 ```r
@@ -221,6 +225,15 @@ one or match the record count; it becomes each record's `query` attribute.
 NULL-to-NA cleanup is shallow and opt-in. Use `keyed = TRUE` for a named outer
 record collection, then `api_request_table(records, names_to = 'query_id')` to
 retain those keys in a column.
+
+A response policy can attribute rows the same way from `context$query`. A
+single-object response becomes one row with a `query` column:
+
+```r
+attributed_table <- function(response, context, decode) {
+  api_request_table(api_request_records(decode(), query = context$query))
+}
+```
 
 `api_request_table()` is explicitly lossy compatibility formatting. It unions
 heterogeneous fields, represents missing fields as NA, collapses nested values
@@ -341,9 +354,134 @@ Shared limits apply only to applicable request bodies, so ordinary GET requests
 are unaffected. The helper rejects oversized requests before sending them. Item limits apply
 to top-level array bodies supplied as unnamed lists; byte limits measure the
 serialized UTF-8 JSON, UTF-8 plain text, or raw binary payload. Limits embedded only in prose need
-explicit review; they are not silently treated as schema constraints. Automatic
-chunking, response aggregation and nested-array limits remain separate work. Existing client-owned helpers need a `batch` argument
-before using these settings; generation verifies that compatibility.
+explicit review; they are not silently treated as schema constraints. Nested-array
+limits remain separate work. Existing client-owned helpers need a `batch` argument
+before using these settings; generation verifies that compatibility. To send
+oversized input in several requests instead of rejecting it, see the next section.
+
+### Many inputs in one call: fan_out and split
+
+Two `batch` settings let one wrapper call send several requests and return one
+combined result:
+
+- `fan_out: <parameter>` makes a scalar path or query parameter accept a vector.
+  The wrapper sends one request per element.
+- `split: true` sends a top-level array body that is longer than `max_items` in
+  chunks of at most `max_items` items. There is no separate chunk size. The limit
+  the API enforces is the size the wrapper splits to.
+- `on_error: stop | drop` decides what a failed request does. The default is
+  `stop`.
+
+Set the per-API limit once and opt operations in. Settings inherit like every
+other `batch` field, through project, API, group, service and operation:
+
+```yaml
+# apis/comptox.yml
+defaults:
+  batch:
+    max_items: 200     # what the API accepts per request
+    split: true        # chunk larger array bodies instead of rejecting them
+    on_error: drop
+operations:
+  GET /hazard/toxval/search/by-dtxsid/{dtxsid}:
+    batch:
+      fan_out: dtxsid
+```
+
+```r
+ct_hazard_toxval_search(c('DTXSID7020182', 'DTXSID2021315'))  # two GET requests
+ct_chemical_detail_search_bulk(ids)                            # ceiling(length(ids) / 200) POST requests
+```
+
+**What is sent.** Every element of a fan-out vector is validated against the
+parameter's scalar schema before any request goes out, so a bad element fails the
+whole call with no partial traffic. A split body is validated as a whole, except
+for its schema `maxItems`, and the helper still checks `max_items` and `max_bytes`
+on each chunk. Input that fits in one request, including a single element, is
+sent unchanged as one request. Requests are sequential. Other arguments, such as
+`projection` alongside a fanned-out `dtxsid`, are the same on every request.
+
+**Hooks and policies run per request.** The wrapper runs `pre_request`, the
+request, and `post_response` once per element or chunk:
+
+- `pre_request` sees `state$params` holding one element (fan-out) or one chunk
+  (split). Setting `skip_request` skips only that request, for example on a
+  per-ID cache hit.
+- `post_response` cleans or converts each response on its own.
+- `response_policy` receives the element or chunk as `context$query`, provided
+  attribution applies to the request (see
+  [Response policy](#response-policy-and-selected-formatting)). A split chunk is
+  always attributed. A fanned-out path parameter is attributed when it is the
+  only path parameter. A fanned-out query parameter is attributed when the
+  operation has no path parameters and it is the only query value sent.
+
+**What is returned.** The per-request results are combined, whatever the number
+of inputs, so `f('A')` and `f(c('A', 'B'))` return the same type:
+
+- If every result is a data frame (for example, a hook returned tibbles), they
+  are stacked with `rbind()`. A column missing from some results is filled with
+  `NA`.
+- Otherwise the result is one list of records. A single-object response adds one
+  record; an array response adds each of its elements, in request order.
+- Requests that return nothing, such as an empty array or a hook returning
+  `NULL`, add nothing. They are not failures.
+
+Note that a fan-out wrapper given one ID returns `list(record)`, not `record`.
+
+**Failures.** With `on_error: stop`, the first failed request raises its error,
+and nothing is returned. With `on_error: drop`, each failure gives a warning
+naming its input, and the call continues:
+
+```
+Warning message:
+Request for DTXSID2021315 failed: HTTP 404 application/json response
+```
+
+The combined result then carries `attr(result, 'failed')`, a named character
+vector mapping each failed input to its error message. For a split, the name is
+the chunk's items joined with `, `, because a chunk fails as a whole. The
+attribute is absent when every request succeeds. Use it to detect or retry
+failures in code:
+
+```r
+x <- ct_hazard_toxval_search(ids)
+failed <- attr(x, 'failed')
+if (length(failed)) retry <- ct_hazard_toxval_search(names(failed))
+```
+
+**Runtime override.** The generated `on_error` is a default. The helper's batching
+option overrides it for every fan-out and split wrapper of that helper, for
+example to fail fast while debugging:
+
+```r
+options(comptoxr.api_request.batching = list(on_error = 'stop'))
+```
+
+The option prefix follows the package request-option prefix, as described under
+[Pagination](#pagination). Only `stop` and `drop` are accepted here. The
+companion's `keep` mode does not apply, because combining would discard its
+placeholders.
+
+**Configuration rules.** Inherited settings apply only where they fit. An
+API-level `split: true` affects only operations with an array body and a
+`max_items` limit, and a group-level `fan_out` affects only operations with that
+parameter. Set on an individual operation, a setting that does not fit stops
+generation:
+
+| Setting on an operation | Requirement |
+|---|---|
+| `fan_out` | Names a path or query parameter with a scalar (string, integer, number, boolean) schema |
+| `split` | `max_items` is set, on a top-level JSON array or line-delimited text body |
+| `on_error` | `fan_out` or `split` also applies |
+| `fan_out` with `split` | Not allowed on the same operation |
+
+**Helper adoption.** Fan-out and split wrappers call two functions in the
+client-owned request helper file: `<helper>_each()`, which runs the requests and
+records failures, and `<helper>_combine()`, which joins results. New clients get
+both. An existing helper file that lacks them stops generation with a message
+naming them; compare the helper with the current template (see
+[Existing clients](existing-clients.html)) and copy the two functions in.
+Operations without `fan_out` or `split` generate exactly as before.
 
 For a new package, `initialize_client()` writes editable YAML grouped by schema
 tags. To preview that configuration first, or propose it for an existing package:
@@ -1243,8 +1381,9 @@ Apply only reviewed changes, then run `check` and [the client's tests](testing.h
 Select `companions = c('batching', 'pagination')` in `initialize_client()` to emit
 reusable helper-prefixed functions into the existing client-owned request helper.
 They use the same ownership baseline and manual-adoption rules as transport.
-No per-endpoint looping variants are generated; ordinary wrappers remain single
-requests. Emission requires no specmill runtime dependency. Pagination adds digest
+Ordinary wrappers remain single requests; to make a wrapper loop over its own
+input, use `batch.fan_out` or `batch.split` (see
+[Many inputs in one call](#many-inputs-in-one-call-fan_out-and-split)). Emission requires no specmill runtime dependency. Pagination adds digest
 to a new client's Imports; an existing DESCRIPTION must declare it first.
 
 Use a shared policy list in retained client code, or the package/helper-scoped
