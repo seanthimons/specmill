@@ -184,11 +184,16 @@ response_handling_acceptance <- function() {
     inherits(observed[[1L]]$response, 'httr2_response'),
     identical(
       observed[[2L]]$context,
-      list(method = 'GET', status = 503L, media = 'text/plain')
+      list(
+        method = 'GET',
+        status = 503L,
+        media = 'text/plain',
+        query = 'secret'
+      )
     ),
-    !grepl(
-      'secret',
-      paste(capture.output(str(observed[[2L]]$context)), collapse = '')
+    identical(
+      observed[[1L]]$context,
+      list(method = 'GET', status = 200L, media = 'application/json')
     )
   )
   retried <- request(
@@ -200,6 +205,64 @@ response_handling_acceptance <- function() {
     identical(retried$attempt, 3L),
     length(observed) == 4L,
     observed[[4L]]$context$status == 200L
+  )
+  attributed <- function(response, context, decode) context$query
+  tabled <- function(response, context, decode) {
+    runtime$api_request_table(
+      runtime$api_request_records(decode(), query = context$query)
+    )
+  }
+  stopifnot(
+    identical(
+      request('/object', list(id = 'x'), response_policy = attributed),
+      'x'
+    ),
+    is.null(request(
+      '/object',
+      list(id = 'x', page = 2L),
+      response_policy = attributed
+    )),
+    identical(
+      runtime$api_request(
+        'GET',
+        '/{name}',
+        list(name = 'object'),
+        list(api_key = 'secret'),
+        NULL,
+        response_policy = attributed
+      ),
+      'object'
+    ),
+    identical(
+      runtime$api_request(
+        'POST',
+        '/{name}',
+        list(name = 'object'),
+        list(),
+        list('a', 'b'),
+        response_policy = attributed
+      ),
+      list('a', 'b')
+    ),
+    is.null(runtime$api_request(
+      'POST',
+      '/object',
+      list(),
+      list(),
+      list(id = 'a'),
+      response_policy = attributed
+    )),
+    identical(
+      runtime$api_request(
+        'GET',
+        '/{name}',
+        list(name = 'object'),
+        list(),
+        NULL,
+        response_policy = tabled
+      ),
+      data.frame(id = 1L, query = 'object')
+    )
   )
   replacement <- function(response, context, decode) NULL
   stopifnot(
