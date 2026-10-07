@@ -1116,9 +1116,9 @@ each branch keeps its constraints:
 
 Unions that mix object and non-object branches, `allOf` branches without a
 shared type, and schemas that only admit null remain `parameter_composition`
-diagnostics. A schema default that fails its own schema is left out of the
-wrapper signature, so the server applies its default; a reviewed
-`public_default` is kept. A client-owned request helper predating this support
+diagnostics. Schema defaults are kept as written: a default that fails its own
+schema fails every call that omits the argument, so review it with a
+`default` parameter override (`default: null` omits it). A client-owned request helper predating this support
 encodes scalar unions only in simple query, path, and header positions; adopt
 the current helper for label, matrix, or cookie scalar unions and for arrays
 of mixed scalar types. Complete request mappings and explicitly retained implementations
