@@ -27,9 +27,8 @@ schema_stress_acceptance <- function() {
   status <- vapply(parsed$inventory, `[[`, character(1), 'status')
   stopifnot(
     length(status) == 43L,
-    sum(status == 'selected') == 40L,
-    sum(status == 'unsupported') == 3L,
-    length(parsed$diagnostics) == 3L
+    sum(status == 'selected') == 43L,
+    !length(parsed$diagnostics)
   )
   reasons <- setNames(
     vapply(
@@ -44,8 +43,8 @@ schema_stress_acceptance <- function() {
     reasons[['POST /convert/cdx-to-mol']] == '',
     reasons[['POST /ocsr/process-upload']] == '',
     reasons[['POST /convert/batch']] == '',
-    reasons[['GET /chem/tanimoto']] == 'Unsupported parameter composition',
-    reasons[['GET /depict/2D_enhanced']] == 'Unsupported parameter composition'
+    reasons[['GET /chem/tanimoto']] == '',
+    reasons[['GET /depict/2D_enhanced']] == ''
   )
   text <- Filter(
     function(op) identical(op$body_media, 'text/plain'),
@@ -149,7 +148,6 @@ schema_stress_acceptance <- function() {
       full.names = TRUE
     ))
   }
-  before <- hashes()
   fails <- function(expr) {
     stopifnot(inherits(
       tryCatch(
@@ -162,13 +160,14 @@ schema_stress_acceptance <- function() {
       'error'
     ))
   }
-  fails(specmill::generate_client(
+  # Every visible operation, including nullable composed parameters, generates.
+  full <- specmill::generate_client(
     validation = FALSE,
     root,
     config = 'specmill.yml',
     mode = 'apply'
-  ))
-  stopifnot(identical(before, hashes()))
+  )
+  stopifnot(length(full$operations) == 43L, !length(full$diagnostics))
   service_path <- file.path(root, 'apis/default.yml')
   service <- yaml::read_yaml(service_path)
   service$schemas$files <- as.list(service$schemas$files)
@@ -270,7 +269,7 @@ schema_stress_acceptance <- function() {
     identical(charToRaw(request$body), charToRaw(enc2utf8(text)))
   )
   cat(
-    'Schema stress: 43 visible operations, 40 supported, 3 diagnosed; multipart fixtures and four local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
+    'Schema stress: 43 visible operations, all supported; multipart fixtures and four local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

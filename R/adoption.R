@@ -136,7 +136,7 @@ verify_adoption <- function(
       return(unlist(schema$enum[1L]))
     }
     switch(
-      schema$type %or% 'string',
+      (schema$type %or% 'string')[[1L]],
       integer = 1L,
       number = 1,
       boolean = TRUE,

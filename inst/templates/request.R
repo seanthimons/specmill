@@ -70,15 +70,16 @@ api_request <- function(method, path, path_params, query, body, headers = base::
       if (base::isTRUE(p$required)) base::stop('Required parameter: ', p$name)
       base::return(base::character())
     }
-    type <- p$schema$type
+    # A union of scalar types encodes like any scalar.
+    type <- if (base::length(p$schema$type) == 1L) p$schema$type else 'scalar'
     style <- p$style
     explode <- base::isTRUE(p$explode)
     scalar <- function(x, schema) {
       valid <- !base::is.object(x) && base::is.null(base::dim(x)) && base::is.null(base::names(x)) && base::length(x) == 1L && !base::anyNA(x) &&
         (base::is.character(x) || base::is.logical(x) || (base::is.numeric(x) && base::is.finite(x)))
-      if (valid && !base::is.null(schema$type)) valid <- base::switch(schema$type,
+      if (valid && !base::is.null(schema$type)) valid <- base::any(base::vapply(schema$type, function(type) base::switch(type,
         string = base::is.character(x), boolean = base::is.logical(x),
-        number = base::is.numeric(x), integer = base::is.numeric(x) && x == base::trunc(x), FALSE)
+        number = base::is.numeric(x), integer = base::is.numeric(x) && x == base::trunc(x), FALSE), base::logical(1)))
       if (!valid) base::stop('Parameter must contain finite, non-null scalars of its declared type: ', p$name)
       if (base::is.logical(x)) if (x) 'true' else 'false' else base::as.character(x)
     }

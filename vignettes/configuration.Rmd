@@ -1095,10 +1095,33 @@ Branch matching checks types, required fields, typed maps, closed objects,
 enum/const values, numeric and string bounds, patterns, array length/uniqueness,
 and object size. Unsupported assertion keywords in JSON bodies produce
 an operation-specific diagnostic; malformed supported constraints are schema
-defects. Formats remain annotations. Parameter and
-form-body compositions remain diagnosed because their wire representation needs
-separate support; response schemas remain metadata, without generated response
-validation. Complete request mappings and explicitly retained implementations
+defects. Formats remain annotations. Form-body compositions remain diagnosed
+because their wire representation needs separate support; response schemas
+remain metadata, without generated response validation.
+
+Path, query, header, and cookie parameters also accept `oneOf`, `anyOf`,
+`allOf`, and OpenAPI 3.1 type arrays. specmill encodes the value by the
+branches' shared wire shape and validates it against the complete schema, so
+each branch keeps its constraints:
+
+- A nullable parameter, such as `anyOf: [{type: integer}, {type: 'null'}]`,
+  encodes like its non-null branch. Parameters have no encoding for JSON
+  null: `NULL` omits an optional parameter, and a required one must be
+  supplied.
+- A union of scalar types accepts a value of any branch type.
+- A union of a scalar and an array encodes as an array; a single value sends
+  one item.
+- A union of objects encodes the fields of the matching branch.
+- `allOf` merges its branches, which must share a type.
+
+Unions that mix object and non-object branches, `allOf` branches without a
+shared type, and schemas that only admit null remain `parameter_composition`
+diagnostics. A schema default that fails its own schema is left out of the
+wrapper signature, so the server applies its default; a reviewed
+`public_default` is kept. A client-owned request helper predating this support
+encodes scalar unions only in simple query, path, and header positions; adopt
+the current helper for label, matrix, or cookie scalar unions and for arrays
+of mixed scalar types. Complete request mappings and explicitly retained implementations
 remain the customization paths for unsupported contracts.
 
 Local references are resolved relative to the containing file; remote references
