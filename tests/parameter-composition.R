@@ -88,18 +88,22 @@ parameter_composition_acceptance <- function() {
             list(anyOf = list(list(type = 'string', minLength = 2L), null))
           ),
           query('n', list(type = list('integer', 'null'))),
-          # A default its own schema rejects is dropped; a valid one is kept.
           query(
             'limit',
-            list(anyOf = list(list(type = 'integer'), null), default = '10')
+            list(anyOf = list(list(type = 'integer'), null), default = 10L)
           ),
-          query('page', list(type = 'integer', default = 1L)),
-          # An empty default fails the empty-query check, so it is dropped too.
-          query(
-            'mode',
-            list(type = 'string', enum = list('', 'x'), default = '')
-          )
+          query('page', list(type = 'integer', default = 1L))
         )
+      )
+    ),
+    '/strict' = list(
+      get = operation(
+        'strict',
+        # A default its own schema rejects stays as written for review.
+        list(query(
+          's',
+          list(anyOf = list(list(type = 'integer'), null), default = '10')
+        ))
       )
     ),
     '/union/{id}' = list(
@@ -198,7 +202,7 @@ parameter_composition_acceptance <- function() {
   )
   schema <- write_schema(supported)
   parsed <- specmill::read_operations(schema)
-  stopifnot(length(parsed$operations) == 5L, !length(parsed$diagnostics))
+  stopifnot(length(parsed$operations) == 6L, !length(parsed$diagnostics))
   params <- unlist(
     lapply(unname(parsed$operations), function(op) {
       stats::setNames(op$parameters, vapply(op$parameters, `[[`, '', 'name'))
@@ -218,7 +222,7 @@ parameter_composition_acceptance <- function() {
     identical(wire$f, 'object'),
     setequal(names(params$f$schema$properties), c('a', 'b')),
     all(vapply(
-      params[!names(params) %in% c('page', 'mode')],
+      params[names(params) != 'page'],
       function(p) !is.null(p$validation_schema),
       logical(1)
     )),
@@ -227,7 +231,7 @@ parameter_composition_acceptance <- function() {
   # Fixtures satisfy the original composed schemas.
   fixtures <- specmill::operation_fixtures(
     parsed$operations,
-    list(nullable = list(mode = 'x'))
+    list(strict = list(s = 5L))
   )
   stopifnot(
     identical(fixtures$all$code, 'AB'),
@@ -268,19 +272,25 @@ parameter_composition_acceptance <- function() {
   # Nullable scalars: NULL omits an optional parameter; JSON null has no
   # query encoding, so a required one must be present.
   stopifnot(
-    is.null(formals(runtime$nullable)$limit),
+    identical(formals(runtime$nullable)$limit, 10L),
     identical(formals(runtime$nullable)$page, 1L),
-    is.null(formals(runtime$nullable)$mode),
-    identical(sent(runtime$nullable(r = 1L)), '/nullable?r=1&page=1'),
+    identical(sent(runtime$nullable(r = 1L)), '/nullable?r=1&limit=10&page=1'),
     identical(
       sent(runtime$nullable(r = 1L, q = 'ab', n = 2L, limit = 5L)),
       '/nullable?r=1&q=ab&n=2&limit=5&page=1'
     ),
-    identical(sent(runtime$nullable(r = 1L, q = NULL)), '/nullable?r=1&page=1')
+    identical(
+      sent(runtime$nullable(r = 1L, q = NULL, limit = NULL)),
+      '/nullable?r=1&page=1'
+    ),
+    identical(formals(runtime$strict)$s, '10'),
+    identical(sent(runtime$strict(5L)), '/strict?s=5')
   )
   fails(runtime$nullable(r = 1L, q = 'a'), 'Invalid query parameter q')
   fails(runtime$nullable(r = 1L, n = 'x'), 'Invalid query parameter n')
   fails(runtime$nullable(r = NULL), 'Required input: r')
+  # Omitting the argument activates the invalid default, which fails loudly.
+  fails(runtime$strict(), 'Invalid query parameter s')
   fails(runtime$nullable(), 'r')
   # A scalar union keeps each branch's constraints.
   stopifnot(

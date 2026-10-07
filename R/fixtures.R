@@ -243,11 +243,8 @@ parameter_fixture <- function(p, override) {
   }
   wire <- p$schema
   wire$type <- wire$type[[1L]]
-  # A schema default can violate its own schema; retry without it.
-  bare <- wire[setdiff(names(wire), c('example', 'default'))]
   candidates <- c(
     tryCatch(list(fixture_value(wire)), error = function(e) list()),
-    tryCatch(list(fixture_value(bare)), error = function(e) list()),
     lapply(body_fixture_candidates(schema), function(x) {
       if (is.list(x) && is.null(names(x))) unlist(x, use.names = FALSE) else x
     })
