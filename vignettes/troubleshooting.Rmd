@@ -105,6 +105,7 @@ full schema validity or live-service correctness.
 | Unresolved callback | Source your development callbacks into the explicitly supplied environment |
 | Missing helper definition / helper argument | Define it in client `R/` and map the actual helper signature |
 | Missing fixed contracts | Author independent fixtures for selected operations; use test `--dry-run` to inspect gaps |
+| `Invalid selected operation defaults` | Run `mode = 'plan'` and read the `parameter_default_schema` or `parameter_default_transport` diagnostics. Set a valid default or `default: null` under the operation's `parameters` in the service YAML; see [parameter defaults](configuration.html#name-and-document-a-wrapper) |
 | Generated output is stale or protected | Inspect a fresh plan; apply reviewed input changes or resolve ownership |
 | Formatter version mismatch | Install the exact Air version declared by the project; keep formatting policy consistent |
 | Unsafe documentation tag | Put executable/custom roxygen handlers in client code, and use `docs` fields for policy |
