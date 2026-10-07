@@ -374,3 +374,41 @@ api_request_table <- function(records, type_convert = TRUE, names_to = NULL, as_
   result <- base::structure(stats::setNames(columns, fields), class = 'data.frame', row.names = base::seq_along(rows))
   as_table(result)
 }
+
+# Sends one request per item or chunk for batch.fan_out and batch.split wrappers.
+# The <helper>.batching option's on_error overrides the generated default.
+api_request_each <- function(send, items, size, on_error = 'stop') {
+  policy <- base::getOption(base::paste0(base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV)), '.api_request.batching'), base::list())
+  if (!base::is.null(policy$on_error)) on_error <- policy$on_error
+  if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
+  # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
+  chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
+  failed <- base::character()
+  results <- base::lapply(chunks, function(chunk) {
+    if (on_error == 'stop') base::return(send(chunk))
+    base::tryCatch(send(chunk), error = function(e) {
+      label <- base::paste(base::as.character(base::unlist(chunk)), collapse = ', ')
+      base::warning('Request for ', label, ' failed: ', base::conditionMessage(e), call. = FALSE)
+      failed[[label]] <<- base::conditionMessage(e)
+      NULL
+    })
+  })
+  result <- api_request_combine(results)
+  if (base::length(failed)) base::attr(result, 'failed') <- failed
+  result
+}
+
+# Stacks data frames (missing columns become NA); otherwise returns one list of records.
+api_request_combine <- function(results) {
+  results <- base::Filter(base::Negate(base::is.null), results)
+  if (base::length(results) && base::all(base::vapply(results, base::is.data.frame, base::logical(1)))) {
+    columns <- base::unique(base::unlist(base::lapply(results, base::names), use.names = FALSE))
+    results <- base::lapply(results, function(x) {
+      for (column in base::setdiff(columns, base::names(x))) x[[column]] <- base::rep(NA, base::nrow(x))
+      x[columns]
+    })
+    base::return(base::do.call(base::rbind, base::unname(results)))
+  }
+  records <- base::lapply(results, function(x) if (base::is.list(x) && !base::is.data.frame(x) && base::is.null(base::names(x))) x else base::list(x))
+  base::do.call(base::c, base::c(base::list(base::list()), base::unname(records)))
+}
