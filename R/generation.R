@@ -138,7 +138,7 @@ render_operation <- function(operation, spec) {
             empty <- params[[i]]$location == 'query' &&
               !isTRUE(params[[i]]$allow_empty_value) &&
               is.character(default) &&
-              any(!nzchar(default))
+              !all(nzchar(default))
             invalid <- !is.null(default) &&
               inherits(
                 try(
