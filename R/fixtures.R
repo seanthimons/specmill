@@ -217,6 +217,49 @@ fixture_value <- function(schema, override = NULL) {
   value
 }
 
+# Composed parameters take the first wire-shaped candidate the original accepts.
+parameter_fixture <- function(p, override) {
+  schema <- p$validation_schema
+  if (is.null(schema)) {
+    return(
+      if (missing(override)) {
+        fixture_value(p$schema)
+      } else {
+        fixture_value(p$schema, override)
+      }
+    )
+  }
+  check <- function(value) {
+    parameter_values(
+      list(value = value),
+      list(value = schema),
+      body_value,
+      list(value = p$location)
+    )
+    value
+  }
+  if (!missing(override)) {
+    return(check(override))
+  }
+  wire <- p$schema
+  wire$type <- wire$type[[1L]]
+  # A schema default can violate its own schema; retry without it.
+  bare <- wire[setdiff(names(wire), c('example', 'default'))]
+  candidates <- c(
+    tryCatch(list(fixture_value(wire)), error = function(e) list()),
+    tryCatch(list(fixture_value(bare)), error = function(e) list()),
+    lapply(body_fixture_candidates(schema), function(x) {
+      if (is.list(x) && is.null(names(x))) unlist(x, use.names = FALSE) else x
+    })
+  )
+  for (value in Filter(Negate(is.null), candidates)) {
+    if (!inherits(try(check(value), silent = TRUE), 'try-error')) {
+      return(value)
+    }
+  }
+  stop('No valid fixture: supply a reviewed override', call. = FALSE)
+}
+
 minimal_fixture_schema <- function(schema) {
   if (length(schema$properties)) {
     schema$properties <- lapply(
@@ -258,11 +301,11 @@ operation_fixtures <- function(
         tryCatch(
           {
             value <- if (p$name %in% names(overrides[[op$name]])) {
-              fixture_value(p$schema, overrides[[op$name]][[p$name]])
+              parameter_fixture(p, overrides[[op$name]][[p$name]])
             } else if ('example' %in% names(p$example)) {
-              fixture_value(p$schema, p$example$example)
+              parameter_fixture(p, p$example$example)
             } else {
-              fixture_value(p$schema)
+              parameter_fixture(p)
             }
             if (
               p$location == 'query' &&

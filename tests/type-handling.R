@@ -115,25 +115,16 @@ type_handling_acceptance <- function() {
   stopifnot(
     identical(
       sort(names(parsed$operations)),
-      c('missing_type', 'nullable_response')
+      c('missing_type', 'nullable_parameter', 'nullable_response')
     ),
-    length(parsed$diagnostics) == 2L,
-    any(vapply(
-      parsed$diagnostics,
-      function(x) {
-        identical(x$key, 'GET /nullable-parameter') &&
-          identical(x$code, 'parameter_shape')
-      },
-      logical(1)
-    )),
-    any(vapply(
-      parsed$diagnostics,
-      function(x) {
-        identical(x$key, 'GET /parser-failure') &&
-          identical(x$code, 'parser_failure')
-      },
-      logical(1)
-    ))
+    # A nullable parameter encodes by its non-null type.
+    identical(
+      parsed$operations$nullable_parameter$parameters[[1L]]$schema$type,
+      'string'
+    ),
+    length(parsed$diagnostics) == 1L,
+    identical(parsed$diagnostics[[1L]]$key, 'GET /parser-failure'),
+    identical(parsed$diagnostics[[1L]]$code, 'parser_failure')
   )
   cat(
     'Type handling: absent and union types retain metadata, diagnose unsupported inputs, and do not abort sibling operations.\n'
