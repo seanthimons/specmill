@@ -27,9 +27,9 @@ schema_stress_acceptance <- function() {
   status <- vapply(parsed$inventory, `[[`, character(1), 'status')
   stopifnot(
     length(status) == 43L,
-    sum(status == 'selected') == 40L,
-    sum(status == 'unsupported') == 3L,
-    length(parsed$diagnostics) == 3L
+    sum(status == 'selected') == 43L,
+    sum(status == 'unsupported') == 0L,
+    length(parsed$diagnostics) == 0L
   )
   reasons <- setNames(
     vapply(
@@ -44,8 +44,9 @@ schema_stress_acceptance <- function() {
     reasons[['POST /convert/cdx-to-mol']] == '',
     reasons[['POST /ocsr/process-upload']] == '',
     reasons[['POST /convert/batch']] == '',
-    reasons[['GET /chem/tanimoto']] == 'Unsupported parameter composition',
-    reasons[['GET /depict/2D_enhanced']] == 'Unsupported parameter composition'
+    reasons[['GET /chem/tanimoto']] == '',
+    reasons[['GET /depict/2D']] == '',
+    reasons[['GET /depict/2D_enhanced']] == ''
   )
   text <- Filter(
     function(op) identical(op$body_media, 'text/plain'),
@@ -149,7 +150,6 @@ schema_stress_acceptance <- function() {
       full.names = TRUE
     ))
   }
-  before <- hashes()
   fails <- function(expr) {
     stopifnot(inherits(
       tryCatch(
@@ -162,6 +162,21 @@ schema_stress_acceptance <- function() {
       'error'
     ))
   }
+  before <- hashes()
+  plan <- specmill::generate_client(
+    validation = FALSE,
+    root,
+    config = 'specmill.yml',
+    mode = 'plan'
+  )
+  stopifnot(
+    identical(before, hashes()),
+    length(plan$diagnostics) == 3L,
+    setequal(
+      vapply(plan$diagnostics, `[[`, character(1), 'parameter'),
+      c('nBits', 'radius', 'arrow')
+    )
+  )
   fails(specmill::generate_client(
     validation = FALSE,
     root,
@@ -172,11 +187,35 @@ schema_stress_acceptance <- function() {
   service_path <- file.path(root, 'apis/default.yml')
   service <- yaml::read_yaml(service_path)
   service$schemas$files <- as.list(service$schemas$files)
+  service$operations <- list(
+    'GET /chem/tanimoto' = list(
+      parameters = list(
+        'query nBits' = list(default = 2048L),
+        'query radius' = list(default = 2L)
+      )
+    ),
+    'GET /depict/2D_enhanced' = list(
+      parameters = list(
+        'query arrow' = list(default = NULL)
+      )
+    )
+  )
+  yaml::write_yaml(service, service_path)
+  full <- specmill::generate_client(
+    validation = FALSE,
+    root,
+    config = 'specmill.yml',
+    mode = 'apply'
+  )
+  stopifnot(length(full$operations) == 43L, !length(full$diagnostics))
   selected <- c(
     '/chem/HOSEcode',
     '/chem/classyfire/{jobid}/result',
     '/ocsr/process',
-    '/chem/standardize'
+    '/chem/standardize',
+    '/chem/tanimoto',
+    '/depict/2D',
+    '/depict/2D_enhanced'
   )
   service$selection <- list(
     exclude = as.list(paste0(
@@ -189,7 +228,10 @@ schema_stress_acceptance <- function() {
     'GET /chem/HOSEcode' = 'hose_code',
     'GET /chem/classyfire/{jobid}/result' = 'job_result',
     'POST /ocsr/process' = 'process_image',
-    'POST /chem/standardize' = 'standardize_text'
+    'POST /chem/standardize' = 'standardize_text',
+    'GET /chem/tanimoto' = 'tanimoto',
+    'GET /depict/2D' = 'depict',
+    'GET /depict/2D_enhanced' = 'depict_enhanced'
   )
   yaml::write_yaml(service, service_path)
   generated <- specmill::generate_client(
@@ -198,10 +240,20 @@ schema_stress_acceptance <- function() {
     config = 'specmill.yml',
     mode = 'apply'
   )
-  stopifnot(length(generated$operations) == 4L, !length(generated$diagnostics))
+  stopifnot(length(generated$operations) == 7L, !length(generated$diagnostics))
   before <- hashes()
-  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
-  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(
+    validation = FALSE,
+    root,
+    config = 'specmill.yml',
+    mode = 'check'
+  )
+  specmill::generate_client(
+    validation = FALSE,
+    root,
+    config = 'specmill.yml',
+    mode = 'apply'
+  )
   stopifnot(identical(before, hashes()))
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)) {
@@ -269,8 +321,42 @@ schema_stress_acceptance <- function() {
     request$type == 'text/plain',
     identical(charToRaw(request$body), charToRaw(enc2utf8(text)))
   )
+  # Corrected configuration defaults now work without per-call overrides.
+  before_request <- tools::md5sum(request_file)
+  fails(runtime$tanimoto('CCO,CC', nBits = '2048'))
+  stopifnot(identical(before_request, tools::md5sum(request_file)))
+  runtime$tanimoto('CCO,CC')
+  stopifnot(grepl(
+    'nBits=2048&radius=2',
+    readRDS(request_file)$query,
+    fixed = TRUE
+  ))
+  runtime$tanimoto('CCO,CC', nBits = 2048L, radius = NULL)
+  request <- readRDS(request_file)
+  stopifnot(
+    request$path == '/latest/chem/tanimoto',
+    request$query ==
+      '?smiles=CCO%2CCC&toolkit=rdkit&fingerprinter=ECFP&nBits=2048'
+  )
+  runtime$depict('CCO', width = NULL, highlight = 'C/O')
+  request <- readRDS(request_file)
+  stopifnot(
+    request$path == '/latest/depict/2D',
+    !grepl('width=', request$query, fixed = TRUE),
+    grepl('height=512', request$query, fixed = TRUE),
+    grepl('highlight=C%2FO', request$query, fixed = TRUE)
+  )
+  # An empty arrow default needs omission under the existing query contract.
+  runtime$depict_enhanced('CCO', width = 256L, title = 'a b')
+  request <- readRDS(request_file)
+  stopifnot(
+    request$path == '/latest/depict/2D_enhanced',
+    grepl('width=256', request$query, fixed = TRUE),
+    grepl('title=a%20b', request$query, fixed = TRUE),
+    !grepl('arrow=', request$query, fixed = TRUE)
+  )
   cat(
-    'Schema stress: 43 visible operations, 40 supported, 3 diagnosed; multipart fixtures and four local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
+    'Schema stress: 43 supported operations; multipart fixtures and seven local HTTP contracts, nullable scalars, source-default limitations, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

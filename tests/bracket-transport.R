@@ -47,13 +47,9 @@ bracket_transport_acceptance <- function() {
     jsonlite::write_json(document, schema, auto_unbox = TRUE, null = 'null')
     standard <- specmill::read_operations(schema)
     stopifnot(
-      length(standard$operations) == 1L,
-      length(standard$diagnostics) == 2L,
-      any(vapply(
-        standard$diagnostics,
-        function(x) x$key == 'GET /invalid',
-        logical(1)
-      ))
+      length(standard$operations) == 2L,
+      length(standard$diagnostics) == 1L,
+      identical(standard$diagnostics[[1L]]$key, 'GET /invalid')
     )
     parsed <- specmill::read_operations(
       schema,
@@ -62,8 +58,9 @@ bracket_transport_acceptance <- function() {
     stopifnot(
       identical(parsed$operations$search$parameters[[1L]]$style, 'brackets'),
       identical(parsed$operations$invalid$parameters[[1L]]$style, 'brackets'),
-      length(parsed$diagnostics) == 1L,
-      identical(parsed$diagnostics[[1L]]$key, 'GET /union')
+      # A composed array parameter takes the same wire style.
+      identical(parsed$operations$union$parameters[[1L]]$style, 'brackets'),
+      !length(parsed$diagnostics)
     )
     eval(
       parse(text = specmill::render_operation(

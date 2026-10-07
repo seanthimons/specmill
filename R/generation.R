@@ -60,7 +60,11 @@ iteration_settings <- function(operation, batch, explicit) {
     )
     scalar <- length(hit) &&
       isTRUE(
-        hit[[1L]]$schema$type %in% c('string', 'integer', 'number', 'boolean')
+        length(hit[[1L]]$schema$type) > 0L &&
+          all(
+            hit[[1L]]$schema$type %in%
+              c('string', 'integer', 'number', 'boolean')
+          )
       )
     if (!scalar) {
       if (!is.null(explicit$fan_out)) {
@@ -108,6 +112,15 @@ render_operation <- function(operation, spec) {
     identical(make.names(callback), callback)
   )
   params <- operation$parameters
+  default_diagnostics <- if (identical(spec$implementation, 'existing')) list() else {
+    parameter_default_diagnostics(operation,
+      native_transport = is.null(spec[['request']]))
+  }
+  if (length(default_diagnostics)) {
+    problem <- default_diagnostics[[1L]]
+    schema_problem(problem$code, problem$classification, problem$reason,
+      problem$source_location)
+  }
   input_names <- vapply(params, `[[`, character(1), 'name')
   formal_names <- parameter_names(params)
   formal_names <- make.unique(c(
@@ -124,25 +137,7 @@ render_operation <- function(operation, spec) {
       paste0(
         formal_names[[i]],
         if (!isTRUE(params[[i]]$public_required %or% params[[i]]$required)) {
-          value <- if ('public_default' %in% names(params[[i]])) {
-            params[[i]]$public_default
-          } else {
-            params[[i]]$schema$default
-          }
-          if (identical(params[[i]]$schema$type, 'array') && is.list(value)) {
-            value <- if (length(value)) {
-              unlist(value, use.names = FALSE)
-            } else {
-              switch(
-                params[[i]]$schema$items$type,
-                string = character(),
-                integer = integer(),
-                number = numeric(),
-                boolean = logical()
-              )
-            }
-          }
-          paste0(' = ', r_literal(number_value(value, params[[i]]$schema)))
+          paste0(' = ', r_literal(parameter_default(params[[i]])))
         } else {
           ''
         }
@@ -783,6 +778,7 @@ generate_client <- function(
   desired <- list()
   owners <- list()
   configured_operations <- list()
+  default_blocked_ids <- character()
   retained_sources <- character()
   source_names <- list()
   portable_rename_ids <- character()
@@ -907,6 +903,27 @@ generate_client <- function(
           )
         }
         op <- prepared
+      }
+      default_diagnostics <- if (identical(renderer, render_operation) &&
+          !identical(operation_spec$implementation, 'existing')) {
+        parameter_default_diagnostics(op,
+          native_transport = is.null(operation_spec[['request']]))
+      } else list()
+      if (length(default_diagnostics)) {
+        diagnostics <- c(diagnostics, default_diagnostics)
+        default_blocked_ids <- union(default_blocked_ids, op$id)
+        for (j in seq_along(inventory)) {
+          if (identical(inventory[[j]]$id, op$id)) {
+            inventory[[j]]$status <- 'unsupported'
+            inventory[[j]]$classification <- 'review_required'
+            inventory[[j]]$code <- default_diagnostics[[1L]]$code
+            inventory[[j]]$source_location <- default_diagnostics[[1L]]$source_location
+            inventory[[j]]$guidance <- default_diagnostics[[1L]]$guidance
+            inventory[[j]]$reason <- paste(vapply(default_diagnostics, `[[`,
+              character(1), 'reason'), collapse = '; ')
+          }
+        }
+        next
       }
       configured_operations[[op$name]] <- op
       file <- operation_spec[['file']] %or% paste0('R/', op$name, '.R')
@@ -1096,6 +1113,7 @@ generate_client <- function(
   portable_rename_ids <- union(portable_rename_ids, unlist(lapply(
     previous[portable_moves], `[[`, 'operations'), use.names = FALSE))
   named_ids <- union(named_ids, portable_rename_ids)
+  named_ids <- setdiff(named_ids, default_blocked_ids)
   excluded <- vapply(
     Filter(function(x) x$status == 'excluded', inventory),
     `[[`,
@@ -1383,6 +1401,9 @@ generate_client <- function(
     }
   }
   validate_inputs()
+  if (mode != 'plan' && length(diagnostics)) {
+    stop('Invalid selected operation defaults; inspect plan diagnostics before generation')
+  }
   # Unsupported operations never remove previous output or manual files.
   result <- apply_files(
     root,
