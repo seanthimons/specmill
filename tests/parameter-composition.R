@@ -99,7 +99,7 @@ parameter_composition_acceptance <- function() {
     '/strict' = list(
       get = operation(
         'strict',
-        # A default its own schema rejects stays as written for review.
+        # A default its own schema rejects needs a reviewed override.
         list(query(
           's',
           list(anyOf = list(list(type = 'integer'), null), default = '10')
@@ -251,6 +251,26 @@ parameter_composition_acceptance <- function() {
     ),
     license = 'MIT + file LICENSE'
   )
+  plan <- specmill::generate_client(
+    validation = FALSE,
+    root,
+    config = 'specmill.yml',
+    mode = 'plan'
+  )
+  stopifnot(
+    identical(
+      vapply(plan$diagnostics, `[[`, character(1), 'code'),
+      'parameter_default_schema'
+    ),
+    identical(plan$diagnostics[[1L]]$parameter, 's')
+  )
+  service_path <- list.files(file.path(root, 'apis'), full.names = TRUE)
+  service <- yaml::read_yaml(service_path)
+  service$schemas$files <- as.list(service$schemas$files)
+  service$operations <- list(
+    'GET /strict' = list(parameters = list('query s' = list(default = NULL)))
+  )
+  yaml::write_yaml(service, service_path)
   specmill::generate_client(
     validation = FALSE,
     root,
@@ -283,14 +303,13 @@ parameter_composition_acceptance <- function() {
       sent(runtime$nullable(r = 1L, q = NULL, limit = NULL)),
       '/nullable?r=1&page=1'
     ),
-    identical(formals(runtime$strict)$s, '10'),
+    is.null(formals(runtime$strict)$s),
+    identical(sent(runtime$strict()), '/strict'),
     identical(sent(runtime$strict(5L)), '/strict?s=5')
   )
   fails(runtime$nullable(r = 1L, q = 'a'), 'Invalid query parameter q')
   fails(runtime$nullable(r = 1L, n = 'x'), 'Invalid query parameter n')
   fails(runtime$nullable(r = NULL), 'Required input: r')
-  # Omitting the argument activates the invalid default, which fails loudly.
-  fails(runtime$strict(), 'Invalid query parameter s')
   fails(runtime$nullable(), 'r')
   # A scalar union keeps each branch's constraints.
   stopifnot(

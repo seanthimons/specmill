@@ -115,17 +115,28 @@ fixture_evidence_acceptance <- function() {
   parsed <- read(parameter)
   fails(inputs(parsed))
   stopifnot(!length(inputs(parsed, mode = 'minimal')))
+  # Fixture omission does not make an invalid emitted default safe to generate.
+  rejected <- tryCatch(
+    specmill::render_operation(parsed$operations[[1L]], list(helper = 'request')),
+    error = identity
+  )
+  stopifnot(
+    inherits(rejected, 'error'),
+    grepl('Empty query parameter', conditionMessage(rejected), fixed = TRUE)
+  )
+  operation <- parsed$operations[[1L]]
+  operation$parameters[[1L]]['public_default'] <- list(NULL)
   eval(
     parse(
       text = specmill::render_operation(
-        parsed$operations[[1L]],
+        operation,
         list(helper = 'request')
       )
     ),
     runtime
   )
-  # Omitting a defaulted argument activates its default, not wire omission.
-  stopifnot(inherits(tryCatch(runtime$sample(), error = identity), 'error'))
+  # Explicitly replacing the source default with NULL enables wire omission.
+  stopifnot(is.null(runtime$sample()$query$value))
   stopifnot(is.null(runtime$sample(value = NULL)$query$value))
   stopifnot(
     inputs(parsed, list(sample = list(value = 'reviewed')))$value == 'reviewed'
