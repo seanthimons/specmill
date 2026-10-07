@@ -1116,13 +1116,19 @@ each branch keeps its constraints:
 
 Unions that mix object and non-object branches, `allOf` branches without a
 shared type, and schemas that only admit null remain `parameter_composition`
-diagnostics. Schema defaults are kept as written: a default that fails its own
-schema fails every call that omits the argument, so review it with a
-`default` parameter override (`default: null` omits it). A client-owned request helper predating this support
+diagnostics. A default that fails the complete schema is reported by the
+default check below. A client-owned request helper predating this support
 encodes scalar unions only in simple query, path, and header positions; adopt
 the current helper for label, matrix, or cookie scalar unions and for arrays
 of mixed scalar types. Complete request mappings and explicitly retained implementations
 remain the customization paths for unsupported contracts.
+
+For nullable parameters, omission uses a declared default if present;
+explicit R `NULL` omits an optional parameter. Required arguments must be
+supplied with a non-null scalar. There is no inferred URL encoding for JSON
+null: neither an empty query value nor the literal string `"null"` represents
+null automatically. Sending a service-specific null encoding requires an
+explicit client mapping or helper.
 
 Local references are resolved relative to the containing file; remote references
 are never fetched. Cycles and reference chains exceeding 100 levels are
@@ -1172,6 +1178,41 @@ tags, and name collisions are errors. YAML aliases are supported; explicit keys
 override merged keys. YAML contains data, never R source strings.
 
 ## Name and document a wrapper
+
+Generation checks the effective default of each optional API parameter after
+configuration overrides and preparation callbacks. A default must pass the
+same supported schema-value checks as a supplied argument. Native request
+defaults must also pass parameter encoding checks. Empty query strings,
+empty containers, header newlines, and ambiguous serialization delimiters
+can therefore fail independently of schema constraints.
+
+`mode = 'plan'` reports `parameter_default_schema` or
+`parameter_default_transport`, the operation and parameter, the value and its
+origin, the source location, and guidance. Both codes use `review_required`:
+an incompatible default annotation does not establish that an OpenAPI 3.1
+schema is invalid. Apply and check stop before writing output when a selected
+operation has an invalid effective default. Specmill does not coerce or
+silently discard such defaults.
+
+Correct a default in service configuration without changing the input schema:
+
+```yaml
+operations:
+  GET /chem/tanimoto:
+    parameters:
+      query nBits: {default: 2048}
+      query radius: {default: 2}
+  GET /depict/2D_enhanced:
+    parameters:
+      query arrow: {default: null}
+```
+
+An explicit null override emits R `NULL`, which omits an optional parameter.
+Defaults on required arguments are ignored because no R default is emitted;
+excluded parameters and defaults on body schemas are also outside this check.
+Client-only inputs, custom renderers, and explicitly retained implementations
+keep their existing validation contracts. Complete request mappings retain
+schema-value and wrapper checks but own their transport encoding.
 
 Add this to the service that selects the catalogue schema:
 

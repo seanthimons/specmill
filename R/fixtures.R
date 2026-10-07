@@ -241,7 +241,8 @@ parameter_fixture <- function(p, override) {
   if (!missing(override)) {
     return(check(override))
   }
-  wire <- p$schema
+  # A null default or example is omission, not a fixture candidate.
+  wire <- Filter(Negate(is.null), p$schema)
   wire$type <- wire$type[[1L]]
   candidates <- c(
     tryCatch(list(fixture_value(wire)), error = function(e) list()),

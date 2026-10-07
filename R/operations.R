@@ -547,6 +547,11 @@ read_operations <- function(files, policy = list()) {
                 {
                   # Encode by the wire shape; validate against the original.
                   if (parameter_composed(schema)) {
+                    schema <- supported_body(
+                      schema,
+                      document,
+                      source_location = source_location
+                    )
                     validation_schema <- schema
                     schema <- parameter_wire_schema(schema, source_location)
                   }
