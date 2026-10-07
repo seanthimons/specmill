@@ -166,8 +166,30 @@ validate_settings <- function(
     }
   }
   if ('batch' %in% names(settings)) {
-    config_fields(settings$batch, c('max_items', 'max_bytes'), 'batch')
-    for (limit in settings$batch) {
+    config_fields(
+      settings$batch,
+      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error'),
+      'batch'
+    )
+    if (!is.null(settings$batch$fan_out)) {
+      config_string(settings$batch$fan_out, 'batch.fan_out')
+    }
+    if (
+      !is.null(settings$batch$split) &&
+        !isTRUE(settings$batch$split) &&
+        !isFALSE(settings$batch$split)
+    ) {
+      stop('batch.split must be true or false')
+    }
+    if (
+      !is.null(settings$batch$on_error) &&
+        (!is.character(settings$batch$on_error) ||
+          length(settings$batch$on_error) != 1L ||
+          !settings$batch$on_error %in% c('stop', 'drop'))
+    ) {
+      stop('batch.on_error must be stop or drop')
+    }
+    for (limit in settings$batch[c('max_items', 'max_bytes')]) {
       if (
         !is.null(limit) &&
           (!is.numeric(limit) ||

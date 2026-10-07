@@ -291,3 +291,8 @@ names use your helper prefix, for example `api_request_batched` and
 httr2 >= 1.3.0. Calling toolkit `specmill::paginated()` or `batched()` directly
 still requires specmill at runtime, so use emitted companions for independent
 clients. Keep response metadata until pagination finishes and format afterward.
+
+Wrappers configured with `batch.fan_out` or `batch.split` also call
+`<helper>_each()` and `<helper>_combine()`. These come with the base helper template, not a
+companion. Generation stops until an existing helper file defines them; adopt
+them the same way.
