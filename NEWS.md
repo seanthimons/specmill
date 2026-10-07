@@ -1,6 +1,26 @@
 
 
 
+## specmill 0.1.13 (2026-10-07)
+
+#### New features
+
+- fan out vector inputs and split array bodies into max_items chunks
+  (#81)
+  ([eae7769](https://github.com/seanthimons/specmill/tree/eae7769f82ba58be9d3d528967ed26458c65c78a))
+- attribute the request input in policy context (#83)
+  ([bf05d98](https://github.com/seanthimons/specmill/tree/bf05d98966e625d24bb14d6679c80bbc62a42d66))
+
+#### Other changes
+
+- release v0.1.13 \[skip ci\]
+  ([f3a1b9b](https://github.com/seanthimons/specmill/tree/f3a1b9b473c3308cca5f7fd0afc3126a761674cf))
+- add repository agent instructions
+  ([ad4d044](https://github.com/seanthimons/specmill/tree/ad4d0443f3c2f6ac67cad3e6a296a23bcdd37e3d))
+
+Full set of changes:
+[`v0.1.12...v0.1.13`](https://github.com/seanthimons/specmill/compare/v0.1.12...v0.1.13)
+
 ## specmill 0.1.12 (2026-10-04)
 
 #### Breaking changes
@@ -26,7 +46,7 @@
 #### Other changes
 
 - release v0.1.12 \[skip ci\]
-  ([3552089](https://github.com/seanthimons/specmill/tree/355208934fe6ee8295b3e9253c3b46bbaed5db2c))
+  ([d105eab](https://github.com/seanthimons/specmill/tree/d105eab99b15d6c38b67cd65e466f308f225a5b7))
 
 Full set of changes:
 [`v0.1.11...v0.1.12`](https://github.com/seanthimons/specmill/compare/v0.1.11...v0.1.12)
