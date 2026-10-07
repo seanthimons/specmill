@@ -542,15 +542,28 @@ read_operations <- function(files, policy = list()) {
                   parameter_items = identical(version, '2.0')
                 )
               }
+              validation_schema <- NULL
               encoding <- tryCatch(
-                parameter_shape(
-                  p,
-                  schema,
-                  version,
-                  source_location,
-                  policy$query_array_style_overrides[[key]] %or%
-                    policy$query_array_style
-                ),
+                {
+                  # Encode by the wire shape; validate against the original.
+                  if (parameter_composed(schema)) {
+                    schema <- supported_body(
+                      schema,
+                      document,
+                      source_location = source_location
+                    )
+                    validation_schema <- schema
+                    schema <- parameter_wire_schema(schema, source_location)
+                  }
+                  parameter_shape(
+                    p,
+                    schema,
+                    version,
+                    source_location,
+                    policy$query_array_style_overrides[[key]] %or%
+                      policy$query_array_style
+                  )
+                },
                 error = function(e) {
                   if (identical(e$classification, 'schema_defect')) {
                     stop(e)
@@ -562,17 +575,22 @@ read_operations <- function(files, policy = list()) {
               if (location == 'path' && !isTRUE(p$required)) {
                 stop('Path parameter must be required')
               }
-              list(
-                name = p$name,
-                location = location,
-                required = isTRUE(p$required),
-                allow_empty_value = isTRUE(p$allowEmptyValue),
-                schema = schema,
-                example = p[intersect('example', names(p))],
-                source_location = source_location,
-                style = encoding$style,
-                explode = encoding$explode,
-                collection_format = encoding$collection_format
+              c(
+                list(
+                  name = p$name,
+                  location = location,
+                  required = isTRUE(p$required),
+                  allow_empty_value = isTRUE(p$allowEmptyValue),
+                  schema = schema,
+                  example = p[intersect('example', names(p))],
+                  source_location = source_location,
+                  style = encoding$style,
+                  explode = encoding$explode,
+                  collection_format = encoding$collection_format
+                ),
+                if (!is.null(validation_schema)) {
+                  list(validation_schema = validation_schema)
+                }
               )
             })
             templates <- unique(gsub(
