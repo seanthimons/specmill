@@ -93,7 +93,12 @@ parameter_composition_acceptance <- function() {
             'limit',
             list(anyOf = list(list(type = 'integer'), null), default = '10')
           ),
-          query('page', list(type = 'integer', default = 1L))
+          query('page', list(type = 'integer', default = 1L)),
+          # An empty default fails the empty-query check, so it is dropped too.
+          query(
+            'mode',
+            list(type = 'string', enum = list('', 'x'), default = '')
+          )
         )
       )
     ),
@@ -213,14 +218,17 @@ parameter_composition_acceptance <- function() {
     identical(wire$f, 'object'),
     setequal(names(params$f$schema$properties), c('a', 'b')),
     all(vapply(
-      params[names(params) != 'page'],
+      params[!names(params) %in% c('page', 'mode')],
       function(p) !is.null(p$validation_schema),
       logical(1)
     )),
     is.null(params$page$validation_schema)
   )
   # Fixtures satisfy the original composed schemas.
-  fixtures <- specmill::operation_fixtures(parsed$operations)
+  fixtures <- specmill::operation_fixtures(
+    parsed$operations,
+    list(nullable = list(mode = 'x'))
+  )
   stopifnot(
     identical(fixtures$all$code, 'AB'),
     identical(fixtures$union$id, 'example'),
@@ -262,6 +270,7 @@ parameter_composition_acceptance <- function() {
   stopifnot(
     is.null(formals(runtime$nullable)$limit),
     identical(formals(runtime$nullable)$page, 1L),
+    is.null(formals(runtime$nullable)$mode),
     identical(sent(runtime$nullable(r = 1L)), '/nullable?r=1&page=1'),
     identical(
       sent(runtime$nullable(r = 1L, q = 'ab', n = 2L, limit = 5L)),

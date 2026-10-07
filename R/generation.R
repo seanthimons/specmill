@@ -131,10 +131,15 @@ render_operation <- function(operation, spec) {
           value <- if ('public_default' %in% names(params[[i]])) {
             params[[i]]$public_default
           } else {
-            # A default its own schema rejects would fail every call that
-            # omits it; omit the parameter so the server default applies.
+            # A default its own schema or the empty-query check rejects
+            # would fail every call that omits it; omit the parameter so
+            # the server default applies.
             default <- params[[i]]$schema$default
-            rejected <- !is.null(default) &&
+            empty <- params[[i]]$location == 'query' &&
+              !isTRUE(params[[i]]$allow_empty_value) &&
+              is.character(default) &&
+              any(!nzchar(default))
+            invalid <- !is.null(default) &&
               inherits(
                 try(
                   parameter_values(
@@ -150,7 +155,7 @@ render_operation <- function(operation, spec) {
                 ),
                 'try-error'
               )
-            if (rejected) NULL else default
+            if (empty || invalid) NULL else default
           }
           if (identical(params[[i]]$schema$type, 'array') && is.list(value)) {
             value <- if (length(value)) {
