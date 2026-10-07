@@ -167,6 +167,14 @@ file, `unchanged` means current output, `protected` needs your review, and
 `retained` means a proposed removal is being protected. An eligible deletion
 appears as `remove`. Manifest metadata can also appear in the plan.
 
+The plan also checks the default of each optional parameter against its schema
+and wire encoding. An invalid default, such as the string `"2048"` for an
+integer parameter, appears in `plan$diagnostics` as `parameter_default_schema`
+or `parameter_default_transport`. It blocks `apply` and `check` until you review
+it; specmill does not coerce or drop it. Set a valid default, or
+`default: null` to omit the argument, in the service YAML; see
+[parameter defaults](configuration.html#name-and-document-a-wrapper).
+
 ## 6. Apply, then check reproducibility
 
 ```{r apply}
