@@ -108,6 +108,35 @@ input_schema <- function(
   if (startsWith(version, '3.1')) {
     schema$nullable <- NULL
   }
+  # An untyped enum takes the one scalar type its values share (#95).
+  if (!'type' %in% names(schema) && length(schema$enum)) {
+    values <- as.list(schema$enum)
+    present <- values[!vapply(values, is.null, logical(1))]
+    kinds <- unique(vapply(
+      present,
+      function(value) {
+        if (length(value) != 1L || is.na(value)) {
+          NA_character_
+        } else if (is.character(value)) {
+          'string'
+        } else if (is.logical(value)) {
+          'boolean'
+        } else if (is.numeric(value)) {
+          if (value == round(value)) 'integer' else 'number'
+        } else {
+          NA_character_
+        }
+      },
+      character(1)
+    ))
+    if (setequal(kinds, c('integer', 'number'))) {
+      kinds <- 'number'
+    }
+    if (length(kinds) == 1L && !is.na(kinds)) {
+      nullable <- length(present) < length(values) && startsWith(version, '3.1')
+      schema$type <- c(kinds, if (nullable) 'null')
+    }
+  }
   for (field in intersect(names(schema), c('readOnly', 'writeOnly'))) {
     value <- schema[[field]]
     if (!is.logical(value) || length(value) != 1L || is.na(value)) {
