@@ -174,6 +174,33 @@ nullable_query_acceptance <- function() {
         length(parsed$diagnostics) > 0L
       )
     }
+    # An untyped enum takes its values' shared type (#95).
+    for (case in list(
+      list(enum = list('00', '01'), good = '01', bad = '02', wire = '?q=01'),
+      list(enum = list(1L, 2L), good = 2L, bad = 3L, wire = '?q=2')
+    )) {
+      parsed <- parse_document(document(
+        list(nullable = TRUE, enum = case$enum),
+        version = '3.0.3'
+      ))
+      stopifnot(!length(parsed$diagnostics))
+      eval(
+        parse(
+          text = specmill::render_operation(
+            parsed$operations[[1L]],
+            list(helper = 'api_request')
+          )
+        ),
+        runtime
+      )
+      stopifnot(
+        runtime$nullable(case$good)$query == case$wire,
+        runtime$nullable()$query == ''
+      )
+      fails(runtime$nullable(case$bad))
+    }
+    mixed <- parse_document(document(list(enum = list('a', 1L))))
+    stopifnot(mixed$diagnostics[[1L]]$code == 'parameter_shape')
     unsupported <- plain
     unsupported$not <- list(type = 'string')
     parsed <- parse_document(document(unsupported))
