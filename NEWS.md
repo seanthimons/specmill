@@ -1,6 +1,25 @@
 
 
 
+## specmill 0.1.16 (2026-10-08)
+
+#### Bug fixes
+
+- infer the type of untyped enum schemas from their values (#95)
+  ([ace1259](https://github.com/seanthimons/specmill/tree/ace12597f7ef343574509dc67ae3b716d0ae05d5))
+- drop a helper’s leading dot from its option names (#94)
+  ([6877163](https://github.com/seanthimons/specmill/tree/687716394e618b18d32d29a806fad2055dc4e34c))
+- ignore role lists on API-key and bearer security requirements (#90)
+  ([a283973](https://github.com/seanthimons/specmill/tree/a28397307e5cae8f55843b7dc47e6f95444e3a4c))
+
+#### Other changes
+
+- release v0.1.16 \[skip ci\]
+  ([96f0177](https://github.com/seanthimons/specmill/tree/96f0177209aee3df6220e842d4bc9b2b2a462268))
+
+Full set of changes:
+[`v0.1.15...v0.1.16`](https://github.com/seanthimons/specmill/compare/v0.1.15...v0.1.16)
+
 ## specmill 0.1.15 (2026-10-08)
 
 #### Docs
@@ -11,7 +30,7 @@
 #### Other changes
 
 - release v0.1.15 \[skip ci\]
-  ([dec0f86](https://github.com/seanthimons/specmill/tree/dec0f86289c085c8591096f7b9da5f4fd3ae0976))
+  ([f7c6f96](https://github.com/seanthimons/specmill/tree/f7c6f9666cfe89e8418a2bc9a613cc8bc65f1baf))
 
 Full set of changes:
 [`v0.1.14...v0.1.15`](https://github.com/seanthimons/specmill/compare/v0.1.14...v0.1.15)
