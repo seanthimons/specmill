@@ -172,6 +172,25 @@ iteration_companions_acceptance <- function() {
     ),
     !'api_request_paginated' %in% ls(other)
   )
+  # A leading dot is dropped from option names (#94).
+  dotted <- getFromNamespace('request_helper_scaffold', 'specmill')(
+    '.x',
+    origin,
+    NULL,
+    'ITERATIONCLIENT_DRY_RUN',
+    c('batching', 'pagination')
+  )
+  eval(parse(text = dotted$code), new.env(parent = baseenv()))
+  stopifnot(
+    !grepl('..x.', dotted$code, fixed = TRUE),
+    all(vapply(
+      c("'.x.batching'", '".x.batching"', '".x.pagination"', '".x.pagination_links"'),
+      grepl,
+      logical(1),
+      x = dotted$code,
+      fixed = TRUE
+    ))
+  )
   # Wrappers may legitimately shadow base constructors.
   other$list <- function(...) stop('shadowed list')
   other$c <- function(...) stop('shadowed c')
