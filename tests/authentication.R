@@ -17,7 +17,8 @@ authentication_acceptance <- function() {
           authorized <- switch(
             req$PATH_INFO,
             '/inherited' = identical(req$HTTP_X_API_KEY, 'fixture-key'),
-            '/bearer' = identical(
+            '/bearer' = ,
+            '/roles' = identical(
               req$HTTP_AUTHORIZATION,
               'Bearer fixture-bearer'
             ),
@@ -78,6 +79,8 @@ authentication_acceptance <- function() {
     inherited = NULL,
     public = list(),
     bearer = list(list(bearer = list())),
+    # Role lists on non-OAuth schemes are ignored, not rejected (#90).
+    roles = list(list(bearer = list('RequiresElevation'))),
     query = list(list(query = list())),
     cookie = list(list(cookie = list())),
     either = list(
@@ -214,6 +217,7 @@ authentication_acceptance <- function() {
   runtime$set_api_token('fixture-bearer', scheme = 'bearer')
   stopifnot(
     runtime$get_bearer()$bearer == 'Bearer fixture-bearer',
+    runtime$get_roles()$bearer == 'Bearer fixture-bearer',
     runtime$get_either()$bearer == 'Bearer fixture-bearer'
   )
   before <- readLines(count_file)
@@ -346,7 +350,7 @@ authentication_acceptance <- function() {
   )
   stopifnot(inherits(error, 'error'))
   cat(
-    'Authentication: API keys and bearer tokens, server rejection, inheritance, public overrides, OR/AND, deferred OAuth, missing-token preflight and safe environment persistence passed.\n'
+    'Authentication: API keys and bearer tokens, server rejection, inheritance, ignored role lists, public overrides, OR/AND, deferred OAuth, missing-token preflight and safe environment persistence passed.\n'
   )
 }
 if (sys.nframe() == 0L) {
