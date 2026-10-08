@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.15 (2026-10-08)
+
+#### Docs
+
+- explain reviewing invalid parameter defaults
+  ([2f9e372](https://github.com/seanthimons/specmill/tree/2f9e3722e95caf9aff2f5b90bfb3b212bdb77d9e))
+
+#### Other changes
+
+- release v0.1.15 \[skip ci\]
+  ([dec0f86](https://github.com/seanthimons/specmill/tree/dec0f86289c085c8591096f7b9da5f4fd3ae0976))
+
+Full set of changes:
+[`v0.1.14...v0.1.15`](https://github.com/seanthimons/specmill/compare/v0.1.14...v0.1.15)
+
 ## specmill 0.1.14 (2026-10-07)
 
 #### New features
@@ -23,7 +38,7 @@
 #### Other changes
 
 - release v0.1.14 \[skip ci\]
-  ([410bce2](https://github.com/seanthimons/specmill/tree/410bce24afea35c75356430738a9e89f2dd12c47))
+  ([7b57c4b](https://github.com/seanthimons/specmill/tree/7b57c4b615ea3026d7391f1a4e504079a28435aa))
 - merge nullable query defaults into composed parameters (#91)
   ([b8faa2b](https://github.com/seanthimons/specmill/tree/b8faa2baaf256045a2d3dbb16fdc857440d3f514))
 
