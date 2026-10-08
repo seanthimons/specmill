@@ -58,9 +58,7 @@ operation_authentication <- function(operation, envvars) {
       if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', envvar)) {
         stop('Invalid credential environment variable')
       }
-      if (length(requirement[[id]])) {
-        stop('API key and bearer security requirements cannot declare scopes')
-      }
+      # Role lists (valid in OpenAPI 3.1, common in 3.0) never reach the wire.
       if (type == 'apiKey') {
         location <- config_string(scheme[['in']], 'API key location')
         if (!location %in% c('header', 'query', 'cookie')) {
