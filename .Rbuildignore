@@ -15,3 +15,5 @@
 ^artifacts$
 ^dev$
 ^specmill_hex\.png$
+^AGENTS\.md$
+^CLAUDE\.md$
