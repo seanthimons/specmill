@@ -43,6 +43,13 @@ request_helper_substitute <- function(template, settings) {
     template,
     fixed = TRUE
   )
+  # Option names drop a leading dot: helper `.x` reads `<prefix>.x.batching`.
+  code <- gsub(
+    '.api_request.',
+    paste0('.', sub('^[.]', '', settings$helper), '.'),
+    code,
+    fixed = TRUE
+  )
   code <- gsub(
     'api_request',
     settings$helper,

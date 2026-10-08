@@ -1454,7 +1454,8 @@ Use a shared policy list in retained client code, or the package/helper-scoped
 options `<package>.<helper>.batching`, `<package>.<helper>.pagination`, and
 `<package>.<helper>.pagination_links`. The package prefix uses the lowercase
 dry-run prefix. For example `catalogueclient.api_request.pagination` applies to
-that helper only. Multi-API helper prefixes keep service policies separate.
+that helper only. A leading dot in the helper name is dropped, so helper
+`.ct_request` reads `comptoxr_native.ct_request.batching`. Multi-API helper prefixes keep service policies separate.
 Explicit pagination arguments override policy fields; a supplied batching policy
 replaces the shared list. There is no pagination YAML field or name inference.
 Maintainers supply API knowledge once per service, with operation exceptions;
