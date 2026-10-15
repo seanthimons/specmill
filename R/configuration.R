@@ -446,13 +446,17 @@ load_project <- function(
       declarations <- read_config_yaml(hook_file)
       inputs <<- c(inputs, hook_file)
       hooks <- lapply(declarations, function(x) {
-        x[intersect(names(x), c('pre_request', 'post_response'))]
+        x[intersect(names(x), c('pre_request', 'post_response', 'post_combine'))]
       })
       hooks <- Filter(function(x) length(x) > 0L, hooks)
     }
     config_fields(hooks, names(hooks), 'hooks')
     for (hook in hooks) {
-      config_fields(hook, c('pre_request', 'post_response'), 'hook stages')
+      config_fields(
+        hook,
+        c('pre_request', 'post_response', 'post_combine'),
+        'hook stages'
+      )
       for (chain in hook) {
         config_sequence(chain, 'hook chain')
       }

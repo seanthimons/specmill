@@ -431,7 +431,7 @@ configuration_proposal <- function(
       '# helper: api_request',
       '# documentation: true',
       '# Optional hooks: define client functions before enabling these settings.',
-      '# hooks: {} # Public wrapper name -> pre_request/post_response hook-name sequences.',
+      '# hooks: {} # Public wrapper name -> pre_request/post_response/post_combine hook-name sequences.',
       '# hook_callback: run_hook',
       '# hook_config: inst/hooks.yml # Alternative to inline hooks, not both.',
       '# prepare: prepare_operation # Development callback; pass an explicit callbacks environment.',

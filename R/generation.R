@@ -554,9 +554,17 @@ render_operation <- function(operation, spec) {
     )
   }
   lines <- c(lines, '  result')
+  if (length(hooks$post_combine) && is.null(operation$iterate)) {
+    stop(
+      'post_combine requires batch.fan_out or batch.split: ',
+      operation$id
+    )
+  }
   if (!is.null(operation$iterate)) {
     # Hooks and the request run once per item or chunk; the helper combines results.
+    # post_combine runs once on the combined result, with the caller's full params.
     input <- if (is.null(fan_out)) body_name else fan_out_name
+    combine <- length(hooks$post_combine) > 0L
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
@@ -564,6 +572,7 @@ render_operation <- function(operation, spec) {
       '  }',
       paste0(
         '  ',
+        if (combine) 'result <- ',
         helper,
         '_each(function(chunk) {'
       ),
@@ -579,7 +588,21 @@ render_operation <- function(operation, spec) {
         ', on_error = ',
         r_literal(operation$iterate$on_error),
         ')'
-      )
+      ),
+      if (combine) {
+        c(
+          '  failed <- base::attr(result, "failed", exact = TRUE)',
+          paste0(
+            '  result <- ',
+            callback,
+            '(',
+            r_literal(operation$name),
+            ', "post_combine", base::list(result = result, params = params))'
+          ),
+          '  if (!base::is.null(failed) && !base::is.null(result) && base::is.null(base::attr(result, "failed", exact = TRUE))) base::attr(result, "failed") <- failed',
+          '  result'
+        )
+      }
     )
   }
   code <- paste(c(lines, '}'), collapse = '\n')
@@ -746,6 +769,7 @@ generate_client <- function(
           '_table',
           '_each',
           '_combine',
+          '_build',
           '_batched',
           '_paginated',
           '_pagination_token',
@@ -757,6 +781,18 @@ generate_client <- function(
   )
   if (
     any(operation_names %in% intersect(companions, names(runtime_definitions)))
+  ) {
+    stop('Operation collides with a client companion; supply a name override')
+  }
+  # The batch flag is an environment, so it never appears among function definitions.
+  if (
+    any(
+      operation_names %in%
+        paste0(
+          vapply(services, function(x) x$helper %or% '', character(1)),
+          '_batch_state'
+        )
+    )
   ) {
     stop('Operation collides with a client companion; supply a name override')
   }
@@ -1370,11 +1406,33 @@ generate_client <- function(
           names(wrapper_functions)
         )]
       }
+      callback <- service$hook_callback %or% 'run_hook'
+      combining <- names(Filter(
+        function(x) length(x$post_combine) > 0L,
+        declarations
+      ))
+      executor <- runtime_definitions[[callback]]
+      if (
+        length(combining) &&
+          !is.null(executor) &&
+          !any(grepl('post_combine', deparse(executor$expr), fixed = TRUE))
+      ) {
+        stop(
+          'post_combine is configured for ',
+          paste(combining, collapse = ', '),
+          ' but the hook executor ',
+          callback,
+          '() does not accept that stage. Add "post_combine" to its allowed ',
+          'stages and return data$result for it (see vignette("hooks")), or ',
+          'remove post_combine from the hook configuration.',
+          call. = FALSE
+        )
+      }
       validation <- validate_hooks(
         declarations,
         wrapper_functions,
         hook_environment,
-        service$hook_callback %or% 'run_hook'
+        callback
       )
       if (!validation$valid) stop(paste(validation$errors, collapse = '\n'))
     }

@@ -408,6 +408,8 @@ request, and `post_response` once per element or chunk:
   (split). Setting `skip_request` skips only that request, for example on a
   per-ID cache hit.
 - `post_response` cleans or converts each response on its own.
+- `post_combine`, an optional extra stage, runs once on the combined result. See
+  [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper).
 - `response_policy` receives the element or chunk as `context$query`, provided
   attribution applies to the request (see
   [Response policy](#response-policy-and-selected-formatting)). A split chunk is
@@ -418,9 +420,16 @@ request, and `post_response` once per element or chunk:
 **What is returned.** The per-request results are combined, whatever the number
 of inputs, so `f('A')` and `f(c('A', 'B'))` return the same type:
 
-- If every result is a data frame (for example, a hook returned tibbles), they
-  are stacked with `rbind()`. A column missing from some results is filled with
-  `NA`.
+- If every result is a data frame, they are combined. Tables built by
+  `api_request_table()`, in a policy or a `post_response` hook, are rebuilt once
+  from all requests' records, so column types are recovered over the whole
+  result and match an unbatched call over the same records. (Without this, one
+  request's `"F"` values became `FALSE` and stacking them with another request's
+  `"MF"` produced `"FALSE"`.) This applies when no hook edited the table, every
+  request used the same `api_request_table()` options and record names agree;
+  otherwise the tables are stacked with `rbind()` as they are, and a column
+  missing from some results is filled with `NA`. Tables from a policy that does
+  not use `api_request_table()` are always stacked.
 - Otherwise the result is one list of records. A single-object response adds one
   record; an array response adds each of its elements, in request order.
 - Requests that return nothing, such as an empty array or a hook returning

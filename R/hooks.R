@@ -102,7 +102,7 @@ validate_hooks <- function(config, wrappers, hooks, callback = 'run_hook') {
       )
     }
 
-    for (hook_type in c("pre_request", "post_response")) {
+    for (hook_type in c("pre_request", "post_response", "post_combine")) {
       if (!is.null(fn_config[[hook_type]])) {
         hook_names <- fn_config[[hook_type]]
 
