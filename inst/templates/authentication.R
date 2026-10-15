@@ -8,14 +8,14 @@ api_token <- function(scheme = NULL) {
   envvars <- AUTH_ENVVARS
   if (is.null(scheme) && length(envvars) == 1L) scheme <- names(envvars)[[1L]]
   if (!is.character(scheme) || length(scheme) != 1L || is.na(scheme) || !scheme %in% names(envvars)) {
-    stop('Choose a configured credential scheme: ', paste(names(envvars), collapse = ', '), call. = FALSE)
+    stop(errorCondition(paste0('Choose a configured credential scheme: ', paste(names(envvars), collapse = ', ')), class = 'specmill_call_error', call = NULL))
   }
   value <- Sys.getenv(envvars[[scheme]], unset = '')
   if (!nzchar(trimws(value))) {
-    stop('Missing credential for ', scheme, '. Set ', envvars[[scheme]],
-      ' or call set_api_token(token, scheme = ', dQuote(scheme), ').', call. = FALSE)
+    stop(errorCondition(paste0('Missing credential for ', scheme, '. Set ', envvars[[scheme]],
+      ' or call set_api_token(token, scheme = "', scheme, '").'), class = 'specmill_call_error', call = NULL))
   }
-  if (grepl('[\r\n]', value)) stop('Credential contains a line break', call. = FALSE)
+  if (grepl('[\r\n]', value)) stop(errorCondition('Credential contains a line break', class = 'specmill_call_error', call = NULL))
   value
 }
 
@@ -101,6 +101,11 @@ api_auth <- function(request, requirements) {
     if (scheme$type %in% c('apiKey', 'bearer')) paste0(scheme$scheme, ' (', scheme$envvar, ')')
     else paste0(scheme$scheme, ' [', scheme$type, ' authentication is not implemented; OAuth login/refresh is deferred]')
   }, character(1)), collapse = ' + '), character(1))
-  stop('Authentication required. Configure one complete option: ', paste(choices, collapse = ' OR '),
-    '. Use set_api_token(token, scheme = "scheme_name") for API keys or bearer tokens.', call. = FALSE)
+  settable <- unique(unlist(lapply(requirements, function(requirement) {
+    vapply(Filter(function(scheme) scheme$type %in% c('apiKey', 'bearer'), requirement), function(scheme) scheme$scheme, character(1))
+  })))
+  advice <- if (length(settable)) paste0(
+    ' Use ', paste0('set_api_token(token, scheme = "', settable, '")', collapse = ' and/or '), ' to set ', if (length(settable) == 1L) 'it.' else 'them.'
+  ) else ''
+  stop(errorCondition(paste0('Authentication required. Configure one complete option: ', paste(choices, collapse = ' OR '), '.', advice), class = 'specmill_call_error', call = NULL))
 }

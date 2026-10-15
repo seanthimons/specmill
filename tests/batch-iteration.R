@@ -289,6 +289,69 @@ batch_iteration_acceptance <- function() {
   sent <- length(history())
   error <- tryCatch(runtime$get_item(c('a', NA)), error = identity)
   stopifnot(inherits(error, 'error'), length(history()) == sent)
+  # on_error: drop covers per-item failures only. A call-level error (here an invalid
+  # runtime option) stops the call once: no warnings, no requests, no partial result (#97).
+  sent <- length(history())
+  warnings <- character()
+  error <- withr::with_options(
+    list(iterationclient.request = list(timeout = -1)),
+    withCallingHandlers(
+      tryCatch(runtime$get_item(c('a', 'b')), error = identity),
+      warning = function(w) {
+        warnings <<- c(warnings, conditionMessage(w))
+        invokeRestart('muffleWarning')
+      }
+    )
+  )
+  stopifnot(
+    inherits(error, 'specmill_call_error'),
+    grepl('timeout must be', conditionMessage(error)),
+    !length(warnings),
+    length(history()) == sent
+  )
+  # Missing credentials raise the same class from the authentication template, once.
+  auth <- new.env(parent = runtime)
+  auth$AUTH_ENVVARS <- c(key = 'ITERATION_TEST_MISSING_KEY')
+  sys.source(
+    if (file.exists('inst/templates/authentication.R')) {
+      'inst/templates/authentication.R'
+    } else {
+      system.file('templates/authentication.R', package = 'specmill', mustWork = TRUE)
+    },
+    auth
+  )
+  requirements <- list(list(list(
+    scheme = 'key', type = 'apiKey', envvar = 'ITERATION_TEST_MISSING_KEY',
+    location = 'header', name = 'x-api-key'
+  )))
+  calls <- 0L
+  withr::local_envvar(ITERATION_TEST_MISSING_KEY = NA)
+  warnings <- character()
+  error <- withCallingHandlers(
+    tryCatch(
+      runtime$api_request_each(function(chunk) {
+        calls <<- calls + 1L
+        auth$api_auth(httr2::request('http://127.0.0.1'), requirements)
+      }, c('a', 'b', 'c'), 1L, on_error = 'drop'),
+      error = identity
+    ),
+    warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      invokeRestart('muffleWarning')
+    }
+  )
+  stopifnot(
+    inherits(error, 'specmill_call_error'),
+    grepl('scheme = "key"', conditionMessage(error), fixed = TRUE),
+    calls == 1L,
+    !length(warnings)
+  )
+  # Other failures in the same wrapper are still dropped and recorded.
+  dropped <- suppressWarnings(runtime$api_request_each(function(chunk) {
+    if (identical(chunk, 'b')) stop('item failed')
+    list(chunk)
+  }, c('a', 'b'), 1L, on_error = 'drop'))
+  stopifnot(identical(attr(dropped, 'failed'), c(b = 'item failed')))
   # The runtime option overrides the generated on_error default.
   withr::with_options(
     list(iterationclient.api_request.batching = list(on_error = 'stop')),

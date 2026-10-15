@@ -123,10 +123,11 @@ render_operation <- function(operation, spec) {
   }
   input_names <- vapply(params, `[[`, character(1), 'name')
   formal_names <- parameter_names(params)
-  formal_names <- make.unique(c(
-    formal_names,
-    if (!is.null(operation$body)) 'body'
-  ))
+  formal_names <- if (!is.null(operation$body) && !is.null(operation$body_name)) {
+    c(formal_names, operation$body_name)
+  } else {
+    make.unique(c(formal_names, if (!is.null(operation$body)) 'body'))
+  }
   mapping <- setNames(
     formal_names[seq_along(input_names)],
     vapply(params, function(p) paste(p$location, p$name), character(1))
