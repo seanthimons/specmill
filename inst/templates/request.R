@@ -346,6 +346,18 @@ api_request_records <- function(result, collection = base::character(), query = 
 # Selected compatibility table: collapse nested fields, then optionally recover types.
 # Supply tibble::as_tibble as as_table only in a client that declares tibble in Imports.
 api_request_table <- function(records, type_convert = TRUE, names_to = NULL, as_table = base::identity) {
+  table <- api_request_build(records, type_convert, names_to, as_table)
+  # Inside a batched wrapper keep the records: api_request_combine() builds the table once over every request's records, so column types are not guessed per request.
+  if (api_request_batch_state$active) base::attr(table, 'api_request_source') <- base::list(records = records, type_convert = type_convert, names_to = names_to, as_table = as_table)
+  table
+}
+
+# Set while api_request_each() runs a request; saved and restored so batches can nest.
+api_request_batch_state <- base::new.env(parent = base::emptyenv())
+api_request_batch_state$active <- FALSE
+
+# The table api_request_table() describes, without any batch bookkeeping.
+api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_table = base::identity) {
   if (!base::is.list(records) || !base::is.function(as_table)) base::stop('Supply records as a list and as_table as a function')
   rows <- base::lapply(base::seq_along(records), function(i) {
     record <- records[[i]]
@@ -388,9 +400,15 @@ api_request_each <- function(send, items, size, on_error = 'stop') {
   # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
   failed <- base::character()
+  run <- function(chunk) {
+    outer <- api_request_batch_state$active
+    api_request_batch_state$active <- TRUE
+    base::on.exit(api_request_batch_state$active <- outer, add = TRUE)
+    send(chunk)
+  }
   results <- base::lapply(chunks, function(chunk) {
-    if (on_error == 'stop') base::return(send(chunk))
-    base::tryCatch(send(chunk), error = function(e) {
+    if (on_error == 'stop') base::return(run(chunk))
+    base::tryCatch(run(chunk), error = function(e) {
       # Call-level errors (credentials, server, options) apply to every item: stop rather than drop.
       if (base::inherits(e, 'specmill_call_error')) base::stop(e)
       label <- base::paste(base::as.character(base::unlist(chunk)), collapse = ', ')
@@ -404,10 +422,30 @@ api_request_each <- function(send, items, size, on_error = 'stop') {
   result
 }
 
-# Stacks data frames (missing columns become NA); otherwise returns one list of records.
+# Tables built by api_request_table() are rebuilt once over all requests' records, so types are guessed
+# on the whole result (as_table functions that differ only in their environment count as the same). Otherwise data frames are stacked (missing columns become NA), or the result is one list of records.
 api_request_combine <- function(results) {
   results <- base::Filter(base::Negate(base::is.null), results)
+  # One result has nothing to combine; inside an outer batch it keeps its records for that batch.
+  if (base::length(results) == 1L && base::is.data.frame(results[[1L]])) {
+    if (!api_request_batch_state$active) base::attr(results[[1L]], 'api_request_source') <- NULL
+    base::return(results[[1L]])
+  }
+  sources <- base::lapply(results, function(x) if (base::is.data.frame(x)) base::attr(x, 'api_request_source', exact = TRUE))
+  results <- base::lapply(results, function(x) {
+    if (base::is.data.frame(x)) base::attr(x, 'api_request_source') <- NULL
+    x
+  })
   if (base::length(results) && base::all(base::vapply(results, base::is.data.frame, base::logical(1)))) {
+    table_args <- base::lapply(sources, function(x) x[base::c('type_convert', 'names_to', 'as_table')])
+    # Rebuild only when every table is exactly what api_request_table() would return for its own records with the
+    # first request's options (no hook edited it, the options agree), and record names are consistent when they are used.
+    named <- base::vapply(sources, function(x) if (base::length(x$records)) !base::is.null(base::names(x$records)) else NA, base::logical(1))
+    unchanged <- !base::any(base::vapply(sources, base::is.null, base::logical(1))) &&
+      base::all(base::vapply(table_args, base::identical, base::logical(1), table_args[[1L]], ignore.environment = TRUE)) &&
+      (base::is.null(table_args[[1L]]$names_to) || base::length(base::unique(named[!base::is.na(named)])) <= 1L) &&
+      base::all(base::vapply(base::seq_along(results), function(i) base::identical(results[[i]], base::do.call(api_request_build, base::c(base::list(records = sources[[i]]$records), table_args[[1L]]))), base::logical(1)))
+    if (unchanged) base::return(base::do.call(api_request_table, base::c(base::list(records = base::do.call(base::c, base::unname(base::lapply(sources, function(x) x$records)))), table_args[[1L]])))
     columns <- base::unique(base::unlist(base::lapply(results, base::names), use.names = FALSE))
     results <- base::lapply(results, function(x) {
       for (column in base::setdiff(columns, base::names(x))) x[[column]] <- base::rep(NA, base::nrow(x))

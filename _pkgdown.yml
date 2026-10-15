@@ -12,6 +12,7 @@ articles:
   - workflow
   - specmill
   - existing-clients
+  - batched-wrappers
 - title: Maintain a client
   navbar: Maintain a client
   contents:

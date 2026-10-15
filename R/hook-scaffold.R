@@ -16,6 +16,8 @@ configure_hooks <- function(root, mode = c('plan', 'apply')) {
     ),
     'inst/hooks.yml' = paste(
       '# Public wrapper names map to ordered pre_request/post_response chains.',
+      '# Batched wrappers (batch.fan_out/batch.split) may also use post_combine, which',
+      '# runs once on the combined result.',
       '# Define hook functions in R/ before enabling them here.',
       '# Example:',
       '# get_item:',
