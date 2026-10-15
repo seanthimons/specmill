@@ -115,7 +115,7 @@ operation_documentation <- function(op, policy = list()) {
     },
     character(1)
   )
-  body_argument <- op$body_name %or% 'body'
+  body_argument <- body_argument_name(op)
   if (!is.null(op$body)) {
     body_text <- if (!is.null(op$body_description)) {
       prose(op$body_description)
