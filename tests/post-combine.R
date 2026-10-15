@@ -59,7 +59,10 @@ post_combine_acceptance <- function() {
     license = 'MIT + file LICENSE'
   )
   service_path <- file.path(root, 'apis/default.yml')
-  original <- yaml::read_yaml(service_path, handlers = list(seq = function(x) x))
+  original <- yaml::read_yaml(
+    service_path,
+    handlers = list(seq = function(x) x)
+  )
   run <- function(mode = 'apply') {
     specmill::generate_client(
       validation = FALSE,
@@ -102,7 +105,9 @@ post_combine_acceptance <- function() {
         '    options(combineclient.log = c(getOption("combineclient.log"), paste("pre_request", paste(state$params$id, collapse = ","))))',
         '    return(state)',
         '  }',
-        paste0('  if (hook_type == "post_response") return(build_table(state))'),
+        paste0(
+          '  if (hook_type == "post_response") return(build_table(state))'
+        ),
         paste0('  if (hook_type == ', stage_name, ') {'),
         '    options(combineclient.log = c(getOption("combineclient.log"), "combine ran"))',
         '    return(combine_hook(state))',
@@ -168,10 +173,21 @@ post_combine_acceptance <- function() {
   }
   requests <- character()
   runtime$api_request <- function(method, path, path_params, query, body, ...) {
-    requests <<- c(requests, if (length(path_params)) path_params$id else paste(unlist(body), collapse = ','))
+    requests <<- c(
+      requests,
+      if (length(path_params)) {
+        path_params$id
+      } else {
+        paste(unlist(body), collapse = ',')
+      }
+    )
     id <- if (length(path_params)) path_params$id else unlist(body)[[1L]]
-    if (identical(id, 'bad')) stop('HTTP 404 response')
-    lapply(id, function(one) list(sex = if (one %in% c('a', 'c', 'e')) 'F' else 'MF'))
+    if (identical(id, 'bad')) {
+      stop('HTTP 404 response')
+    }
+    lapply(id, function(one) {
+      list(sex = if (one %in% c('a', 'c', 'e')) 'F' else 'MF')
+    })
   }
   withr::local_options(combineclient.log = NULL, combineclient.combined = NULL)
 
@@ -186,14 +202,23 @@ post_combine_acceptance <- function() {
     identical(combined$params$id, c('a', 'b')),
     identical(
       getOption('combineclient.log'),
-      c('pre_request a', 'post_response a', 'pre_request b', 'post_response b', 'combine ran')
+      c(
+        'pre_request a',
+        'post_response a',
+        'pre_request b',
+        'post_response b',
+        'combine ran'
+      )
     )
   )
   # One input runs the same stages; the hook still runs once.
   options(combineclient.log = NULL)
   one <- runtime$get_item('a')
   stopifnot(
-    identical(getOption('combineclient.log'), c('pre_request a', 'post_response a', 'combine ran')),
+    identical(
+      getOption('combineclient.log'),
+      c('pre_request a', 'post_response a', 'combine ran')
+    ),
     identical(one$sex, FALSE),
     identical(one$combined, TRUE)
   )
@@ -211,7 +236,10 @@ post_combine_acceptance <- function() {
   bulk <- runtime$bulk(c('a', 'b', 'c', 'd', 'e'))
   stopifnot(
     length(requests) == 3L,
-    identical(unlist(getOption('combineclient.combined')$params$body), c('a', 'b', 'c', 'd', 'e')),
+    identical(
+      unlist(getOption('combineclient.combined')$params$body),
+      c('a', 'b', 'c', 'd', 'e')
+    ),
     identical(sum(getOption('combineclient.log') == 'combine ran'), 1L)
   )
   # The scaffold executor accepts the stage and returns the result when no chain is set.
@@ -224,16 +252,45 @@ post_combine_acceptance <- function() {
   sys.source(template, executor)
   executor$shout <- function(data) toupper(data$result)
   executor$read_hook_config <- function() {
-    list(chained = list(post_combine = list('shout')), empty = list(pre_request = list('shout')))
+    list(
+      chained = list(post_combine = list('shout')),
+      empty = list(pre_request = list('shout'))
+    )
   }
   stopifnot(
-    identical(executor$run_hook('chained', 'post_combine', list(result = 'x', params = list())), 'X'),
-    identical(executor$run_hook('empty', 'post_combine', list(result = 'y', params = list())), 'y'),
-    identical(executor$run_hook('unlisted', 'post_combine', list(result = 'z', params = list())), 'z')
+    identical(
+      executor$run_hook(
+        'chained',
+        'post_combine',
+        list(result = 'x', params = list())
+      ),
+      'X'
+    ),
+    identical(
+      executor$run_hook(
+        'empty',
+        'post_combine',
+        list(result = 'y', params = list())
+      ),
+      'y'
+    ),
+    identical(
+      executor$run_hook(
+        'unlisted',
+        'post_combine',
+        list(result = 'z', params = list())
+      ),
+      'z'
+    )
   )
-  error <- tryCatch(executor$run_hook('chained', 'post_batch', list()), error = identity)
+  error <- tryCatch(
+    executor$run_hook('chained', 'post_batch', list()),
+    error = identity
+  )
   stopifnot(inherits(error, 'error'))
-  cat('Post combine: one run on the combined result, batched-only, executor guard and failure records passed.\n')
+  cat(
+    'Post combine: one run on the combined result, batched-only, executor guard and failure records passed.\n'
+  )
 }
 
 if (sys.nframe() == 0L) {

@@ -1,11 +1,28 @@
 coverage_schema_acceptance <- function() {
   # --- Counting rules on synthetic inspections -----------------------------------
-  entry <- function(service, key, source = '/schemas/ccd.json', status = 'selected') {
-    list(id = paste(service, key), service = service, key = key, source = source, status = status)
+  entry <- function(
+    service,
+    key,
+    source = '/schemas/ccd.json',
+    status = 'selected'
+  ) {
+    list(
+      id = paste(service, key),
+      service = service,
+      key = key,
+      source = source,
+      status = status
+    )
   }
   wrapped <- function(service, key) {
     parts <- strsplit(key, ' ', fixed = TRUE)[[1L]]
-    list(id = paste(service, key), service = service, method = parts[[1L]], path = parts[[2L]], implemented = TRUE)
+    list(
+      id = paste(service, key),
+      service = service,
+      method = parts[[1L]],
+      path = parts[[2L]],
+      implemented = TRUE
+    )
   }
   counts <- function(inventory, operations, members, exclude = character()) {
     specmill:::coverage_schema_counts(
@@ -37,9 +54,16 @@ coverage_schema_acceptance <- function() {
     identical(shared$gaps$schema, c('ccd.json', 'ccd.json'))
   )
   # Deliberately skipped operations leave the denominator.
-  skipped <- counts(inventory, operations, c('full', 'rebuild'), '^GET /health$')
+  skipped <- counts(
+    inventory,
+    operations,
+    c('full', 'rebuild'),
+    '^GET /health$'
+  )
   stopifnot(skipped$total == 2L, identical(skipped$gaps$key, 'GET /b'))
-  stopifnot(counts(inventory, operations, 'full', c('^GET /health', '/b$'))$total == 1L)
+  stopifnot(
+    counts(inventory, operations, 'full', c('^GET /health', '/b$'))$total == 1L
+  )
   # Different schemas that share a route are different operations.
   two_apis <- counts(
     list(
@@ -57,11 +81,17 @@ coverage_schema_acceptance <- function() {
   # Services outside the group, an empty group and unparseable path items.
   stopifnot(counts(inventory, operations, 'other')$total == 0L)
   path_failure <- counts(
-    list(entry('ccd', 'PATH /odd', status = 'unsupported'), entry('ccd', 'GET /a')),
+    list(
+      entry('ccd', 'PATH /odd', status = 'unsupported'),
+      entry('ccd', 'GET /a')
+    ),
     list(wrapped('ccd', 'GET /a')),
     'ccd'
   )
-  stopifnot(path_failure$total == 2L, identical(path_failure$gaps$key, 'PATH /odd'))
+  stopifnot(
+    path_failure$total == 2L,
+    identical(path_failure$gaps$key, 'PATH /odd')
+  )
 
   # --- End to end ------------------------------------------------------------------
   workspace <- tempfile('coverage-schema-')
@@ -92,26 +122,43 @@ coverage_schema_acceptance <- function() {
     schema,
     package = 'coverageclient',
     title = 'Coverage Client',
-    author = list(given = 'Test', family = 'Maintainer', email = 'test@example.org'),
+    author = list(
+      given = 'Test',
+      family = 'Maintainer',
+      email = 'test@example.org'
+    ),
     license = 'MIT + file LICENSE'
   )
   service_path <- file.path(root, 'apis/default.yml')
   service <- yaml::read_yaml(service_path, handlers = list(seq = function(x) x))
   service$selection$exclude <- list('^/health$')
   yaml::write_yaml(service, service_path)
-  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  specmill::generate_client(
+    validation = FALSE,
+    root,
+    config = 'specmill.yml',
+    mode = 'apply'
+  )
   report <- function(denominator = NULL, exclude = NULL, mode = 'plan') {
-    group <- list(services = '^coverageclient$', label = 'Coverage', badge = 'badge.json')
+    group <- list(
+      services = '^coverageclient$',
+      label = 'Coverage',
+      badge = 'badge.json'
+    )
     group$denominator <- denominator
     group$exclude <- exclude
-    out <- utils::capture.output(
-      result <- specmill::coverage_report(
+    log <- tempfile()
+    on.exit(unlink(log), add = TRUE)
+    sink(log)
+    result <- tryCatch(
+      specmill::coverage_report(
         root,
         list(baseline = 'baseline.json', groups = list(all = group)),
         mode = mode
-      )
+      ),
+      finally = sink()
     )
-    list(result = result, output = out)
+    list(result = result, output = readLines(log, warn = FALSE))
   }
   # The default is unchanged: the selected operations are the whole denominator.
   selected <- report()
@@ -135,7 +182,11 @@ coverage_schema_acceptance <- function() {
     identical(gap$key, 'GET /health'),
     identical(gap$status, 'excluded'),
     identical(gap$schema, 'schema/openapi.json'),
-    any(grepl('1 schema operations without a wrapper (1 not selected)', against$output, fixed = TRUE))
+    any(grepl(
+      '1 schema operations without a wrapper (1 not selected)',
+      against$output,
+      fixed = TRUE
+    ))
   )
   # `exclude` removes deliberately skipped operations from the denominator.
   trimmed <- report('schema', list('^GET /health$'))
@@ -146,7 +197,12 @@ coverage_schema_acceptance <- function() {
     # An empty gap list keeps its column types.
     identical(
       vapply(trimmed$result$gaps$all, class, character(1)),
-      c(key = 'character', schema = 'character', status = 'character', services = 'character')
+      c(
+        key = 'character',
+        schema = 'character',
+        status = 'character',
+        services = 'character'
+      )
     )
   )
   untouched <- report('schema', list('^DELETE '))
@@ -170,10 +226,16 @@ coverage_schema_acceptance <- function() {
   }
   fails('denominator must be selected or schema', 'everything')
   fails('exclude requires denominator: schema', exclude = list('^GET /health'))
-  fails('exclude requires denominator: schema', 'selected', list('^GET /health'))
+  fails(
+    'exclude requires denominator: schema',
+    'selected',
+    list('^GET /health')
+  )
   fails('invalid regex', 'schema', list('('))
   fails('must be a nonempty string', 'schema', list(1L))
-  cat('Coverage: schema denominator, exclusions, deduplication, gaps and badges passed.\n')
+  cat(
+    'Coverage: schema denominator, exclusions, deduplication, gaps and badges passed.\n'
+  )
 }
 
 if (sys.nframe() == 0L) {

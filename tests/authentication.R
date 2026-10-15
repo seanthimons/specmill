@@ -183,7 +183,11 @@ authentication_acceptance <- function() {
     inherits(error, 'error'),
     grepl('ctx_key', conditionMessage(error)),
     # The suggested fix names the real scheme, and the call it suggests works (#98).
-    grepl('set_api_token(token, scheme = "key")', conditionMessage(error), fixed = TRUE),
+    grepl(
+      'set_api_token(token, scheme = "key")',
+      conditionMessage(error),
+      fixed = TRUE
+    ),
     !grepl('scheme_name', conditionMessage(error), fixed = TRUE),
     !file.exists(count_file)
   )
@@ -195,7 +199,10 @@ authentication_acceptance <- function() {
     !grepl('scheme = "oauth")', message, fixed = TRUE)
   )
   message <- conditionMessage(tryCatch(runtime$get_oauth(), error = identity))
-  stopifnot(grepl('deferred', message), !grepl('set_api_token', message, fixed = TRUE))
+  stopifnot(
+    grepl('deferred', message),
+    !grepl('set_api_token', message, fixed = TRUE)
+  )
   runtime$set_api_token('invalid-key', scheme = 'key')
   error <- tryCatch(runtime$get_inherited(), error = identity)
   stopifnot(
