@@ -449,6 +449,16 @@ failed <- attr(x, 'failed')
 if (length(failed)) retry <- ct_hazard_toxval_search(names(failed))
 ```
 
+`drop` covers per-item failures only: the HTTP or decode outcome of each
+request. An error that applies to the whole call, such as a missing credential,
+an invalid runtime option, or a server that cannot be resolved, stops the call
+with one error, whatever `on_error` is, and no request is sent. The generated
+code marks these errors with the condition class `specmill_call_error`; errors
+raised inside your own server resolver, hooks, or response policies remain
+per-item. A client scaffolded before this behavior keeps its old
+`api_request_each()` until you adopt the new helper code (see
+`vignette('existing-clients')`).
+
 **Runtime override.** The generated `on_error` is a default. The helper's batching
 option overrides it for every fan-out and split wrapper of that helper, for
 example to fail fast while debugging:
@@ -1242,6 +1252,28 @@ Documentation and example inputs use the resulting **public R names**, such as
 `identifier`. Examples are input maps rendered as calls inside `dontrun`, so a
 documentation build does not send their requests.
 
+**Rename the body argument.** A request body is an argument named `body` (or `body.1` when a
+parameter already has that name) unless the operation says otherwise. `body` takes a `name` and a `description`,
+like a parameter override:
+
+```yaml
+operations:
+  POST /hazard/toxval/search/by-dtxsid/:
+    body: {name: dtxsid, description: DSSTox substance identifiers.}
+```
+
+The wrapper becomes `f(dtxsid)`, still sends that value as the body, and
+documentation, examples and `batch.split` chunking use the new name. The
+`description` replaces the generated `@param` text; the note about chunking
+long arrays is still appended. Without a `body` setting the output is unchanged.
+Generation stops, naming the operation, when the name collides with another
+argument, is not a valid R argument name (or one the generated code uses
+internally, such as `params`), when the operation has no request body, or when
+`body` is combined with a complete `inputs` map. It belongs under `operations`,
+not `defaults`. Request mappings and hooks that read the body (`from: [params,
+body]`, `state$params$body`) must use the new name, and renaming a wrapper that
+is already generated shows up as a signature change in `mode = 'plan'`.
+
 `docs` supports `title`, `description`, `parameters`, `return`, `examples`, `tags`,
 and `lifecycle`. Without overrides, titles/parameter text come from schema
 metadata and the return text describes the helper response. Improve these for
@@ -1298,6 +1330,7 @@ demonstrates native generation, explicit mappings, and retained client code.
 | `file` | Output path directly under `R/`, for example `R/catalogue.R` |
 | `implementation` | `generated` (default) or `existing`, which retains a declared implementation |
 | `parameters` | Schema parameter overrides: `name`, `default`, `required`, `exclude`, `description` |
+| `body` | Request-body argument override: `name`, `description` |
 | `extra_parameters` | Additional public inputs: `default`, `required`, `type`, `description` |
 | `inputs` | Complete public input map, replacing schema-derived inputs; same fields plus `missing_as_null` |
 | `parameter_order` | Sequence of public names to place first; remaining parameters follow |

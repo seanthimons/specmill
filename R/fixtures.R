@@ -282,6 +282,8 @@ operation_fixtures <- function(
   mode <- match.arg(mode)
   lapply(operations, function(op) {
     omitted <- character()
+    # Schema-level override keys stay 'body'; only the wrapper argument is renamed.
+    body_argument <- op$body_name %or% 'body'
     parameters <- Filter(
       function(p) {
         keep <- mode != 'minimal' ||
@@ -399,7 +401,7 @@ operation_fixtures <- function(
               op$body_media,
               'application/x-www-form-urlencoded'
             )
-            inputs['body'] <- list(
+            inputs[body_argument] <- list(
               if ('body' %in% names(overrides[[op$name]])) {
                 form_value(
                   overrides[[op$name]]$body,
@@ -420,9 +422,9 @@ operation_fixtures <- function(
             if (!is.raw(value)) {
               stop('Binary fixture must be a raw vector')
             }
-            inputs['body'] <- list(value)
+            inputs[body_argument] <- list(value)
           } else {
-            inputs['body'] <- list(
+            inputs[body_argument] <- list(
               if ('body' %in% names(overrides[[op$name]])) {
                 body_fixture(op$body, overrides[[op$name]]$body)
               } else {

@@ -40,6 +40,7 @@ validate_settings <- function(
       'file',
       'implementation',
       'parameters',
+      'body',
       'inputs',
       'extra_parameters',
       'request',
@@ -276,6 +277,27 @@ validate_settings <- function(
       }
     }
   }
+  if ('body' %in% names(settings)) {
+    config_fields(settings[['body']], c('name', 'description'), 'body')
+    if (!length(settings[['body']])) {
+      stop(label, ': body override needs a name or description')
+    }
+    for (field in names(settings[['body']])) {
+      config_string(settings[['body']][[field]], paste('body', field))
+    }
+    name <- settings[['body']]$name
+    if (
+      !is.null(name) &&
+        (!identical(make.names(name), name) ||
+          grepl('^(\\.\\.([0-9]+|\\.)|\\.\\.\\.)$', name) ||
+          name %in% c('params', 'state', 'result', 'send', 'chunk', 'changed'))
+    ) {
+      stop(
+        label,
+        ': body name must be a valid R argument name that generated code does not use internally'
+      )
+    }
+  }
   if ('parameter_order' %in% names(settings)) {
     config_sequence(settings$parameter_order, 'parameter_order')
   }
@@ -350,6 +372,17 @@ configure_operation <- function(operation, service) {
     operation$id,
     service$callbacks %or% new.env(parent = emptyenv())
   )
+  if (!is.null(settings[['body']])) {
+    if ('inputs' %in% names(settings)) {
+      stop(
+        'Body override cannot be combined with explicit inputs: ',
+        operation$id
+      )
+    }
+    if (is.null(operation$body)) {
+      stop('Body override requires an operation with a request body: ', operation$id)
+    }
+  }
   parameters <- operation$parameters
   ids <- vapply(parameters, function(p) paste(p$location, p$name), character(1))
   unknown <- setdiff(names(settings$parameters), ids)
@@ -440,6 +473,14 @@ configure_operation <- function(operation, service) {
     )
   }
   public_names <- parameter_names(parameters)
+  if (!is.null(settings[['body']]$name) && settings[['body']]$name %in% public_names) {
+    stop(
+      'Body name collides with parameter "',
+      settings[['body']]$name,
+      '": ',
+      operation$id
+    )
+  }
   requested_names <- vapply(
     parameters,
     function(p) p$public_name %or% p$name,
@@ -482,6 +523,8 @@ configure_operation <- function(operation, service) {
     )
   }
   operation$request_controls <- config_data(settings$request_controls)
+  operation$body_name <- settings[['body']]$name
+  operation$body_description <- settings[['body']]$description
   operation$parameters <- parameters
   spec <- merge_settings(service, settings)
   list(operation = operation, spec = spec)

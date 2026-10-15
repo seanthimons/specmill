@@ -43,7 +43,7 @@ helper_provenance_acceptance <- function() {
   record <- jsonlite::read_json(provenance, simplifyVector = TRUE)
   # Reconstruct the genuine earlier template's direct api_auth call.
   old <- sub(
-    "  if (!base::is.null(auth)) {\n    authenticate <- base::get0('api_auth', envir = base::environment(), mode = 'function', inherits = TRUE)\n    if (base::is.null(authenticate)) base::stop('Authentication scaffolding is missing')\n    request <- authenticate(request, auth)\n  }",
+    "  if (!base::is.null(auth)) {\n    authenticate <- base::get0('api_auth', envir = base::environment(), mode = 'function', inherits = TRUE)\n    if (base::is.null(authenticate)) call_error('Authentication scaffolding is missing')\n    request <- authenticate(request, auth)\n  }",
     '  if (!base::is.null(auth)) request <- api_auth(request, auth)',
     record$baseline,
     fixed = TRUE

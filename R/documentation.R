@@ -115,20 +115,33 @@ operation_documentation <- function(op, policy = list()) {
     },
     character(1)
   )
+  body_argument <- op$body_name %or% 'body'
   if (!is.null(op$body)) {
+    body_text <- if (!is.null(op$body_description)) {
+      prose(op$body_description)
+    } else if (identical(op$body_media, 'application/octet-stream')) {
+      'Raw vector of bytes to upload as application/octet-stream.'
+    } else {
+      'Request body.'
+    }
     docs <- c(
       docs,
-      if (identical(op$body_media, 'application/octet-stream')) {
-        '@param body Raw vector of bytes to upload as application/octet-stream.'
-      } else if (isTRUE(op$iterate$split)) {
-        paste0(
-          '@param body Request body. Arrays longer than ',
-          op$batch$max_items,
-          ' items are sent in chunks of that size and the results are combined.'
-        )
-      } else {
-        '@param body Request body.'
-      }
+      paste0(
+        '@param ',
+        body_argument,
+        ' ',
+        body_text,
+        if (
+          isTRUE(op$iterate$split) &&
+            !identical(op$body_media, 'application/octet-stream')
+        ) {
+          paste0(
+            ' Arrays longer than ',
+            op$batch$max_items,
+            ' items are sent in chunks of that size and the results are combined.'
+          )
+        }
+      )
     )
   }
   text <- c(
@@ -168,7 +181,7 @@ operation_documentation <- function(op, policy = list()) {
             if (
               length(setdiff(
                 names(inputs),
-                c(parameters, if (!is.null(op$body)) 'body')
+                c(parameters, if (!is.null(op$body)) body_argument)
               ))
             ) {
               stop('Example references missing public parameter')
