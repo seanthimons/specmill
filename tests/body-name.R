@@ -166,7 +166,13 @@ body_name_acceptance <- function() {
   stopifnot(
     grepl('bulk <- function(body)', code('bulk'), fixed = TRUE),
     grepl('@param body Request body. Arrays longer than 2', code('bulk'), fixed = TRUE),
-    grepl('object_body <- function(body = NULL, body.1)', code('object_body'), fixed = TRUE)
+    grepl('object_body <- function(body = NULL, body.1)', code('object_body'), fixed = TRUE),
+    # Documentation names the real argument, once each.
+    grepl('@param body.1 Request body.', code('object_body'), fixed = TRUE),
+    lengths(regmatches(
+      code('object_body'),
+      gregexpr('@param body ', code('object_body'), fixed = TRUE)
+    )) == 1L
   )
   default_hashes <- tools::md5sum(list.files(file.path(root, 'R'), full.names = TRUE))
 
@@ -253,6 +259,37 @@ body_name_acceptance <- function() {
   operations$bulk$body_name <- 'dtxsid'
   fixtures <- specmill:::operation_fixtures(list(operations$bulk))
   stopifnot(identical(names(fixtures[[1L]]), 'dtxsid'))
+  # Without an override a colliding parameter makes the body argument body.1.
+  fixtures <- specmill:::operation_fixtures(list(operations$object_body))
+  stopifnot(identical(names(fixtures[[1L]]), c('body', 'body.1')))
+  # Minimal mode keeps the wrapper's real argument names when duplicates exist: the
+  # optional query `x` is left out, but the required header `x` stays `x.1`.
+  duplicates <- tempfile(fileext = '.json')
+  on.exit(unlink(duplicates), add = TRUE)
+  jsonlite::write_json(
+    list(
+      openapi = '3.0.3',
+      info = list(title = 'Duplicates', version = '1'),
+      servers = list(list(url = origin)),
+      paths = list('/dup' = list(get = operation(
+        'dup',
+        list(
+          list(name = 'x', `in` = 'query', schema = string),
+          list(name = 'x', `in` = 'header', required = TRUE, schema = string)
+        )
+      )))
+    ),
+    duplicates,
+    auto_unbox = TRUE
+  )
+  dup <- specmill::read_operations(duplicates)$operations
+  stopifnot(
+    identical(names(specmill:::operation_fixtures(dup)[[1L]]), c('x', 'x.1')),
+    identical(
+      names(specmill:::operation_fixtures(dup, mode = 'minimal')[[1L]]),
+      'x.1'
+    )
+  )
   cat(
     'Body name: rename, description, split chunking, documentation, fixtures, collisions and unchanged default output passed.\n'
   )
