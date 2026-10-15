@@ -380,7 +380,10 @@ configure_operation <- function(operation, service) {
       )
     }
     if (is.null(operation$body)) {
-      stop('Body override requires an operation with a request body: ', operation$id)
+      stop(
+        'Body override requires an operation with a request body: ',
+        operation$id
+      )
     }
   }
   parameters <- operation$parameters
@@ -473,7 +476,10 @@ configure_operation <- function(operation, service) {
     )
   }
   public_names <- parameter_names(parameters)
-  if (!is.null(settings[['body']]$name) && settings[['body']]$name %in% public_names) {
+  if (
+    !is.null(settings[['body']]$name) &&
+      settings[['body']]$name %in% public_names
+  ) {
     stop(
       'Body name collides with parameter "',
       settings[['body']]$name,

@@ -123,7 +123,9 @@ render_operation <- function(operation, spec) {
   }
   input_names <- vapply(params, `[[`, character(1), 'name')
   formal_names <- parameter_names(params)
-  formal_names <- if (!is.null(operation$body) && !is.null(operation$body_name)) {
+  formal_names <- if (
+    !is.null(operation$body) && !is.null(operation$body_name)
+  ) {
     c(formal_names, operation$body_name)
   } else {
     make.unique(c(formal_names, if (!is.null(operation$body)) 'body'))

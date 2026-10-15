@@ -105,7 +105,10 @@ body_name_acceptance <- function() {
     license = 'MIT + file LICENSE'
   )
   service_path <- file.path(root, 'apis/default.yml')
-  original <- yaml::read_yaml(service_path, handlers = list(seq = function(x) x))
+  original <- yaml::read_yaml(
+    service_path,
+    handlers = list(seq = function(x) x)
+  )
   run <- function(mode = 'apply') {
     specmill::generate_client(
       validation = FALSE,
@@ -165,16 +168,28 @@ body_name_acceptance <- function() {
   }
   stopifnot(
     grepl('bulk <- function(body)', code('bulk'), fixed = TRUE),
-    grepl('@param body Request body. Arrays longer than 2', code('bulk'), fixed = TRUE),
-    grepl('object_body <- function(body = NULL, body.1)', code('object_body'), fixed = TRUE),
+    grepl(
+      '@param body Request body. Arrays longer than 2',
+      code('bulk'),
+      fixed = TRUE
+    ),
+    grepl(
+      'object_body <- function(body = NULL, body.1)',
+      code('object_body'),
+      fixed = TRUE
+    ),
     # Documentation names the real argument, once each.
     grepl('@param body.1 Request body.', code('object_body'), fixed = TRUE),
     lengths(regmatches(
       code('object_body'),
       gregexpr('@param body ', code('object_body'), fixed = TRUE)
-    )) == 1L
+    )) ==
+      1L
   )
-  default_hashes <- tools::md5sum(list.files(file.path(root, 'R'), full.names = TRUE))
+  default_hashes <- tools::md5sum(list.files(
+    file.path(root, 'R'),
+    full.names = TRUE
+  ))
 
   # The override renames the formal, every reference to it, and the documentation.
   yaml::write_yaml(
@@ -194,7 +209,10 @@ body_name_acceptance <- function() {
   before <- tools::md5sum(list.files(root, recursive = TRUE, full.names = TRUE))
   run()
   run('check')
-  stopifnot(identical(before, tools::md5sum(list.files(root, recursive = TRUE, full.names = TRUE))))
+  stopifnot(identical(
+    before,
+    tools::md5sum(list.files(root, recursive = TRUE, full.names = TRUE))
+  ))
   bulk <- code('bulk')
   stopifnot(
     grepl('bulk <- function(dtxsid)', bulk, fixed = TRUE),
@@ -229,7 +247,10 @@ body_name_acceptance <- function() {
     identical(vapply(result, `[[`, character(1), 'item'), letters[1:5])
   )
   error <- tryCatch(runtime$bulk(), error = identity)
-  stopifnot(inherits(error, 'error'), grepl('Required body', conditionMessage(error)))
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('Required body', conditionMessage(error))
+  )
   error <- tryCatch(runtime$bulk(body = 'a'), error = identity)
   stopifnot(inherits(error, 'error'))
 
@@ -241,7 +262,11 @@ body_name_acceptance <- function() {
   run()
   stopifnot(
     grepl('bulk <- function(body)', code('bulk'), fixed = TRUE),
-    grepl('@param body Identifiers to look up. Arrays longer than 2', code('bulk'), fixed = TRUE)
+    grepl(
+      '@param body Identifiers to look up. Arrays longer than 2',
+      code('bulk'),
+      fixed = TRUE
+    )
   )
 
   # Removing the override restores the default output.
@@ -271,13 +296,22 @@ body_name_acceptance <- function() {
       openapi = '3.0.3',
       info = list(title = 'Duplicates', version = '1'),
       servers = list(list(url = origin)),
-      paths = list('/dup' = list(get = operation(
-        'dup',
-        list(
-          list(name = 'x', `in` = 'query', schema = string),
-          list(name = 'x', `in` = 'header', required = TRUE, schema = string)
+      paths = list(
+        '/dup' = list(
+          get = operation(
+            'dup',
+            list(
+              list(name = 'x', `in` = 'query', schema = string),
+              list(
+                name = 'x',
+                `in` = 'header',
+                required = TRUE,
+                schema = string
+              )
+            )
+          )
         )
-      )))
+      )
     ),
     duplicates,
     auto_unbox = TRUE

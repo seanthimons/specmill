@@ -316,23 +316,35 @@ batch_iteration_acceptance <- function() {
     if (file.exists('inst/templates/authentication.R')) {
       'inst/templates/authentication.R'
     } else {
-      system.file('templates/authentication.R', package = 'specmill', mustWork = TRUE)
+      system.file(
+        'templates/authentication.R',
+        package = 'specmill',
+        mustWork = TRUE
+      )
     },
     auth
   )
   requirements <- list(list(list(
-    scheme = 'key', type = 'apiKey', envvar = 'ITERATION_TEST_MISSING_KEY',
-    location = 'header', name = 'x-api-key'
+    scheme = 'key',
+    type = 'apiKey',
+    envvar = 'ITERATION_TEST_MISSING_KEY',
+    location = 'header',
+    name = 'x-api-key'
   )))
   calls <- 0L
   withr::local_envvar(ITERATION_TEST_MISSING_KEY = NA)
   warnings <- character()
   error <- withCallingHandlers(
     tryCatch(
-      runtime$api_request_each(function(chunk) {
-        calls <<- calls + 1L
-        auth$api_auth(httr2::request('http://127.0.0.1'), requirements)
-      }, c('a', 'b', 'c'), 1L, on_error = 'drop'),
+      runtime$api_request_each(
+        function(chunk) {
+          calls <<- calls + 1L
+          auth$api_auth(httr2::request('http://127.0.0.1'), requirements)
+        },
+        c('a', 'b', 'c'),
+        1L,
+        on_error = 'drop'
+      ),
       error = identity
     ),
     warning = function(w) {
@@ -347,10 +359,17 @@ batch_iteration_acceptance <- function() {
     !length(warnings)
   )
   # Other failures in the same wrapper are still dropped and recorded.
-  dropped <- suppressWarnings(runtime$api_request_each(function(chunk) {
-    if (identical(chunk, 'b')) stop('item failed')
-    list(chunk)
-  }, c('a', 'b'), 1L, on_error = 'drop'))
+  dropped <- suppressWarnings(runtime$api_request_each(
+    function(chunk) {
+      if (identical(chunk, 'b')) {
+        stop('item failed')
+      }
+      list(chunk)
+    },
+    c('a', 'b'),
+    1L,
+    on_error = 'drop'
+  ))
   stopifnot(identical(attr(dropped, 'failed'), c(b = 'item failed')))
   # The runtime option overrides the generated on_error default.
   withr::with_options(
