@@ -235,6 +235,12 @@ attributed_table <- function(response, context, decode) {
 }
 ```
 
+`context$query` is the request's only path value, else its only URL query value.
+Paging parameters such as `pageNumber` do not count, so on a paged endpoint a
+single remaining filter (for example `studyType`) arrives as `context$query` and
+would stamp every row with a `query` column. A policy for a paged endpoint
+should not reuse the single-object logic above; omit `query` for those rows.
+
 `api_request_table()` is explicitly lossy compatibility formatting. It unions
 heterogeneous fields, represents missing fields as NA, collapses nested values
 with `'; '`, and optionally recovers types with `utils::type.convert()`. Set
