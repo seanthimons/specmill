@@ -696,7 +696,9 @@ body_checks <- function(schema, value) {
     value,
     ', ',
     r_literal(schema),
-    '), error = function(e) base::stop(\'Invalid body: \', ',
+    '), error = function(e) base::stop(',
+    r_literal(paste0('Invalid ', value, ': ')),
+    ', ',
     'base::conditionMessage(e), call. = FALSE))'
   )
 }
