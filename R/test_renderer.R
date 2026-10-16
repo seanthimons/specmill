@@ -19,6 +19,10 @@ render_contract <- function(operation, spec, contract) {
       'with calls'
     )
   }
+  if (!is.null(operation$body_name)) {
+    names(contract$inputs)[names(contract$inputs) == 'body'] <-
+      operation$body_name
+  }
   args <- paste(
     vapply(
       names(contract$inputs),
@@ -184,6 +188,12 @@ render_fixed_contract <- function(operation, spec, contract) {
       ),
       if (length(contract$environment)) {
         '  withr::local_envvar(unlist(contract$environment, use.names = TRUE))'
+      },
+      if (!is.null(operation$body_name)) {
+        paste0(
+          '  names(contract$inputs)[names(contract$inputs) == "body"] <- ',
+          r_literal(operation$body_name)
+        )
       },
       '  captured <- list()',
       '  mock_for <- function(name) {',
