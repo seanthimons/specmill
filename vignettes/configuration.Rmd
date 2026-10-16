@@ -1487,9 +1487,11 @@ Apply only reviewed changes, then run `check` and [the client's tests](testing.h
 Select `companions = c('batching', 'pagination')` in `initialize_client()` to emit
 reusable helper-prefixed functions into the existing client-owned request helper.
 They use the same ownership baseline and manual-adoption rules as transport.
-Ordinary wrappers remain single requests; to make a wrapper loop over its own
-input, use `batch.fan_out` or `batch.split` (see
-[Many inputs in one call](#many-inputs-in-one-call-fan_out-and-split)). Emission requires no specmill runtime dependency. Pagination adds digest
+Wrappers make a single request unless you opt in: `batch.fan_out` or
+`batch.split` loop over a wrapper's own input (see
+[Many inputs in one call](#many-inputs-in-one-call-fan_out-and-split)), and
+`pagination` fetches every page
+([Fetch every page in one call](#fetch-every-page-in-one-call)). Emission requires no specmill runtime dependency. Pagination adds digest
 to a new client's Imports; an existing DESCRIPTION must declare it first.
 
 Use a shared policy list in retained client code, or the package/helper-scoped
@@ -1499,9 +1501,104 @@ dry-run prefix. For example `catalogueclient.api_request.pagination` applies to
 that helper only. A leading dot in the helper name is dropped, so helper
 `.ct_request` reads `comptoxr_native.ct_request.batching`. Multi-API helper prefixes keep service policies separate.
 Explicit pagination arguments override policy fields; a supplied batching policy
-replaces the shared list. There is no pagination YAML field or name inference.
+replaces the shared list. Nothing is inferred from parameter or response names.
 Maintainers supply API knowledge once per service, with operation exceptions;
 the companions supply the loops.
+
+### Fetch every page in one call
+
+The `pagination` setting makes a generated wrapper request page after page and
+return the pages combined. It is explicit: an operation without the setting stays a
+single request. Set it once for a service and it applies wherever its parameter
+exists; operations can override single fields or opt out:
+
+```yaml
+# apis/catalogue.yml
+defaults:
+  pagination:
+    mode: page               # the only mode for generated wrappers so far
+    parameter: pageNumber    # original name of an integer or number path or query parameter
+    start: 1                 # becomes the default of that parameter in the wrapper
+    completed: empty         # empty (the default) or the name of a client function
+    max_pages: 100           # the default of the wrapper's max_pages argument
+operations:
+  GET /items/{kind}:
+    pagination: {max_pages: 20}   # override one field
+  GET /reports:
+    pagination: null              # opt out of the inherited setting
+```
+
+**Where it applies.** An inherited setting reaches only operations that have the
+named parameter, as a path or query parameter with an integer or number schema.
+The others stay single requests. A setting written on an operation itself must fit
+that operation, or generation stops and names it. `mode` and `parameter` must both
+be present once the levels are merged. `pagination` cannot be combined with
+`batch.fan_out` or `batch.split` on one operation, and it needs a generated
+implementation. Offset and cursor paging, item caps and page-size arguments are
+not available for generated wrappers yet; use the companion functions in retained
+code, described below, for those.
+
+**The starting page.** `start` becomes the wrapper's default for the page
+parameter. It is required when the parameter is optional and has no default. It
+cannot be set when the parameter is required or already has a default configured
+under `parameters`. At call time the caller's value is the page the loop starts
+from.
+
+**When paging stops.** With `completed: empty` the loop stops at the first empty
+page. A response with no body, or an empty list or table, is an empty page. An
+API that marks its last page some other way takes a client function, which receives
+the page's result and a state list (`position`, `requests`, `item_count`,
+`page_size`) and returns one `TRUE` or `FALSE`:
+
+```r
+last_page <- function(response, state) any(response$last)
+```
+
+The function must exist in the client's `R/` files; generation checks. A page limit
+always applies: reaching `max_pages` stops the loop and warns.
+
+Each page's result must itself be the collection: a table, or a list of records.
+A response such as `{"data": [], "total": 0}` is never empty, so the loop would run
+to `max_pages`. Unwrap such a response in the response policy or a `post_response`
+hook, or give `completed` a function that recognizes the last page.
+
+**What the wrapper looks like.** After its other arguments it gains
+`all_pages = TRUE` and `max_pages = <n>`. Both names are fixed, and a collision with
+another argument stops generation. With `all_pages = FALSE` the wrapper is the
+plain single-request wrapper: its hooks run once, and it returns the page as it
+always did, with no `pagination` attribute and no `post_combine`. A dry run
+returns the first page's prepared request, without `post_combine`. Otherwise it
+returns the pages combined as a batched wrapper does, so tables built with
+`api_request_table()` are typed once over every page, and the result carries
+`attr(, 'pagination')`, a list of `requests`, `item_count` and `stop_reason`
+(`empty_page`, `completed` or `max_pages`). The caller guide is
+[Fetch every page of a result](paged-wrappers.html).
+
+**Hooks and policy.** `pre_request`, the response policy and `post_response` run
+once per page. An optional `post_combine` hook runs once on the combined result
+(see [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper)).
+A `pre_request` hook must not change the page argument; the wrapper owns it, and
+a hook that does stops the call with an error before the request is sent.
+
+**Contracts.** A single-call fixed contract cannot describe a paging wrapper, so
+generation requires it to set `all_pages: false` in its inputs. A `calls`
+contract describes the page sequence: one entry per page request in order, ending
+with the empty page (or with page `max_pages`), and a `result` that includes the
+`pagination` attribute.
+
+**The client helper.** The loop uses `<helper>_paginated()`, `<helper>_combine()`
+and `<helper>_pages()` in the client-owned helper file. Initialize a new client with
+the pagination companion. For an existing client, compare the helper with the
+current template and adopt them; generation stops with a message naming what is
+missing, and also when `<helper>_paginated()` is an older version that needs a
+page size. The runtime option `<package>.<helper>.pagination` cannot change the
+shape of these wrappers' results, because the wrapper fixes the controls that
+would. Hitting `max_pages` warns, as the emitted companion's `warn_limits` is
+`TRUE`.
+
+New service files include a commented `pagination` line as a reminder.
+
+### The companion functions in retained code
 
 Batching accepts explicit `normalize(items)`, `build(chunk, index)`, and
 `merge(results)` functions. Values/order and unmerged results are preserved by

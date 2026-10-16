@@ -296,3 +296,9 @@ Wrappers configured with `batch.fan_out` or `batch.split` also call
 `<helper>_each()` and `<helper>_combine()`. These come with the base helper template, not a
 companion. Generation stops until an existing helper file defines them; adopt
 them the same way.
+
+Wrappers configured with `pagination` also call `<helper>_pages()`, from the base
+template, and `<helper>_combine()` (also base), plus the pagination companion's
+`<helper>_paginated()`. The `<helper>_paginated()` must be the current version, which
+allows page mode without a page size. Generation names whatever is missing or
+outdated; adopt the helper functions the same way.

@@ -144,6 +144,37 @@ operation_documentation <- function(op, policy = list()) {
       )
     )
   }
+  paged <- !is.null(op$paginate)
+  if (paged) {
+    index <- which(vapply(
+      op$parameters,
+      function(p) {
+        identical(p$name, op$paginate$parameter) &&
+          identical(p$location, op$paginate$location)
+      },
+      logical(1)
+    ))[[1L]]
+    docs <- c(
+      docs,
+      paste0(
+        '@param all_pages TRUE (the default) requests page after page, starting at ',
+        parameters[[index]],
+        ', until a page comes back empty',
+        if (!identical(op$paginate$completed, 'empty')) {
+          ' or the client says it was the last'
+        },
+        ' or max_pages is reached, and returns the pages combined. FALSE ',
+        'requests only the page given in ',
+        parameters[[index]],
+        '.'
+      ),
+      paste0(
+        '@param max_pages Maximum number of pages requested when all_pages is ',
+        'TRUE. Reaching it stops paging with a warning; attr(result, ',
+        "'pagination')$stop_reason records why paging stopped."
+      )
+    )
+  }
   text <- c(
     prose(policy$title %or% op$summary),
     '',
@@ -161,7 +192,16 @@ operation_documentation <- function(op, policy = list()) {
       '@return ',
       prose(
         policy$return %or%
-          'Decoded response returned by the client request helper.'
+          paste0(
+            'Decoded response returned by the client request helper.',
+            if (paged) {
+              paste0(
+                ' With all_pages = TRUE the pages are combined, and ',
+                "attr(result, 'pagination') lists requests, item_count and ",
+                'stop_reason.'
+              )
+            }
+          )
       )
     ),
     vapply(

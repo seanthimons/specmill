@@ -9,6 +9,16 @@ render_contract <- function(operation, spec, contract) {
     stop('Supply fixed contract inputs, request, result and response_fixture')
   }
   stopifnot(identical(make.names(spec$package), spec$package))
+  if (
+    !is.null(operation$paginate) && !identical(contract$inputs$all_pages, FALSE)
+  ) {
+    stop(
+      'A single-call contract for the paginated operation ',
+      operation$name,
+      ' must set all_pages to false in its inputs; describe a page sequence ',
+      'with calls'
+    )
+  }
   args <- paste(
     vapply(
       names(contract$inputs),

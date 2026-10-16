@@ -13,6 +13,7 @@ articles:
   - specmill
   - existing-clients
   - batched-wrappers
+  - paged-wrappers
 - title: Maintain a client
   navbar: Maintain a client
   contents:

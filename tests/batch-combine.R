@@ -237,6 +237,16 @@ batch_combine_acceptance <- function() {
   )
   attr(dropped, 'failed') <- NULL
   stopifnot(identical(dropped, everything(c('a', 'c'))))
+  # The page loop needs the pagination companion; without it the error says so (the
+  # base template must not name the companion's function, or a clean check would flag it).
+  error <- tryCatch(
+    runtime$api_request_pages(function(page) NULL, 'p', 1L, 3L),
+    error = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('Paging needs the pagination companion', conditionMessage(error))
+  )
   cat(
     'Batch combine: one type-recovery pass over all requests, fallbacks and flag handling passed.\n'
   )
