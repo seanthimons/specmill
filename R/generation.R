@@ -1,3 +1,84 @@
+# Inherited pagination applies only where its parameter exists; an operation-level
+# setting must fit. Paging is explicit: nothing is inferred from parameter names.
+pagination_settings <- function(operation, pagination, explicit, iterate) {
+  if (!length(pagination)) {
+    return(NULL)
+  }
+  missing <- c('mode', 'parameter')[vapply(
+    c('mode', 'parameter'),
+    function(name) is.null(pagination[[name]]),
+    logical(1)
+  )]
+  if (length(missing)) {
+    stop(
+      'pagination requires ',
+      paste(missing, collapse = ' and '),
+      ': ',
+      operation$id
+    )
+  }
+  hit <- Filter(
+    function(p) {
+      p$name == pagination[['parameter']] && p$location %in% c('path', 'query')
+    },
+    operation$parameters
+  )
+  if (
+    !length(hit) || !isTRUE(hit[[1L]]$schema$type %in% c('integer', 'number'))
+  ) {
+    if (length(explicit)) {
+      stop(
+        'pagination.parameter must name an integer or number path or query ',
+        'parameter: ',
+        operation$id
+      )
+    }
+    return(NULL)
+  }
+  if (!is.null(iterate)) {
+    stop(
+      'pagination cannot be combined with batch.fan_out or batch.split: ',
+      operation$id
+    )
+  }
+  p <- hit[[1L]]
+  required <- isTRUE(p$public_required %or% p$required)
+  if (!is.null(pagination[['start']]) && required) {
+    stop(
+      'pagination.start sets the default of an optional parameter, but ',
+      p$name,
+      ' is required: ',
+      operation$id
+    )
+  }
+  if (!is.null(pagination[['start']]) && 'public_default' %in% names(p)) {
+    stop(
+      'pagination.start conflicts with the default configured for ',
+      p$name,
+      '; set one of them: ',
+      operation$id
+    )
+  }
+  if (
+    !required && is.null(pagination[['start']]) && is.null(parameter_default(p))
+  ) {
+    stop(
+      'pagination.start is required because ',
+      p$name,
+      ' has no default: ',
+      operation$id
+    )
+  }
+  list(
+    mode = 'page',
+    parameter = p$name,
+    location = p$location,
+    start = pagination[['start']],
+    completed = pagination[['completed']] %or% 'empty',
+    max_pages = as.integer(pagination[['max_pages']] %or% 100L)
+  )
+}
+
 transport_arguments <- function(operation) {
   c(
     if (!is.null(operation$server)) 'server',
@@ -123,10 +204,13 @@ render_operation <- function(operation, spec) {
   }
   input_names <- vapply(params, `[[`, character(1), 'name')
   formal_names <- parameter_names(params)
-  formal_names <- make.unique(c(
-    formal_names,
-    if (!is.null(operation$body)) 'body'
-  ))
+  formal_names <- if (
+    !is.null(operation$body) && !is.null(operation$body_name)
+  ) {
+    c(formal_names, operation$body_name)
+  } else {
+    make.unique(c(formal_names, if (!is.null(operation$body)) 'body'))
+  }
   mapping <- setNames(
     formal_names[seq_along(input_names)],
     vapply(params, function(p) paste(p$location, p$name), character(1))
@@ -156,6 +240,17 @@ render_operation <- function(operation, spec) {
     signature <- c(
       signature,
       paste0(body_name, if (!operation$body_required) ' = NULL' else '')
+    )
+  }
+  pg <- operation$paginate
+  page_formal <- if (!is.null(pg)) {
+    mapping[[paste(pg$location, pg$parameter)]]
+  }
+  if (!is.null(pg)) {
+    signature <- c(
+      signature,
+      'all_pages = TRUE',
+      paste0('max_pages = ', r_literal(pg$max_pages))
     )
   }
   refs <- function(location) {
@@ -289,6 +384,12 @@ render_operation <- function(operation, spec) {
     }
   }
   lines <- c(lines, parameter_capture)
+  if (!is.null(pg)) {
+    lines <- c(
+      lines,
+      '  if (!base::is.logical(all_pages) || base::length(all_pages) != 1L || base::is.na(all_pages)) base::stop("all_pages must be TRUE or FALSE", call. = FALSE)'
+    )
+  }
   for (i in seq_along(params)) {
     if (
       params[[i]]$location == 'query' &&
@@ -310,6 +411,9 @@ render_operation <- function(operation, spec) {
   if (length(hooks$pre_request)) {
     lines <- c(
       lines,
+      if (!is.null(pg)) {
+        paste0('  page_value <- params[[', r_literal(page_formal), ']]')
+      },
       paste0(
         '  state <- ',
         callback,
@@ -321,7 +425,16 @@ render_operation <- function(operation, spec) {
         '  if (base::isTRUE(state$skip_request)) base::return(state$result)'
       },
       '  changed <- base::intersect(base::names(params), base::names(state$params))',
-      '  params[changed] <- state$params[changed]'
+      '  params[changed] <- state$params[changed]',
+      if (!is.null(pg)) {
+        paste0(
+          '  if (!base::identical(params[[',
+          r_literal(page_formal),
+          ']], page_value)) base::stop("pre_request hooks must not change the pagination argument ',
+          page_formal,
+          ': the pages are requested by the wrapper", call. = FALSE)'
+        )
+      }
     )
   }
   request <- paste0(
@@ -553,9 +666,42 @@ render_operation <- function(operation, spec) {
     )
   }
   lines <- c(lines, '  result')
+  if (
+    length(hooks$post_combine) &&
+      is.null(operation$iterate) &&
+      is.null(pg)
+  ) {
+    stop(
+      'post_combine requires batch.fan_out, batch.split or pagination: ',
+      operation$id
+    )
+  }
+  # post_combine runs once on the combined result, with the caller's full params.
+  # An attribute the combine step records is restored if the hook drops it.
+  post_combine_lines <- function(attribute) {
+    c(
+      paste0('  kept <- base::attr(result, "', attribute, '", exact = TRUE)'),
+      paste0(
+        '  result <- ',
+        callback,
+        '(',
+        r_literal(operation$name),
+        ', "post_combine", base::list(result = result, params = params))'
+      ),
+      paste0(
+        '  if (!base::is.null(kept) && !base::is.null(result) && base::is.null(base::attr(result, "',
+        attribute,
+        '", exact = TRUE))) base::attr(result, "',
+        attribute,
+        '") <- kept'
+      ),
+      '  result'
+    )
+  }
   if (!is.null(operation$iterate)) {
     # Hooks and the request run once per item or chunk; the helper combines results.
     input <- if (is.null(fan_out)) body_name else fan_out_name
+    combine <- length(hooks$post_combine) > 0L
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
@@ -563,6 +709,7 @@ render_operation <- function(operation, spec) {
       '  }',
       paste0(
         '  ',
+        if (combine) 'result <- ',
         helper,
         '_each(function(chunk) {'
       ),
@@ -578,7 +725,52 @@ render_operation <- function(operation, spec) {
         ', on_error = ',
         r_literal(operation$iterate$on_error),
         ')'
-      )
+      ),
+      if (combine) post_combine_lines('failed')
+    )
+  }
+  if (!is.null(pg)) {
+    # One request per page, with hooks and policy per page; the pages are combined
+    # and post_combine runs once. all_pages = FALSE is the plain single request.
+    lines <- c(
+      head(lines, per_request),
+      '  send <- function(params) {',
+      paste0('  ', tail(lines, -per_request)),
+      '  }',
+      '  if (!base::isTRUE(all_pages)) base::return(send(params))',
+      paste0(
+        '  if (base::is.null(params[[',
+        r_literal(page_formal),
+        ']])) base::stop(',
+        r_literal(paste0(
+          'Supply ',
+          page_formal,
+          ' to start paging, or set all_pages = FALSE'
+        )),
+        ', call. = FALSE)'
+      ),
+      paste0(
+        '  result <- ',
+        helper,
+        '_pages(function(page) {'
+      ),
+      '    params[base::names(page)] <- page',
+      '    send(params)',
+      paste0(
+        '  }, ',
+        r_literal(page_formal),
+        ', params[[',
+        r_literal(page_formal),
+        ']], max_pages, completed = ',
+        if (identical(pg$completed, 'empty')) 'NULL' else pg$completed,
+        ')'
+      ),
+      '  if (base::inherits(result, "httr2_request")) base::return(result)',
+      if (length(hooks$post_combine)) {
+        post_combine_lines('pagination')
+      } else {
+        '  result'
+      }
     )
   }
   code <- paste(c(lines, '}'), collapse = '\n')
@@ -745,6 +937,8 @@ generate_client <- function(
           '_table',
           '_each',
           '_combine',
+          '_pages',
+          '_build',
           '_batched',
           '_paginated',
           '_pagination_token',
@@ -756,6 +950,18 @@ generate_client <- function(
   )
   if (
     any(operation_names %in% intersect(companions, names(runtime_definitions)))
+  ) {
+    stop('Operation collides with a client companion; supply a name override')
+  }
+  # The batch flag is an environment, so it never appears among function definitions.
+  if (
+    any(
+      operation_names %in%
+        paste0(
+          vapply(services, function(x) x$helper %or% '', character(1)),
+          '_batch_state'
+        )
+    )
   ) {
     stop('Operation collides with a client companion; supply a name override')
   }
@@ -868,6 +1074,73 @@ generate_client <- function(
           op$id,
           '. Compare the helper with the current template and adopt them.'
         )
+      }
+      op$paginate <- pagination_settings(
+        op,
+        operation_spec[['pagination']] %or% list(),
+        service$operations[[op$key]][['pagination']] %or% list(),
+        op$iterate
+      )
+      if (!is.null(op$paginate)) {
+        if (identical(operation_spec$implementation, 'existing')) {
+          stop('pagination requires a generated implementation: ', op$id)
+        }
+        taken <- c(
+          parameter_names(op$parameters),
+          if (!is.null(op$body)) body_argument_name(op)
+        )
+        if (any(c('all_pages', 'max_pages') %in% taken)) {
+          stop(
+            'pagination adds the arguments all_pages and max_pages, which ',
+            'collide with an argument of ',
+            op$id
+          )
+        }
+        completed <- op$paginate$completed
+        if (
+          !identical(completed, 'empty') &&
+            (!completed %in% names(runtime_definitions) ||
+              completed %in% operation_names)
+        ) {
+          stop(
+            'Missing client pagination callback or wrapper collision: ',
+            completed
+          )
+        }
+        if (!is.null(op$paginate$start)) {
+          for (index in seq_along(op$parameters)) {
+            param <- op$parameters[[index]]
+            if (
+              identical(param$name, op$paginate$parameter) &&
+                identical(param$location, op$paginate$location)
+            ) {
+              op$parameters[[index]]$public_default <- op$paginate$start
+            }
+          }
+        }
+        helper <- operation_spec$helper
+        needed <- paste0(helper, c('_paginated', '_combine', '_pages'))
+        engine <- runtime_definitions[[paste0(helper, '_paginated')]]
+        if (
+          !is.null(config) &&
+            (!all(needed %in% names(runtime_definitions)) ||
+              !grepl(
+                'offset mode requires size_parameter',
+                paste(deparse(engine$expr), collapse = '\n'),
+                fixed = TRUE
+              ))
+        ) {
+          stop(
+            'pagination needs ',
+            paste0(needed, '()', collapse = ', '),
+            ' in the client helper file, including a ',
+            helper,
+            '_paginated() that allows page mode without a size: ',
+            op$id,
+            '. Initialize the client with the pagination companion, or compare ',
+            'the helper with the current template and adopt them.'
+          )
+        }
       }
       if (!is.null(authentication) && is.null(operation_spec[['request']])) {
         credential_map <- service$authentication
@@ -1369,11 +1642,33 @@ generate_client <- function(
           names(wrapper_functions)
         )]
       }
+      callback <- service$hook_callback %or% 'run_hook'
+      combining <- names(Filter(
+        function(x) length(x$post_combine) > 0L,
+        declarations
+      ))
+      executor <- runtime_definitions[[callback]]
+      if (
+        length(combining) &&
+          !is.null(executor) &&
+          !any(grepl('post_combine', deparse(executor$expr), fixed = TRUE))
+      ) {
+        stop(
+          'post_combine is configured for ',
+          paste(combining, collapse = ', '),
+          ' but the hook executor ',
+          callback,
+          '() does not accept that stage. Add "post_combine" to its allowed ',
+          'stages and return data$result for it (see vignette("hooks")), or ',
+          'remove post_combine from the hook configuration.',
+          call. = FALSE
+        )
+      }
       validation <- validate_hooks(
         declarations,
         wrapper_functions,
         hook_environment,
-        service$hook_callback %or% 'run_hook'
+        callback
       )
       if (!validation$valid) stop(paste(validation$errors, collapse = '\n'))
     }

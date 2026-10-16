@@ -265,6 +265,57 @@ pagination_acceptance <- function() {
     nrow(result$pages[[2]]) == 1,
     result$pages[[2]]$id == 3
   )
+  # Page mode needs no size when the API fixes the size of a page; offset mode still does.
+  fixed_size <- function(page) if (page > 3) list() else list(page)
+  unsized <- specmill::paginated(
+    fixed_size,
+    mode = 'page',
+    parameter = 'page',
+    start = 1,
+    items = identity
+  )
+  stopifnot(
+    identical(unlist(unsized$pages), c(1, 2, 3)),
+    unsized$requests == 4L,
+    unsized$stop_reason == 'empty_page'
+  )
+  limited <- specmill::paginated(
+    fixed_size,
+    mode = 'page',
+    parameter = 'page',
+    start = 2,
+    items = identity,
+    max_pages = 2
+  )
+  stopifnot(
+    identical(unlist(limited$pages), c(2, 3)),
+    limited$stop_reason == 'max_pages'
+  )
+  fails <- function(pattern, ...) {
+    error <- tryCatch(specmill::paginated(fixed_size, ...), error = identity)
+    stopifnot(inherits(error, 'error'), grepl(pattern, conditionMessage(error)))
+  }
+  fails(
+    'offset mode requires size_parameter and page_size',
+    mode = 'offset',
+    parameter = 'page',
+    start = 0,
+    items = identity
+  )
+  fails(
+    'together',
+    mode = 'page',
+    parameter = 'page',
+    size_parameter = 'size',
+    start = 1,
+    items = identity
+  )
+  fails(
+    'requires start',
+    mode = 'page',
+    parameter = 'page',
+    items = identity
+  )
   cat(
     'Pagination: generated single requests, page/offset retrieval, limits, termination, errors and validation passed.\n'
   )

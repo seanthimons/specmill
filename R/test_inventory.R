@@ -7,8 +7,26 @@ client_definitions <- function(root) {
     unname(lapply(files, tg_find_function_defs_in_file))
   ) %or%
     list()
-  if (anyDuplicated(names(definitions))) {
-    stop('Duplicate client runtime definitions')
+  duplicated_names <- unique(names(definitions)[duplicated(names(definitions))])
+  if (length(duplicated_names)) {
+    where <- vapply(
+      duplicated_names,
+      function(name) {
+        paths <- vapply(
+          definitions[names(definitions) == name],
+          function(x) substring(x$file_path, nchar(root) + 2L),
+          character(1)
+        )
+        paste(paths, collapse = ' and ')
+      },
+      character(1)
+    )
+    stop(
+      'Duplicate client runtime definitions: ',
+      paste0(duplicated_names, ' (', where, ')', collapse = '; '),
+      '. Rename or remove one of each pair; helper functions share the names ',
+      'of the request helper (for example `<helper>_build` and `<helper>_pages`).'
+    )
   }
   definitions
 }

@@ -115,20 +115,64 @@ operation_documentation <- function(op, policy = list()) {
     },
     character(1)
   )
+  body_argument <- body_argument_name(op)
   if (!is.null(op$body)) {
+    body_text <- if (!is.null(op$body_description)) {
+      prose(op$body_description)
+    } else if (identical(op$body_media, 'application/octet-stream')) {
+      'Raw vector of bytes to upload as application/octet-stream.'
+    } else {
+      'Request body.'
+    }
     docs <- c(
       docs,
-      if (identical(op$body_media, 'application/octet-stream')) {
-        '@param body Raw vector of bytes to upload as application/octet-stream.'
-      } else if (isTRUE(op$iterate$split)) {
-        paste0(
-          '@param body Request body. Arrays longer than ',
-          op$batch$max_items,
-          ' items are sent in chunks of that size and the results are combined.'
-        )
-      } else {
-        '@param body Request body.'
-      }
+      paste0(
+        '@param ',
+        body_argument,
+        ' ',
+        body_text,
+        if (
+          isTRUE(op$iterate$split) &&
+            !identical(op$body_media, 'application/octet-stream')
+        ) {
+          paste0(
+            ' Arrays longer than ',
+            op$batch$max_items,
+            ' items are sent in chunks of that size and the results are combined.'
+          )
+        }
+      )
+    )
+  }
+  paged <- !is.null(op$paginate)
+  if (paged) {
+    index <- which(vapply(
+      op$parameters,
+      function(p) {
+        identical(p$name, op$paginate$parameter) &&
+          identical(p$location, op$paginate$location)
+      },
+      logical(1)
+    ))[[1L]]
+    docs <- c(
+      docs,
+      paste0(
+        '@param all_pages TRUE (the default) requests page after page, starting at ',
+        parameters[[index]],
+        ', until a page comes back empty',
+        if (!identical(op$paginate$completed, 'empty')) {
+          ' or the client says it was the last'
+        },
+        ' or max_pages is reached, and returns the pages combined. FALSE ',
+        'requests only the page given in ',
+        parameters[[index]],
+        '.'
+      ),
+      paste0(
+        '@param max_pages Maximum number of pages requested when all_pages is ',
+        'TRUE. Reaching it stops paging with a warning; attr(result, ',
+        "'pagination')$stop_reason records why paging stopped."
+      )
     )
   }
   text <- c(
@@ -148,7 +192,16 @@ operation_documentation <- function(op, policy = list()) {
       '@return ',
       prose(
         policy$return %or%
-          'Decoded response returned by the client request helper.'
+          paste0(
+            'Decoded response returned by the client request helper.',
+            if (paged) {
+              paste0(
+                ' With all_pages = TRUE the pages are combined, and ',
+                "attr(result, 'pagination') lists requests, item_count and ",
+                'stop_reason.'
+              )
+            }
+          )
       )
     ),
     vapply(
@@ -168,7 +221,7 @@ operation_documentation <- function(op, policy = list()) {
             if (
               length(setdiff(
                 names(inputs),
-                c(parameters, if (!is.null(op$body)) 'body')
+                c(parameters, if (!is.null(op$body)) body_argument)
               ))
             ) {
               stop('Example references missing public parameter')
