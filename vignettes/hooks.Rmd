@@ -153,10 +153,12 @@ public input validation
   -> final return value
 ```
 
-Hooks run once around the helper call. They do not run once per internal retry or
-page. In a batched wrapper (`batch.fan_out` or `batch.split`), `pre_request` and
-`post_response` run once per request and `post_combine` runs once on the combined
-result; see [batched wrappers](batched-wrappers.html). Transport errors propagate; `post_response` is not an error or
+Hooks run once around the helper call. They do not run once per internal retry.
+In a batched wrapper (`batch.fan_out` or `batch.split`) or a paging wrapper
+(`pagination`), `pre_request` and `post_response` run once per request or page and
+`post_combine` runs once on the combined result; see
+[batched wrappers](batched-wrappers.html) and
+[paging wrappers](paged-wrappers.html). Transport errors propagate; `post_response` is not an error or
 finally handler and does not receive failed HTTP responses automatically.
 
 Each hook receives one argument. Pre-hooks return a list containing `params`.
@@ -305,11 +307,12 @@ operation configuration.
 See [request bindings](configuration.html) for authentication, headers, body,
 and options mappings. Hook configuration alone does not change a signature.
 
-## Run a hook on the combined result of a batched wrapper
+## Run a hook on the combined result of a batched or paging wrapper {#run-a-hook-on-the-combined-result-of-a-batched-wrapper}
 
-A batched wrapper sends one request per element or chunk. `pre_request` and
-`post_response` run around each request, so they see one element or chunk and
-suit per-response work such as unwrapping a `data` envelope. Work that needs the
+A batched wrapper sends one request per element or chunk, and a paging wrapper one
+per page. `pre_request` and `post_response` run around each request, so they see
+one element, chunk or page and suit per-response work such as unwrapping a `data`
+envelope. Work that needs the
 whole result, such as reshaping the final table, belongs in `post_combine`:
 
 ```yaml
@@ -321,12 +324,20 @@ get_item:
 
 `post_combine` runs once, after the results are combined, with
 `list(result = <combined result>, params = <the caller's full, unchunked params>)`.
-It returns the final result. Tables built with `api_request_table()` are already
-typed over all requests when it runs. If the hook drops `attr(result, 'failed')`,
-the wrapper puts it back. `post_state: hook_state` belongs to the per-request
-hooks and does not reach `post_combine`.
+For a paging wrapper `params` holds the page the caller started from, not the last
+page. The hook returns the final result. Tables built with `api_request_table()`
+are already typed over all requests when it runs. If the hook drops
+`attr(result, 'failed')` (batched wrappers) or `attr(result, 'pagination')` (paging
+wrappers), the wrapper puts it back. `post_state: hook_state` belongs to the
+per-request hooks and does not reach `post_combine`.
 
-Configuring `post_combine` on a wrapper that is not batched stops generation.
+A `pre_request` hook of a paging wrapper must not change the page argument. The
+wrapper requests the pages, and a hook that rewrites the page would fight it, so
+the call stops with an error instead. With `all_pages = FALSE` the wrapper is the
+plain single-request wrapper and `post_combine` does not run.
+
+Configuring `post_combine` on a wrapper that neither batches nor pages stops
+generation.
 Your executor must also accept the stage. Executors created before this stage
 existed list their stages explicitly, so add `post_combine` to both places and let
 it return `data$result` when its chain is empty, as `post_response` does:

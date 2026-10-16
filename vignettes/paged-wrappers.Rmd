@@ -1,0 +1,148 @@
+---
+title: "Fetch every page of a result"
+description: "What a paging wrapper sends, how to start, stop and limit it, and how to read why it stopped."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fetch every page of a result}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', eval = FALSE)
+```
+
+Many APIs return a long result in pages. Some generated wrappers fetch all of
+those pages for you in one call. This guide is for the person calling such a
+wrapper. The maintainer who turns paging on for an operation should read
+[configuration](configuration.html#fetch-every-page-in-one-call) instead. The
+examples use a hypothetical client with a paging wrapper named `get_items()`.
+
+## How to tell a wrapper pages
+
+A paging wrapper has two extra arguments at the end of its signature, and its
+help page documents both:
+
+```{r signature}
+get_items(kind, pageNumber = 1L, all_pages = TRUE, max_pages = 100L)
+```
+
+`pageNumber` is the API's own page argument. `all_pages` and `max_pages` are
+added by the wrapper and control the paging. A wrapper without `all_pages` makes
+one request, as it always did.
+
+## The basic call
+
+```{r basic}
+items <- get_items('books')
+```
+
+The wrapper requests page 1, then page 2, and so on, one request after another,
+and stops when a page comes back empty. You get the pages combined into one
+value, in page order: one table if the client turns responses into tables,
+otherwise one list of records. When the client builds tables, one page
+(`all_pages = FALSE`) and all pages are the same kind of table, so code that
+works on one page keeps working on all of them. Without tables, a single page
+comes back as the API sent it, and the combined call returns one list of records.
+
+## Start somewhere else, or fetch one page
+
+The page you give is the page the wrapper starts from:
+
+```{r start}
+get_items('books', pageNumber = 3)                   # pages 3, 4, 5, ... to the end
+get_items('books', pageNumber = 3, all_pages = FALSE) # page 3 only
+```
+
+`all_pages = FALSE` is exactly the wrapper without paging: one request, the
+plain result, nothing added to it. Use it to look at the shape of the data before
+you fetch everything.
+
+## Limit how much you fetch
+
+`max_pages` is the most pages one call will request (the default is shown in the
+help page). Reaching it stops the call with a warning, because there may be more
+data:
+
+```{r limit}
+items <- get_items('books', max_pages = 10)
+#> Warning message:
+#> Pagination truncated at max_pages
+```
+
+Each page is one request to the API, so a large `max_pages` on a big result can
+mean many requests. Keep it small while you explore, and watch any rate limits the
+API documents.
+
+## Find out why it stopped
+
+The result carries a record of the paging in `attr(, 'pagination')`:
+
+```{r reason}
+attr(items, 'pagination')
+#> $requests
+#> [1] 4
+#> $item_count
+#> [1] 7
+#> $stop_reason
+#> [1] "empty_page"
+```
+
+| `stop_reason` | Meaning | Is there more data? |
+|---|---|---|
+| `empty_page` | A page came back empty. This is the normal end. | No |
+| `completed` | The client's own rule said the last page had arrived (for example a `last` flag in the response). | No |
+| `max_pages` | You hit `max_pages`. | Possibly: raise the limit or continue from a later page |
+
+If a wrapper always stops at `max_pages`, its pages never come back empty, for
+example because the API wraps the records in an envelope such as
+`{"data": [...]}`. Tell the client's maintainer; the fix is a setting, not
+something to work around in your code.
+
+`requests` is the number of pages requested, including the empty page when one
+ended the call, and `item_count` is how many rows or records came back. Check for
+truncation like this:
+
+```{r truncated}
+paging <- attr(items, 'pagination')
+if (identical(paging$stop_reason, 'max_pages')) {
+  # The call started at page 1, so the next page is the one after the pages it fetched.
+  more <- get_items('books', pageNumber = 1L + paging$requests)
+}
+```
+
+The record is only added when `all_pages = TRUE`. It can be lost if you modify
+the result with a function that drops attributes, so read it right after the call.
+
+## What a table looks like
+
+When the client returns tables, the column types are worked out once over all
+the pages together, exactly as if the API had sent every row in one response. A
+column that holds `"F"` on one page and `"MF"` on another stays text, and an
+identifier such as `"007"` is treated the same on every page. See [calling a
+wrapper with many inputs](batched-wrappers.html) for the same rule applied to
+vectors of inputs.
+
+## When something goes wrong
+
+If any page fails, the call stops with that error and returns nothing, so you
+never get a silently incomplete result. Problems that affect the whole call, such
+as a missing credential, are raised before the first request.
+
+A dry run (the client's dry-run option) prepares the first page's request and
+returns it without sending anything.
+
+## Paging and many inputs do not combine
+
+A wrapper either pages or takes a vector of inputs; it does not do both. To page
+through several kinds, loop yourself:
+
+```{r loop}
+results <- lapply(c('books', 'films'), get_items)
+```
+
+## For maintainers
+
+Hooks run once per page, and an optional `post_combine` hook runs once on the
+combined result. A `pre_request` hook must not change the page argument; see
+[hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper).

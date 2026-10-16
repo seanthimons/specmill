@@ -433,6 +433,8 @@ configuration_proposal <- function(
       '# Optional hooks: define client functions before enabling these settings.',
       '# hooks: {} # Public wrapper name -> pre_request/post_response/post_combine hook-name sequences.',
       '# hook_callback: run_hook',
+      '# Optional paging: one wrapper call requests every page. Opt in explicitly; nothing is inferred from parameter names.',
+      '# pagination: {} # e.g. {mode: page, parameter: pageNumber, start: 1, max_pages: 100}; under defaults it applies to every operation that has that parameter.',
       '# hook_config: inst/hooks.yml # Alternative to inline hooks, not both.',
       '# prepare: prepare_operation # Development callback; pass an explicit callbacks environment.',
       '# policy_version: "1" # Your review label, recorded in generation metadata.',

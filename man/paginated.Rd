@@ -36,9 +36,11 @@ paginated(
 for the page, offset, or cursor. For example \code{c('body', 'pagination', 'cursor')}.}
 
 \item{size_parameter}{Exact public argument name for the requested page size.
-May be NULL in cursor mode if the size is fixed by the caller.}
+Required in offset mode. May be NULL in page and cursor mode, when the API
+fixes the size of a page.}
 
-\item{page_size}{Positive integer requested page size; NULL with no size argument.}
+\item{page_size}{Positive integer requested page size; NULL with no size argument.
+Required in offset mode, where it sets the stride.}
 
 \item{start}{Nonnegative integer first page number or offset. Required because
 APIs differ on whether numbering starts at zero or one. In cursor mode, an

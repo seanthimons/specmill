@@ -422,6 +422,36 @@ api_request_each <- function(send, items, size, on_error = 'stop') {
   result
 }
 
+# Runs one request per page for a wrapper with pagination.mode: page. `send` takes the page argument as a named
+# list and returns that page's result; <helper>_paginated() decides when to stop. The pages are combined like a
+# batched wrapper's, so tables are typed once. Every control the pagination option could change is fixed here,
+# so the shape of a wrapper's result never depends on it. A dry run returns its first prepared request.
+api_request_pages <- function(send, parameter, start, max_pages, completed = NULL) {
+  pages <- base::list()
+  prepared <- NULL
+  fetch <- function(...) {
+    outer <- api_request_batch_state$active
+    api_request_batch_state$active <- TRUE
+    base::on.exit(api_request_batch_state$active <- outer, add = TRUE)
+    # The engine adds a double step; send whole page numbers as integers so they never print as 1e+05.
+    page <- send(base::lapply(base::list(...), function(x) if (base::is.numeric(x) && base::length(x) == 1L && !base::is.na(x) && x == base::trunc(x) && base::abs(x) <= base::.Machine$integer.max) base::as.integer(x) else x))
+    if (base::inherits(page, 'httr2_request')) {
+      prepared <<- page
+      return(base::list())
+    }
+    pages[base::length(pages) + 1L] <<- base::list(page)
+    page
+  }
+  # The engine ships with the pagination companion, so look it up rather than name it: a client without the companion must still check clean.
+  paginate <- base::get0('api_request_paginated', mode = 'function')
+  if (base::is.null(paginate)) base::stop('Paging needs the pagination companion (api_request_paginated) in the client helper', call. = FALSE)
+  paged <- paginate(fetch, mode = 'page', parameter = parameter, start = start, size_parameter = NULL, page_size = NULL, items = function(x) if (base::is.null(x)) base::list() else x, completed = completed, max_pages = max_pages, max_items = NULL, advance = NULL, format = NULL, stop_on_short = FALSE, error_policy = 'stop', warn_limits = TRUE)
+  if (!base::is.null(prepared)) base::return(prepared)
+  result <- api_request_combine(pages)
+  base::attr(result, 'pagination') <- base::list(requests = base::as.integer(paged$requests), item_count = base::as.integer(paged$item_count), stop_reason = paged$stop_reason)
+  result
+}
+
 # Tables built by api_request_table() are rebuilt once over all requests' records, so types are guessed
 # on the whole result (as_table functions that differ only in their environment count as the same). Otherwise data frames are stacked (missing columns become NA), or the result is one list of records.
 api_request_combine <- function(results) {

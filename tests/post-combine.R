@@ -126,7 +126,7 @@ post_combine_acceptance <- function() {
   # post_combine only makes sense where results are combined.
   write_executor()
   write_service(list(plain = list(post_combine = list('combine_hook'))))
-  fails('post_combine requires batch.fan_out or batch.split')
+  fails('post_combine requires batch.fan_out, batch.split or pagination')
   # A configured stage the client's executor cannot run stops generation, naming the fix.
   write_executor(stage_name = "'post_response_again'")
   write_service(list(
@@ -233,7 +233,7 @@ post_combine_acceptance <- function() {
   # Split wrappers run it once with the caller's whole array, not a chunk.
   options(combineclient.log = NULL, combineclient.combined = NULL)
   requests <- character()
-  bulk <- runtime$bulk(c('a', 'b', 'c', 'd', 'e'))
+  runtime$bulk(c('a', 'b', 'c', 'd', 'e'))
   stopifnot(
     length(requests) == 3L,
     identical(

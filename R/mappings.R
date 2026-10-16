@@ -49,6 +49,7 @@ validate_settings <- function(
       'parameter_order',
       'docs',
       'batch',
+      'pagination',
       'request_controls',
       'response_policy',
       'server',
@@ -201,6 +202,59 @@ validate_settings <- function(
             limit != floor(limit))
       ) {
         stop('Batch limits must be positive integers or null')
+      }
+    }
+  }
+  if (!is.null(settings[['pagination']])) {
+    pagination <- settings[['pagination']]
+    config_fields(
+      pagination,
+      c('mode', 'parameter', 'start', 'completed', 'max_pages'),
+      'pagination'
+    )
+    if (!is.null(pagination[['mode']])) {
+      config_string(pagination[['mode']], 'pagination.mode')
+      if (!identical(pagination[['mode']], 'page')) {
+        stop(
+          'pagination.mode must be page; offset and cursor paging are not ',
+          'available for generated wrappers yet'
+        )
+      }
+    }
+    if (!is.null(pagination[['parameter']])) {
+      config_string(pagination[['parameter']], 'pagination.parameter')
+    }
+    if (!is.null(pagination[['completed']])) {
+      config_string(pagination[['completed']], 'pagination.completed')
+      if (
+        !identical(pagination[['completed']], 'empty') &&
+          !identical(
+            make.names(pagination[['completed']]),
+            pagination[['completed']]
+          )
+      ) {
+        stop('pagination.completed must be empty or a client function name')
+      }
+    }
+    for (field in c('start', 'max_pages')) {
+      value <- pagination[[field]]
+      if (
+        !is.null(value) &&
+          (!is.numeric(value) ||
+            length(value) != 1L ||
+            is.na(value) ||
+            !is.finite(value) ||
+            value != floor(value) ||
+            value < (if (field == 'start') 0 else 1) ||
+            value > .Machine$integer.max)
+      ) {
+        stop(
+          'pagination.',
+          field,
+          ' must be a ',
+          if (field == 'start') 'nonnegative' else 'positive',
+          ' integer'
+        )
       }
     }
   }

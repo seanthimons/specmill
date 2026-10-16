@@ -98,6 +98,12 @@ options(mypackage.api_request.batching = list(on_error = 'stop'))  # fail fast
 options(mypackage.api_request.batching = list(on_error = 'drop'))  # keep going
 ```
 
+## Wrappers that return many pages
+
+A different kind of wrapper fetches every page of one result. It has `all_pages`
+and `max_pages` arguments and is described in [Fetch every page of a
+result](paged-wrappers.html). A wrapper does one or the other, never both.
+
 ## If you need more control
 
 `specmill::batched(fn, items, size, ...)` is a manual tool for splitting any
