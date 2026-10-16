@@ -1558,9 +1558,35 @@ The function must exist in the client's `R/` files; generation checks. A page li
 always applies: reaching `max_pages` stops the loop and warns.
 
 Each page's result must itself be the collection: a table, or a list of records.
-A response such as `{"data": [], "total": 0}` is never empty, so the loop would run
-to `max_pages`. Unwrap such a response in the response policy or a `post_response`
-hook, or give `completed` a function that recognizes the last page.
+A response that wraps the records in an envelope is never empty, so the loop would
+run to `max_pages`. Many APIs do this, for example
+`{"pageNumber": 1, "totalPages": 3, "data": [...]}`, and keep answering with an
+envelope whose `data` is empty past the last page. Unwrap it in the response
+policy. If the envelope says which page is last, tag the table with those fields so
+a completion function can read them:
+
+```r
+envelope_policy <- function(response, context, decode) {
+  body <- decode()
+  table <- api_request_table(
+    api_request_records(body, collection = 'data', query = context$query)
+  )
+  attr(table, 'paging') <- body[c('pageNumber', 'totalPages')]
+  table
+}
+last_page <- function(response, state) {
+  paging <- attr(response, 'paging')
+  paging$pageNumber >= paging$totalPages
+}
+```
+
+With `completed: last_page`, the loop stops on the last page without asking for
+another. With `completed: empty` it makes one more request to see the empty
+page. Attributes a policy attaches to a page's table stay available to `completed`
+and `post_response`; the combined result does not carry them, whether it holds one
+page or many, and the tables are still typed once over all pages. A hook that only
+changes an attribute of a page's table, without touching its data, is not kept
+either.
 
 **What the wrapper looks like.** After its other arguments it gains
 `all_pages = TRUE` and `max_pages = <n>`. Both names are fixed, and a collision with

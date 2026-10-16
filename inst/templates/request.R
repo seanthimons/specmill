@@ -456,10 +456,14 @@ api_request_pages <- function(send, parameter, start, max_pages, completed = NUL
 # on the whole result (as_table functions that differ only in their environment count as the same). Otherwise data frames are stacked (missing columns become NA), or the result is one list of records.
 api_request_combine <- function(results) {
   results <- base::Filter(base::Negate(base::is.null), results)
-  # One result has nothing to combine; inside an outer batch it keeps its records for that batch.
+  # Attributes a policy attached to a page (for example the paging fields a completion rule reads) are not edits to its data.
+  plain <- function(x) {
+    for (name in base::setdiff(base::names(base::attributes(x)), base::c('names', 'row.names', 'class'))) base::attr(x, name) <- NULL
+    x
+  }
+  # One result has nothing to combine, and like any combined result it carries no per-page attributes; inside an outer batch it keeps them, with its records, for that batch.
   if (base::length(results) == 1L && base::is.data.frame(results[[1L]])) {
-    if (!api_request_batch_state$active) base::attr(results[[1L]], 'api_request_source') <- NULL
-    base::return(results[[1L]])
+    base::return(if (api_request_batch_state$active) results[[1L]] else plain(results[[1L]]))
   }
   sources <- base::lapply(results, function(x) if (base::is.data.frame(x)) base::attr(x, 'api_request_source', exact = TRUE))
   results <- base::lapply(results, function(x) {
@@ -474,7 +478,7 @@ api_request_combine <- function(results) {
     unchanged <- !base::any(base::vapply(sources, base::is.null, base::logical(1))) &&
       base::all(base::vapply(table_args, base::identical, base::logical(1), table_args[[1L]], ignore.environment = TRUE)) &&
       (base::is.null(table_args[[1L]]$names_to) || base::length(base::unique(named[!base::is.na(named)])) <= 1L) &&
-      base::all(base::vapply(base::seq_along(results), function(i) base::identical(results[[i]], base::do.call(api_request_build, base::c(base::list(records = sources[[i]]$records), table_args[[1L]]))), base::logical(1)))
+      base::all(base::vapply(base::seq_along(results), function(i) base::identical(plain(results[[i]]), plain(base::do.call(api_request_build, base::c(base::list(records = sources[[i]]$records), table_args[[1L]])))), base::logical(1)))
     if (unchanged) base::return(base::do.call(api_request_table, base::c(base::list(records = base::do.call(base::c, base::unname(base::lapply(sources, function(x) x$records)))), table_args[[1L]])))
     columns <- base::unique(base::unlist(base::lapply(results, base::names), use.names = FALSE))
     results <- base::lapply(results, function(x) {

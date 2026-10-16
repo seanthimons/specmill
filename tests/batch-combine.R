@@ -149,6 +149,21 @@ batch_combine_acceptance <- function() {
     1L
   )
   stopifnot(identical(captured$tag, c('a', 'b')))
+  # Attributes a policy attaches to a page are not edits: the tables are still typed once,
+  # and the combined result does not carry the per-page attributes.
+  tagged_pages <- runtime$api_request_each(
+    function(id) {
+      x <- table(id)
+      attr(x, 'paging') <- list(page = id)
+      x
+    },
+    c('a', 'b'),
+    1L
+  )
+  stopifnot(
+    identical(tagged_pages$sex, c('F', 'MF')),
+    is.null(attr(tagged_pages, 'paging'))
+  )
   # A table mixed with plain records leaves no bookkeeping behind.
   with_list <- runtime$api_request_each(
     function(id) {
