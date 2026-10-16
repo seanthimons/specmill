@@ -1,0 +1,2693 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/account-mgmt/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-holdings": {
+      "get": {
+        "operationId": "AllowanceHoldingsController_getAllowanceHoldings",
+        "parameters": [
+          {
+            "name": "accountType",
+            "required": false,
+            "in": "query",
+            "description": "Type of allowance account (Facility, General, etc.).",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Compliance Assurance Surrender Account",
+                  "Enforcement Surrender Account",
+                  "Facility Account",
+                  "General Account",
+                  "Overdraft Account",
+                  "EPA Reserve Account",
+                  "State Early Reduction Reserve Account",
+                  "State General Reserve Account",
+                  "State Holding Account",
+                  "New Unit Set Aside Reserve Account",
+                  "State Opt-In Reserve Account",
+                  "State Other Reserve Account",
+                  "State Primary Reserve Account",
+                  "State Retirement Account",
+                  "Surrender Account",
+                  "Unit Account",
+                  "Voluntary Surrender Account"
+                ]
+              }
+            }
+          },
+          {
+            "name": "accountNumber",
+            "required": false,
+            "in": "query",
+            "description": "The unique identification number of an account.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "facilityId",
+            "required": false,
+            "in": "query",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "stateCode",
+            "required": false,
+            "in": "query",
+            "description": "Two letter abbreviation for the State.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "AL",
+                  "AK",
+                  "AS",
+                  "AZ",
+                  "AR",
+                  "CA",
+                  "CO",
+                  "CT",
+                  "DE",
+                  "DC",
+                  "FM",
+                  "FL",
+                  "GA",
+                  "GU",
+                  "HI",
+                  "ID",
+                  "IL",
+                  "IN",
+                  "IA",
+                  "KS",
+                  "KY",
+                  "LA",
+                  "ME",
+                  "MH",
+                  "MD",
+                  "MA",
+                  "MI",
+                  "MN",
+                  "MS",
+                  "MO",
+                  "MT",
+                  "NE",
+                  "NV",
+                  "NH",
+                  "NJ",
+                  "NM",
+                  "NY",
+                  "NC",
+                  "ND",
+                  "MP",
+                  "OH",
+                  "OK",
+                  "OR",
+                  "PW",
+                  "PA",
+                  "PR",
+                  "RI",
+                  "SC",
+                  "SD",
+                  "TN",
+                  "TX",
+                  "UT",
+                  "VT",
+                  "VI",
+                  "VA",
+                  "WA",
+                  "WV",
+                  "WI",
+                  "WY"
+                ]
+              }
+            }
+          },
+          {
+            "name": "vintageYear",
+            "required": false,
+            "in": "query",
+            "description": "Year allowance becomes eligible for use in compliance.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "ownerOperator",
+            "required": false,
+            "in": "query",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "programCodeInfo",
+            "required": false,
+            "in": "query",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ARP",
+                  "CSNOX",
+                  "CSOSG1",
+                  "CSOSG2",
+                  "CSOSG2E",
+                  "CSOSG3",
+                  "CSSO2G1",
+                  "CSSO2G2",
+                  "TXSO2"
+                ]
+              }
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "description": "Page number of data being requested.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": true,
+            "in": "query",
+            "description": "Number of results per page.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieve Allowance Holdings per filter criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AllowanceHoldingsDTO"
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "Account Number,Account Name,Facility ID,Program Code,Allowance Vintage Year,Allowance Block Total,Serial Number Start,Serial Number End,State,EPA Region,Owner/Operator,Account Type"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Holdings"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-holdings/attributes/applicable": {
+      "get": {
+        "operationId": "AllowanceHoldingsController_getAllApplicableAllowanceHoldingsAttributes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Applicable Allowance Holdings Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApplicableAllowanceHoldingsAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Holdings"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-holdings/owner-operators": {
+      "get": {
+        "operationId": "AllowanceHoldingsController_getAllOwnerOperators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Valid Owner Operators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OwnerOperatorsDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Holdings"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-transactions": {
+      "get": {
+        "operationId": "AllowanceTransactionsController_getAllowanceTransactions",
+        "parameters": [
+          {
+            "name": "accountType",
+            "required": false,
+            "in": "query",
+            "description": "Type of allowance account (Facility, General, etc.).",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Compliance Assurance Surrender Account",
+                  "Enforcement Surrender Account",
+                  "Facility Account",
+                  "General Account",
+                  "Overdraft Account",
+                  "EPA Reserve Account",
+                  "State Early Reduction Reserve Account",
+                  "State General Reserve Account",
+                  "State Holding Account",
+                  "New Unit Set Aside Reserve Account",
+                  "State Opt-In Reserve Account",
+                  "State Other Reserve Account",
+                  "State Primary Reserve Account",
+                  "State Retirement Account",
+                  "Surrender Account",
+                  "Unit Account",
+                  "Voluntary Surrender Account"
+                ]
+              }
+            }
+          },
+          {
+            "name": "accountNumber",
+            "required": false,
+            "in": "query",
+            "description": "The unique identification number of an account.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "facilityId",
+            "required": false,
+            "in": "query",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "stateCode",
+            "required": false,
+            "in": "query",
+            "description": "Two letter abbreviation for the State.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "AL",
+                  "AK",
+                  "AS",
+                  "AZ",
+                  "AR",
+                  "CA",
+                  "CO",
+                  "CT",
+                  "DE",
+                  "DC",
+                  "FM",
+                  "FL",
+                  "GA",
+                  "GU",
+                  "HI",
+                  "ID",
+                  "IL",
+                  "IN",
+                  "IA",
+                  "KS",
+                  "KY",
+                  "LA",
+                  "ME",
+                  "MH",
+                  "MD",
+                  "MA",
+                  "MI",
+                  "MN",
+                  "MS",
+                  "MO",
+                  "MT",
+                  "NE",
+                  "NV",
+                  "NH",
+                  "NJ",
+                  "NM",
+                  "NY",
+                  "NC",
+                  "ND",
+                  "MP",
+                  "OH",
+                  "OK",
+                  "OR",
+                  "PW",
+                  "PA",
+                  "PR",
+                  "RI",
+                  "SC",
+                  "SD",
+                  "TN",
+                  "TX",
+                  "UT",
+                  "VT",
+                  "VI",
+                  "VA",
+                  "WA",
+                  "WV",
+                  "WI",
+                  "WY"
+                ]
+              }
+            }
+          },
+          {
+            "name": "programCodeInfo",
+            "required": false,
+            "in": "query",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ARP",
+                  "CAIRNOX",
+                  "CAIROS",
+                  "CAIRSO2",
+                  "CSNOX",
+                  "CSNOXOS",
+                  "CSOSG1",
+                  "CSOSG2",
+                  "CSOSG2E",
+                  "CSOSG3",
+                  "CSSO2G1",
+                  "CSSO2G2",
+                  "NBP",
+                  "OTC",
+                  "TXSO2"
+                ]
+              }
+            }
+          },
+          {
+            "name": "ownerOperator",
+            "required": false,
+            "in": "query",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "transactionBeginDate",
+            "required": true,
+            "in": "query",
+            "description": "Begin date for a given period of an account's allowance transaction history.",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "transactionEndDate",
+            "required": true,
+            "in": "query",
+            "description": "End date for a given period of an account's allowance transaction history.",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "transactionType",
+            "required": false,
+            "in": "query",
+            "description": "The type of allowance transaction (e.g. initial allocation, private transaction, etc.).",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Activate Conditional Allowances",
+                  "CAIROS Transfer from NBP",
+                  "Compliance Assurance Surrender",
+                  "Conservation Issuance",
+                  "Contribute to Auction",
+                  "Conversion of NBP allowances into CAIROS",
+                  "CSAPR Ozone Season Emissions Adjustment Deduction",
+                  "CSAPR Ozone Season Offset/Penalty Deduction",
+                  "Deduction of Loaned Allowances",
+                  "Distribute Allowances for New Program",
+                  "Distribute Allowances for Revised CSAPR Update",
+                  "Distribute Revintaged Allowances",
+                  "Distribute Revintaged Allowances for Revised CSAPR Update",
+                  "Early Reduction Issuance",
+                  "Emissions Adjustment Deduction",
+                  "Emissions Deduction",
+                  "Energy Biomass Issuance",
+                  "Energy Geothermal Issuance",
+                  "Energy Solar Issuance",
+                  "Energy Wind Issuance",
+                  "Enforcement Surrender",
+                  "Error Correction",
+                  "Error Reversal",
+                  "Initial Allocation",
+                  "Internal Transfer to Reduce Offset",
+                  "July Confirmation Credit",
+                  "July Confirmation Deduction",
+                  "NBP Additional Emissions Deduction from CAIROS Account",
+                  "NBP Penalty Deduction From CAIROS Account",
+                  "New Unit Set Aside Allocation",
+                  "Offset/Penalty Deduction",
+                  "Opt-In Allocation",
+                  "Opt-in Transfer to Replacement Unit",
+                  "Other Reserve Allocation",
+                  "Phase 1 Extension Control Failure Deduction",
+                  "Phase 1 Extension Issuance",
+                  "Phase 1 Extension Projected Emission Deduction",
+                  "Phase 2 Early Reduction Payback",
+                  "Private Transfer",
+                  "Purchase at EPA Auction",
+                  "Purchase at Private Auction",
+                  "Reallocation Surrender",
+                  "Reallocation Transfer",
+                  "Recall State Program Allowances",
+                  "Reduced Utilization Issuance",
+                  "Reduced Utilization Payback",
+                  "Reduced Utilization Termination",
+                  "Remove for Reissuance",
+                  "Remove for Revised CSAPR Update Reissuance",
+                  "Return Contributed Allowances",
+                  "Return of CAIR Allowances",
+                  "Return of Unsold Allowances from EPA Auction Reserve",
+                  "Return of unused allowances from the Conservation and Renewable Energy Reserve",
+                  "Reverse Reduced Utilization Payback",
+                  "Reverse Substitution Payback",
+                  "Small Diesel Issuance",
+                  "State Cap Deduction",
+                  "State Cap Issuance",
+                  "State Cap Payback",
+                  "State Reallocation",
+                  "Substitution Control by Contract Deduction",
+                  "Substitution Distribution",
+                  "Substitution Issuance",
+                  "Substitution Payback",
+                  "Substitution Termination",
+                  "Takeback for Underutilization",
+                  "Terminate NOx Budget Programs Allowances",
+                  "Terminate State Program Allowances",
+                  "Terminate to CAIROS",
+                  "Termination of NBP allowances into CAIROS",
+                  "Transfer Due to Corrected Energy Conservation",
+                  "Transfer from Direct Sale to Auction",
+                  "Transfer from Legacy System",
+                  "Underutilization Deduction",
+                  "Voluntary Surrender"
+                ]
+              }
+            }
+          },
+          {
+            "name": "vintageYear",
+            "required": false,
+            "in": "query",
+            "description": "Year allowance becomes eligible for use in compliance.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "description": "Page number of data being requested.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": true,
+            "in": "query",
+            "description": "Number of results per page.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves Allowance Transactions per filter criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AllowanceTransactionsDTO"
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "Program Code,Transaction ID,Transaction Total,Transaction Type,Account Number (Transferor),Account Name (Transferor),Account Type (Transferor),Facility Name (Transferor),Facility ID (Transferor),State (Transferor),EPA Region (Transferor),Source Category (Transferor),Owner (Transferor),Account Number (Transferee),Account Name (Transferee),Account Type (Transferee),Facility Name (Transferee),Facility ID (Transferee),State (Transferee),EPA Region (Transferee),Source Category (Transferee),Owner (Transferee),Transaction Date,Allowance Vintage Year,Serial Number Start,Serial Number End,Allowance Block Total"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Transactions"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-transactions/attributes/applicable": {
+      "get": {
+        "operationId": "AllowanceTransactionsController_getAllApplicableAllowanceTransactionsAttributes",
+        "parameters": [
+          {
+            "name": "transactionBeginDate",
+            "required": true,
+            "in": "query",
+            "description": "Begin date for a given period of an account's allowance transaction history.",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "transactionEndDate",
+            "required": true,
+            "in": "query",
+            "description": "End date for a given period of an account's allowance transaction history.",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Applicable Allowance Transactions Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApplicableAllowanceTransactionsAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Transactions"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-transactions/owner-operators": {
+      "get": {
+        "operationId": "AllowanceTransactionsController_getAllOwnerOperators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Valid Owner Operators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OwnerOperatorsDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Transactions"
+        ]
+      }
+    },
+    "/account-mgmt/accounts": {
+      "get": {
+        "operationId": "AccountController_getAllAccounts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Valid Accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AccountDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/account-mgmt/accounts/attributes": {
+      "get": {
+        "operationId": "AccountController_getAllAccountAttributes",
+        "parameters": [
+          {
+            "name": "accountType",
+            "required": false,
+            "in": "query",
+            "description": "Type of allowance account (Facility, General, etc.).",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Compliance Assurance Surrender Account",
+                  "Enforcement Surrender Account",
+                  "Facility Account",
+                  "General Account",
+                  "Overdraft Account",
+                  "EPA Reserve Account",
+                  "State Early Reduction Reserve Account",
+                  "State General Reserve Account",
+                  "State Holding Account",
+                  "New Unit Set Aside Reserve Account",
+                  "State Opt-In Reserve Account",
+                  "State Other Reserve Account",
+                  "State Primary Reserve Account",
+                  "State Retirement Account",
+                  "Surrender Account",
+                  "Unit Account",
+                  "Voluntary Surrender Account"
+                ]
+              }
+            }
+          },
+          {
+            "name": "accountNumber",
+            "required": false,
+            "in": "query",
+            "description": "The unique identification number of an account.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "facilityId",
+            "required": false,
+            "in": "query",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "stateCode",
+            "required": false,
+            "in": "query",
+            "description": "Two letter abbreviation for the State.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "AL",
+                  "AK",
+                  "AS",
+                  "AZ",
+                  "AR",
+                  "CA",
+                  "CO",
+                  "CT",
+                  "DE",
+                  "DC",
+                  "FM",
+                  "FL",
+                  "GA",
+                  "GU",
+                  "HI",
+                  "ID",
+                  "IL",
+                  "IN",
+                  "IA",
+                  "KS",
+                  "KY",
+                  "LA",
+                  "ME",
+                  "MH",
+                  "MD",
+                  "MA",
+                  "MI",
+                  "MN",
+                  "MS",
+                  "MO",
+                  "MT",
+                  "NE",
+                  "NV",
+                  "NH",
+                  "NJ",
+                  "NM",
+                  "NY",
+                  "NC",
+                  "ND",
+                  "MP",
+                  "OH",
+                  "OK",
+                  "OR",
+                  "PW",
+                  "PA",
+                  "PR",
+                  "RI",
+                  "SC",
+                  "SD",
+                  "TN",
+                  "TX",
+                  "UT",
+                  "VT",
+                  "VI",
+                  "VA",
+                  "WA",
+                  "WV",
+                  "WI",
+                  "WY"
+                ]
+              }
+            }
+          },
+          {
+            "name": "ownerOperator",
+            "required": false,
+            "in": "query",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "programCodeInfo",
+            "required": false,
+            "in": "query",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ARP",
+                  "CAIRNOX",
+                  "CAIROS",
+                  "CAIRSO2",
+                  "CSNOX",
+                  "CSNOXOS",
+                  "CSOSG1",
+                  "CSOSG2",
+                  "CSOSG2E",
+                  "CSOSG3",
+                  "CSSO2G1",
+                  "CSSO2G2",
+                  "NBP",
+                  "OTC",
+                  "TXSO2"
+                ]
+              }
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "description": "Page number of data being requested.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": true,
+            "in": "query",
+            "description": "Number of results per page.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Valid Account Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AccountAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "Account Number,Account Name,Program Code,Account Type,Facility ID,Unit ID,Owner/Operator,State,EPA Region,NERC Region"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/account-mgmt/accounts/attributes/applicable": {
+      "get": {
+        "operationId": "AccountController_getAllApplicableAccountAttributes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Applicable Account Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApplicableAccountAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/account-mgmt/accounts/owner-operators": {
+      "get": {
+        "operationId": "AccountController_getAllOwnerOperators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Valid Owner Operators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OwnerOperatorsDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-compliance": {
+      "get": {
+        "operationId": "AllowanceComplianceController_getAllowanceCompliance",
+        "parameters": [
+          {
+            "name": "stateCode",
+            "required": false,
+            "in": "query",
+            "description": "Two letter abbreviation for the State.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "AL",
+                  "AK",
+                  "AS",
+                  "AZ",
+                  "AR",
+                  "CA",
+                  "CO",
+                  "CT",
+                  "DE",
+                  "DC",
+                  "FM",
+                  "FL",
+                  "GA",
+                  "GU",
+                  "HI",
+                  "ID",
+                  "IL",
+                  "IN",
+                  "IA",
+                  "KS",
+                  "KY",
+                  "LA",
+                  "ME",
+                  "MH",
+                  "MD",
+                  "MA",
+                  "MI",
+                  "MN",
+                  "MS",
+                  "MO",
+                  "MT",
+                  "NE",
+                  "NV",
+                  "NH",
+                  "NJ",
+                  "NM",
+                  "NY",
+                  "NC",
+                  "ND",
+                  "MP",
+                  "OH",
+                  "OK",
+                  "OR",
+                  "PW",
+                  "PA",
+                  "PR",
+                  "RI",
+                  "SC",
+                  "SD",
+                  "TN",
+                  "TX",
+                  "UT",
+                  "VT",
+                  "VI",
+                  "VA",
+                  "WA",
+                  "WV",
+                  "WI",
+                  "WY"
+                ]
+              }
+            }
+          },
+          {
+            "name": "facilityId",
+            "required": false,
+            "in": "query",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "ownerOperator",
+            "required": false,
+            "in": "query",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "programCodeInfo",
+            "required": false,
+            "in": "query",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ARP",
+                  "CAIRNOX",
+                  "CAIROS",
+                  "CAIRSO2",
+                  "CSNOX",
+                  "CSNOXOS",
+                  "CSOSG1",
+                  "CSOSG2",
+                  "CSOSG2E",
+                  "CSOSG3",
+                  "CSSO2G1",
+                  "CSSO2G2",
+                  "NBP",
+                  "OTC",
+                  "TXSO2"
+                ]
+              }
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "The calendar year during which activity occurred.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "description": "Page number of data being requested.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": true,
+            "in": "query",
+            "description": "Number of results per page.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves Allowance Compliance Data per filter criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AllowanceComplianceDTO"
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "Program Code,Year,Account Number,Account Name,Facility Name,Facility ID,Units Affected,Compliance Year Allowances Allocated,Banked Allowances,Current Held,Total Allowances Held in Account at Trading Deadline,Emissions (short tons),Other Deductions,Total Required Deductions,Current Deductions,Deduction 1 to 1,Deduction 2 to 1,Total Allowances Deducted,Allowances Carried Over,Excess Emissions (short tons),Owner/Operator,State"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Compliance"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-compliance/attributes/applicable": {
+      "get": {
+        "operationId": "AllowanceComplianceController_getAllApplicableAllowanceComplianceAttributes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Applicable Allowance Compliance Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApplicableAllowanceComplianceAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Compliance"
+        ]
+      }
+    },
+    "/account-mgmt/allowance-compliance/owner-operators": {
+      "get": {
+        "operationId": "AllowanceComplianceController_getAllOwnerOperators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Valid Owner Operators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OwnerOperatorsDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Allowance Compliance"
+        ]
+      }
+    },
+    "/account-mgmt/emissions-compliance": {
+      "get": {
+        "operationId": "EmissionsComplianceController_getEmissionsCompliance",
+        "parameters": [
+          {
+            "name": "stateCode",
+            "required": false,
+            "in": "query",
+            "description": "Two letter abbreviation for the State.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "AL",
+                  "AK",
+                  "AS",
+                  "AZ",
+                  "AR",
+                  "CA",
+                  "CO",
+                  "CT",
+                  "DE",
+                  "DC",
+                  "FM",
+                  "FL",
+                  "GA",
+                  "GU",
+                  "HI",
+                  "ID",
+                  "IL",
+                  "IN",
+                  "IA",
+                  "KS",
+                  "KY",
+                  "LA",
+                  "ME",
+                  "MH",
+                  "MD",
+                  "MA",
+                  "MI",
+                  "MN",
+                  "MS",
+                  "MO",
+                  "MT",
+                  "NE",
+                  "NV",
+                  "NH",
+                  "NJ",
+                  "NM",
+                  "NY",
+                  "NC",
+                  "ND",
+                  "MP",
+                  "OH",
+                  "OK",
+                  "OR",
+                  "PW",
+                  "PA",
+                  "PR",
+                  "RI",
+                  "SC",
+                  "SD",
+                  "TN",
+                  "TX",
+                  "UT",
+                  "VT",
+                  "VI",
+                  "VA",
+                  "WA",
+                  "WV",
+                  "WI",
+                  "WY"
+                ]
+              }
+            }
+          },
+          {
+            "name": "facilityId",
+            "required": false,
+            "in": "query",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "ownerOperator",
+            "required": false,
+            "in": "query",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "The calendar year during which activity occurred.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "description": "Page number of data being requested.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": true,
+            "in": "query",
+            "description": "Number of results per page.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves Emissions Compliance Data per filter criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EmissionsComplianceDTO"
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "Year,Facility Name,Facility ID,Unit ID,Owner/Operator,State,Compliance Approach,Averaging Plan ID,Emissions Limit (lb/mmBtu),Actual Emissions Rate (lb/mmBtu),Averaging Plan Actual Rate (lb/mmBtu),In Compliance?"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Emissions Compliance"
+        ]
+      }
+    },
+    "/account-mgmt/emissions-compliance/attributes/applicable": {
+      "get": {
+        "operationId": "EmissionsComplianceController_getAllApplicableEmissionsComplianceAttributes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Applicable Emissions Compliance Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApplicableComplianceAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Emissions Compliance"
+        ]
+      }
+    },
+    "/account-mgmt/emissions-compliance/owner-operators": {
+      "get": {
+        "operationId": "EmissionsComplianceController_getAllOwnerOperators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retrieved All Valid Owner Operators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OwnerOperatorsDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Emissions Compliance"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Account Management OpenAPI Specification",
+    "description": "Account management API endpoints for account information, allowance holdings, transactions, and compliance",
+    "version": "v2.0.129 published: Thu Aug 20 2026",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "https://api.epa.gov/easey"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "APIKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API Key required via \"x-api-key\" request header!"
+      }
+    },
+    "schemas": {
+      "OwnerOperatorsDTO": {
+        "type": "object",
+        "properties": {
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company"
+          },
+          "ownType": {
+            "type": "string",
+            "description": "Owner/Operator type. Either Owner, Operator, or Both.",
+            "example": "OPR"
+          }
+        },
+        "required": [
+          "ownerOperator",
+          "ownType"
+        ]
+      },
+      "ApplicableAllowanceHoldingsAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "vintageYear": {
+            "type": "number",
+            "description": "Year allowance becomes eligible for use in compliance.",
+            "example": 2016
+          },
+          "programCode": {
+            "type": "string",
+            "description": "Code for statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "CAIRNOX"
+          },
+          "accountNumber": {
+            "type": "string",
+            "description": "The unique identification number of an account.",
+            "example": "000003FACLTY"
+          },
+          "accountTypeCode": {
+            "type": "string",
+            "description": "Code for the type of allowance account.",
+            "example": "RESERVE"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company"
+          }
+        },
+        "required": [
+          "vintageYear",
+          "programCode",
+          "accountNumber",
+          "accountTypeCode",
+          "stateCode",
+          "ownerOperator"
+        ]
+      },
+      "AllowanceHoldingsDTO": {
+        "type": "object",
+        "properties": {
+          "accountNumber": {
+            "type": "string",
+            "description": "The unique identification number of an account.",
+            "example": "000003FACLTY"
+          },
+          "accountName": {
+            "type": "string",
+            "description": "The name of the account in which allowances are held.",
+            "example": "Barry"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "programCodeInfo": {
+            "type": "string",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "ARP,CSNOX,CSSO2G2,MATS"
+          },
+          "vintageYear": {
+            "type": "number",
+            "description": "Year allowance becomes eligible for use in compliance.",
+            "example": 2016
+          },
+          "totalBlock": {
+            "type": "number",
+            "description": "The quantity of allowances as identified by the Start Serial Number through End Serial Number.",
+            "example": 10033
+          },
+          "startBlock": {
+            "type": "number",
+            "description": "The starting serial number of an allowance block.",
+            "example": 266955
+          },
+          "endBlock": {
+            "type": "number",
+            "description": "The ending serial number of an allowance block.",
+            "example": 276987
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "epaRegion": {
+            "type": "number",
+            "description": "An EPA Region is a group of U.S. states. EPA Regions are numbered from 1 to 10 and each state belongs to one and only one EPA Region.",
+            "example": 5
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company (Operator)|Alabama Power Company (Owner)"
+          },
+          "accountType": {
+            "type": "string",
+            "description": "Type of allowance account (Facility, General, etc.).",
+            "example": "Facility Account"
+          }
+        },
+        "required": [
+          "accountNumber",
+          "accountName",
+          "programCodeInfo",
+          "stateCode",
+          "ownerOperator",
+          "accountType"
+        ]
+      },
+      "ApplicableAllowanceTransactionsAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "transactionDate": {
+            "type": "string",
+            "description": "The date the allowance transaction was confirmed.",
+            "example": "2014-11-24"
+          },
+          "vintageYear": {
+            "type": "number",
+            "description": "Year allowance becomes eligible for use in compliance.",
+            "example": 2016
+          },
+          "programCode": {
+            "type": "string",
+            "description": "Code for statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "CAIRNOX"
+          },
+          "buyAccountNumber": {
+            "type": "string",
+            "description": "The number of the account receiving allowances in an allowance transaction.",
+            "example": "055247FACLTY"
+          },
+          "sellAccountNumber": {
+            "type": "string",
+            "description": "The number of the account transferring allowances in an allowance transaction.",
+            "example": "002828FACLTY"
+          },
+          "buyAccountTypeCode": {
+            "type": "string",
+            "description": "Code for the type of account purchasing allowances.",
+            "example": "GENERAL"
+          },
+          "sellAccountTypeCode": {
+            "type": "string",
+            "description": "Code for the type of account selling allowances.",
+            "example": "GENERAL"
+          },
+          "buyFacilityId": {
+            "type": "number",
+            "description": "For facility and unit accounts, the Facility ID of the account receiving allowances in an allowance transaction.",
+            "example": 55247
+          },
+          "sellFacilityId": {
+            "type": "number",
+            "description": "For facility and unit accounts, the Facility ID of the account transferring allowances in an allowance transaction.",
+            "example": 2828
+          },
+          "buyState": {
+            "type": "string",
+            "description": "For facility and unit accounts, the state of the account receiving allowances in an allowance transaction.",
+            "example": "OH"
+          },
+          "sellState": {
+            "type": "string",
+            "description": "For facility and unit accounts, the state of the account transferring allowances in an allowance transaction.",
+            "example": "OH"
+          },
+          "transactionTypeCode": {
+            "type": "string",
+            "description": "Code for the transaction type.",
+            "example": "INITIAL"
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company"
+          }
+        },
+        "required": [
+          "transactionDate",
+          "vintageYear",
+          "programCode",
+          "buyAccountNumber",
+          "sellAccountNumber",
+          "buyAccountTypeCode",
+          "sellAccountTypeCode",
+          "buyState",
+          "sellState",
+          "transactionTypeCode",
+          "ownerOperator"
+        ]
+      },
+      "AllowanceTransactionsDTO": {
+        "type": "object",
+        "properties": {
+          "programCodeInfo": {
+            "type": "string",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "ARP,CSNOX,CSSO2G2,MATS"
+          },
+          "transactionId": {
+            "type": "number",
+            "description": "The number used to identify a specific allowance transaction.",
+            "example": 9883
+          },
+          "transactionTotal": {
+            "type": "number",
+            "description": "The total number of allowances involved in a transaction.",
+            "example": 6
+          },
+          "transactionType": {
+            "type": "string",
+            "description": "The type of allowance transaction (e.g. initial allocation, private transaction, etc.).",
+            "example": "Private Transfer"
+          },
+          "sellAccountNumber": {
+            "type": "string",
+            "description": "The number of the account transferring allowances in an allowance transaction.",
+            "example": "002828FACLTY"
+          },
+          "sellAccountName": {
+            "type": "string",
+            "description": "The name of the account transferring allowances in an allowance transaction.",
+            "example": "Cardinal"
+          },
+          "sellAccountType": {
+            "type": "string",
+            "description": "Type of seller's allowance account (Facility, General, etc.).",
+            "example": "Facility Account"
+          },
+          "sellFacilityName": {
+            "type": "string",
+            "description": "For facility and unit accounts, the facility name of the account transferring allowances in an allowance transaction.",
+            "example": "Cardinal"
+          },
+          "sellFacilityId": {
+            "type": "number",
+            "description": "For facility and unit accounts, the Facility ID of the account transferring allowances in an allowance transaction.",
+            "example": 2828
+          },
+          "sellState": {
+            "type": "string",
+            "description": "For facility and unit accounts, the state of the account transferring allowances in an allowance transaction.",
+            "example": "OH"
+          },
+          "sellEpaRegion": {
+            "type": "number",
+            "description": "For facility and unit accounts, the EPA Region of the account transferring allowances in an allowance transaction.",
+            "example": 5
+          },
+          "sellSourceCategory": {
+            "type": "string",
+            "description": "For unit accounts, the source category of the account transferring allowances in an allowance transaction.",
+            "example": "Electric Utility"
+          },
+          "sellOwner": {
+            "type": "string",
+            "description": "The owner of the account transferring allowances in an allowance transaction.",
+            "example": "AEP Generation Resources, Inc.|Buckeye Power, Inc."
+          },
+          "buyAccountNumber": {
+            "type": "string",
+            "description": "The number of the account receiving allowances in an allowance transaction.",
+            "example": "055247FACLTY"
+          },
+          "buyAccountName": {
+            "type": "string",
+            "description": "The name of the account receiving allowances in an allowance transaction.",
+            "example": "Darby Electric Generating Station"
+          },
+          "buyAccountType": {
+            "type": "string",
+            "description": "Type of buyer's allowance account (Facility, General, etc.).",
+            "example": "Facility Account"
+          },
+          "buyFacilityName": {
+            "type": "string",
+            "description": "For facility and unit accounts, the facility name of the account receiving allowances in an allowance transaction.",
+            "example": "Darby Electric Generating Station"
+          },
+          "buyFacilityId": {
+            "type": "number",
+            "description": "For facility and unit accounts, the Facility ID of the account receiving allowances in an allowance transaction.",
+            "example": 55247
+          },
+          "buyState": {
+            "type": "string",
+            "description": "For facility and unit accounts, the state of the account receiving allowances in an allowance transaction.",
+            "example": "OH"
+          },
+          "buyEpaRegion": {
+            "type": "number",
+            "description": "For facility and unit accounts, the EPA Region of the account receiving allowances in an allowance transaction.",
+            "example": 5
+          },
+          "buySourceCategory": {
+            "type": "string",
+            "description": "For unit accounts, the source category of the account receiving allowances in an allowance transaction.",
+            "example": "Electric Utility"
+          },
+          "buyOwner": {
+            "type": "string",
+            "description": "The owner of the account receiving allowances in an allowance transaction.",
+            "example": "AEP Generation Resources, Inc."
+          },
+          "transactionDate": {
+            "type": "string",
+            "description": "The date the allowance transaction was confirmed.",
+            "example": "2014-11-24"
+          },
+          "vintageYear": {
+            "type": "number",
+            "description": "Year allowance becomes eligible for use in compliance.",
+            "example": 2016
+          },
+          "startBlock": {
+            "type": "number",
+            "description": "The starting serial number of an allowance block.",
+            "example": 266955
+          },
+          "endBlock": {
+            "type": "number",
+            "description": "The ending serial number of an allowance block.",
+            "example": 276987
+          },
+          "totalBlock": {
+            "type": "number",
+            "description": "The quantity of allowances as identified by the Start Serial Number through End Serial Number.",
+            "example": 10033
+          }
+        },
+        "required": [
+          "programCodeInfo",
+          "transactionType",
+          "sellAccountNumber",
+          "sellAccountName",
+          "sellAccountType",
+          "sellFacilityName",
+          "sellState",
+          "sellSourceCategory",
+          "sellOwner",
+          "buyAccountNumber",
+          "buyAccountName",
+          "buyAccountType",
+          "buyFacilityName",
+          "buyState",
+          "buySourceCategory",
+          "buyOwner",
+          "transactionDate"
+        ]
+      },
+      "ApplicableAccountAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "programCode": {
+            "type": "string",
+            "description": "Code for statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "CAIRNOX"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "accountNumber": {
+            "type": "string",
+            "description": "The unique identification number of an account.",
+            "example": "000003FACLTY"
+          },
+          "accountTypeCode": {
+            "type": "string",
+            "description": "Code for the type of allowance account.",
+            "example": "RESERVE"
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company"
+          }
+        },
+        "required": [
+          "programCode",
+          "stateCode",
+          "accountNumber",
+          "accountTypeCode",
+          "ownerOperator"
+        ]
+      },
+      "AccountDTO": {
+        "type": "object",
+        "properties": {
+          "accountNumber": {
+            "type": "string",
+            "description": "The unique identification number of an account.",
+            "example": "000003FACLTY"
+          },
+          "accountName": {
+            "type": "string",
+            "description": "The name of the account in which allowances are held.",
+            "example": "Barry"
+          }
+        },
+        "required": [
+          "accountNumber",
+          "accountName"
+        ]
+      },
+      "AccountAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "accountNumber": {
+            "type": "string",
+            "description": "The unique identification number of an account.",
+            "example": "000003FACLTY"
+          },
+          "accountName": {
+            "type": "string",
+            "description": "The name of the account in which allowances are held.",
+            "example": "Barry"
+          },
+          "programCodeInfo": {
+            "type": "string",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "ARP,CSNOX,CSSO2G2,MATS"
+          },
+          "accountType": {
+            "type": "string",
+            "description": "Type of allowance account (Facility, General, etc.).",
+            "example": "Facility Account"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "unitId": {
+            "type": "string",
+            "description": "Unique identifier for each unit at a facility.",
+            "example": 5
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company (Operator)|Alabama Power Company (Owner)"
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "epaRegion": {
+            "type": "number",
+            "description": "An EPA Region is a group of U.S. states. EPA Regions are numbered from 1 to 10 and each state belongs to one and only one EPA Region.",
+            "example": 5
+          },
+          "nercRegion": {
+            "type": "string",
+            "description": "The North American Electric Reliability Corporation region in which the facility is located.",
+            "example": "Mid-Continent Area Power Pool"
+          }
+        },
+        "required": [
+          "accountNumber",
+          "accountName",
+          "programCodeInfo",
+          "accountType",
+          "unitId",
+          "ownerOperator",
+          "stateCode",
+          "nercRegion"
+        ]
+      },
+      "ApplicableAllowanceComplianceAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "number",
+            "description": "The calendar year during which activity occurred.",
+            "example": 2020
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company"
+          },
+          "programCode": {
+            "type": "string",
+            "description": "Code for statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "CAIRNOX"
+          }
+        },
+        "required": [
+          "stateCode",
+          "ownerOperator",
+          "programCode"
+        ]
+      },
+      "AllowanceComplianceDTO": {
+        "type": "object",
+        "properties": {
+          "programCodeInfo": {
+            "type": "string",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "ARP,CSNOX,CSSO2G2,MATS"
+          },
+          "year": {
+            "type": "number",
+            "description": "The calendar year during which activity occurred.",
+            "example": 2020
+          },
+          "accountNumber": {
+            "type": "string",
+            "description": "The unique identification number of an account.",
+            "example": "000003FACLTY"
+          },
+          "accountName": {
+            "type": "string",
+            "description": "The name of the account in which allowances are held.",
+            "example": "Barry"
+          },
+          "facilityName": {
+            "type": "string",
+            "description": "The name given by the owners and operators to a facility",
+            "example": "Barry"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "unitsAffected": {
+            "type": "string",
+            "description": "unit ID(s) for units at a facility that are affected by a given compliance program.",
+            "example": 31
+          },
+          "allocated": {
+            "type": "number",
+            "description": "The amount of allowances allocated for the calendar year.",
+            "example": 136
+          },
+          "bankedHeld": {
+            "type": "number",
+            "description": "The amount of allowances of vintage years up to but not including the current compliance year held in a compliance account. (This is for NBP, OTC)",
+            "example": 0
+          },
+          "currentHeld": {
+            "type": "number",
+            "description": "The amount of current vintage year allowances held in a compliance account at compliance. (This is for NBP, OTC)",
+            "example": 132
+          },
+          "totalAllowancesHeld": {
+            "type": "number",
+            "description": "The total amount of allowances held in the account at compliance.",
+            "example": 132
+          },
+          "complianceYearEmissions": {
+            "type": "number",
+            "description": "The total amount of pollutant in short tons emitted by the source in a control period.",
+            "example": 132
+          },
+          "otherDeductions": {
+            "type": "number",
+            "description": "The sum of other deductions that may have occurred for the account, including Underutilization, Phase I Extension, Projected Emissions Deduction (for Phase I reports), State Cap Deductions, Deduction of Loaned Allowances, July Confirmation Deduction, and Substitution Control by Contract Deduction.",
+            "example": 0
+          },
+          "totalRequiredDeductions": {
+            "type": "number",
+            "description": "Sum of Compliance year emissions + Other deductions.",
+            "example": 132
+          },
+          "currentDeductions": {
+            "type": "number",
+            "description": "The amount of allowances with the current vintage year deducted at compliance. (This is for NBP, OTC)",
+            "example": 132
+          },
+          "deductOneToOne": {
+            "type": "number",
+            "description": "Banked allowances with a 1 to 1 ratio. (This is for OTC, NBP)",
+            "example": 0
+          },
+          "deductTwoToOne": {
+            "type": "number",
+            "description": "Banked allowances with a 2 to 1 ratio. (This is for OTC, NBP)",
+            "example": 0
+          },
+          "totalAllowancesDeducted": {
+            "type": "number",
+            "description": "The total amount of allowances deducted at compliance.",
+            "example": 132
+          },
+          "carriedOver": {
+            "type": "number",
+            "description": "The amount of allowances remaining in the account following compliance.",
+            "example": 0
+          },
+          "excessEmissions": {
+            "type": "number",
+            "description": "The amount of pollutant in short tons emitted in excess of the number of allowances held.",
+            "example": 0
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company (Operator)|Alabama Power Company (Owner)"
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          }
+        },
+        "required": [
+          "programCodeInfo",
+          "accountNumber",
+          "accountName",
+          "facilityName",
+          "unitsAffected",
+          "ownerOperator",
+          "stateCode"
+        ]
+      },
+      "ApplicableComplianceAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "number",
+            "description": "The calendar year during which activity occurred.",
+            "example": 2020
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company"
+          }
+        },
+        "required": [
+          "stateCode",
+          "ownerOperator"
+        ]
+      },
+      "EmissionsComplianceDTO": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "number",
+            "description": "The calendar year during which activity occurred.",
+            "example": 2020
+          },
+          "facilityName": {
+            "type": "string",
+            "description": "The name given by the owners and operators to a facility",
+            "example": "Barry"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "unitId": {
+            "type": "string",
+            "description": "Unique identifier for each unit at a facility.",
+            "example": 5
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company (Operator)|Alabama Power Company (Owner)"
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "complianceApproach": {
+            "type": "string",
+            "description": "For ARP NOx, approach used to meet compliance requirements (averaging plan, standard limit, or alternative limit).",
+            "example": "Averaging Plan"
+          },
+          "avgPlanId": {
+            "type": "number",
+            "description": "For ARP NOx, the unique identification number that associates a group of units with a single averaging plan.",
+            "example": 492
+          },
+          "emissionsLimitDisplay": {
+            "type": "number",
+            "description": "For ARP NOx, the applicable emissions limit based on compliance plan. May either be unit-specific or part of an averaging plan. (lb/mmBtu)",
+            "example": 0.55
+          },
+          "actualEmissionsRate": {
+            "type": "number",
+            "description": "For ARP NOx, the actual rate at which a pollutant was emitted during a given time period for a single unit. (lb/mmBtu)",
+            "example": 0.5
+          },
+          "avgPlanActual": {
+            "type": "number",
+            "description": "For ARP NOx, the average actual rate at which a pollutant was emitted during a given time period for the group of units in the averaging plan. (lb/mmBtu)",
+            "example": 0.55
+          },
+          "inCompliance": {
+            "type": "string",
+            "description": "A facility is in compliance if, at the end of the compliance period, the facility owns enough allowances to cover the amount of pollutant emitted (or for ARP NOx, the actual emissions rate of the pollutant was below the emissions limit).",
+            "example": "YES"
+          }
+        },
+        "required": [
+          "facilityName",
+          "unitId",
+          "ownerOperator",
+          "stateCode",
+          "complianceApproach",
+          "inCompliance"
+        ]
+      }
+    }
+  }
+}
