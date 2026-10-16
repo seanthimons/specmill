@@ -66,6 +66,27 @@ pagination_wrapper_acceptance <- function() {
               flagged = json(
                 record(id = as.character(page), last = page >= 2L)
               ),
+              # A real API shape: every page, and the one past the end, is an envelope.
+              envelope = {
+                data <- switch(
+                  min(page, 4L),
+                  c(
+                    record(sex = 'F', id = '007'),
+                    record(sex = 'F', id = '008')
+                  ),
+                  record(sex = 'MF', id = '12'),
+                  record(sex = 'M', id = '13'),
+                  list()
+                )
+                json(list(
+                  studyType = 'DNT',
+                  totalRecords = 4L,
+                  recordsOnPage = length(data),
+                  pageNumber = page,
+                  totalPages = 3L,
+                  data = data
+                ))
+              },
               json(list(error = 'unknown kind'), 404L)
             )
           }
@@ -177,9 +198,16 @@ pagination_wrapper_acceptance <- function() {
   writeLines(
     c(
       'table_policy <- function(response, context, decode) {',
-      '  api_request_table(api_request_records(decode(), query = context$query))',
+      '  body <- decode()',
+      '  envelope <- is.list(body) && "data" %in% names(body)',
+      '  table <- api_request_table(api_request_records(if (envelope) body$data else body, query = context$query))',
+      '  if (envelope) attr(table, "paging") <- body[c("pageNumber", "totalPages")]',
+      '  table',
       '}',
-      'stop_when_last <- function(response, state) any(response$last)'
+      'stop_when_last <- function(response, state) {',
+      '  paging <- attr(response, "paging")',
+      '  any(response$last) || (!is.null(paging) && paging$pageNumber >= paging$totalPages)',
+      '}'
     ),
     file.path(root, 'R/policy.R')
   )
@@ -317,6 +345,27 @@ pagination_wrapper_acceptance <- function() {
     identical(flagged$id, 1:2),
     attr(flagged, 'pagination')$stop_reason == 'completed',
     identical(attr(flagged, 'pagination')$requests, 2L)
+  )
+  # An envelope API: the policy unwraps data and tags the page with its paging fields, a
+  # client function reads them, and paging stops on the last page without asking for another.
+  seen <- sent()
+  enveloped <- runtime$get_items('envelope')
+  stopifnot(
+    sent() - seen == 3L,
+    identical(attr(enveloped, 'pagination')$requests, 3L),
+    attr(enveloped, 'pagination')$stop_reason == 'completed',
+    identical(enveloped$sex, c('F', 'F', 'MF', 'M')),
+    identical(enveloped$id, c(7L, 8L, 12L, 13L)),
+    is.null(attr(enveloped, 'paging'))
+  )
+  # Past the last page the API still answers with an envelope, whose data is empty.
+  beyond <- runtime$get_items('envelope', pageNumber = 4L)
+  stopifnot(
+    nrow(beyond) == 0L,
+    attr(beyond, 'pagination')$stop_reason == 'empty_page',
+    identical(attr(beyond, 'pagination')$requests, 1L),
+    # One page is combined like many: the policy's tag is not on the result.
+    is.null(attr(beyond, 'paging'))
   )
   # max_pages bounds a runaway endpoint, with a warning, and records why paging stopped.
   warned <- character()
