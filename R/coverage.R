@@ -181,7 +181,7 @@ coverage_report <- function(
 }
 
 # Schema-relative counts for one group: every operation in the schemas its services
-# reference, once per schema file and method + path, minus the excluded patterns.
+# reference, once per method + path in the group, minus the excluded patterns.
 coverage_schema_counts <- function(inspection, members, exclude, root) {
   rows <- Filter(function(x) x$service %in% members, inspection$inventory)
   wrapped <- unlist(
@@ -209,13 +209,16 @@ coverage_schema_counts <- function(inspection, members, exclude, root) {
     skipped <- skipped | stringr::str_detect(frame$key, pattern)
   }
   frame <- frame[!skipped, , drop = FALSE]
-  id <- paste(frame$source, frame$key)
-  operations <- split(seq_len(nrow(frame)), factor(id, levels = unique(id)))
+  # One operation per METHOD /path in the group, however many schema files or services describe it.
+  operations <- split(
+    seq_len(nrow(frame)),
+    factor(frame$key, levels = unique(frame$key))
+  )
   summary <- lapply(operations, function(i) {
     statuses <- setdiff(frame$status[i], 'excluded')
     list(
       key = frame$key[[i[[1L]]]],
-      schema = frame$source[[i[[1L]]]],
+      schemas = unique(frame$source[i]),
       status = if (length(statuses)) statuses[[1L]] else 'excluded',
       services = paste(unique(frame$service[i]), collapse = ', '),
       implemented = any(frame$implemented[i])
@@ -230,12 +233,16 @@ coverage_schema_counts <- function(inspection, members, exclude, root) {
     implemented = sum(vapply(summary, `[[`, logical(1), 'implemented')),
     gaps = data.frame(
       key = vapply(gaps, `[[`, character(1), 'key'),
-      schema = {
-        schema <- vapply(gaps, `[[`, character(1), 'schema')
-        inside <- startsWith(schema, prefix)
-        schema[inside] <- substring(schema[inside], nchar(prefix) + 1L)
-        schema
-      },
+      schema = vapply(
+        gaps,
+        function(x) {
+          paths <- x$schemas
+          inside <- startsWith(paths, prefix)
+          paths[inside] <- substring(paths[inside], nchar(prefix) + 1L)
+          paste(paths, collapse = ', ')
+        },
+        character(1)
+      ),
       status = vapply(gaps, `[[`, character(1), 'status'),
       services = vapply(gaps, `[[`, character(1), 'services'),
       stringsAsFactors = FALSE,

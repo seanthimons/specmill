@@ -64,8 +64,8 @@ coverage_schema_acceptance <- function() {
   stopifnot(
     counts(inventory, operations, 'full', c('^GET /health', '/b$'))$total == 1L
   )
-  # Different schemas that share a route are different operations.
-  two_apis <- counts(
+  # A route described by two schema files is one operation in the group.
+  shared_route <- counts(
     list(
       entry('ccd', 'GET /health', '/schemas/ccd.json'),
       entry('epi', 'GET /health', '/schemas/epi.json')
@@ -74,9 +74,23 @@ coverage_schema_acceptance <- function() {
     c('ccd', 'epi')
   )
   stopifnot(
-    two_apis$total == 2L,
-    two_apis$implemented == 1L,
-    identical(two_apis$gaps$schema, 'epi.json')
+    shared_route$total == 1L,
+    shared_route$implemented == 1L,
+    !nrow(shared_route$gaps)
+  )
+  # When it is not wrapped, the gap lists both files and both services.
+  unwrapped <- counts(
+    list(
+      entry('ccd', 'GET /health', '/schemas/ccd.json'),
+      entry('epi', 'GET /health', '/schemas/epi.json')
+    ),
+    list(),
+    c('ccd', 'epi')
+  )
+  stopifnot(
+    unwrapped$total == 1L,
+    identical(unwrapped$gaps$schema, 'ccd.json, epi.json'),
+    identical(unwrapped$gaps$services, 'ccd, epi')
   )
   # Services outside the group, an empty group and unparseable path items.
   stopifnot(counts(inventory, operations, 'other')$total == 0L)
