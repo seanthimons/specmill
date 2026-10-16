@@ -17,7 +17,7 @@ run_hook <- function(fn_name, hook_type, data) {
   if (
     length(hook_type) != 1L ||
       is.na(hook_type) ||
-      !hook_type %in% c('pre_request', 'post_response')
+      !hook_type %in% c('pre_request', 'post_response', 'post_combine')
   ) {
     stop('Unsupported hook stage')
   }
@@ -27,13 +27,21 @@ run_hook <- function(fn_name, hook_type, data) {
       (!is.list(entry) ||
         is.null(names(entry)) ||
         anyDuplicated(names(entry)) ||
-        any(!names(entry) %in% c('pre_request', 'post_response')))
+        any(
+          !names(entry) %in% c('pre_request', 'post_response', 'post_combine')
+        ))
   ) {
     stop('Invalid hook stages for ', fn_name)
   }
   chain <- entry[[hook_type]]
   if (is.null(chain) || !length(chain)) {
-    return(if (hook_type == 'post_response') data$result else data)
+    return(
+      if (hook_type %in% c('post_response', 'post_combine')) {
+        data$result
+      } else {
+        data
+      }
+    )
   }
   if (
     !(is.character(chain) || is.list(chain)) ||

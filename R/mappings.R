@@ -40,6 +40,7 @@ validate_settings <- function(
       'file',
       'implementation',
       'parameters',
+      'body',
       'inputs',
       'extra_parameters',
       'request',
@@ -48,6 +49,7 @@ validate_settings <- function(
       'parameter_order',
       'docs',
       'batch',
+      'pagination',
       'request_controls',
       'response_policy',
       'server',
@@ -203,6 +205,59 @@ validate_settings <- function(
       }
     }
   }
+  if (!is.null(settings[['pagination']])) {
+    pagination <- settings[['pagination']]
+    config_fields(
+      pagination,
+      c('mode', 'parameter', 'start', 'completed', 'max_pages'),
+      'pagination'
+    )
+    if (!is.null(pagination[['mode']])) {
+      config_string(pagination[['mode']], 'pagination.mode')
+      if (!identical(pagination[['mode']], 'page')) {
+        stop(
+          'pagination.mode must be page; offset and cursor paging are not ',
+          'available for generated wrappers yet'
+        )
+      }
+    }
+    if (!is.null(pagination[['parameter']])) {
+      config_string(pagination[['parameter']], 'pagination.parameter')
+    }
+    if (!is.null(pagination[['completed']])) {
+      config_string(pagination[['completed']], 'pagination.completed')
+      if (
+        !identical(pagination[['completed']], 'empty') &&
+          !identical(
+            make.names(pagination[['completed']]),
+            pagination[['completed']]
+          )
+      ) {
+        stop('pagination.completed must be empty or a client function name')
+      }
+    }
+    for (field in c('start', 'max_pages')) {
+      value <- pagination[[field]]
+      if (
+        !is.null(value) &&
+          (!is.numeric(value) ||
+            length(value) != 1L ||
+            is.na(value) ||
+            !is.finite(value) ||
+            value != floor(value) ||
+            value < (if (field == 'start') 0 else 1) ||
+            value > .Machine$integer.max)
+      ) {
+        stop(
+          'pagination.',
+          field,
+          ' must be a ',
+          if (field == 'start') 'nonnegative' else 'positive',
+          ' integer'
+        )
+      }
+    }
+  }
   if (
     'implementation' %in%
       names(settings) &&
@@ -274,6 +329,27 @@ validate_settings <- function(
       if (isTRUE(parameter$missing_as_null) && !isTRUE(parameter$required)) {
         stop('missing_as_null requires an explicitly required public input')
       }
+    }
+  }
+  if ('body' %in% names(settings)) {
+    config_fields(settings[['body']], c('name', 'description'), 'body')
+    if (!length(settings[['body']])) {
+      stop(label, ': body override needs a name or description')
+    }
+    for (field in names(settings[['body']])) {
+      config_string(settings[['body']][[field]], paste('body', field))
+    }
+    name <- settings[['body']]$name
+    if (
+      !is.null(name) &&
+        (!identical(make.names(name), name) ||
+          grepl('^(\\.\\.([0-9]+|\\.)|\\.\\.\\.)$', name) ||
+          name %in% c('params', 'state', 'result', 'send', 'chunk', 'changed'))
+    ) {
+      stop(
+        label,
+        ': body name must be a valid R argument name that generated code does not use internally'
+      )
     }
   }
   if ('parameter_order' %in% names(settings)) {
@@ -350,6 +426,20 @@ configure_operation <- function(operation, service) {
     operation$id,
     service$callbacks %or% new.env(parent = emptyenv())
   )
+  if (!is.null(settings[['body']])) {
+    if ('inputs' %in% names(settings)) {
+      stop(
+        'Body override cannot be combined with explicit inputs: ',
+        operation$id
+      )
+    }
+    if (is.null(operation$body)) {
+      stop(
+        'Body override requires an operation with a request body: ',
+        operation$id
+      )
+    }
+  }
   parameters <- operation$parameters
   ids <- vapply(parameters, function(p) paste(p$location, p$name), character(1))
   unknown <- setdiff(names(settings$parameters), ids)
@@ -440,6 +530,17 @@ configure_operation <- function(operation, service) {
     )
   }
   public_names <- parameter_names(parameters)
+  if (
+    !is.null(settings[['body']]$name) &&
+      settings[['body']]$name %in% public_names
+  ) {
+    stop(
+      'Body name collides with parameter "',
+      settings[['body']]$name,
+      '": ',
+      operation$id
+    )
+  }
   requested_names <- vapply(
     parameters,
     function(p) p$public_name %or% p$name,
@@ -482,6 +583,8 @@ configure_operation <- function(operation, service) {
     )
   }
   operation$request_controls <- config_data(settings$request_controls)
+  operation$body_name <- settings[['body']]$name
+  operation$body_description <- settings[['body']]$description
   operation$parameters <- parameters
   spec <- merge_settings(service, settings)
   list(operation = operation, spec = spec)

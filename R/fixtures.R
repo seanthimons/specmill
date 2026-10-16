@@ -282,7 +282,13 @@ operation_fixtures <- function(
   mode <- match.arg(mode)
   lapply(operations, function(op) {
     omitted <- character()
-    parameters <- Filter(
+    # Schema-level override keys stay 'body'; the wrapper argument may differ.
+    body_argument <- body_argument_name(op)
+    # Argument names come from the full list: leaving a parameter out must not
+    # renumber duplicates (x, x.1) away from the wrapper's real arguments.
+    public_names <- parameter_names(op$parameters)
+    kept <- vapply(
+      op$parameters,
       function(p) {
         keep <- mode != 'minimal' ||
           p$required ||
@@ -292,8 +298,9 @@ operation_fixtures <- function(
         }
         keep
       },
-      op$parameters
+      logical(1)
     )
+    parameters <- op$parameters[kept]
     inputs <- setNames(
       lapply(parameters, function(p) {
         tryCatch(
@@ -361,7 +368,7 @@ operation_fixtures <- function(
           }
         )
       }),
-      parameter_names(parameters)
+      public_names[kept]
     )
     if (
       mode == 'minimal' &&
@@ -399,7 +406,7 @@ operation_fixtures <- function(
               op$body_media,
               'application/x-www-form-urlencoded'
             )
-            inputs['body'] <- list(
+            inputs[body_argument] <- list(
               if ('body' %in% names(overrides[[op$name]])) {
                 form_value(
                   overrides[[op$name]]$body,
@@ -420,9 +427,9 @@ operation_fixtures <- function(
             if (!is.raw(value)) {
               stop('Binary fixture must be a raw vector')
             }
-            inputs['body'] <- list(value)
+            inputs[body_argument] <- list(value)
           } else {
-            inputs['body'] <- list(
+            inputs[body_argument] <- list(
               if ('body' %in% names(overrides[[op$name]])) {
                 body_fixture(op$body, overrides[[op$name]]$body)
               } else {

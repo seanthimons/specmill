@@ -235,6 +235,12 @@ attributed_table <- function(response, context, decode) {
 }
 ```
 
+`context$query` is the request's only path value, else its only URL query value.
+Paging parameters such as `pageNumber` do not count, so on a paged endpoint a
+single remaining filter (for example `studyType`) arrives as `context$query` and
+would stamp every row with a `query` column. A policy for a paged endpoint
+should not reuse the single-object logic above; omit `query` for those rows.
+
 `api_request_table()` is explicitly lossy compatibility formatting. It unions
 heterogeneous fields, represents missing fields as NA, collapses nested values
 with `'; '`, and optionally recovers types with `utils::type.convert()`. Set
@@ -243,6 +249,23 @@ that would overwrite a record field. Its default output is a base data frame,
 including for empty results. Passing `tibble::as_tibble` selects a tibble, also
 for empty results, and requires `tibble` in the client's `DESCRIPTION` Imports.
 The generated helpers have no tibble or specmill runtime dependency.
+
+To keep your own table shape, pass `build = function(records, type_convert, names_to)`.
+It replaces the built-in row construction (the unioned fields, the `'; '`
+collapsing, the position of the `query` column) and must return a data frame, so it
+can keep list-columns, order columns as you like, and recover types its own way.
+`as_table` is still applied to what it returns. It receives the records exactly as
+you gave them to `api_request_table()`, including empty ones that the built-in
+builder skips; a record has a `query` attribute only if you attributed it with
+`api_request_records(query = )`. In a batched or paging wrapper the function can be
+called several times: for each request, to check the table was not edited, and once
+over all requests' records joined with `c()`, so record names may mix. Keep it a
+pure function of its records and make it quick. Because the function sees all the
+records together, any type recovery it does (it receives `type_convert`) is done once
+over everything, as the built-in builder does. If requests were built with different
+builders, or a builder fails on another request's records during the check, the tables
+are stacked as they are instead. An error from the final call over all the joined
+records is raised, not stacked.
 
 Reuse a shared formatting function in the existing hook executor when a whole
 service needs it; routine policy does not require one callback per endpoint.
@@ -408,6 +431,8 @@ request, and `post_response` once per element or chunk:
   (split). Setting `skip_request` skips only that request, for example on a
   per-ID cache hit.
 - `post_response` cleans or converts each response on its own.
+- `post_combine`, an optional extra stage, runs once on the combined result. See
+  [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper).
 - `response_policy` receives the element or chunk as `context$query`, provided
   attribution applies to the request (see
   [Response policy](#response-policy-and-selected-formatting)). A split chunk is
@@ -418,9 +443,16 @@ request, and `post_response` once per element or chunk:
 **What is returned.** The per-request results are combined, whatever the number
 of inputs, so `f('A')` and `f(c('A', 'B'))` return the same type:
 
-- If every result is a data frame (for example, a hook returned tibbles), they
-  are stacked with `rbind()`. A column missing from some results is filled with
-  `NA`.
+- If every result is a data frame, they are combined. Tables built by
+  `api_request_table()`, in a policy or a `post_response` hook, are rebuilt once
+  from all requests' records, so column types are recovered over the whole
+  result and match an unbatched call over the same records. (Without this, one
+  request's `"F"` values became `FALSE` and stacking them with another request's
+  `"MF"` produced `"FALSE"`.) This applies when no hook edited the table, every
+  request used the same `api_request_table()` options and record names agree;
+  otherwise the tables are stacked with `rbind()` as they are, and a column
+  missing from some results is filled with `NA`. Tables from a policy that does
+  not use `api_request_table()` are always stacked.
 - Otherwise the result is one list of records. A single-object response adds one
   record; an array response adds each of its elements, in request order.
 - Requests that return nothing, such as an empty array or a hook returning
@@ -448,6 +480,16 @@ x <- ct_hazard_toxval_search(ids)
 failed <- attr(x, 'failed')
 if (length(failed)) retry <- ct_hazard_toxval_search(names(failed))
 ```
+
+`drop` covers per-item failures only: the HTTP or decode outcome of each
+request. An error that applies to the whole call, such as a missing credential,
+an invalid runtime option, or a server that cannot be resolved, stops the call
+with one error, whatever `on_error` is, and no request is sent. The generated
+code marks these errors with the condition class `specmill_call_error`; errors
+raised inside your own server resolver, hooks, or response policies remain
+per-item. A client scaffolded before this behavior keeps its old
+`api_request_each()` until you adopt the new helper code (see
+`vignette('existing-clients')`).
 
 **Runtime override.** The generated `on_error` is a default. The helper's batching
 option overrides it for every fan-out and split wrapper of that helper, for
@@ -1242,6 +1284,28 @@ Documentation and example inputs use the resulting **public R names**, such as
 `identifier`. Examples are input maps rendered as calls inside `dontrun`, so a
 documentation build does not send their requests.
 
+**Rename the body argument.** A request body is an argument named `body` (or `body.1` when a
+parameter already has that name) unless the operation says otherwise. `body` takes a `name` and a `description`,
+like a parameter override:
+
+```yaml
+operations:
+  POST /hazard/toxval/search/by-dtxsid/:
+    body: {name: dtxsid, description: DSSTox substance identifiers.}
+```
+
+The wrapper becomes `f(dtxsid)`, still sends that value as the body, and
+documentation, examples and `batch.split` chunking use the new name. The
+`description` replaces the generated `@param` text; the note about chunking
+long arrays is still appended. Without a `body` setting the output is unchanged.
+Generation stops, naming the operation, when the name collides with another
+argument, is not a valid R argument name (or one the generated code uses
+internally, such as `params`), when the operation has no request body, or when
+`body` is combined with a complete `inputs` map. It belongs under `operations`,
+not `defaults`. Request mappings and hooks that read the body (`from: [params,
+body]`, `state$params$body`) must use the new name, and renaming a wrapper that
+is already generated shows up as a signature change in `mode = 'plan'`.
+
 `docs` supports `title`, `description`, `parameters`, `return`, `examples`, `tags`,
 and `lifecycle`. Without overrides, titles/parameter text come from schema
 metadata and the return text describes the helper response. Improve these for
@@ -1298,6 +1362,7 @@ demonstrates native generation, explicit mappings, and retained client code.
 | `file` | Output path directly under `R/`, for example `R/catalogue.R` |
 | `implementation` | `generated` (default) or `existing`, which retains a declared implementation |
 | `parameters` | Schema parameter overrides: `name`, `default`, `required`, `exclude`, `description` |
+| `body` | Request-body argument override: `name`, `description` |
 | `extra_parameters` | Additional public inputs: `default`, `required`, `type`, `description` |
 | `inputs` | Complete public input map, replacing schema-derived inputs; same fields plus `missing_as_null` |
 | `parameter_order` | Sequence of public names to place first; remaining parameters follow |
@@ -1445,9 +1510,11 @@ Apply only reviewed changes, then run `check` and [the client's tests](testing.h
 Select `companions = c('batching', 'pagination')` in `initialize_client()` to emit
 reusable helper-prefixed functions into the existing client-owned request helper.
 They use the same ownership baseline and manual-adoption rules as transport.
-Ordinary wrappers remain single requests; to make a wrapper loop over its own
-input, use `batch.fan_out` or `batch.split` (see
-[Many inputs in one call](#many-inputs-in-one-call-fan_out-and-split)). Emission requires no specmill runtime dependency. Pagination adds digest
+Wrappers make a single request unless you opt in: `batch.fan_out` or
+`batch.split` loop over a wrapper's own input (see
+[Many inputs in one call](#many-inputs-in-one-call-fan_out-and-split)), and
+`pagination` fetches every page
+([Fetch every page in one call](#fetch-every-page-in-one-call)). Emission requires no specmill runtime dependency. Pagination adds digest
 to a new client's Imports; an existing DESCRIPTION must declare it first.
 
 Use a shared policy list in retained client code, or the package/helper-scoped
@@ -1457,9 +1524,130 @@ dry-run prefix. For example `catalogueclient.api_request.pagination` applies to
 that helper only. A leading dot in the helper name is dropped, so helper
 `.ct_request` reads `comptoxr_native.ct_request.batching`. Multi-API helper prefixes keep service policies separate.
 Explicit pagination arguments override policy fields; a supplied batching policy
-replaces the shared list. There is no pagination YAML field or name inference.
+replaces the shared list. Nothing is inferred from parameter or response names.
 Maintainers supply API knowledge once per service, with operation exceptions;
 the companions supply the loops.
+
+### Fetch every page in one call
+
+The `pagination` setting makes a generated wrapper request page after page and
+return the pages combined. It is explicit: an operation without the setting stays a
+single request. Set it once for a service and it applies wherever its parameter
+exists; operations can override single fields or opt out:
+
+```yaml
+# apis/catalogue.yml
+defaults:
+  pagination:
+    mode: page               # the only mode for generated wrappers so far
+    parameter: pageNumber    # original name of an integer or number path or query parameter
+    start: 1                 # becomes the default of that parameter in the wrapper
+    completed: empty         # empty (the default) or the name of a client function
+    max_pages: 100           # the default of the wrapper's max_pages argument
+operations:
+  GET /items/{kind}:
+    pagination: {max_pages: 20}   # override one field
+  GET /reports:
+    pagination: null              # opt out of the inherited setting
+```
+
+**Where it applies.** An inherited setting reaches only operations that have the
+named parameter, as a path or query parameter with an integer or number schema.
+The others stay single requests. A setting written on an operation itself must fit
+that operation, or generation stops and names it. `mode` and `parameter` must both
+be present once the levels are merged. `pagination` cannot be combined with
+`batch.fan_out` or `batch.split` on one operation, and it needs a generated
+implementation. Offset and cursor paging, item caps and page-size arguments are
+not available for generated wrappers yet; use the companion functions in retained
+code, described below, for those.
+
+**The starting page.** `start` becomes the wrapper's default for the page
+parameter. It is required when the parameter is optional and has no default. It
+cannot be set when the parameter is required or already has a default configured
+under `parameters`. At call time the caller's value is the page the loop starts
+from.
+
+**When paging stops.** With `completed: empty` the loop stops at the first empty
+page. A response with no body, or an empty list or table, is an empty page. An
+API that marks its last page some other way takes a client function, which receives
+the page's result and a state list (`position`, `requests`, `item_count`,
+`page_size`) and returns one `TRUE` or `FALSE`:
+
+```r
+last_page <- function(response, state) any(response$last)
+```
+
+The function must exist in the client's `R/` files; generation checks. A page limit
+always applies: reaching `max_pages` stops the loop and warns.
+
+Each page's result must itself be the collection: a table, or a list of records.
+A response that wraps the records in an envelope is never empty, so the loop would
+run to `max_pages`. Many APIs do this, for example
+`{"pageNumber": 1, "totalPages": 3, "data": [...]}`, and keep answering with an
+envelope whose `data` is empty past the last page. Unwrap it in the response
+policy. If the envelope says which page is last, tag the table with those fields so
+a completion function can read them:
+
+```r
+envelope_policy <- function(response, context, decode) {
+  body <- decode()
+  table <- api_request_table(
+    api_request_records(body, collection = 'data', query = context$query)
+  )
+  attr(table, 'paging') <- body[c('pageNumber', 'totalPages')]
+  table
+}
+last_page <- function(response, state) {
+  paging <- attr(response, 'paging')
+  paging$pageNumber >= paging$totalPages
+}
+```
+
+With `completed: last_page`, the loop stops on the last page without asking for
+another. With `completed: empty` it makes one more request to see the empty
+page. Attributes a policy attaches to a page's table stay available to `completed`
+and `post_response`; the combined result does not carry them, whether it holds one
+page or many, and the tables are still typed once over all pages. A hook that only
+changes an attribute of a page's table, without touching its data, is not kept
+either.
+
+**What the wrapper looks like.** After its other arguments it gains
+`all_pages = TRUE` and `max_pages = <n>`. Both names are fixed, and a collision with
+another argument stops generation. With `all_pages = FALSE` the wrapper is the
+plain single-request wrapper: its hooks run once, and it returns the page as it
+always did, with no `pagination` attribute and no `post_combine`. A dry run
+returns the first page's prepared request, without `post_combine`. Otherwise it
+returns the pages combined as a batched wrapper does, so tables built with
+`api_request_table()` are typed once over every page, and the result carries
+`attr(, 'pagination')`, a list of `requests`, `item_count` and `stop_reason`
+(`empty_page`, `completed` or `max_pages`). The caller guide is
+[Fetch every page of a result](paged-wrappers.html).
+
+**Hooks and policy.** `pre_request`, the response policy and `post_response` run
+once per page. An optional `post_combine` hook runs once on the combined result
+(see [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper)).
+A `pre_request` hook must not change the page argument; the wrapper owns it, and
+a hook that does stops the call with an error before the request is sent.
+
+**Contracts.** A single-call fixed contract cannot describe a paging wrapper, so
+generation requires it to set `all_pages: false` in its inputs. A `calls`
+contract describes the page sequence: one entry per page request in order, ending
+with the empty page (or with page `max_pages`), and a `result` that includes the
+`pagination` attribute.
+
+**The client helper.** The loop uses `<helper>_paginated()`, `<helper>_combine()`
+and `<helper>_pages()` in the client-owned helper file. Initialize a new client with
+the pagination companion. For an existing client, compare the helper with the
+current template and adopt them; generation stops with a message naming what is
+missing, and also when `<helper>_paginated()` is an older version that needs a
+page size. The runtime option `<package>.<helper>.pagination` cannot change the
+shape of these wrappers' results, because the wrapper fixes the controls that
+would. Hitting `max_pages` warns, as the emitted companion's `warn_limits` is
+`TRUE`.
+
+New service files include a commented `pagination` line as a reminder.
+
+### The companion functions in retained code
 
 Batching accepts explicit `normalize(items)`, `build(chunk, index)`, and
 `merge(results)` functions. Values/order and unmerged results are preserved by

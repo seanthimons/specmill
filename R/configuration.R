@@ -405,7 +405,7 @@ load_project <- function(
     overrides <- service$operations %or% list()
     validate_settings(defaults, paste(id, 'defaults'), callbacks)
     for (field in intersect(
-      c('exclude_parameters', 'routes'),
+      c('exclude_parameters', 'routes', 'body'),
       names(defaults)
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
@@ -446,13 +446,20 @@ load_project <- function(
       declarations <- read_config_yaml(hook_file)
       inputs <<- c(inputs, hook_file)
       hooks <- lapply(declarations, function(x) {
-        x[intersect(names(x), c('pre_request', 'post_response'))]
+        x[intersect(
+          names(x),
+          c('pre_request', 'post_response', 'post_combine')
+        )]
       })
       hooks <- Filter(function(x) length(x) > 0L, hooks)
     }
     config_fields(hooks, names(hooks), 'hooks')
     for (hook in hooks) {
-      config_fields(hook, c('pre_request', 'post_response'), 'hook stages')
+      config_fields(
+        hook,
+        c('pre_request', 'post_response', 'post_combine'),
+        'hook stages'
+      )
       for (chain in hook) {
         config_sequence(chain, 'hook chain')
       }

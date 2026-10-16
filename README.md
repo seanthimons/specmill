@@ -205,8 +205,9 @@ Multi-API clients use their own helper prefixes. Generated clients need no
 specmill runtime dependency. Pagination declares `digest`; next-link retrieval
 requires httr2 1.3.0 or later. Ordinary wrappers still make one request.
 Set `batch.fan_out` or `batch.split` in YAML to have a wrapper send one request
-per vector element or per `max_items` chunk and combine the results; see
-`vignette('configuration')`.
+per vector element or per `max_items` chunk and combine the results, or
+`pagination` to have it request every page; see `vignette('configuration')`, and
+`vignette('paged-wrappers')` for how callers use a paging wrapper.
 
 Configure shared policy once per package and helper, with call-specific exceptions:
 

@@ -9,8 +9,10 @@
 #' @param parameter Exact argument name or character-vector nested argument path
 #'   for the page, offset, or cursor. For example `c('body', 'pagination', 'cursor')`.
 #' @param size_parameter Exact public argument name for the requested page size.
-#'   May be NULL in cursor mode if the size is fixed by the caller.
+#'   Required in offset mode. May be NULL in page and cursor mode, when the API
+#'   fixes the size of a page.
 #' @param page_size Positive integer requested page size; NULL with no size argument.
+#'   Required in offset mode, where it sets the stride.
 #' @param start Nonnegative integer first page number or offset. Required because
 #'   APIs differ on whether numbering starts at zero or one. In cursor mode, an
 #'   opaque string or NULL for the initial call. NULL is passed explicitly.
@@ -134,8 +136,14 @@ paginated <- function(
     if (is.null(size_parameter) != is.null(page_size)) {
       stop('Supply size_parameter and page_size together')
     }
-  } else if (is.null(size_parameter) || is.null(page_size) || is.null(start)) {
-    stop('page/offset mode requires size_parameter, page_size, and start')
+  } else if (is.null(start)) {
+    stop('page/offset mode requires start')
+  } else if (
+    mode == 'offset' && (is.null(size_parameter) || is.null(page_size))
+  ) {
+    stop('offset mode requires size_parameter and page_size')
+  } else if (is.null(size_parameter) != is.null(page_size)) {
+    stop('Supply size_parameter and page_size together')
   }
   for (name in c(
     list(parameter),
@@ -172,7 +180,7 @@ paginated <- function(
   if (cursor) {
     numbers$start <- NULL
   }
-  if (cursor && is.null(page_size)) {
+  if (is.null(page_size)) {
     numbers$page_size <- NULL
   }
   for (name in names(numbers)) {

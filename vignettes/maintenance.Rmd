@@ -144,6 +144,44 @@ groups:
     badge: man/figures/catalogue-coverage.json
 ```
 
+By default a group counts only the operations your policy selected, so a client
+that wraps everything it selected reads 100% however much of the API that is. To
+measure coverage of the API itself, opt a group in to the schema as its
+denominator:
+
+```yaml
+groups:
+  catalogue:
+    services: '^catalogue$'
+    label: Catalogue wrappers
+    badge: man/figures/catalogue-coverage.json
+    denominator: schema          # default: selected
+    exclude: ['^GET /health']    # optional: operations you skip on purpose
+```
+
+With `denominator: schema` the total is every operation in the schemas the
+matched services reference, including those your selection policy excludes, minus
+any operation whose `METHOD /path` matches an `exclude` regex (the same regex
+engine as `selection.exclude`). An operation counts once per `METHOD /path` in the
+group, however many schema files or services describe it, so `-full` and
+`-rebuild` services, or a route that two schema files both document, do not
+double count. Keep one API surface in a group: two APIs on different servers that
+share a route would count as one, so put them in separate groups. An operation is
+covered when any service of the group wraps it. A path item that cannot be parsed
+counts as one operation named `PATH /path`. The badge, baseline and GitHub
+outputs keep their format; `endpoints` is the schema total and `functions` the
+wrapped count.
+
+Each schema-mode group prints how many schema operations have no wrapper and how
+many of those are not selected. `coverage_report()` returns the full list as
+`gaps`, one data frame per group with `key`, `schema`, `status` (`excluded`,
+`unsupported`, `selected`, ...) and `services`, so the gap can be acted on:
+
+```{r gaps, eval=FALSE}
+report <- specmill::coverage_report(root, file.path(root, 'dev/coverage.yml'))
+report$gaps$catalogue
+```
+
 Group `services` values are regex strings matching service IDs. Groups must
 partition every configured service exactly once. Create the baseline's parent
 directory before apply. Report-policy filenames passed as strings are resolved

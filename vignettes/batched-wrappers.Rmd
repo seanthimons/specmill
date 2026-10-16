@@ -1,0 +1,114 @@
+---
+title: "Call a wrapper with many inputs"
+description: "What a fan-out or split wrapper sends, how its results are combined, and how failures are reported."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Call a wrapper with many inputs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', eval = FALSE)
+```
+
+Some generated wrappers accept a whole vector in one call. This guide is for the
+person calling such a wrapper. The maintainer who enables batching on an
+operation should read [configuration](configuration.html#many-inputs-in-one-call-fan_out-and-split)
+instead. The examples use a hypothetical client with two batched wrappers.
+
+## The two shapes
+
+A **fan-out** wrapper takes a vector for one argument and sends one request per
+element:
+
+```{r fan-out}
+get_item(c('A', 'B', 'C'))   # three GET requests: /items/A, /items/B, /items/C
+```
+
+A **split** wrapper takes a long array as its body and sends it in chunks of at
+most the size the API accepts:
+
+```{r split}
+bulk_search(ids)             # for 450 ids and a limit of 200: three POST requests
+```
+
+Both send their requests one after another, in input order. Every other argument
+is the same on every request. A single value, or a vector that fits in one
+request, sends one request. For a fan-out wrapper every element is checked against the argument's
+schema before anything is sent, so a bad element fails the call without any
+partial traffic. A split body is checked as a whole first; the API's size limits
+are then checked on each chunk as it is sent. The wrapper's help page says which argument takes a vector.
+
+## What you get back
+
+The results of all requests are combined into one value, so `get_item('A')` and
+`get_item(c('A', 'B'))` have the same shape:
+
+- Responses that are records come back as one list of records, in request order.
+  A single record is still a list of length one: `get_item('A')` returns
+  `list(record)`, not `record`.
+- If the client turns responses into a table, you get one table for the whole
+  call. Column types are worked out once, over all the rows, exactly as they
+  would be if the API had returned every row in a single response. (If a hook
+  edits the table after it is built, or the requests built their tables with
+  different options, the tables are stacked as they are instead.) A column of
+  `"F"` values in one request and `"MF"` in another stays text, and an identifier
+  such as `"007"` is treated the same in every row.
+- A `query` column, when the client provides one, names the input each row came
+  from.
+- A request that returns nothing adds no rows. It is not an error.
+
+## When a request fails
+
+By default the first failed request stops the call with its error, and nothing
+is returned. A client can instead be set to **drop** failures. Each failure then
+gives a warning naming its input, and the other results are returned:
+
+```{r failures}
+x <- get_item(c('A', 'missing', 'C'))
+#> Warning message:
+#> Request for missing failed: HTTP 404 application/json response
+attr(x, 'failed')
+#>                                  missing
+#> "HTTP 404 application/json response"
+```
+
+`attr(x, 'failed')` maps each failed input to its error message; it is absent
+when everything succeeded. For a split wrapper a chunk fails as a whole, so the
+name is that chunk's items joined with `, `. Retry only what failed:
+
+```{r retry}
+failed <- attr(x, 'failed')
+if (length(failed)) retry <- get_item(names(failed))
+```
+
+Problems that affect the whole call are never dropped. A missing credential, an
+invalid option or an unresolvable server raises one error straight away, before
+any request, whichever way failures are set.
+
+## Choose how failures behave
+
+The client's default can be overridden for the current session. The option name
+is your package's option prefix, the request helper's name and `.batching`; ask
+the client's maintainer for the exact name:
+
+```{r option}
+options(mypackage.api_request.batching = list(on_error = 'stop'))  # fail fast
+options(mypackage.api_request.batching = list(on_error = 'drop'))  # keep going
+```
+
+## Wrappers that return many pages
+
+A different kind of wrapper fetches every page of one result. It has `all_pages`
+and `max_pages` arguments and is described in [Fetch every page of a
+result](paged-wrappers.html). A wrapper does one or the other, never both.
+
+## If you need more control
+
+`specmill::batched(fn, items, size, ...)` is a manual tool for splitting any
+call into chunks yourself. It returns the unmerged list of results, and errors
+propagate. Generated wrappers do not use it for you; they use the settings above.
+
+Maintainers: per-request and whole-result hooks are described in
+[hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper).
