@@ -1,6 +1,58 @@
 
 
 
+## specmill 0.1.17 (2026-10-16)
+
+#### New features
+
+- let api_request_table() take a client’s own table builder (#100)
+  ([af23a19](https://github.com/seanthimons/specmill/tree/af23a19e868ad20a8099f97a03ec6e05f654d12b))
+- let generated operations opt into paging from YAML (#101)
+  ([d39eb37](https://github.com/seanthimons/specmill/tree/d39eb375613b88c2b41dead8bf08a09facae85dc))
+- measure coverage against schema operations with denominator: schema
+  (#102)
+  ([7ffec90](https://github.com/seanthimons/specmill/tree/7ffec908b13bb8bba3af7e1be9c5069b2f5c2146))
+
+#### Bug fixes
+
+- follow a renamed body argument in contract inputs and validation
+  messages (#105, #106)
+  ([7f83003](https://github.com/seanthimons/specmill/tree/7f8300392b5709995234ac8e9bc5dcc34960fad8))
+- count an operation once per method and path within a group (#102)
+  ([4f8ac09](https://github.com/seanthimons/specmill/tree/4f8ac093815a57dab58cb8fd746f2d6258b14368))
+- normalize the root for relative schema paths, and name duplicate
+  runtime definitions
+  ([5bb4167](https://github.com/seanthimons/specmill/tree/5bb416745886880879e93d0bd91647bf44ae0cac))
+- keep tables typed once when a policy tags the pages it returns (#100,
+  #101)
+  ([5fec487](https://github.com/seanthimons/specmill/tree/5fec487ea2876abb4530b04039e86b98edc66d67))
+- recover column types once over all requests and add a post_combine
+  hook stage (#100)
+  ([4cf7b64](https://github.com/seanthimons/specmill/tree/4cf7b644126638a81232bd66458d9ea0db6ceadf))
+- name the wrapper’s real body argument in docs and fixtures (#99)
+  ([bf470a0](https://github.com/seanthimons/specmill/tree/bf470a06041527448c894e2f6dd820fc21bfe4ce))
+- stop on call-level errors when dropping failures
+  ([36a1fd9](https://github.com/seanthimons/specmill/tree/36a1fd98c2278ed0dc11a7c1da346c229e49348f))
+
+#### Docs
+
+- note that paged endpoints pass a lone filter as context query
+  ([5f3eb6d](https://github.com/seanthimons/specmill/tree/5f3eb6de3c21c8d40d683a523ffc1cf69bf9182c))
+
+#### Style
+
+- format and lint the files changed by the batching, body-name and
+  coverage work
+  ([a02fd82](https://github.com/seanthimons/specmill/tree/a02fd82a69480d816515c886d1e6070e06419185))
+
+#### Other changes
+
+- release v0.1.17 \[skip ci\]
+  ([ff2c72b](https://github.com/seanthimons/specmill/tree/ff2c72b2d3d65e94b6abcb6468b6f9a609e9aed4))
+
+Full set of changes:
+[`v0.1.16...v0.1.17`](https://github.com/seanthimons/specmill/compare/v0.1.16...v0.1.17)
+
 ## specmill 0.1.16 (2026-10-08)
 
 #### Bug fixes
@@ -15,7 +67,7 @@
 #### Other changes
 
 - release v0.1.16 \[skip ci\]
-  ([96f0177](https://github.com/seanthimons/specmill/tree/96f0177209aee3df6220e842d4bc9b2b2a462268))
+  ([733146a](https://github.com/seanthimons/specmill/tree/733146a8c2abf45737faf1c61fd51c520115f661))
 
 Full set of changes:
 [`v0.1.15...v0.1.16`](https://github.com/seanthimons/specmill/compare/v0.1.15...v0.1.16)
