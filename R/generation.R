@@ -998,6 +998,9 @@ generate_client <- function(
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
+    if (!is.null(authentication)) {
+      warn_unsecured_operations(parsed[[i]]$operations)
+    }
     for (op in parsed[[i]]$operations) {
       configured <- configure_operation(op, service)
       op <- configured$operation

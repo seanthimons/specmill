@@ -767,6 +767,8 @@ retrieves the configured value and fails with setup instructions when it is miss
 
 Requests inherit top-level `security` unless overridden by the operation.
 `security: []` is public; `{}` within the alternatives permits anonymous access.
+Generation warns when a schema file declares `security` on some operations but
+leaves it off others, since the gap is read as public and is often a schema omission.
 Public/anonymous requests receive no automatic credentials. Otherwise, generation
 supports API keys in headers, query parameters, or cookies and HTTP bearer tokens.
 Each alternative is an OR choice; all schemes inside one choice are required.
