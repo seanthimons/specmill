@@ -348,7 +348,9 @@ render_operation <- function(operation, spec) {
         paste0(
           '  if (base::missing(',
           body_name,
-          ')) base::stop("Required body")'
+          ')) base::stop(',
+          r_literal(paste('Required', body_name)),
+          ')'
         )
       )
     }

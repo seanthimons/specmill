@@ -249,7 +249,12 @@ body_name_acceptance <- function() {
   error <- tryCatch(runtime$bulk(), error = identity)
   stopifnot(
     inherits(error, 'error'),
-    grepl('Required body', conditionMessage(error))
+    identical(conditionMessage(error), 'Required dtxsid')
+  )
+  error <- tryCatch(runtime$bulk(dtxsid = 1:2), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('^Invalid dtxsid: ', conditionMessage(error))
   )
   error <- tryCatch(runtime$bulk(body = 'a'), error = identity)
   stopifnot(inherits(error, 'error'))
@@ -284,6 +289,16 @@ body_name_acceptance <- function() {
   operations$bulk$body_name <- 'dtxsid'
   fixtures <- specmill:::operation_fixtures(list(operations$bulk))
   stopifnot(identical(names(fixtures[[1L]]), 'dtxsid'))
+  # Recorded contract inputs keyed by the default name follow the rename.
+  rendered <- specmill:::render_contract(
+    operations$bulk,
+    list(package = 'bodynameclient', response_fixture = 'x'),
+    list(inputs = list(body = c('a', 'b')), request = list(), result = list())
+  )
+  stopifnot(
+    grepl('"dtxsid" = ', rendered, fixed = TRUE),
+    !grepl('"body" = ', rendered, fixed = TRUE)
+  )
   # Without an override a colliding parameter makes the body argument body.1.
   fixtures <- specmill:::operation_fixtures(list(operations$object_body))
   stopifnot(identical(names(fixtures[[1L]]), c('body', 'body.1')))
