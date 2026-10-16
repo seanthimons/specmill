@@ -222,6 +222,8 @@ coverage_schema_counts <- function(inspection, members, exclude, root) {
     )
   })
   gaps <- Filter(function(x) !x$implemented, summary)
+  # Sources are normalized above, so the root must be too (a drive letter is added on Windows).
+  root <- normalizePath(root, winslash = '/', mustWork = FALSE)
   prefix <- paste0(sub('/+$', '', root), '/')
   list(
     total = length(summary),
