@@ -345,10 +345,10 @@ api_request_records <- function(result, collection = base::character(), query = 
 
 # Selected compatibility table: collapse nested fields, then optionally recover types.
 # Supply tibble::as_tibble as as_table only in a client that declares tibble in Imports.
-api_request_table <- function(records, type_convert = TRUE, names_to = NULL, as_table = base::identity) {
-  table <- api_request_build(records, type_convert, names_to, as_table)
+api_request_table <- function(records, type_convert = TRUE, names_to = NULL, as_table = base::identity, build = NULL) {
+  table <- api_request_build(records, type_convert, names_to, as_table, build)
   # Inside a batched wrapper keep the records: api_request_combine() builds the table once over every request's records, so column types are not guessed per request.
-  if (api_request_batch_state$active) base::attr(table, 'api_request_source') <- base::list(records = records, type_convert = type_convert, names_to = names_to, as_table = as_table)
+  if (api_request_batch_state$active) base::attr(table, 'api_request_source') <- base::list(records = records, type_convert = type_convert, names_to = names_to, as_table = as_table, build = build)
   table
 }
 
@@ -356,9 +356,16 @@ api_request_table <- function(records, type_convert = TRUE, names_to = NULL, as_
 api_request_batch_state <- base::new.env(parent = base::emptyenv())
 api_request_batch_state$active <- FALSE
 
-# The table api_request_table() describes, without any batch bookkeeping.
-api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_table = base::identity) {
+# The table api_request_table() describes, without any batch bookkeeping. A client's own `build(records, type_convert, names_to)`
+# replaces the built-in row construction and must return a data frame; it is called per request and again over all records when pages are combined.
+api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_table = base::identity, build = NULL) {
   if (!base::is.list(records) || !base::is.function(as_table)) base::stop('Supply records as a list and as_table as a function')
+  if (!base::is.null(build)) {
+    if (!base::is.function(build)) base::stop('build must be NULL or a function')
+    result <- build(records, type_convert, names_to)
+    if (!base::is.data.frame(result)) base::stop('build must return a data frame')
+    base::return(as_table(result))
+  }
   rows <- base::lapply(base::seq_along(records), function(i) {
     record <- records[[i]]
     if (base::is.null(record) || !base::length(record)) base::return(NULL)
@@ -471,14 +478,14 @@ api_request_combine <- function(results) {
     x
   })
   if (base::length(results) && base::all(base::vapply(results, base::is.data.frame, base::logical(1)))) {
-    table_args <- base::lapply(sources, function(x) x[base::c('type_convert', 'names_to', 'as_table')])
+    table_args <- base::lapply(sources, function(x) x[base::c('type_convert', 'names_to', 'as_table', 'build')])
     # Rebuild only when every table is exactly what api_request_table() would return for its own records with the
     # first request's options (no hook edited it, the options agree), and record names are consistent when they are used.
     named <- base::vapply(sources, function(x) if (base::length(x$records)) !base::is.null(base::names(x$records)) else NA, base::logical(1))
     unchanged <- !base::any(base::vapply(sources, base::is.null, base::logical(1))) &&
       base::all(base::vapply(table_args, base::identical, base::logical(1), table_args[[1L]], ignore.environment = TRUE)) &&
       (base::is.null(table_args[[1L]]$names_to) || base::length(base::unique(named[!base::is.na(named)])) <= 1L) &&
-      base::all(base::vapply(base::seq_along(results), function(i) base::identical(plain(results[[i]]), plain(base::do.call(api_request_build, base::c(base::list(records = sources[[i]]$records), table_args[[1L]])))), base::logical(1)))
+      base::all(base::vapply(base::seq_along(results), function(i) base::tryCatch(base::identical(plain(results[[i]]), plain(base::do.call(api_request_build, base::c(base::list(records = sources[[i]]$records), table_args[[1L]])))), error = function(e) FALSE), base::logical(1)))
     if (unchanged) base::return(base::do.call(api_request_table, base::c(base::list(records = base::do.call(base::c, base::unname(base::lapply(sources, function(x) x$records)))), table_args[[1L]])))
     columns <- base::unique(base::unlist(base::lapply(results, base::names), use.names = FALSE))
     results <- base::lapply(results, function(x) {

@@ -244,6 +244,23 @@ including for empty results. Passing `tibble::as_tibble` selects a tibble, also
 for empty results, and requires `tibble` in the client's `DESCRIPTION` Imports.
 The generated helpers have no tibble or specmill runtime dependency.
 
+To keep your own table shape, pass `build = function(records, type_convert, names_to)`.
+It replaces the built-in row construction (the unioned fields, the `'; '`
+collapsing, the position of the `query` column) and must return a data frame, so it
+can keep list-columns, order columns as you like, and recover types its own way.
+`as_table` is still applied to what it returns. It receives the records exactly as
+you gave them to `api_request_table()`, including empty ones that the built-in
+builder skips; a record has a `query` attribute only if you attributed it with
+`api_request_records(query = )`. In a batched or paging wrapper the function can be
+called several times: for each request, to check the table was not edited, and once
+over all requests' records joined with `c()`, so record names may mix. Keep it a
+pure function of its records and make it quick. Because the function sees all the
+records together, any type recovery it does (it receives `type_convert`) is done once
+over everything, as the built-in builder does. If requests were built with different
+builders, or a builder fails on another request's records during the check, the tables
+are stacked as they are instead. An error from the final call over all the joined
+records is raised, not stacked.
+
 Reuse a shared formatting function in the existing hook executor when a whole
 service needs it; routine policy does not require one callback per endpoint.
 Hooks receive decoded results and public parameters. They cannot inspect failed

@@ -252,6 +252,110 @@ batch_combine_acceptance <- function() {
   )
   attr(dropped, 'failed') <- NULL
   stopifnot(identical(dropped, everything(c('a', 'c'))))
+  # A client can keep its own table shape: build() replaces the built-in rows (here it keeps
+  # list-columns and puts query first), and the combined table is still built once, by the
+  # same function, over every request's records.
+  tagged_records <- list(
+    a = runtime$api_request_records(
+      list(list(sex = 'F', tags = list('x', 'y'))),
+      query = 'a'
+    ),
+    b = runtime$api_request_records(
+      list(list(sex = 'MF', tags = list('z'))),
+      query = 'b'
+    )
+  )
+  keep_lists <- function(records, type_convert, names_to) {
+    out <- data.frame(
+      query = vapply(
+        records,
+        function(x) as.character(attr(x, 'query')),
+        character(1)
+      ),
+      stringsAsFactors = FALSE
+    )
+    out$sex <- utils::type.convert(
+      vapply(records, function(x) x$sex, character(1)),
+      as.is = TRUE
+    )
+    out$tags <- lapply(records, function(x) x$tags)
+    out
+  }
+  custom <- runtime$api_request_each(
+    function(id) {
+      runtime$api_request_table(tagged_records[[id]], build = keep_lists)
+    },
+    c('a', 'b'),
+    1L
+  )
+  stopifnot(
+    identical(names(custom), c('query', 'sex', 'tags')),
+    identical(custom$sex, c('F', 'MF')),
+    identical(custom$tags, list(list('x', 'y'), list('z'))),
+    identical(
+      custom,
+      runtime$api_request_table(
+        c(tagged_records$a, tagged_records$b),
+        build = keep_lists
+      )
+    )
+  )
+  for (bad in list(
+    list(
+      build = function(...) list(),
+      pattern = 'build must return a data frame'
+    ),
+    list(build = 'nope', pattern = 'build must be NULL or a function')
+  )) {
+    error <- tryCatch(
+      runtime$api_request_table(tagged_records$a, build = bad$build),
+      error = identity
+    )
+    stopifnot(
+      inherits(error, 'error'),
+      grepl(bad$pattern, conditionMessage(error), fixed = TRUE)
+    )
+  }
+  # Requests built with different builders are stacked, each by its own builder.
+  upper <- function(records, type_convert, names_to) {
+    data.frame(v = vapply(records, function(x) x$sex, character(1)))
+  }
+  lower <- function(records, type_convert, names_to) {
+    data.frame(v = tolower(vapply(records, function(x) x$sex, character(1))))
+  }
+  different <- runtime$api_request_each(
+    function(id) {
+      runtime$api_request_table(
+        tagged_records[[id]],
+        build = if (id == 'a') upper else lower
+      )
+    },
+    c('a', 'b'),
+    1L
+  )
+  stopifnot(identical(different$v, c('F', 'mf')))
+  # A builder that fails on another request's records during the comparison falls back
+  # to stacking instead of failing the call (same code, different captured value).
+  strictly <- function(strict) {
+    function(records, type_convert, names_to) {
+      v <- vapply(records, function(x) x$sex, character(1))
+      if (strict && any(v == 'MF')) {
+        stop('strict builder')
+      }
+      data.frame(v = v)
+    }
+  }
+  fallback <- runtime$api_request_each(
+    function(id) {
+      runtime$api_request_table(
+        tagged_records[[id]],
+        build = strictly(id == 'a')
+      )
+    },
+    c('a', 'b'),
+    1L
+  )
+  stopifnot(identical(fallback$v, c('F', 'MF')))
   # The page loop needs the pagination companion; without it the error says so (the
   # base template must not name the companion's function, or a clean check would flag it).
   error <- tryCatch(
