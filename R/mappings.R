@@ -143,17 +143,18 @@ validate_settings <- function(
       if (
         !is.numeric(value) ||
           length(value) != 1L ||
-          !is.finite(value) ||
+          is.na(value) ||
           (field == 'timeout' && value <= 0) ||
           (field == 'max_retries' &&
-            (value < 0 ||
+            (!is.finite(value) ||
+              value < 0 ||
               value != trunc(value) ||
               value >= .Machine$integer.max))
       ) {
         stop(
           'Invalid request_controls.',
           field,
-          ': timeout must be positive; max_retries must be a nonnegative integer below .Machine$integer.max'
+          ': timeout must be positive (.inf for no limit); max_retries must be a nonnegative integer below .Machine$integer.max'
         )
       }
     }
