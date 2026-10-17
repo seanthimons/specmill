@@ -509,6 +509,19 @@ The option prefix follows the package request-option prefix, as described under
 companion's `keep` mode does not apply, because combining would discard its
 placeholders.
 
+The option's `max_items` lowers the chunk size of split wrappers, for example to
+find a size a slow endpoint handles. The configured `batch.max_items` stays the
+cap, because each request still rejects bodies above it; a larger value stops
+before any request. To raise the cap, edit the YAML and regenerate. Fan-out
+wrappers always send one item per request and ignore it.
+
+```r
+options(comptoxr.api_request.batching = list(max_items = 50))
+```
+
+The batching companion's `api_request_batched()` reads the same option and
+rejects `max_items` and `empty`. Unset them before calling it.
+
 **Configuration rules.** Inherited settings apply only where they fit. An
 API-level `split: true` affects only operations with an array body and a
 `max_items` limit, and a group-level `fan_out` affects only operations with that

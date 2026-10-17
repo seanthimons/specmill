@@ -468,6 +468,40 @@ batch_iteration_acceptance <- function() {
   )
   error <- tryCatch(runtime$bulk(c('a', 'b', 'bad')), error = identity)
   stopifnot(inherits(error, 'error'))
+  # The runtime max_items lowers the split chunk size, never above the generated cap.
+  withr::with_options(
+    list(iterationclient.api_request.batching = list(max_items = 1L)),
+    {
+      sent <- length(history())
+      runtime$bulk(letters[1:3])
+      stopifnot(
+        identical(
+          vapply(history()[-seq_len(sent)], `[[`, character(1), 'body'),
+          c('["a"]', '["b"]', '["c"]')
+        )
+      )
+      # Fan-out still sends one item per request.
+      sent <- length(history())
+      runtime$search(c('x', 'y'))
+      stopifnot(length(history()) - sent == 2L)
+    }
+  )
+  for (bad in list(3L, 0L, 1.5, NA_real_, 'two', c(1L, 2L))) {
+    withr::with_options(
+      list(iterationclient.api_request.batching = list(max_items = bad)),
+      {
+        sent <- length(history())
+        error <- tryCatch(runtime$bulk(letters[1:3]), error = identity)
+        stopifnot(
+          grepl(
+            'max_items must be a whole number from 1 to 2',
+            conditionMessage(error)
+          ),
+          length(history()) == sent
+        )
+      }
+    )
+  }
   # Data frames from hooks or policies are stacked, filling missing columns.
   stacked <- runtime$api_request_combine(list(
     data.frame(a = 1L),
