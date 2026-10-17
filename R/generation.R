@@ -174,9 +174,24 @@ iteration_settings <- function(operation, batch, explicit) {
         operation$id
       )
     }
+    if (!is.null(explicit$empty)) {
+      stop(
+        'batch.empty requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
     return(NULL)
   }
-  list(fan_out = fan_out, split = split, on_error = batch$on_error %or% 'stop')
+  on_error <- batch$on_error %or% 'stop'
+  if (!is.null(explicit$empty) && on_error != 'drop') {
+    stop('batch.empty requires batch.on_error: drop: ', operation$id)
+  }
+  list(
+    fan_out = fan_out,
+    split = split,
+    on_error = on_error,
+    empty = batch$empty
+  )
 }
 
 render_operation <- function(operation, spec) {
@@ -726,6 +741,9 @@ render_operation <- function(operation, spec) {
         ),
         ', on_error = ',
         r_literal(operation$iterate$on_error),
+        if (!is.null(operation$iterate$empty)) {
+          paste0(', empty = ', operation$iterate$empty)
+        },
         ')'
       ),
       if (combine) post_combine_lines('failed')
@@ -1062,6 +1080,16 @@ generate_client <- function(
         batch,
         service$operations[[op$key]]$batch %or% list()
       )
+      if (
+        !is.null(op$iterate$empty) &&
+          (!op$iterate$empty %in% names(runtime_definitions) ||
+            op$iterate$empty %in% operation_names)
+      ) {
+        stop(
+          'Missing client batch.empty function or wrapper collision: ',
+          op$iterate$empty
+        )
+      }
       if (
         !is.null(op$iterate) &&
           !is.null(config) &&

@@ -394,6 +394,9 @@ combined result:
   the API enforces is the size the wrapper splits to.
 - `on_error: stop | drop` decides what a failed request does. The default is
   `stop`.
+- `empty: <function>` names a client function. With `on_error: drop`, when every
+  request fails the wrapper returns `empty()` instead of `list()`, for example
+  `.ct_empty <- function() tibble::tibble()` to keep a table-shaped result.
 
 Set the per-API limit once and opt operations in. Settings inherit like every
 other `batch` field, through project, API, group, service and operation:
@@ -483,7 +486,7 @@ if (length(failed)) retry <- ct_hazard_toxval_search(names(failed))
 
 `drop` covers per-item failures only: the HTTP or decode outcome of each
 request. An error that applies to the whole call, such as a missing credential,
-an invalid runtime option, or a server that cannot be resolved, stops the call
+an invalid runtime option, a rejected credential (HTTP 401), or a server that cannot be resolved, stops the call
 with one error, whatever `on_error` is, and no request is sent. The generated
 code marks these errors with the condition class `specmill_call_error`; errors
 raised inside your own server resolver, hooks, or response policies remain
@@ -515,6 +518,7 @@ generation:
 | `fan_out` | Names a path or query parameter with a scalar (string, integer, number, boolean) schema |
 | `split` | `max_items` is set, on a top-level JSON array or line-delimited text body |
 | `on_error` | `fan_out` or `split` also applies |
+| `empty` | `fan_out` or `split` also applies, `on_error` is `drop`, and the function exists in the client helper file |
 | `fan_out` with `split` | Not allowed on the same operation |
 
 **Helper adoption.** Fan-out and split wrappers call two functions in the
