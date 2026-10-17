@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.21 (2026-10-17)
+
+#### New features
+
+- allow request bodies in parameter_order (#123)
+  ([a176f15](https://github.com/seanthimons/specmill/tree/a176f15d6e96fdd3e8f37336411b8adfb69b5962))
+
+#### Other changes
+
+- release v0.1.21 \[skip ci\]
+  ([034719d](https://github.com/seanthimons/specmill/tree/034719d8f0ab3ee39d102a7ce04aea45cad56e1f))
+
+Full set of changes:
+[`v0.1.20...v0.1.21`](https://github.com/seanthimons/specmill/compare/v0.1.20...v0.1.21)
+
 ## specmill 0.1.20 (2026-10-17)
 
 #### New features
@@ -12,7 +27,7 @@
 #### Other changes
 
 - release v0.1.20 \[skip ci\]
-  ([2af18fe](https://github.com/seanthimons/specmill/tree/2af18fefc322b0a64b8129e1625b6f19dfbe3e81))
+  ([743f761](https://github.com/seanthimons/specmill/tree/743f76132968befbad72c9fbcdf11785da587bd5))
 
 Full set of changes:
 [`v0.1.19...v0.1.20`](https://github.com/seanthimons/specmill/compare/v0.1.19...v0.1.20)
