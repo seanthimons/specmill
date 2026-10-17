@@ -1,3 +1,35 @@
+validate_path_parameters_correction <- function(correction) {
+  config_fields(
+    correction,
+    c('parameters', 'reason'),
+    'path_parameters_correction'
+  )
+  config_string(correction$reason, 'path_parameters_correction reason')
+  config_fields(
+    correction$parameters,
+    names(correction$parameters),
+    'path_parameters_correction parameters'
+  )
+  if (
+    !length(correction$parameters) ||
+      anyDuplicated(names(correction$parameters))
+  ) {
+    stop('path_parameters_correction requires unique named parameter schemas')
+  }
+  for (schema in correction$parameters) {
+    config_fields(
+      schema,
+      names(schema),
+      'path_parameters_correction parameter schema'
+    )
+    if (any(c('name', 'in', 'required') %in% names(schema))) {
+      stop(
+        'Path correction schemas cannot override parameter name, location or requiredness'
+      )
+    }
+  }
+}
+
 operation_selection_reason <- function(key, path, method, policy) {
   if (key %in% policy$validation_blocked_keys) return('Blocked by schema validation')
   reason <- character()
@@ -42,6 +74,19 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
+  path_corrections <- Filter(
+    Negate(is.null),
+    policy$path_parameters_corrections %or% list()
+  )
+  config_fields(
+    path_corrections,
+    names(path_corrections),
+    'path_parameters_corrections'
+  )
+  for (correction in path_corrections) {
+    validate_path_parameters_correction(correction)
+  }
+  policy$override_keys <- union(policy$override_keys, names(path_corrections))
   policy$query_array_style <- query_array_style(policy$query_array_style)
   query_array_style_overrides <- policy$query_array_style_overrides %or% list()
   config_fields(
@@ -318,6 +363,31 @@ read_operations <- function(files, policy = list()) {
               }
               params <- params[!drop]
               parameter_locations <- parameter_locations[!drop]
+            }
+            path_correction <- policy$path_parameters_corrections[[key]]
+            if (!is.null(path_correction)) {
+              # Replace only effective path declarations; keep the archived operation.
+              keep <- !vapply(
+                params,
+                function(p) identical(p[['in']], 'path'),
+                logical(1)
+              )
+              params <- params[keep]
+              parameter_locations <- parameter_locations[keep]
+              for (name in names(path_correction$parameters)) {
+                schema <- config_data(path_correction$parameters[[name]])
+                replacement <- list(name = name, `in` = 'path', required = TRUE)
+                if (identical(version, '2.0')) {
+                  replacement <- c(replacement, schema)
+                } else {
+                  replacement$schema <- schema
+                }
+                params <- c(params, list(replacement))
+                parameter_locations <- c(
+                  parameter_locations,
+                  operation_location
+                )
+              }
             }
             body <- op$requestBody
             body_location <- schema_location(operation_location, 'requestBody')
@@ -781,6 +851,7 @@ read_operations <- function(files, policy = list()) {
               body_required = body_required,
               body_media = body_media,
               body_media_correction = config_data(media_correction),
+              path_parameters_correction = config_data(path_correction),
               body_encoding = body_encoding,
               text_encoding = text_encoding,
               body_example = body_example,
