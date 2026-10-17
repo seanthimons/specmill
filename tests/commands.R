@@ -126,7 +126,15 @@ commands_acceptance <- function() {
   )
   cat('\n# User edit\n', file = test_path, append = TRUE)
   before <- hashes()
-  fails(specmill::generation_command(root, '--force', 'tests'), 'Protected')
+  warned <- character()
+  withCallingHandlers(
+    fails(specmill::generation_command(root, '--force', 'tests'), 'Protected'),
+    message = function(m) {
+      warned <<- c(warned, conditionMessage(m))
+      invokeRestart('muffleMessage')
+    }
+  )
+  stopifnot(any(grepl('Ignoring legacy flag', warned, fixed = TRUE)))
   stopifnot(identical(before, hashes()))
   writeLines('note <- "test_that(fake)"', test_path)
   stopifnot(
