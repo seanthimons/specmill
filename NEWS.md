@@ -1,6 +1,22 @@
 
 
 
+## specmill 0.1.19 (2026-10-17)
+
+#### Tests
+
+- cover post_combine on paged fan-out and the ignored legacy flag
+  warning (#119)
+  ([8d5c672](https://github.com/seanthimons/specmill/tree/8d5c6721f53149b9212537b661d78fda5a3ad6f9))
+
+#### Other changes
+
+- release v0.1.19 \[skip ci\]
+  ([f463a4f](https://github.com/seanthimons/specmill/tree/f463a4f4acc41284b6cd2ff88e970766bfee87b5))
+
+Full set of changes:
+[`v0.1.18...v0.1.19`](https://github.com/seanthimons/specmill/compare/v0.1.18...v0.1.19)
+
 ## specmill 0.1.18 (2026-10-17)
 
 #### New features
@@ -33,7 +49,7 @@
 #### Other changes
 
 - release v0.1.18 \[skip ci\]
-  ([4f76d58](https://github.com/seanthimons/specmill/tree/4f76d586cca887623bcce23e56f5d3354fc5f19c))
+  ([8993424](https://github.com/seanthimons/specmill/tree/8993424ebc9fc7d0fe18e361d767a3d37b710301))
 
 Full set of changes:
 [`v0.1.17...v0.1.18`](https://github.com/seanthimons/specmill/compare/v0.1.17...v0.1.18)
