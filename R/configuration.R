@@ -411,7 +411,8 @@ load_project <- function(
         'body',
         'security_correction',
         'body_media_correction',
-        'request_body_correction'
+        'request_body_correction',
+        'normalize_inputs'
       ),
       names(defaults)
     )) {

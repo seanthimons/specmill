@@ -384,6 +384,38 @@ limits remain separate work. Existing client-owned helpers need a `batch` argume
 before using these settings; generation verifies that compatibility. To send
 oversized input in several requests instead of rejecting it, see the next section.
 
+For a reviewed call-time setting, `max_items` also accepts an environment binding:
+
+```yaml
+batch:
+  max_items: {env: batch_limit, default: 100}
+  split: true
+```
+
+The generated wrapper reads the named variable once per call. Unset variables use
+`default`; empty, nonnumeric, nonfinite, fractional and nonpositive values fail
+before HTTP. Resolved values, defaults and optional caps must fit a positive R
+integer. Changing the environment between calls needs no regeneration, and the
+client does not depend on specmill at runtime. Literal numeric limits keep their
+existing behavior. On Windows, R's `Sys.setenv(batch_limit = "")` unsets the
+variable, so the default applies; platforms that retain an empty value reject it.
+
+Use `cap` to keep a reviewed service maximum separate from a caller's preferred
+size. For example, line input can preserve a legacy setting with a larger fallback
+while ensuring that no chunk exceeds the service's 200-entry limit:
+
+```yaml
+text_encoding: lines
+batch:
+  max_items: {env: batch_limit, default: 1000, cap: 200}
+  split: true
+```
+
+The effective limit is the smaller of the resolved setting and the cap. This
+binding works for array bodies and explicitly selected line encoding. Existing
+batching runtime options may lower that effective size, following their ordinary
+precedence and validation rules.
+
 ### Many inputs in one call: fan_out and split
 
 Two `batch` settings let one wrapper call send several requests and return one
@@ -1935,3 +1967,33 @@ behavior. The localhost tests exercise body and header links, relative resolutio
 cycles, and credential isolation. The opt-in `dev/verify_amos_pagination.R` script
 checks generated GET and filtered POST wrappers against dev or staging without
 production access or credentials.
+
+### Normalize selected inputs before validation
+
+An operation may name client-owned functions in `normalize_inputs`, keyed by
+public input names, including renamed parameters and body inputs:
+
+```yaml
+operations:
+  GET /items/{id}:
+    normalize_inputs:
+      id: clean_identifiers
+    batch:
+      fan_out: id
+```
+
+Each function receives one input value and returns its replacement. Functions run
+once per wrapper call, in mapping order, before required/type/body checks,
+parameter capture, hooks, and iteration. They resolve in the client wrapper's
+enclosing environment. The generated client does not depend on specmill at runtime.
+For example, `clean_identifiers` may deduplicate identifiers, remove blank or missing
+values, and reject an empty result with a client-specific error. The normalized
+value still undergoes the usual native validation. An early error does not force
+unrelated option arguments.
+
+The setting belongs under an operation, not service defaults. Unknown public input
+names and invalid function names are rejected. The function must exist in the
+client at call time. Array-body splitting uses the normalized whole input to form
+chunks. No normalization is inferred for other inputs, duplicates, or text lines;
+line encoding preserves its existing entry boundaries and newline bytes unless
+that input explicitly opts into a client function.
