@@ -397,7 +397,8 @@ The generated wrapper reads the named variable once per call. Unset variables us
 before HTTP. Resolved values, defaults and optional caps must fit a positive R
 integer. Changing the environment between calls needs no regeneration, and the
 client does not depend on specmill at runtime. Literal numeric limits keep their
-existing behavior.
+existing behavior. On Windows, R's `Sys.setenv(batch_limit = "")` unsets the
+variable, so the default applies; platforms that retain an empty value reject it.
 
 Use `cap` to keep a reviewed service maximum separate from a caller's preferred
 size. For example, line input can preserve a legacy setting with a larger fallback

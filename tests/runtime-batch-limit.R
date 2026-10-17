@@ -181,8 +181,24 @@ runtime_batch_limit_acceptance <- function() {
     length(runtime$array(rep('a', 101L))) == 2L,
     length(runtime$lines(rep('a', 201L))) == 2L
   )
+  Sys.setenv(batch_limit = '')
+  if (is.na(Sys.getenv('batch_limit', unset = NA_character_))) {
+    # Windows unsets the variable when given an empty value, so defaults apply.
+    stopifnot(
+      length(runtime$array(rep('a', 101L))) == 2L,
+      length(runtime$lines(rep('a', 201L))) == 2L
+    )
+  } else {
+    count <- readLines(count_file)
+    for (fn in list(runtime$array, runtime$lines)) {
+      stopifnot(
+        inherits(try(fn(ids), silent = TRUE), 'try-error'),
+        identical(readLines(count_file), count)
+      )
+    }
+  }
   count <- readLines(count_file)
-  for (value in c('', '0', '-1', '1.5', 'NaN', 'Inf', 'bad', '2147483648')) {
+  for (value in c(' ', '0', '-1', '1.5', 'NaN', 'Inf', 'bad', '2147483648')) {
     Sys.setenv(batch_limit = value)
     for (fn in list(runtime$array, runtime$lines)) {
       stopifnot(
