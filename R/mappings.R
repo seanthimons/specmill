@@ -42,6 +42,7 @@ validate_settings <- function(
       'parameters',
       'body',
       'inputs',
+      'normalize_inputs',
       'extra_parameters',
       'request',
       'post_on_skip',
@@ -73,6 +74,23 @@ validate_settings <- function(
     }
     if (isTRUE(value) && identical(settings$implementation, 'existing')) {
       stop('preserve_visibility requires a generated implementation')
+    }
+  }
+  if ('normalize_inputs' %in% names(settings)) {
+    normalizers <- settings$normalize_inputs
+    config_fields(
+      normalizers,
+      names(normalizers),
+      paste(label, 'normalize_inputs')
+    )
+    for (name in normalizers) {
+      config_string(name, 'input normalizer')
+      if (!identical(make.names(name), name)) {
+        stop('Input normalizers must name client functions')
+      }
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('normalize_inputs requires a generated implementation')
     }
   }
   if (!is.null(settings$security_correction)) {
