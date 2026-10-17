@@ -985,6 +985,34 @@ request body are unaffected. The operation's inventory record lists
 `excluded_parameters`. The direct reader accepts
 `read_operations(file, policy = list(exclude_parameters_overrides = list('POST /api/hazard' = c('files[]', 'request'))))`.
 
+### Reviewed path declarations
+
+When a published schema has missing or incorrectly named path parameters, an
+operation-only correction can replace its effective path declarations after
+review against service-owned documentation and captured requests:
+
+```yaml
+operations:
+  GET /api/amos/get_similar_structures/{identifier_type}/{identifier}:
+    path_parameters_correction:
+      parameters:
+        identifier_type: {type: string}
+        identifier: {type: string}
+      reason: Reviewed staging declarations and production read-only captures.
+```
+
+`parameters` maps wire names to parameter schemas. Every replacement is required;
+the normal parser validates its schema and requires exact agreement with the route
+placeholders. Query, header and cookie declarations keep their existing behavior.
+The correction replaces all path declarations for this operation, including any
+inherited from its path item. Other operations keep their original declarations.
+It does not rename public inputs; use `parameters` and `parameter_order` for that.
+
+Plans retain `path_parameters_correction`, `source_operation` and the original
+schema hash. The archived schema is never rewritten. Supply only constraints
+established by the reviewed contract; an empty successful response does not prove
+an accepted identifier or record-type vocabulary.
+
 ### Hook-selected routes
 
 When a pre-request hook chooses another schema route, declare it on the keyed
