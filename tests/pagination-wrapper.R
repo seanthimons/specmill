@@ -51,6 +51,7 @@ pagination_wrapper_acceptance <- function() {
                 record(sex = 'MF', id = '12'),
                 list()
               )),
+              word = json(if (page == 1L) record(id = 'x1') else list()),
               forever = json(record(id = as.character(page))),
               none = json(list()),
               nobody = if (page == 1L) {
@@ -515,6 +516,59 @@ pagination_wrapper_acceptance <- function() {
     !grepl('all_pages', code('get_items'), fixed = TRUE)
   )
 
+  # --- Pagination inside fan-out (#111) ----------------------------------------------
+  service <- paged()
+  service$operations[['GET /items/{kind}']] <- list(
+    batch = list(fan_out = 'kind', on_error = 'drop')
+  )
+  yaml::write_yaml(service, service_path)
+  run()
+  fan <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, fan)
+  }
+  seen <- sent()
+  result <- fan$get_items(c('a', 'typed'))
+  now <- history()
+  stopifnot(
+    # Each element pages to completion: a has 3 pages (the last empty), typed has 3.
+    identical(result$query, c('a', 'a', 'a', 'typed', 'typed')),
+    identical(result$id, c(1L, 2L, 3L, 7L, 12L)),
+    identical(tail(now$kind, -seen), c(rep('a', 3L), rep('typed', 3L))),
+    identical(tail(now$page, -seen), c(1:3, 1:3))
+  )
+  # Types are guessed once over every element's records.
+  stopifnot(
+    identical(result$sex, c(NA, NA, NA, 'F', 'MF')),
+    is.null(attr(result, 'api_request_source'))
+  )
+  # One typing pass over every element: a non-numeric id keeps the whole column text.
+  mixed <- fan$get_items(c('a', 'word'))
+  stopifnot(identical(mixed$id, c('1', '2', '3', 'x1')))
+  # all_pages = FALSE: one request per element.
+  seen <- sent()
+  one <- fan$get_items(c('a', 'typed'), all_pages = FALSE)
+  stopifnot(
+    identical(tail(history()$page, -seen), c(1L, 1L)),
+    nrow(one) == 3L
+  )
+  # An element that fails drops, with its earlier pages; the rest are kept.
+  both <- fan$get_items(c('a', 'missing'))
+  stopifnot(
+    identical(unique(both$query), 'a'),
+    identical(names(attr(both, 'failed')), 'missing')
+  )
+  # Dry runs return one request per element and are not combined into a table.
+  dry <- withr::with_envvar(
+    c(PAGEWRAP_DRY_RUN = 'true'),
+    fan$get_items(c('a', 'typed'))
+  )
+  stopifnot(
+    is.list(dry),
+    length(dry) == 2L,
+    all(vapply(dry, inherits, logical(1), 'httr2_request'))
+  )
+
   # --- Configuration errors --------------------------------------------------------------
   paged()
   write_executor()
@@ -543,12 +597,6 @@ pagination_wrapper_acceptance <- function() {
   service$defaults$pagination$max_pages <- 0L
   yaml::write_yaml(service, service_path)
   fails('pagination.max_pages must be a positive integer')
-  service <- paged()
-  service$operations[['GET /items/{kind}']] <- list(
-    batch = list(fan_out = 'kind')
-  )
-  yaml::write_yaml(service, service_path)
-  fails('pagination cannot be combined with batch.fan_out or batch.split')
   service <- paged()
   service$operations[['GET /items/{kind}']] <- list(
     parameters = list('query pageNumber' = list(name = 'max_pages'))

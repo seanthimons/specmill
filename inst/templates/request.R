@@ -27,7 +27,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   timeout <- if (base::is.null(controls$timeout)) 30 else controls$timeout
   retries <- if (base::is.null(controls$max_retries)) 0 else controls$max_retries
   writes <- if (base::is.null(controls$retry_writes)) FALSE else controls$retry_writes
-  if (!base::is.numeric(timeout) || base::length(timeout) != 1L || !base::is.finite(timeout) || timeout <= 0) call_error('timeout must be a finite positive number of seconds')
+  if (!base::is.numeric(timeout) || base::length(timeout) != 1L || base::is.na(timeout) || timeout <= 0) call_error('timeout must be a positive number of seconds, or Inf for no limit')
   if (!base::is.numeric(retries) || base::length(retries) != 1L || !base::is.finite(retries) || retries < 0 || retries != base::trunc(retries) || retries >= base::.Machine$integer.max) call_error('max_retries must be a nonnegative integer below .Machine$integer.max')
   if (!base::is.logical(writes) || base::length(writes) != 1L || base::is.na(writes)) call_error('retry_writes must be TRUE or FALSE')
   retry_policy <- controls$retry_policy
@@ -268,7 +268,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (base::length(encoded_cookies)) request <- httr2::req_headers(request, .redact = 'Cookie')
   # Append encoded tokens last: query authentication must not decode/re-encode them.
   if (base::length(encoded_query)) request <- httr2::req_url(request, base::paste0(request$url, if (base::grepl('?', request$url, fixed = TRUE)) '&' else '?', base::paste(encoded_query, collapse = '&')))
-  request <- httr2::req_timeout(request, timeout)
+  if (base::is.finite(timeout)) request <- httr2::req_timeout(request, timeout)
   if (retries > 0 && (base::toupper(method) %in% base::c('GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE') || writes)) {
     request <- httr2::req_retry(request, max_tries = retries + 1,
       is_transient = is_transient)
@@ -277,6 +277,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (dry) base::return(request)
   request <- httr2::req_error(request, is_error = function(response) FALSE)
   response <- base::tryCatch(httr2::req_perform(request), error = function(e) {
+    if (base::is.finite(timeout) && base::inherits(e$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', call. = FALSE)
     base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', call. = FALSE)
   })
   status <- httr2::resp_status(response)
@@ -289,7 +290,10 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   decode <- function(format = 'native', check_status = TRUE, col_classes = NA) {
     format <- base::match.arg(format, base::c('native', 'delimited'))
     if (!base::is.logical(check_status) || base::length(check_status) != 1L || base::is.na(check_status)) base::stop('check_status must be TRUE or FALSE', call. = FALSE)
-    if (check_status && status >= 400L) base::stop(diagnostic, ' response', call. = FALSE)
+    if (check_status && status >= 400L) {
+      # A rejected credential applies to every item of a batch, so it stops the call rather than being dropped per item.
+      base::stop(if (status == 401L) base::errorCondition(base::paste0(diagnostic, ' response'), class = 'specmill_call_error', call = NULL) else base::simpleError(base::paste0(diagnostic, ' response')))
+    }
     delimited <- format == 'delimited' && media %in% base::c('text/csv', 'application/csv', 'text/tab-separated-values', 'text/tsv')
     if (!httr2::resp_has_body(response) || !base::length(httr2::resp_body_raw(response))) {
       base::return(if (delimited) base::data.frame() else NULL)
@@ -400,9 +404,11 @@ api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_
 # Sends one request per item or chunk for batch.fan_out and batch.split wrappers.
 # The <helper>.batching option's on_error overrides the generated default.
 # on_error = 'drop' covers per-item failures only; errors classed specmill_call_error stop the call.
-api_request_each <- function(send, items, size, on_error = 'stop') {
+# When drop leaves no successes, `empty()` (the batch.empty client function) supplies the result instead of list().
+api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL) {
   policy <- base::getOption(base::paste0(base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV)), '.api_request.batching'), base::list())
   if (!base::is.null(policy$on_error)) on_error <- policy$on_error
+  if (!base::is.null(policy$empty)) empty <- policy$empty
   if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
   # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
@@ -424,7 +430,7 @@ api_request_each <- function(send, items, size, on_error = 'stop') {
       NULL
     })
   })
-  result <- api_request_combine(results)
+  result <- if (!base::is.null(empty) && base::length(failed) && base::all(base::vapply(results, base::is.null, base::logical(1)))) empty() else api_request_combine(results)
   if (base::length(failed)) base::attr(result, 'failed') <- failed
   result
 }

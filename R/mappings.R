@@ -143,17 +143,18 @@ validate_settings <- function(
       if (
         !is.numeric(value) ||
           length(value) != 1L ||
-          !is.finite(value) ||
+          is.na(value) ||
           (field == 'timeout' && value <= 0) ||
           (field == 'max_retries' &&
-            (value < 0 ||
+            (!is.finite(value) ||
+              value < 0 ||
               value != trunc(value) ||
               value >= .Machine$integer.max))
       ) {
         stop(
           'Invalid request_controls.',
           field,
-          ': timeout must be positive; max_retries must be a nonnegative integer below .Machine$integer.max'
+          ': timeout must be positive (.inf for no limit); max_retries must be a nonnegative integer below .Machine$integer.max'
         )
       }
     }
@@ -170,11 +171,14 @@ validate_settings <- function(
   if ('batch' %in% names(settings)) {
     config_fields(
       settings$batch,
-      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error'),
+      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error', 'empty'),
       'batch'
     )
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')
+    }
+    if (!is.null(settings$batch$empty)) {
+      config_string(settings$batch$empty, 'batch.empty')
     }
     if (
       !is.null(settings$batch$split) &&
@@ -344,7 +348,7 @@ validate_settings <- function(
       !is.null(name) &&
         (!identical(make.names(name), name) ||
           grepl('^(\\.\\.([0-9]+|\\.)|\\.\\.\\.)$', name) ||
-          name %in% c('params', 'state', 'result', 'send', 'chunk', 'changed'))
+          name %in% c('params', 'state', 'result', 'send', 'fetch', 'chunk', 'changed'))
     ) {
       stop(
         label,
