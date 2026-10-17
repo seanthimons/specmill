@@ -1061,6 +1061,33 @@ A reason is required. Omission is rejected for required or absent bodies, Swagge
 It belongs under `operations`, never service or project defaults. Review live
 bodyless requests before applying it; this setting does not repair or infer a
 body's media type or payload contract.
+### Reviewed path declarations
+
+When a published schema has missing or incorrectly named path parameters, an
+operation-only correction can replace its effective path declarations after
+review against service-owned documentation and captured requests:
+
+```yaml
+operations:
+  GET /api/amos/get_similar_structures/{identifier_type}/{identifier}:
+    path_parameters_correction:
+      parameters:
+        identifier_type: {type: string}
+        identifier: {type: string}
+      reason: Reviewed staging declarations and production read-only captures.
+```
+
+`parameters` maps wire names to parameter schemas. Every replacement is required;
+the normal parser validates its schema and requires exact agreement with the route
+placeholders. Query, header and cookie declarations keep their existing behavior.
+The correction replaces all path declarations for this operation, including any
+inherited from its path item. Other operations keep their original declarations.
+It does not rename public inputs; use `parameters` and `parameter_order` for that.
+
+Plans retain `path_parameters_correction`, `source_operation` and the original
+schema hash. The archived schema is never rewritten. Supply only constraints
+established by the reviewed contract; an empty successful response does not prove
+an accepted identifier or record-type vocabulary.
 
 ### Hook-selected routes
 
