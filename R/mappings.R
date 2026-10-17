@@ -55,6 +55,7 @@ validate_settings <- function(
       'server',
       'body_media',
       'security_correction',
+      'body_media_correction',
       'text_encoding',
       'query_array_style',
       'exclude_parameters',
@@ -67,10 +68,13 @@ validate_settings <- function(
   if (!is.null(settings$security_correction)) {
     validate_security_correction(settings$security_correction)
   }
-  if (!is.null(settings$body_media)) {
-    config_string(settings$body_media, paste(label, 'body_media'))
+  if (!is.null(settings$body_media_correction)) {
+    validate_body_media_correction(settings$body_media_correction)
+  }
+  if (!is.null(settings[['body_media']])) {
+    config_string(settings[['body_media']], paste(label, 'body_media'))
     if (
-      !settings$body_media %in%
+      !settings[['body_media']] %in%
         c(
           'application/json',
           'application/octet-stream',
