@@ -1386,11 +1386,17 @@ demonstrates native generation, explicit mappings, and retained client code.
 | `body` | Request-body argument override: `name`, `description` |
 | `extra_parameters` | Additional public inputs: `default`, `required`, `type`, `description` |
 | `inputs` | Complete public input map, replacing schema-derived inputs; same fields plus `missing_as_null` |
-| `parameter_order` | Sequence of public names to place first; remaining parameters follow |
+| `parameter_order` | Sequence of public names, including the request-body argument, to place first; remaining parameters follow |
 | `request.arguments` | Named helper arguments built from typed bindings |
 | `post_on_skip` | Boolean, default false; run post-hook after a pre-hook skips the request |
 | `post_state` | `parameters` (default) or `hook_state` for the full pre-hook state |
 | `docs` | The documentation policy described above |
+
+Use the body's public name in `parameter_order`. For example, `body: {name: dtxcid}`
+with `parameter_order: [dtxcid]` places the body before optional query parameters.
+Without a body rename, use `body`, or its collision-adjusted name such as `body.1`
+when a schema parameter already uses `body`. Omitting `parameter_order` preserves
+the default order with the body last.
 
 Per-operation settings merge into defaults. Named maps merge recursively;
 sequences, a complete `inputs` map, individual request bindings, and `default`

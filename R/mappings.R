@@ -566,11 +566,18 @@ configure_operation <- function(operation, service) {
   }
   if (length(settings$parameter_order)) {
     order <- unlist(settings$parameter_order, use.names = FALSE)
-    if (any(!order %in% public_names) || anyDuplicated(order)) {
+    ordered_operation <- operation
+    ordered_operation$parameters <- parameters
+    ordered_operation$body_name <- settings[['body']]$name
+    inputs <- c(
+      public_names,
+      if (!is.null(operation$body)) body_argument_name(ordered_operation)
+    )
+    if (!all(order %in% inputs) || anyDuplicated(order)) {
       stop('Invalid public parameter_order for ', operation$id)
     }
     parameters <- parameters[match(
-      c(order, setdiff(public_names, order)),
+      c(intersect(order, public_names), setdiff(public_names, order)),
       public_names
     )]
   }
