@@ -452,6 +452,7 @@ pagination_wrapper_acceptance <- function() {
         '    options(pagewrap.combined = list(params = state$params, rows = nrow(state$result)))',
         '    out <- state$result',
         '    attr(out, "pagination") <- NULL',
+        '    attr(out, "failed") <- NULL',
         '    return(out)',
         '  }',
         '  stop("Unsupported hook stage")',
@@ -568,6 +569,29 @@ pagination_wrapper_acceptance <- function() {
     length(dry) == 2L,
     all(vapply(dry, inherits, logical(1), 'httr2_request'))
   )
+
+  # post_combine runs once on the combined result of a paged fan-out, and the
+  # failed record survives a hook that drops attributes.
+  service <- paged(
+    hooks = list(get_items = list(post_combine = list('log_hook')))
+  )
+  service$operations[['GET /items/{kind}']] <- list(
+    batch = list(fan_out = 'kind', on_error = 'drop')
+  )
+  yaml::write_yaml(service, service_path)
+  run()
+  hooked_fan <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, hooked_fan)
+  }
+  options(pagewrap.log = NULL, pagewrap.combined = NULL)
+  combined <- hooked_fan$get_items(c('a', 'missing'))
+  stopifnot(
+    identical(getOption('pagewrap.log'), 'combine'),
+    identical(getOption('pagewrap.combined')$rows, 3L),
+    identical(names(attr(combined, 'failed')), 'missing')
+  )
+  options(pagewrap.log = NULL, pagewrap.combined = NULL)
 
   # --- Configuration errors --------------------------------------------------------------
   paged()
