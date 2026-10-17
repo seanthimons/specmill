@@ -513,6 +513,94 @@ batch_iteration_acceptance <- function() {
     identical(stacked$b, c(NA, 'x')),
     identical(runtime$api_request_combine(list()), list())
   )
+  # A reviewed policy uses actual request count after effective chunk sizing.
+  counted_service <- original
+  counted_service$operations[['GET /items/{id}']] <- list(
+    batch = list(
+      fan_out = 'id',
+      on_error = list(single = 'stop', multiple = 'drop'),
+      empty = 'empty_result'
+    )
+  )
+  counted_service$operations[['GET /items/{id}']]$normalize_inputs <- list(
+    id = 'normalize_ids'
+  )
+  counted_service$operations[['POST /bulk']] <- list(
+    batch = list(
+      max_items = 2L,
+      split = TRUE,
+      on_error = list(single = 'stop', multiple = 'drop'),
+      empty = 'empty_result'
+    )
+  )
+  writeLines(
+    c(
+      'empty_result <- function() list()',
+      'normalize_ids <- function(x) unique(x)'
+    ),
+    file.path(root, 'R/hooks.R')
+  )
+  yaml::write_yaml(counted_service, service_path)
+  run()
+  run('check')
+  counted <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, counted)
+  }
+  # Actual received HTTP failures follow the same choice unless a client response
+  # policy has already handled them before decoding.
+  error <- tryCatch(counted$get_item('bad'), error = identity)
+  stopifnot(inherits(error, 'error'))
+  partial <- suppressWarnings(counted$get_item(c('a', 'bad')))
+  stopifnot(length(partial) == 1L, identical(partial[[1L]]$id, 'a'))
+  original_request <- counted$api_request
+  counted$api_request <- function(...) stop('transport sentinel')
+  for (invoke in list(counted$get_item, counted$bulk)) {
+    error <- tryCatch(invoke('one'), error = identity)
+    stopifnot(
+      inherits(error, 'error'),
+      identical(conditionMessage(error), 'transport sentinel')
+    )
+  }
+  error <- tryCatch(counted$get_item(c('one', 'one')), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    identical(conditionMessage(error), 'transport sentinel')
+  )
+  # Two entries in one array request still abort; lowering the session limit
+  # creates two requests and switches to the reviewed multiple-request branch.
+  error <- tryCatch(counted$bulk(c('a', 'b')), error = identity)
+  stopifnot(inherits(error, 'error'))
+  result <- withr::with_options(
+    list(iterationclient.api_request.batching = list(max_items = 1L)),
+    suppressWarnings(counted$bulk(c('a', 'b')))
+  )
+  stopifnot(identical(names(attr(result, 'failed')), c('a', 'b')))
+  counted$api_request <- function(...) {
+    stop(errorCondition('credential sentinel', class = 'specmill_call_error'))
+  }
+  for (input in list('a', c('a', 'b'))) {
+    error <- tryCatch(counted$get_item(input), error = identity)
+    stopifnot(inherits(error, 'specmill_call_error'))
+  }
+  counted$api_request <- original_request
+  # Session literal policies still override the operation choice.
+  result <- withr::with_options(
+    list(iterationclient.api_request.batching = list(on_error = 'drop')),
+    suppressWarnings(counted$get_item('bad'))
+  )
+  stopifnot(identical(names(attr(result, 'failed')), 'bad'))
+  for (policy in list(
+    list(single = 'stop'),
+    list(single = 'ignore', multiple = 'drop'),
+    list(single = 'stop', multiple = 'drop', other = 'stop')
+  )) {
+    bad <- counted_service
+    bad$operations[['GET /items/{id}']]$batch$on_error <- policy
+    fails(bad, 'batch.on_error')
+  }
+  yaml::write_yaml(counted_service, service_path)
+  run()
   # A helper without the runner fails generation with a clear message.
   helper <- file.path(root, 'R/api_request.R')
   text <- readLines(helper)
