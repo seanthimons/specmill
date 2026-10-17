@@ -794,6 +794,27 @@ Each alternative is an OR choice; all schemes inside one choice are required.
 Missing credentials fail before any HTTP request. OAuth login, refresh, and OpenID
 Connect are deferred; an unsupported-only requirement produces a clear runtime error.
 
+For a verified endpoint whose schema omits or misstates its security requirement,
+record an explicit correction under that operation:
+
+```yaml
+operations:
+  GET /bioactivity/analyticalqc/search/by-dtxsid/{dtxsid}:
+    security_correction:
+      requirements:
+      - api_key: []
+      reason: Reviewed endpoint requires the declared API-key credential.
+```
+
+`requirements` replaces the operation's effective security using the OpenAPI
+array-of-requirement-maps shape described above. Scheme names must already exist
+in the schema. A nonempty review reason is required; the correction cannot be
+inherited through defaults. An empty requirements sequence explicitly makes the
+operation public. Plans retain the correction and the original source operation;
+the archived schema is unchanged. Other operations keep their declared security.
+Credential environment-variable mappings and client-owned helper adoption still
+apply, and the correction does not add OAuth login or refresh support.
+
 Omitting `authentication` preserves existing client-owned authentication.
 Explicit custom request mappings also retain responsibility for
 authentication. Adding the field opts into generated authentication.
