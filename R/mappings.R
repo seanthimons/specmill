@@ -42,6 +42,7 @@ validate_settings <- function(
       'parameters',
       'body',
       'inputs',
+      'normalize_inputs',
       'extra_parameters',
       'request',
       'post_on_skip',
@@ -54,7 +55,10 @@ validate_settings <- function(
       'response_policy',
       'server',
       'body_media',
+      'security_correction',
       'body_media_correction',
+      'request_body_correction',
+      'path_parameters_correction',
       'text_encoding',
       'query_array_style',
       'exclude_parameters',
@@ -64,8 +68,34 @@ validate_settings <- function(
     ),
     label
   )
+  if ('normalize_inputs' %in% names(settings)) {
+    normalizers <- settings$normalize_inputs
+    config_fields(
+      normalizers,
+      names(normalizers),
+      paste(label, 'normalize_inputs')
+    )
+    for (name in normalizers) {
+      config_string(name, 'input normalizer')
+      if (!identical(make.names(name), name)) {
+        stop('Input normalizers must name client functions')
+      }
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('normalize_inputs requires a generated implementation')
+    }
+  }
+  if (!is.null(settings$security_correction)) {
+    validate_security_correction(settings$security_correction)
+  }
   if (!is.null(settings$body_media_correction)) {
     validate_body_media_correction(settings$body_media_correction)
+  }
+  if (!is.null(settings$request_body_correction)) {
+    validate_request_body_correction(settings$request_body_correction)
+  }
+  if (!is.null(settings$path_parameters_correction)) {
+    validate_path_parameters_correction(settings$path_parameters_correction)
   }
   if (!is.null(settings[['body_media']])) {
     config_string(settings[['body_media']], paste(label, 'body_media'))
@@ -199,7 +229,20 @@ validate_settings <- function(
     ) {
       stop('batch.on_error must be stop or drop')
     }
-    for (limit in settings$batch[c('max_items', 'max_bytes')]) {
+    limits <- settings$batch[c('max_items', 'max_bytes')]
+    binding <- settings$batch$max_items
+    if (is.list(binding)) {
+      config_fields(binding, c('env', 'default', 'cap'), 'batch.max_items')
+      env <- config_string(binding$env, 'batch.max_items env')
+      if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', env)) {
+        stop('Invalid batch.max_items environment variable')
+      }
+      if (is.null(binding$default)) {
+        stop('batch.max_items binding requires a default')
+      }
+      limits <- c(binding[c('default', 'cap')], settings$batch['max_bytes'])
+    }
+    for (limit in limits) {
       if (
         !is.null(limit) &&
           (!is.numeric(limit) ||
@@ -211,6 +254,12 @@ validate_settings <- function(
       ) {
         stop('Batch limits must be positive integers or null')
       }
+    }
+    if (
+      is.list(binding) &&
+        any(unlist(binding[c('default', 'cap')]) > .Machine$integer.max)
+    ) {
+      stop('batch.max_items default and cap must fit an R integer')
     }
   }
   if (!is.null(settings[['pagination']])) {
@@ -442,6 +491,21 @@ configure_operation <- function(operation, service) {
     operation$id,
     service$callbacks %or% new.env(parent = emptyenv())
   )
+  if (!is.null(settings$security_correction)) {
+    correction <- settings$security_correction
+    unknown <- setdiff(
+      unlist(lapply(correction$requirements, names), use.names = FALSE),
+      names(operation$security_schemes)
+    )
+    if (length(unknown)) {
+      stop(
+        'Undefined security scheme in security_correction: ',
+        paste(unknown, collapse = ', ')
+      )
+    }
+    operation$security <- config_data(correction$requirements)
+    operation$security_correction <- config_data(correction)
+  }
   if (!is.null(settings[['body']])) {
     if ('inputs' %in% names(settings)) {
       stop(

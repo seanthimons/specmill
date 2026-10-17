@@ -384,6 +384,38 @@ limits remain separate work. Existing client-owned helpers need a `batch` argume
 before using these settings; generation verifies that compatibility. To send
 oversized input in several requests instead of rejecting it, see the next section.
 
+For a reviewed call-time setting, `max_items` also accepts an environment binding:
+
+```yaml
+batch:
+  max_items: {env: batch_limit, default: 100}
+  split: true
+```
+
+The generated wrapper reads the named variable once per call. Unset variables use
+`default`; empty, nonnumeric, nonfinite, fractional and nonpositive values fail
+before HTTP. Resolved values, defaults and optional caps must fit a positive R
+integer. Changing the environment between calls needs no regeneration, and the
+client does not depend on specmill at runtime. Literal numeric limits keep their
+existing behavior. On Windows, R's `Sys.setenv(batch_limit = "")` unsets the
+variable, so the default applies; platforms that retain an empty value reject it.
+
+Use `cap` to keep a reviewed service maximum separate from a caller's preferred
+size. For example, line input can preserve a legacy setting with a larger fallback
+while ensuring that no chunk exceeds the service's 200-entry limit:
+
+```yaml
+text_encoding: lines
+batch:
+  max_items: {env: batch_limit, default: 1000, cap: 200}
+  split: true
+```
+
+The effective limit is the smaller of the resolved setting and the cap. This
+binding works for array bodies and explicitly selected line encoding. Existing
+batching runtime options may lower that effective size, following their ordinary
+precedence and validation rules.
+
 ### Many inputs in one call: fan_out and split
 
 Two `batch` settings let one wrapper call send several requests and return one
@@ -794,6 +826,27 @@ Each alternative is an OR choice; all schemes inside one choice are required.
 Missing credentials fail before any HTTP request. OAuth login, refresh, and OpenID
 Connect are deferred; an unsupported-only requirement produces a clear runtime error.
 
+For a verified endpoint whose schema omits or misstates its security requirement,
+record an explicit correction under that operation:
+
+```yaml
+operations:
+  GET /bioactivity/analyticalqc/search/by-dtxsid/{dtxsid}:
+    security_correction:
+      requirements:
+      - api_key: []
+      reason: Reviewed endpoint requires the declared API-key credential.
+```
+
+`requirements` replaces the operation's effective security using the OpenAPI
+array-of-requirement-maps shape described above. Scheme names must already exist
+in the schema. A nonempty review reason is required; the correction cannot be
+inherited through defaults. An empty requirements sequence explicitly makes the
+operation public. Plans retain the correction and the original source operation;
+the archived schema is unchanged. Other operations keep their declared security.
+Credential environment-variable mappings and client-owned helper adoption still
+apply, and the correction does not add OAuth login or refresh support.
+
 Omitting `authentication` preserves existing client-owned authentication.
 Explicit custom request mappings also retain responsibility for
 authentication. Adding the field opts into generated authentication.
@@ -984,6 +1037,57 @@ operations keep their diagnostics, and real uploads declared as a multipart
 request body are unaffected. The operation's inventory record lists
 `excluded_parameters`. The direct reader accepts
 `read_operations(file, policy = list(exclude_parameters_overrides = list('POST /api/hazard' = c('files[]', 'request'))))`.
+
+### Reviewed bodyless GET/HEAD subset
+
+An optional request body can be omitted by a reviewed operation policy:
+
+```yaml
+operations:
+  GET /api/resolver/ghs-list-count:
+    request_body_correction:
+      omit: true
+      reason: Reviewed bodyless production GET returns the existing count records.
+```
+
+This policy generates no public body argument and sends no request-body bytes.
+It selects only the bodyless subset of a declared optional OpenAPI GET/HEAD body;
+it does not claim that the service ignores supplied bodies. The schema's original
+operation and the correction remain in plan metadata, and the archived schema is
+unchanged. Other operations keep their request bodies and diagnostics.
+
+A reason is required. Omission is rejected for required or absent bodies, Swagger
+2, other HTTP methods, and operations with a body-media override or correction.
+It belongs under `operations`, never service or project defaults. Review live
+bodyless requests before applying it; this setting does not repair or infer a
+body's media type or payload contract.
+### Reviewed path declarations
+
+When a published schema has missing or incorrectly named path parameters, an
+operation-only correction can replace its effective path declarations after
+review against service-owned documentation and captured requests:
+
+```yaml
+operations:
+  GET /api/amos/get_similar_structures/{identifier_type}/{identifier}:
+    path_parameters_correction:
+      parameters:
+        identifier_type: {type: string}
+        identifier: {type: string}
+      reason: Reviewed staging declarations and production read-only captures.
+```
+
+`parameters` maps wire names to parameter schemas. Every replacement is required;
+the normal parser validates its schema and requires exact agreement with the route
+placeholders. Query, header and cookie declarations keep their existing behavior.
+The correction replaces all path declarations for this operation, including any
+inherited from its path item. Other operations keep their original declarations.
+It does not rename public inputs; use `parameters` and `parameter_order` for that.
+
+Plans retain `path_parameters_correction`, `source_operation` and the original
+schema hash. The archived schema is never rewritten. Supply only constraints
+established by the reviewed contract; an empty successful response does not prove
+an accepted identifier or record-type vocabulary.
 
 ### Hook-selected routes
 
@@ -1899,3 +2003,33 @@ behavior. The localhost tests exercise body and header links, relative resolutio
 cycles, and credential isolation. The opt-in `dev/verify_amos_pagination.R` script
 checks generated GET and filtered POST wrappers against dev or staging without
 production access or credentials.
+
+### Normalize selected inputs before validation
+
+An operation may name client-owned functions in `normalize_inputs`, keyed by
+public input names, including renamed parameters and body inputs:
+
+```yaml
+operations:
+  GET /items/{id}:
+    normalize_inputs:
+      id: clean_identifiers
+    batch:
+      fan_out: id
+```
+
+Each function receives one input value and returns its replacement. Functions run
+once per wrapper call, in mapping order, before required/type/body checks,
+parameter capture, hooks, and iteration. They resolve in the client wrapper's
+enclosing environment. The generated client does not depend on specmill at runtime.
+For example, `clean_identifiers` may deduplicate identifiers, remove blank or missing
+values, and reject an empty result with a client-specific error. The normalized
+value still undergoes the usual native validation. An early error does not force
+unrelated option arguments.
+
+The setting belongs under an operation, not service defaults. Unknown public input
+names and invalid function names are rejected. The function must exist in the
+client at call time. Array-body splitting uses the normalized whole input to form
+chunks. No normalization is inferred for other inputs, duplicates, or text lines;
+line encoding preserves its existing entry boundaries and newline bytes unless
+that input explicitly opts into a client function.
