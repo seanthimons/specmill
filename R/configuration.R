@@ -418,6 +418,9 @@ load_project <- function(
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
     }
+    if (!is.null(defaults$batch$metadata)) {
+      stop(id, ': batch.metadata belongs under operations, not defaults')
+    }
     config_fields(overrides, names(overrides), 'operations')
     for (key in names(overrides)) {
       validate_settings(overrides[[key]], key, callbacks)
