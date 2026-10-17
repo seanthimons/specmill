@@ -239,6 +239,35 @@ render_operation <- function(operation, spec) {
     character(1)
   )
   body_name <- if (!is.null(operation$body)) tail(formal_names, 1L) else NULL
+  limit_binding <- operation$batch$max_items
+  dynamic_limit <- is.list(limit_binding)
+  if (dynamic_limit) {
+    limit_name <- tail(
+      make.unique(c(
+        formal_names,
+        helper,
+        callback,
+        operation$response_policy,
+        operation$iterate$empty,
+        '.batch_limit'
+      )),
+      1L
+    )
+  }
+  text_operation <- operation
+  if (dynamic_limit) {
+    text_operation$batch$max_items <- as.name(limit_name)
+  }
+  transport_batch <- operation$batch
+  if (identical(operation$body_media, 'text/plain')) {
+    transport_batch <- transport_batch[setdiff(
+      names(transport_batch),
+      'max_items'
+    )]
+  } else if (dynamic_limit) {
+    transport_batch$max_items <- as.name(limit_name)
+    transport_batch <- as.call(c(list(quote(base::list)), transport_batch))
+  }
   split_lines <- isTRUE(operation$iterate$split) &&
     identical(operation$body_media, 'text/plain') &&
     identical(operation$text_encoding, 'lines')
@@ -294,6 +323,14 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  normalizers <- spec$normalize_inputs
+  unknown <- setdiff(names(normalizers), formal_names)
+  if (length(unknown)) {
+    stop(
+      'Unknown public input in normalize_inputs: ',
+      paste(unknown, collapse = ', ')
+    )
+  }
   lines <- c(
     '# Generated with specmill; do not edit by hand.',
     paste0(
@@ -302,6 +339,34 @@ render_operation <- function(operation, spec) {
       paste(signature, collapse = ', '),
       ') {'
     ),
+    vapply(
+      names(normalizers),
+      function(name) {
+        paste0(
+          '  ',
+          name,
+          ' <- base::get(',
+          r_literal(normalizers[[name]]),
+          ', envir = base::parent.env(base::environment()), mode = "function", inherits = TRUE)(',
+          name,
+          ')'
+        )
+      },
+      character(1)
+    ),
+    if (dynamic_limit) {
+      paste0(
+        '  ',
+        limit_name,
+        ' <- .api_validation$batch_limit(',
+        r_literal(limit_binding$env),
+        ', ',
+        r_literal(limit_binding$default),
+        ', ',
+        r_literal(limit_binding$cap),
+        ')'
+      )
+    },
     paste0(
       '  params <- base::list(',
       paste(
@@ -383,7 +448,7 @@ render_operation <- function(operation, spec) {
       if (split_lines) {
         paste0('.api_validation$text_input(', body_name, ')')
       } else {
-        text_checks(whole, body_name)
+        text_checks(text_operation, body_name)
       }
     } else if (form_media(operation$body_media)) {
       form_checks(operation$body, body_name, operation$body_media)
@@ -437,7 +502,7 @@ render_operation <- function(operation, spec) {
     lines <- c(
       lines,
       paste0('  if (!base::is.null(', value, ')) {'),
-      paste0('    ', text_checks(operation, value)),
+      paste0('    ', text_checks(text_operation, value)),
       '  }'
     )
   }
@@ -557,13 +622,7 @@ render_operation <- function(operation, spec) {
     if ('batch' %in% transport_arguments(operation)) {
       paste0(
         ', batch = ',
-        r_literal(
-          if (identical(operation$body_media, 'text/plain')) {
-            operation$batch[setdiff(names(operation$batch), 'max_items')]
-          } else {
-            operation$batch
-          }
-        )
+        r_literal(transport_batch)
       )
     },
     ')'
@@ -790,9 +849,13 @@ render_operation <- function(operation, spec) {
         '  }, params[[',
         r_literal(input),
         ']], ',
-        r_literal(
-          if (is.null(fan_out)) as.integer(operation$batch$max_items) else 1L
-        ),
+        if (!is.null(fan_out)) {
+          '1L'
+        } else if (dynamic_limit) {
+          limit_name
+        } else {
+          r_literal(as.integer(operation$batch$max_items))
+        },
         ', on_error = ',
         r_literal(operation$iterate$on_error),
         if (!is.null(operation$iterate$empty)) {
