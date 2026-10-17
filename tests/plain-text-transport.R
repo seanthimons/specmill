@@ -157,6 +157,7 @@ plain_text_acceptance <- function() {
         reason = 'Reviewed endpoint accepts newline-delimited UTF-8 identifiers.'
       ),
       text_encoding = 'lines',
+      docs = list(examples = list(list(query = list('DTXSID7020182', 'DTXSID9020112')))),
       batch = list(max_items = 200L, max_bytes = 2799L, split = TRUE)
     )
     schema_hash <- tools::md5sum(schema)
@@ -239,6 +240,11 @@ plain_text_acceptance <- function() {
     second <- runtime$send_corrected(ids[1:2])
     stopifnot(identical(first, second))
     check_wire(first[[1L]], paste(ids[1:2], collapse = '\n'))
+    example <- grep("^#' send_corrected\\(",
+      readLines(file.path(root, 'R', 'send_corrected.R')), value = TRUE)
+    stopifnot(length(example) == 1L, grepl('query = c(', example, fixed = TRUE))
+    example_result <- eval(parse(text = sub("^#' ", '', example)), runtime)
+    check_wire(example_result[[1L]], 'DTXSID7020182\nDTXSID9020112')
     count_before <- as.integer(readLines(count_file))
     runtime$send_corrected(query = ids[1:200])
     stopifnot(as.integer(readLines(count_file)) == count_before + 1L)
