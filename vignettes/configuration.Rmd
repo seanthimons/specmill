@@ -910,12 +910,31 @@ operations:
       split: true
 ```
 
-`body_media_correction` currently supports only `application/json` to `text/plain`.
-It requires a nonempty review reason and a scalar string source schema. It cannot
-be inherited through defaults. The source media must exist and the target must
-be absent; conflicting `body_media` selections fail review. Plans retain the
+`body_media_correction` supports `application/json` to `text/plain` for a scalar
+string source schema. It requires a nonempty review reason and cannot
+be inherited through defaults. For the text correction, the source media must
+exist and the target must be absent; conflicting `body_media` selections fail review. Plans retain the
 correction and the original source operation; the schema file stays unchanged.
 Ordinary `body_media` continues to select only declared media types.
+
+For a Swagger 2 body with no declared request media, a verified JSON contract can
+be recorded with an explicit null source:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    body_media_correction:
+      from: null
+      to: application/json
+      reason: Reviewed staging declaration and production JSON request capture.
+```
+
+The `from` key must be present. This form applies only to a declared Swagger body
+with no available media declaration, including inherited `consumes`. Existing or
+conflicting declarations, conflicting `body_media` selections, absent bodies and
+OpenAPI bodies are rejected. The source body schema is validated unchanged.
+This is a reviewed declaration for that operation, never a JSON fallback for
+other AMOS routes. The same correction/source-operation provenance is retained.
 
 For a reviewed vector-of-lines input, select encoding explicitly:
 

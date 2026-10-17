@@ -338,6 +338,18 @@ read_operations <- function(files, policy = list()) {
                 body_location
               )
             }
+            if (
+              !is.null(media_correction) &&
+                is.null(media_correction$from) &&
+                !startsWith(version, '2.')
+            ) {
+              schema_problem(
+                'body_media_correction',
+                'review_required',
+                'Missing-media declaration requires a Swagger body without declared media',
+                body_location
+              )
+            }
             text_encoding <- policy$text_encoding_overrides[[key]] %or%
               policy$text_encoding %or%
               'scalar'
@@ -521,12 +533,13 @@ read_operations <- function(files, policy = list()) {
               body <- body$content[[schema_media]]$schema
             }
             if (
-              !is.null(media_correction) && !identical(body_media, 'text/plain')
+              !is.null(media_correction) &&
+                (!body_present || !identical(body_media, media_correction$to))
             ) {
               schema_problem(
                 'body_media_correction',
                 'review_required',
-                'Body media correction requires a declared scalar request body',
+                'Body media correction requires a declared request body with the reviewed target media',
                 body_location
               )
             }
