@@ -1,12 +1,29 @@
 
 
 
+## specmill 0.1.23 (2026-10-17)
+
+#### Other changes
+
+- release v0.1.23 \[skip ci\]
+  ([9f1ccb5](https://github.com/seanthimons/specmill/tree/9f1ccb509aac36068a7ae67c5a790769ba882c46))
+
+Full set of changes:
+[`v0.1.22...v0.1.23`](https://github.com/seanthimons/specmill/compare/v0.1.22...v0.1.23)
+
 ## specmill 0.1.22 (2026-10-17)
+
+#### New features
+
+- allow reviewed operation security corrections (#108)
+  ([12e8a3a](https://github.com/seanthimons/specmill/tree/12e8a3a5fea572195cecee238975df3bb90fe6e1))
 
 #### Other changes
 
 - release v0.1.22 \[skip ci\]
-  ([7fed2d3](https://github.com/seanthimons/specmill/tree/7fed2d34f84fe50c7616cc1ad5ec16b8942d9f1e))
+  ([d55f7fa](https://github.com/seanthimons/specmill/tree/d55f7fa8cbbc9ce797b45c35dd9d6f49cefbf445))
+- integrate released transport changes
+  ([de91644](https://github.com/seanthimons/specmill/tree/de9164436d5df368c5cbd1c816f5e3b5414ba64d))
 
 Full set of changes:
 [`v0.1.21...v0.1.22`](https://github.com/seanthimons/specmill/compare/v0.1.21...v0.1.22)
