@@ -1078,13 +1078,6 @@ generate_client <- function(
   previous <- if (file.exists(manifest_path)) {
     jsonlite::read_json(manifest_path)$files
   } else list()
-  # Compared across services: a schema split into tag services keeps its secured siblings in other services.
-  if (!is.null(authentication)) {
-    warn_unsecured_operations(unlist(
-      lapply(parsed, function(file) file$operations),
-      recursive = FALSE
-    ))
-  }
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
@@ -1457,6 +1450,10 @@ generate_client <- function(
         owners[[test_file]] <- op$id
       }
     }
+  }
+  # Compare effective security across services after applying reviewed corrections.
+  if (!is.null(authentication)) {
+    warn_unsecured_operations(configured_operations)
   }
   if (length(intersect(retained_sources, names(source_names)))) {
     stop('Cannot replace a file containing a retained implementation')
