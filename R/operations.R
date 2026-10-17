@@ -42,6 +42,22 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
+  response_corrections <- Filter(
+    Negate(is.null),
+    policy$response_corrections %or% list()
+  )
+  config_fields(
+    response_corrections,
+    names(response_corrections),
+    'response_corrections'
+  )
+  for (correction in response_corrections) {
+    validate_response_correction(correction)
+  }
+  policy$override_keys <- union(
+    policy$override_keys,
+    names(response_corrections)
+  )
   policy$query_array_style <- query_array_style(policy$query_array_style)
   query_array_style_overrides <- policy$query_array_style_overrides %or% list()
   config_fields(
@@ -175,6 +191,14 @@ read_operations <- function(files, policy = list()) {
               item[[method]],
               document,
               source_location = operation_location
+            )
+            response_correction <- policy$response_corrections[[key]]
+            response_operation <- response_corrected_operation(
+              op,
+              response_correction,
+              version,
+              schema_location(operation_location, 'responses'),
+              document$produces
             )
             document$paths[[path]][[method]] <- op
             if (
@@ -808,7 +832,8 @@ read_operations <- function(files, policy = list()) {
               schema_version = version,
               transport_diagnostics = transport_diagnostics,
               source_operation = op,
-              response = op$responses,
+              response = response_operation$responses,
+              response_correction = config_data(response_correction),
               summary = op$summary %or% name
             )
           },

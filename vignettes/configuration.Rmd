@@ -936,6 +936,32 @@ OpenAPI bodies are rejected. The source body schema is validated unchanged.
 This is a reviewed declaration for that operation, never a JSON fallback for
 other AMOS routes. The same correction/source-operation provenance is retained.
 
+An explicitly empty `responses: {}` map also needs a reviewed declaration before
+whole-client schema validation can accept that operation:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    response_correction:
+      status: '200'
+      media_type: application/json
+      description: Substance information for the supplied DTXSIDs.
+      reason: Reviewed staging response declaration and captured production 200 JSON.
+```
+
+This operation-only policy requires a quoted HTTP status, JSON media, description
+and review reason. It cannot replace existing response declarations or conflict
+with declared Swagger response media. It records only the status and media; no
+payload fields or types are inferred from one captured response.
+
+The archived file and `source_operation` stay unchanged. The source validation
+report retains its original status, hash and findings. Its `reviewed` entry for
+the service separately records validation of the corrected in-memory document,
+its hash and applied response corrections. That view passes through the same
+schema validator. Other invalid operations or document defects remain blocked;
+this policy never disables schema validation. Parser metadata also retains
+`response_correction` alongside the effective response declaration.
+
 For a reviewed vector-of-lines input, select encoding explicitly:
 
 ```yaml
