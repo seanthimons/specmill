@@ -54,6 +54,7 @@ validate_settings <- function(
       'response_policy',
       'server',
       'body_media',
+      'security_correction',
       'text_encoding',
       'query_array_style',
       'exclude_parameters',
@@ -63,6 +64,9 @@ validate_settings <- function(
     ),
     label
   )
+  if (!is.null(settings$security_correction)) {
+    validate_security_correction(settings$security_correction)
+  }
   if (!is.null(settings$body_media)) {
     config_string(settings$body_media, paste(label, 'body_media'))
     if (
@@ -430,6 +434,21 @@ configure_operation <- function(operation, service) {
     operation$id,
     service$callbacks %or% new.env(parent = emptyenv())
   )
+  if (!is.null(settings$security_correction)) {
+    correction <- settings$security_correction
+    unknown <- setdiff(
+      unlist(lapply(correction$requirements, names), use.names = FALSE),
+      names(operation$security_schemes)
+    )
+    if (length(unknown)) {
+      stop(
+        'Undefined security scheme in security_correction: ',
+        paste(unknown, collapse = ', ')
+      )
+    }
+    operation$security <- config_data(correction$requirements)
+    operation$security_correction <- config_data(correction)
+  }
   if (!is.null(settings[['body']])) {
     if ('inputs' %in% names(settings)) {
       stop(
