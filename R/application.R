@@ -111,7 +111,9 @@ recover_client <- function(root, mode = c('plan', 'apply')) {
   lock <- file.path(root, '.specmill-lock')
   if (!dir.create(lock, showWarnings = FALSE)) {
     stop(
-      'Project apply lock exists; inspect the interrupted process before recovery'
+      'Project apply lock exists; inspect the interrupted process before recovery. ',
+      'If no writer is running and the lock is empty, see the Troubleshooting guide, ',
+      '"Interrupted apply and recovery", to remove it.'
     )
   }
   on.exit(unlink(lock, recursive = TRUE), add = TRUE)
@@ -302,7 +304,11 @@ apply_files <- function(
   }
   lock <- file.path(root, '.specmill-lock')
   if (!dir.create(lock, showWarnings = FALSE)) {
-    stop('Another apply holds the project lock')
+    stop(
+      'Another apply holds the project lock. If an earlier apply was interrupted ',
+      'and no writer is running, see the Troubleshooting guide, ',
+      '"Interrupted apply and recovery".'
+    )
   }
   on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   if (!is.null(validate)) {
