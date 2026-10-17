@@ -412,6 +412,7 @@ load_project <- function(
         'security_correction',
         'body_media_correction',
         'request_body_correction',
+        'path_parameters_correction',
         'normalize_inputs'
       ),
       names(defaults)
@@ -545,6 +546,9 @@ load_project <- function(
         request_body_corrections = lapply(overrides, function(x) {
           x$request_body_correction
         }),
+        path_parameters_corrections = lapply(overrides, function(x) {
+          x$path_parameters_correction
+        }),
         query_array_style = defaults$query_array_style,
         query_array_style_overrides = lapply(
           overrides,
@@ -632,6 +636,7 @@ load_project <- function(
           'body_media_overrides',
           'body_media_corrections',
           'request_body_corrections',
+          'path_parameters_corrections',
           'text_encoding_overrides',
           'query_array_style_overrides',
           'exclude_parameters_overrides'
