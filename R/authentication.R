@@ -28,6 +28,25 @@ authentication_envvars <- function(document, package) {
   as.list(setNames(values, ids))
 }
 
+validate_security_correction <- function(correction) {
+  config_fields(correction, c('requirements', 'reason'), 'security_correction')
+  config_string(correction$reason, 'security_correction reason')
+  requirements <- correction$requirements
+  if (!is.list(requirements) || !is.null(names(requirements))) {
+    stop('security_correction requirements must be a sequence')
+  }
+  for (requirement in requirements) {
+    config_fields(
+      requirement,
+      names(requirement),
+      'security_correction requirement'
+    )
+    for (scopes in requirement) {
+      config_sequence(scopes, 'security_correction scopes')
+    }
+  }
+}
+
 operation_authentication <- function(operation, envvars) {
   requirements <- operation$security %or% list()
   if (!is.list(requirements) || !is.null(names(requirements))) {
