@@ -1,12 +1,34 @@
 
 
 
+## specmill 0.1.24 (2026-10-17)
+
+#### Tests
+
+- account for empty environment values on Windows (#128)
+  ([61aae65](https://github.com/seanthimons/specmill/tree/61aae65572e6c470e2b8215cecf7c68faf26e8a5))
+
+#### Other changes
+
+- release v0.1.24 \[skip ci\]
+  ([3e160c8](https://github.com/seanthimons/specmill/tree/3e160c8ff7bbcfd2e40ac19c9d65554075599d4c))
+
+Full set of changes:
+[`v0.1.23...v0.1.24`](https://github.com/seanthimons/specmill/compare/v0.1.23...v0.1.24)
+
 ## specmill 0.1.23 (2026-10-17)
+
+#### New features
+
+- resolve reviewed batch limits at call time (#128)
+  ([7374c5e](https://github.com/seanthimons/specmill/tree/7374c5ee3a6182499c3e7b5537aa37c63cc5201f))
 
 #### Other changes
 
 - release v0.1.23 \[skip ci\]
-  ([9f1ccb5](https://github.com/seanthimons/specmill/tree/9f1ccb509aac36068a7ae67c5a790769ba882c46))
+  ([2d48099](https://github.com/seanthimons/specmill/tree/2d480996ec6607c823d0a85be1a3de6a438b429d))
+- integrate security correction before batch release
+  ([bfd4e0d](https://github.com/seanthimons/specmill/tree/bfd4e0d319767b0ba7a001b85ef1da357272905f))
 
 Full set of changes:
 [`v0.1.22...v0.1.23`](https://github.com/seanthimons/specmill/compare/v0.1.22...v0.1.23)
