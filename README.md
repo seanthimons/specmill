@@ -259,6 +259,99 @@ Emission is deterministic and recorded in `.specmill/helpers/`. Regeneration
 preserves customized helpers; existing clients require reviewed manual adoption.
 See [pagination configuration](https://seanthimons.github.io/specmill/articles/configuration.html#pagination).
 
+<!-- lifecycle:start -->
+## Typical Workflow
+
+```mermaid
+flowchart TD
+  S([Local schema and a client package]) --> CC(["configure_client()"])
+  CC -->|"new package"| IC(["initialize_client()"])
+  IC --> PL(["generate_client(mode = 'plan')"])
+  PL --> RV([Review plan$files and plan$diagnostics])
+  RV --> AP(["generate_client(mode = 'apply')"])
+  AP --> WR["Writes wrappers, declared contract tests, enabled docs and .specmill/manifest.json"]
+  WR --> CK(["generate_client(mode = 'check')"])
+  CK --> TS([Run the package tests])
+  TS --> CM([Commit policy, schemas, generated output and manifest])
+  CM --> CH([Schema or policy changes])
+  CH -->|"schema revision"| SD(["schema_diff()"])
+  SD --> BP
+  CH -->|"policy only"| BP
+  CK -.->|"stale or protected output"| BP
+
+  CC -->|"existing package"| PM(["propose_mappings()"])
+  PM --> VA(["verify_adoption()"])
+  VA -->|"save contracts, delete verified files"| AP
+
+  subgraph Recovery
+    RC(["recover_client()"])
+    IN(["inspect_client()"])
+  end
+  AP -.->|"apply interrupted"| RC
+  RC -.->|"journal cleared"| BP
+  PL -.->|"upgrading the toolkit"| IN
+  IN -.->|"helpers merged"| BP
+  BP(("back to plan"))
+
+  classDef userAction fill:#e8f3ff,stroke:#1f6feb,color:#0b1f3a;
+  classDef packageAction fill:#f6f8fa,stroke:#6e7781,color:#24292f;
+  classDef recovery fill:#fff4e5,stroke:#bf8700,color:#3b2300;
+  classDef loop fill:#ffffff,stroke:#6e7781,color:#24292f,stroke-dasharray:3 3;
+  class S,CC,IC,PM,VA,PL,RV,AP,CK,TS,CM,CH,SD userAction;
+  class WR packageAction;
+  class RC,IN recovery;
+  class BP loop;
+  style Recovery fill:#fffaf0,stroke:#bf8700,stroke-dasharray:4 3
+```
+
+Blue steps are yours, gray is automatic, orange is recovery or diagnostics (dotted
+arrows). "Back to plan" means return to `generate_client(mode = 'plan')`.
+
+Every client starts with `configure_client()`, which previews names and policy
+(by default it writes nothing). A new package then runs `initialize_client()`,
+which writes the package, YAML and client-owned helpers. An existing package
+instead runs `propose_mappings()` and `verify_adoption()` so its public
+functions are kept, then saves the verified contracts, deletes the files
+verification names, and applies. Both paths meet
+the loop you live in: `generate_client(mode = 'plan')`, review the files and
+diagnostics, `generate_client(mode = 'apply')`, which writes the generated files
+and the manifest on its own, then `generate_client(mode = 'check')` and your
+package tests, then commit everything together. When a schema revision arrives,
+`schema_diff()` shows what moved and you plan again; a policy-only change goes
+straight back to the plan.
+
+This flow covers generation and its recovery. It does not cover live API
+compatibility, runtime hooks, or CI; the guides below cover those. Do not rerun
+`initialize_client()` to update a client; edit policy and plan again.
+`generate_client()` defaults to `mode = 'check'`, so pass `mode = 'plan'` to preview.
+Calls here omit required arguments such as `root` and `config` for brevity; see the
+example above for the full form of `generate_client()`.
+
+### Commands
+
+| Command | Stage | What it does |
+|---|---|---|
+| `configure_client()` | Start | Previews configuration; `mode = 'apply'` creates absent files only |
+| `initialize_client()` | New package | Writes the package, YAML, and client-owned helpers |
+| `propose_mappings()` | Existing package | Proposes mappings for existing functions; never writes the project |
+| `verify_adoption()` | Existing package | Compares proposed wrappers with the originals on a temporary copy |
+| `generate_client(mode = 'plan')` | Loop | Reports files, validation, and diagnostics without writing |
+| `generate_client(mode = 'apply')` | Loop | Writes wrappers, declared contract tests, enabled docs, and the manifest |
+| `generate_client(mode = 'check')` | Loop | Fails if generated output is stale, protected, or blocked by diagnostics |
+| `schema_diff()` | Update | Reports what changed between two schema directories |
+
+### Recovery and diagnostics
+
+| Command | Use when | What it fixes | Destructive? |
+|---|---|---|---|
+| `recover_client()` | An apply was interrupted | Plans by default; `mode = 'apply'` restores the journaled state | Yes: restores backed-up files, deletes files the apply created, removes the journal |
+| `inspect_client()` | Upgrading the toolkit on a configured client | Reports client-owned helper and protected-source state | No |
+| `validate_schema()` | `plan$validation` reports schema errors | Reports status and findings for one schema file | No |
+
+If `recover_client()` stops on an existing `.specmill-lock` directory, no command
+clears it; follow the Troubleshooting guide.
+<!-- lifecycle:end -->
+
 ## Learn the workflow
 
 See the [workflow flowcharts](https://seanthimons.github.io/specmill/articles/workflow.html)
