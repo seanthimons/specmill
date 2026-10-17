@@ -135,11 +135,15 @@ operation_documentation <- function(op, policy = list()) {
           isTRUE(op$iterate$split) &&
             !identical(op$body_media, 'application/octet-stream')
         ) {
-          paste0(
-            ' Arrays longer than ',
-            op$batch$max_items,
-            ' items are sent in chunks of that size and the results are combined.'
-          )
+          if (is.list(op$batch$max_items)) {
+            ' Inputs are sent in chunks using the configured call-time item limit and the results are combined.'
+          } else {
+            paste0(
+              ' Arrays longer than ',
+              op$batch$max_items,
+              ' items are sent in chunks of that size and the results are combined.'
+            )
+          }
         }
       )
     )
