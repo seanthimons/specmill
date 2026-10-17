@@ -348,7 +348,7 @@ validate_settings <- function(
       !is.null(name) &&
         (!identical(make.names(name), name) ||
           grepl('^(\\.\\.([0-9]+|\\.)|\\.\\.\\.)$', name) ||
-          name %in% c('params', 'state', 'result', 'send', 'chunk', 'changed'))
+          name %in% c('params', 'state', 'result', 'send', 'fetch', 'chunk', 'changed'))
     ) {
       stop(
         label,

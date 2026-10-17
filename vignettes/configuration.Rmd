@@ -1563,11 +1563,14 @@ operations:
 named parameter, as a path or query parameter with an integer or number schema.
 The others stay single requests. A setting written on an operation itself must fit
 that operation, or generation stops and names it. `mode` and `parameter` must both
-be present once the levels are merged. `pagination` cannot be combined with
-`batch.fan_out` or `batch.split` on one operation, and it needs a generated
-implementation. Offset and cursor paging, item caps and page-size arguments are
-not available for generated wrappers yet; use the companion functions in retained
-code, described below, for those.
+be present once the levels are merged. On an operation with `batch.fan_out` or
+`batch.split`, each item or chunk pages to completion with its own `max_pages`,
+and the results are then combined; `all_pages = FALSE` sends one request per item.
+`on_error: drop` applies per item, so a failure on a later page drops that item
+and its earlier pages. `pagination` needs a generated implementation. Offset
+and cursor paging, item caps and page-size arguments are not available for
+generated wrappers yet; use the companion functions in retained code,
+described below, for those.
 
 **The starting page.** `start` becomes the wrapper's default for the page
 parameter. It is required when the parameter is optional and has no default. It
