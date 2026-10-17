@@ -893,6 +893,30 @@ Select `body_media: text/plain` when the schema offers several media types.
 Array, object, binary and composed text schemas remain unsupported. Archived
 schemas are never rewritten to guess a request contract.
 
+If a verified endpoint accepts plain text but its archived schema declares a JSON
+string, record the correction under that operation:
+
+```yaml
+operations:
+  POST /chemical/search/equal/:
+    body: {name: query}
+    body_media_correction:
+      from: application/json
+      to: text/plain
+      reason: Reviewed endpoint accepts newline-delimited UTF-8 identifiers.
+    text_encoding: lines
+    batch:
+      max_items: 200
+      split: true
+```
+
+`body_media_correction` currently supports only `application/json` to `text/plain`.
+It requires a nonempty review reason and a scalar string source schema. It cannot
+be inherited through defaults. The source media must exist and the target must
+be absent; conflicting `body_media` selections fail review. Plans retain the
+correction and the original source operation; the schema file stays unchanged.
+Ordinary `body_media` continues to select only declared media types.
+
 For a reviewed vector-of-lines input, select encoding explicitly:
 
 ```yaml
@@ -910,7 +934,11 @@ and adds no final newline. Empty entries, duplicates and newlines within each
 entry remain unchanged; an empty vector sends an empty body. Item limits count
 input entries before joining. Scalar text has no inferred record boundaries.
 String schema constraints apply to the encoded text, and byte limits count its
-UTF-8 bytes. No automatic splitting is performed. Existing client helpers need
+UTF-8 bytes. To split line entries, set `batch.split: true` with `batch.max_items`.
+Entries are split before joining, and each chunk is encoded and checked against
+the string schema and byte limit separately. Empty entries, duplicates and embedded
+newlines still count as single input entries. Without `split`, oversized inputs
+are rejected. Scalar text has no inferred splitting boundaries. Existing client helpers need
 manual adoption of plain-text transport; generation preserves their code and
 provenance baseline.
 
