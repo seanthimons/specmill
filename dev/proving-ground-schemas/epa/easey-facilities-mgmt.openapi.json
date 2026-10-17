@@ -1,0 +1,1072 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/facilities-mgmt/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/facilities-mgmt/facilities": {
+      "get": {
+        "operationId": "FacilitiesController_getFacilities",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number of data being requested.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": false,
+            "in": "query",
+            "description": "Number of results per page.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "stateCode",
+            "required": false,
+            "in": "query",
+            "description": "Two letter abbreviation for the State.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "AL",
+                "AK",
+                "AS",
+                "AZ",
+                "AR",
+                "CA",
+                "CO",
+                "CT",
+                "DE",
+                "DC",
+                "FM",
+                "FL",
+                "GA",
+                "GU",
+                "HI",
+                "ID",
+                "IL",
+                "IN",
+                "IA",
+                "KS",
+                "KY",
+                "LA",
+                "ME",
+                "MH",
+                "MD",
+                "MA",
+                "MI",
+                "MN",
+                "MS",
+                "MO",
+                "MT",
+                "NE",
+                "NV",
+                "NH",
+                "NJ",
+                "NM",
+                "NY",
+                "NC",
+                "ND",
+                "MP",
+                "OH",
+                "OK",
+                "OR",
+                "PW",
+                "PA",
+                "PR",
+                "RI",
+                "SC",
+                "SD",
+                "TN",
+                "TX",
+                "UT",
+                "VT",
+                "VI",
+                "VA",
+                "WA",
+                "WV",
+                "WI",
+                "WY"
+              ]
+            }
+          },
+          {
+            "name": "epaRegion",
+            "required": false,
+            "in": "query",
+            "description": "An EPA Region is a group of U.S. states. EPA Regions are numbered from 1 to 10 and each state belongs to one and only one EPA Region.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves a list of Facilities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FacilityDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Facilities"
+        ]
+      }
+    },
+    "/facilities-mgmt/facilities/attributes": {
+      "get": {
+        "operationId": "FacilitiesController_getAllFacilityAttributes",
+        "parameters": [
+          {
+            "name": "year",
+            "required": true,
+            "in": "query",
+            "description": "The calendar year during which activity occurred.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "facilityId",
+            "required": false,
+            "in": "query",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "name": "stateCode",
+            "required": false,
+            "in": "query",
+            "description": "Two letter abbreviation for the State.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "AL",
+                  "AK",
+                  "AS",
+                  "AZ",
+                  "AR",
+                  "CA",
+                  "CO",
+                  "CT",
+                  "DE",
+                  "DC",
+                  "FM",
+                  "FL",
+                  "GA",
+                  "GU",
+                  "HI",
+                  "ID",
+                  "IL",
+                  "IN",
+                  "IA",
+                  "KS",
+                  "KY",
+                  "LA",
+                  "ME",
+                  "MH",
+                  "MD",
+                  "MA",
+                  "MI",
+                  "MN",
+                  "MS",
+                  "MO",
+                  "MT",
+                  "NE",
+                  "NV",
+                  "NH",
+                  "NJ",
+                  "NM",
+                  "NY",
+                  "NC",
+                  "ND",
+                  "MP",
+                  "OH",
+                  "OK",
+                  "OR",
+                  "PW",
+                  "PA",
+                  "PR",
+                  "RI",
+                  "SC",
+                  "SD",
+                  "TN",
+                  "TX",
+                  "UT",
+                  "VT",
+                  "VI",
+                  "VA",
+                  "WA",
+                  "WV",
+                  "WI",
+                  "WY"
+                ]
+              }
+            }
+          },
+          {
+            "name": "unitType",
+            "required": false,
+            "in": "query",
+            "description": "Type of unit or boiler.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Arch-fired boiler",
+                  "Bubbling fluidized bed boiler",
+                  "Cyclone boiler",
+                  "Cell burner boiler",
+                  "Combined cycle",
+                  "Circulating fluidized bed boiler",
+                  "Combustion turbine",
+                  "Dry bottom wall-fired boiler",
+                  "Dry bottom turbo-fired boiler",
+                  "Dry bottom vertically-fired boiler",
+                  "Internal combustion engine",
+                  "Integrated gasification combined cycle",
+                  "Cement Kiln",
+                  "Other boiler",
+                  "Other turbine",
+                  "Pressurized fluidized bed boiler",
+                  "Process Heater",
+                  "Stoker",
+                  "Tangentially-fired",
+                  "Wet bottom wall-fired boiler",
+                  "Wet bottom turbo-fired boiler",
+                  "Wet bottom vertically-fired boiler"
+                ]
+              }
+            }
+          },
+          {
+            "name": "unitFuelType",
+            "required": false,
+            "in": "query",
+            "description": "Primary or Secondary fuel types combusted by the unit.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Coal",
+                  "Coal Refuse",
+                  "Diesel Oil",
+                  "Liquified Petroleum Gas",
+                  "Natural Gas",
+                  "Other Gas",
+                  "Other Oil",
+                  "Other Solid Fuel",
+                  "Petroleum Coke",
+                  "Pipeline Natural Gas",
+                  "Process Gas",
+                  "Process Sludge",
+                  "Refuse",
+                  "Residual Oil",
+                  "Tire Derived Fuel",
+                  "Waste Liquid",
+                  "Wood"
+                ]
+              }
+            }
+          },
+          {
+            "name": "controlTechnologies",
+            "required": false,
+            "in": "query",
+            "description": "Method or equipment used by the combustion unit to minimize Hg, NOx, PM, or SO2 emissions.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Additives to Enhance PAC and Existing Equipment Performance",
+                  "Ammonia Injection",
+                  "Baghouse",
+                  "Catalyst (gold, palladium, or other) used to oxidize mercury",
+                  "Combustion Modification/Fuel Reburning",
+                  "Cyclone",
+                  "Dry Lime FGD",
+                  "Dry Low NOx Burners",
+                  "Dry Sorbent Injection",
+                  "Dual Alkali",
+                  "Electrostatic Precipitator",
+                  "Fluidized Bed Limestone Injection",
+                  "Halogenated PAC Sorbent Injection",
+                  "Hybrid ESP",
+                  "Low NOx Burner Technology (Dry Bottom only)",
+                  "Low NOx Burner Technology w/ Closed-coupled OFA",
+                  "Low NOx Burner Technology w/ Closed-coupled/Separated OFA",
+                  "Low NOx Burner Technology w/ Overfire Air",
+                  "Low NOx Burner Technology w/ Separated OFA",
+                  "Low NOx Cell Burner",
+                  "Magnesium Oxide",
+                  "Other",
+                  "Other (Non PAC) Sorbent Injection",
+                  "Overfire Air",
+                  "Regenerative Activated Coke Technology",
+                  "Selective Catalytic Reduction",
+                  "Selective Non-catalytic Reduction",
+                  "Sodium Based",
+                  "Steam Injection",
+                  "Untreated PAC Sorbent Injection",
+                  "Water Injection",
+                  "Wet ESP",
+                  "Wet Lime FGD",
+                  "Wet Limestone",
+                  "Wet Scrubber"
+                ]
+              }
+            }
+          },
+          {
+            "name": "sourceCategory",
+            "required": false,
+            "in": "query",
+            "description": "Description of a unit that classifies it in terms of the primary function of the unit.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Automotive Stampings",
+                  "Bulk Industrial Chemical",
+                  "Cement Manufacturing",
+                  "Cogeneration",
+                  "Electric Utility",
+                  "Industrial Boiler",
+                  "Industrial Turbine",
+                  "Institutional",
+                  "Iron & Steel",
+                  "Municipal Waste Combustor",
+                  "Pulp & Paper Mill",
+                  "Petroleum Refinery",
+                  "Portland Cement Plant",
+                  "Small Power Producer",
+                  "Theme Park"
+                ]
+              }
+            }
+          },
+          {
+            "name": "programCodeInfo",
+            "required": false,
+            "in": "query",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ARP",
+                  "CAIRNOX",
+                  "CAIROS",
+                  "CAIRSO2",
+                  "CSNOX",
+                  "CSNOXOS",
+                  "CSOSG1",
+                  "CSOSG2",
+                  "CSOSG2E",
+                  "CSOSG3",
+                  "CSSO2G1",
+                  "CSSO2G2",
+                  "NBP",
+                  "NHNOX",
+                  "NSPS4T",
+                  "OTC",
+                  "RGGI",
+                  "SIPNOX",
+                  "TXSO2"
+                ]
+              }
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "description": "Page number of data being requested.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": true,
+            "in": "query",
+            "description": "Number of results per page.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves Facility Unit Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FacilityAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "State,Facility Name,Facility ID,Unit ID,Associated Stacks,Year,Program Code,Primary Rep Info,EPA Region,NERC Region,County,County Code,FIPS Code,Source Category,Latitude,Longitude,Owner/Operator,SO2 Phase,NOx Phase,Unit Type,Primary Fuel Type,Secondary Fuel Type,SO2 Controls,NOx Controls,PM Controls,Hg Controls,Commercial Operation Date,Operating Status,Max Hourly HI Rate (mmBtu/hr),Associated Generators & Nameplate Capacity (MWe)"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Facilities"
+        ]
+      }
+    },
+    "/facilities-mgmt/facilities/attributes/applicable": {
+      "get": {
+        "operationId": "FacilitiesController_getApplicableFacilityAttributes",
+        "parameters": [
+          {
+            "name": "year",
+            "required": true,
+            "in": "query",
+            "description": "The calendar year during which activity occurred.",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves Applicable Facility Attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApplicableFacilityAttributesDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Facilities"
+        ]
+      }
+    },
+    "/facilities-mgmt/facilities/{id}": {
+      "get": {
+        "operationId": "FacilitiesController_getFacilityById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves a single Facilitiy By Id"
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Resource Not Found"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "tags": [
+          "Facilities"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Facilities Management OpenAPI Specification",
+    "description": "Facility management API endpoints for power sector facilities and their attributes (e.g. units, stacks, and owners)",
+    "version": "v2.0.155 published: Thu Aug 20 2026",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "https://api.epa.gov/easey"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "APIKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API Key required via \"x-api-key\" request header!"
+      },
+      "Token": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Authorization \"bearer\" token required for data modification operations"
+      },
+      "ClientToken": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Authorization \"bearer\" client JWT token required for api endpoints"
+      },
+      "ClientId": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-client-id",
+        "description": "ClientId required via \"x-client-id\" request header"
+      }
+    },
+    "schemas": {
+      "FacilityDTO": {
+        "type": "object",
+        "properties": {
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "facilityName": {
+            "type": "string",
+            "description": "The name given by the owners and operators to a facility",
+            "example": "Barry"
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "epaRegion": {
+            "type": "number",
+            "description": "An EPA Region is a group of U.S. states. EPA Regions are numbered from 1 to 10 and each state belongs to one and only one EPA Region.",
+            "example": 5
+          },
+          "facilityRecordId": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "facilityId",
+          "facilityName",
+          "stateCode",
+          "epaRegion",
+          "facilityRecordId"
+        ]
+      },
+      "FacilityAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "facilityName": {
+            "type": "string",
+            "description": "The name given by the owners and operators to a facility",
+            "example": "Barry"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "unitId": {
+            "type": "string",
+            "description": "Unique identifier for each unit at a facility.",
+            "example": 5
+          },
+          "associatedStacks": {
+            "type": "string",
+            "description": "Stacks associated with the unit.",
+            "example": "CS001"
+          },
+          "year": {
+            "type": "number",
+            "description": "The calendar year during which activity occurred.",
+            "example": 2020
+          },
+          "programCodeInfo": {
+            "type": "string",
+            "description": "Statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "ARP,CSNOX,CSSO2G2,MATS"
+          },
+          "primaryRepInfo": {
+            "type": "string",
+            "description": "Unique identifier(s) for the primary representative(s) at a facility",
+            "example": 17364
+          },
+          "epaRegion": {
+            "type": "number",
+            "description": "An EPA Region is a group of U.S. states. EPA Regions are numbered from 1 to 10 and each state belongs to one and only one EPA Region.",
+            "example": 5
+          },
+          "nercRegion": {
+            "type": "string",
+            "description": "The North American Electric Reliability Corporation region in which the facility is located.",
+            "example": "Mid-Continent Area Power Pool"
+          },
+          "county": {
+            "type": "string",
+            "description": "The county within a state in which a unit is operating.",
+            "example": "Sherburne County"
+          },
+          "countyCode": {
+            "type": "string",
+            "description": "The numerical code identifying a specific county in a single state.",
+            "example": "MN141"
+          },
+          "fipsCode": {
+            "type": "string",
+            "description": "The Federal Information Processing Standards (FIPS) Code of the facility, issued by the National Institute of Standards and Technology, which ensures uniform identification of geographic entities throughout all federal agencies.",
+            "example": 141
+          },
+          "sourceCategory": {
+            "type": "string",
+            "description": "Description of a unit that classifies it in terms of the primary function of the unit.",
+            "example": "Electric Utility"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "Represents the physical latitude of the facility.",
+            "example": 45.3792
+          },
+          "longitude": {
+            "type": "number",
+            "description": "Represents the physical longitude of the facility.",
+            "example": -93.8958
+          },
+          "ownerOperator": {
+            "type": "string",
+            "description": "The name of any company that owns an allowance account or an affected unit.The name of any company that operates an affected unit.",
+            "example": "Alabama Power Company (Operator)|Alabama Power Company (Owner)"
+          },
+          "so2Phase": {
+            "type": "string",
+            "description": "Title IV of the Clean Air Act SO2 Phase. Phase I started in 1995; Phase II started in 2000.",
+            "example": "Phase 2"
+          },
+          "noxPhase": {
+            "type": "string",
+            "description": "The classification of an ARP unit that is subject to an ARP NOx emission rate limit (40 CFR Part 76). The unit is first classified by ARP Phase (Phase 1 or Phase 2) and then the unit (boiler) type is used to determine whether the unit is a Group 1 or Group 2 boiler.  This ARP Phase/Group classification then determines the standard NOx emission rate applicable to the unit.  This information is then used in determining ARP NOx compliance, depending on the compliance approach (standard NOx limit or averaging plan) selected for the unit.",
+            "example": "Phase 1 Group 1"
+          },
+          "unitType": {
+            "type": "string",
+            "description": "Type of unit or boiler.",
+            "example": "Tangentially-fired"
+          },
+          "primaryFuelInfo": {
+            "type": "string",
+            "description": "The primary type of fuel combusted by the unit.",
+            "example": "Coal"
+          },
+          "secondaryFuelInfo": {
+            "type": "string",
+            "description": "The secondary type of fuel(s) combusted by the unit.",
+            "example": "Diesel Oil"
+          },
+          "so2ControlInfo": {
+            "type": "string",
+            "description": "Method or equipment used by the combustion unit to minimize SO2 emissions.",
+            "example": "Wet Limestone"
+          },
+          "noxControlInfo": {
+            "type": "string",
+            "description": "Method or equipment used by the combustion unit to minimize NOx emissions.",
+            "example": "Selective Catalytic Reduction | Low NOx Burner Technology w/ Separated OFA"
+          },
+          "pmControlInfo": {
+            "type": "string",
+            "description": "Method or equipment used by the combustion unit to minimize PM emissions.",
+            "example": "Electrostatic Precipitator"
+          },
+          "hgControlInfo": {
+            "type": "string",
+            "description": "Method or equipment used by the combustion unit to minimize Hg emissions.",
+            "example": "Catalyst (gold, palladium, or other) used to oxidize mercury"
+          },
+          "commercialOperationDate": {
+            "type": "string",
+            "description": "The date a unit began, or will begin to generate electricity for sale, including the sale of test generation. It is the first date that a unit serves a generator and produces electricity when connected to the grid, even if the owners are not compensated for that electricity.",
+            "example": "1977-04-01"
+          },
+          "operatingStatus": {
+            "type": "string",
+            "description": "An indication of the condition of a unit relevant to the year (planned, operating, shutdown, etc.).",
+            "example": "Operating"
+          },
+          "maxHourlyHIRate": {
+            "type": "number",
+            "description": "The design heat input capacity (mmBtu/hr) for the unit or the highest hourly heat input rate observed in the past five years, whichever is greater.",
+            "example": 7969.2
+          },
+          "associatedGeneratorsAndNameplateCapacity": {
+            "type": "string",
+            "description": "One or more unique identifiers for generators at a facility associated with the unit, and the maximum electrical generating output (in MWe, rounded to the nearest tenth) that the generator is capable of producing on a steady state basis and during continuous operation (when not restricted by seasonal or other deratings). This value is usually indicated on a nameplate physically attached to the generator.",
+            "example": "A1ST (191.8)"
+          }
+        },
+        "required": [
+          "stateCode",
+          "facilityName",
+          "unitId",
+          "associatedStacks",
+          "year",
+          "programCodeInfo",
+          "primaryRepInfo",
+          "nercRegion",
+          "county",
+          "countyCode",
+          "fipsCode",
+          "sourceCategory",
+          "ownerOperator",
+          "so2Phase",
+          "noxPhase",
+          "unitType",
+          "primaryFuelInfo",
+          "secondaryFuelInfo",
+          "so2ControlInfo",
+          "noxControlInfo",
+          "pmControlInfo",
+          "hgControlInfo",
+          "commercialOperationDate",
+          "operatingStatus",
+          "associatedGeneratorsAndNameplateCapacity"
+        ]
+      },
+      "ApplicableFacilityAttributesDTO": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "number",
+            "description": "The calendar year during which activity occurred.",
+            "example": 2020
+          },
+          "programCode": {
+            "type": "string",
+            "description": "Code for statutory or regulatory based options for tracking and reducing air pollution emissions.",
+            "example": "CAIRNOX"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "The Facility ID code assigned by the Department of Energy's Energy Information Administration. The Energy Information Administration Plant ID code is also referred to as the \"ORIS code\", \"ORISPL code\", \"Facility ID\", or \"Facility code\", among other names. If a Plant ID code has not been assigned by the Department of Energy's Energy Information Administration, then plant code means a code beginning with \"88\" assigned by the EPA's Clean Air Markets Division for electronic reporting.",
+            "example": 3
+          },
+          "stateCode": {
+            "type": "string",
+            "description": "Two letter abbreviation for the State.",
+            "example": "AK"
+          },
+          "unitTypeCode": {
+            "type": "string",
+            "description": "Code for the unit or boiler type.",
+            "example": "AF"
+          },
+          "fuelTypeCode": {
+            "type": "string",
+            "description": "Code for the type of fuel combusted by the unit.",
+            "example": "C"
+          },
+          "controlCode": {
+            "type": "string",
+            "description": "Code for the method or equipment used by the combustion unit to minimize emissions for the particular pollutant.",
+            "example": "B"
+          },
+          "sourceCategoryDescription": {
+            "type": "string",
+            "description": "Full description for the source category type.",
+            "example": "Cogeneration"
+          }
+        },
+        "required": [
+          "year",
+          "programCode",
+          "facilityId",
+          "stateCode",
+          "unitTypeCode",
+          "fuelTypeCode",
+          "controlCode",
+          "sourceCategoryDescription"
+        ]
+      }
+    }
+  }
+}

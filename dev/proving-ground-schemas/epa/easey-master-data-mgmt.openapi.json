@@ -1,0 +1,945 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/master-data-mgmt/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/master-data-mgmt/account-type-codes": {
+      "get": {
+        "description": "Returns a list of Account Type codes & descriptions.",
+        "operationId": "AccountTypeController_getAccountTypeCodes",
+        "parameters": [
+          {
+            "name": "exclude",
+            "required": false,
+            "in": "query",
+            "style": "pipeDelimited",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "CASURR",
+                  "ENFSURR",
+                  "FACLTY",
+                  "GENERAL",
+                  "OVERDF",
+                  "RESERVE",
+                  "SERDRES",
+                  "SGENRES",
+                  "SHOLD",
+                  "SNSARES",
+                  "SOPTRES",
+                  "SOTHRES",
+                  "SPRMRES",
+                  "SRETIRE",
+                  "SURR",
+                  "UNIT",
+                  "VOLSURR"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AccountTypeDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Account Type Codes"
+        ]
+      }
+    },
+    "/master-data-mgmt/control-codes": {
+      "get": {
+        "description": "Returns list of Control codes & descriptions.",
+        "operationId": "ControlTechnologyController_getControlTechnologies",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ControlTechnologyDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Control Codes"
+        ]
+      }
+    },
+    "/master-data-mgmt/fuel-type-codes": {
+      "get": {
+        "description": "Returns a list of Fuel Type codes & descriptions.",
+        "operationId": "FuelTypeController_getFuelTypeCodes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FuelTypeDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Fuel Type Codes"
+        ]
+      }
+    },
+    "/master-data-mgmt/program-codes": {
+      "get": {
+        "description": "Returns a list of Program codes & descriptions.",
+        "operationId": "ProgramController_getProgramCodes",
+        "parameters": [
+          {
+            "name": "exclude",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ARP",
+                  "CAIRNOX",
+                  "CAIROS",
+                  "CAIRSO2",
+                  "CSNOX",
+                  "CSNOXOS",
+                  "CSOSG1",
+                  "CSOSG2",
+                  "CSOSG2E",
+                  "CSOSG3",
+                  "CSSO2G1",
+                  "CSSO2G2",
+                  "NBP",
+                  "NHNOX",
+                  "NSPS4T",
+                  "OTC",
+                  "RGGI",
+                  "SIPNOX",
+                  "TXSO2"
+                ]
+              }
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "nullable": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "emissionsUIFilter",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "nullable": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "allowanceUIFilter",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "nullable": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "complianceUIFilter",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "nullable": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProgramDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Program Codes"
+        ]
+      }
+    },
+    "/master-data-mgmt/reporting-periods": {
+      "get": {
+        "description": "Returns a list of Reporting Periods.",
+        "operationId": "ReportingPeriodController_getReportingPeriods",
+        "parameters": [
+          {
+            "name": "export",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "nullable": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReportingPeriodDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Reporting Periods"
+        ]
+      }
+    },
+    "/master-data-mgmt/unit-type-codes": {
+      "get": {
+        "description": "Returns a list of Unit Type codes & descriptions.",
+        "operationId": "UnitTypeController_getUnitTypeCodes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UnitTypeDTO"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Unit Type Codes"
+        ]
+      }
+    },
+    "/master-data-mgmt/relationships/list": {
+      "get": {
+        "description": "Returns a list of Master Data relationships available.",
+        "operationId": "RelationshipsController_listRelationships",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CodeTableDto"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Relationships"
+        ]
+      }
+    },
+    "/master-data-mgmt/relationships/{code}": {
+      "get": {
+        "description": "Returns a list of Master Data relationships for the dataset provided.",
+        "operationId": "RelationshipsController_getRelationships",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Relationships"
+        ]
+      }
+    },
+    "/master-data-mgmt/list": {
+      "get": {
+        "description": "Returns a list of Master Data code tables available.",
+        "operationId": "MasterDataController_listCodeTables",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CodeTableDto"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Codes & Descriptions"
+        ]
+      }
+    },
+    "/master-data-mgmt/{code}": {
+      "get": {
+        "description": "Returns a list of Master Data codes & descriptions for the dataset provided.",
+        "operationId": "MasterDataController_getCodeTable",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data retrieved successfully"
+          }
+        },
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Codes & Descriptions"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Master Data Management OpenAPI Specification",
+    "description": "Provides reference codes, descriptions, & relationship data for CAMD applications",
+    "version": "v2.0.108 published: Thu Aug 20 2026",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "https://api.epa.gov/easey"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "APIKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API Key required via \"x-api-key\" request header!"
+      }
+    },
+    "schemas": {
+      "AccountTypeDTO": {
+        "type": "object",
+        "properties": {
+          "accountTypeCode": {
+            "type": "string"
+          },
+          "accountTypeDescription": {
+            "type": "string"
+          },
+          "accountTypeGroupCode": {
+            "type": "string"
+          },
+          "accountTypeGroupDescription": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountTypeCode",
+          "accountTypeDescription",
+          "accountTypeGroupCode",
+          "accountTypeGroupDescription"
+        ]
+      },
+      "ControlTechnologyDTO": {
+        "type": "object",
+        "properties": {
+          "controlCode": {
+            "type": "string"
+          },
+          "controlDescription": {
+            "type": "string"
+          },
+          "controlEquipParamCode": {
+            "type": "string"
+          },
+          "controlEquipParamDescription": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "controlCode",
+          "controlDescription",
+          "controlEquipParamCode",
+          "controlEquipParamDescription"
+        ]
+      },
+      "FuelTypeDTO": {
+        "type": "object",
+        "properties": {
+          "fuelTypeCode": {
+            "type": "string"
+          },
+          "fuelTypeDescription": {
+            "type": "string"
+          },
+          "fuelGroupCode": {
+            "type": "string"
+          },
+          "fuelGroupDescription": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fuelTypeCode",
+          "fuelTypeDescription",
+          "fuelGroupCode",
+          "fuelGroupDescription"
+        ]
+      },
+      "ProgramDTO": {
+        "type": "object",
+        "properties": {
+          "programCode": {
+            "type": "string"
+          },
+          "programDescription": {
+            "type": "string"
+          },
+          "compParameter": {
+            "type": "string"
+          },
+          "programGroupCode": {
+            "type": "string"
+          },
+          "programGroupDescription": {
+            "type": "string"
+          },
+          "ozoneIndicator": {
+            "type": "boolean"
+          },
+          "annualIndicator": {
+            "type": "boolean"
+          },
+          "emissionsUIFilter": {
+            "type": "boolean"
+          },
+          "allowanceUIFilter": {
+            "type": "boolean"
+          },
+          "complianceUIFilter": {
+            "type": "boolean"
+          },
+          "retiredIndicator": {
+            "type": "boolean"
+          },
+          "tradingEndDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "programCode",
+          "programDescription",
+          "compParameter",
+          "programGroupCode",
+          "programGroupDescription",
+          "ozoneIndicator",
+          "annualIndicator",
+          "emissionsUIFilter",
+          "allowanceUIFilter",
+          "complianceUIFilter",
+          "retiredIndicator",
+          "tradingEndDate"
+        ]
+      },
+      "ReportingPeriodDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "calendarYear": {
+            "type": "number"
+          },
+          "quarter": {
+            "type": "number"
+          },
+          "beginDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "periodDescription": {
+            "type": "string"
+          },
+          "periodAbbreviation": {
+            "type": "string"
+          },
+          "archiveInd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "calendarYear",
+          "quarter",
+          "beginDate",
+          "endDate",
+          "periodDescription",
+          "periodAbbreviation",
+          "archiveInd"
+        ]
+      },
+      "UnitTypeDTO": {
+        "type": "object",
+        "properties": {
+          "unitTypeCode": {
+            "type": "string"
+          },
+          "unitTypeDescription": {
+            "type": "string"
+          },
+          "unitTypeGroupCode": {
+            "type": "string"
+          },
+          "unitTypeGroupDescription": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitTypeCode",
+          "unitTypeDescription",
+          "unitTypeGroupCode",
+          "unitTypeGroupDescription",
+          "sortOrder"
+        ]
+      },
+      "CodeTableDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Code"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display Name"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "DataColumnDTO": {
+        "type": "object",
+        "properties": {
+          "columnOrder": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "columnOrder",
+          "name",
+          "alias",
+          "displayName"
+        ]
+      },
+      "DataTableDTO": {
+        "type": "object",
+        "properties": {
+          "tableOrder": {
+            "type": "number"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "noResultsMessage": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataColumnDTO"
+            }
+          }
+        },
+        "required": [
+          "tableOrder",
+          "displayName",
+          "noResultsMessage",
+          "columns"
+        ]
+      },
+      "DataSetDTO": {
+        "type": "object",
+        "properties": {
+          "dataSetCode": {
+            "type": "string"
+          },
+          "groupCode": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "noResultsMessage": {
+            "type": "string"
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTableDTO"
+            }
+          }
+        },
+        "required": [
+          "dataSetCode",
+          "groupCode",
+          "displayName",
+          "noResultsMessage",
+          "tables"
+        ]
+      }
+    }
+  }
+}
