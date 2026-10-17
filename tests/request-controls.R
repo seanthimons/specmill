@@ -263,7 +263,7 @@ request_controls_acceptance <- function() {
     options(controlsclient.request = list(base_url = value))
     error(request('/invalid'), 'base_url')
   }
-  for (value in list(0, -1, Inf, NaN, NA_real_, '1', c(1, 2))) {
+  for (value in list(0, -1, -Inf, NaN, NA_real_, '1', c(1, 2))) {
     options(controlsclient.request = list(base_url = origin, timeout = value))
     error(request('/invalid'), 'timeout')
   }
@@ -287,8 +287,16 @@ request_controls_acceptance <- function() {
   error(request('/invalid'), 'controls')
   stopifnot(identical(before, counts()))
   options(controlsclient.request = list(base_url = origin, timeout = 0.05))
-  error(request('/timeout'), 'timeout')
+  error(request('/timeout'), 'timeout of 0.05 s reached')
   stopifnot(counts()[['GET /timeout']] == 1L)
+  # Inf removes the limit: the same slow endpoint now answers (#110).
+  options(controlsclient.request = list(base_url = origin, timeout = Inf))
+  stopifnot(is.null(withr::with_envvar(
+    c(CONTROLSCLIENT_DRY_RUN = 'true'),
+    request('/timeout')
+  )$options$timeout_ms))
+  request('/timeout')
+  stopifnot(counts()[['GET /timeout']] == 2L)
   # Intercept only httr2's wait; HTTP and retry decisions remain real.
   waits <- numeric()
   testthat::local_mocked_bindings(
@@ -645,7 +653,7 @@ request_controls_acceptance <- function() {
     request_controls = list(timeout = 4, retry_writes = TRUE)
   )
   service$operations[['GET /path']] <- list(
-    request_controls = list(retry_policy = NULL)
+    request_controls = list(retry_policy = NULL, timeout = Inf)
   )
   yaml::write_yaml(service, service_file)
   specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
@@ -660,7 +668,9 @@ request_controls_acceptance <- function() {
   path_request <- runtime$path_call()
   stopifnot(
     root_request$options$timeout_ms == 4000,
-    path_request$options$timeout_ms == 9000,
+    # YAML .inf reaches the generated call and sends no curl timeout (#110).
+    is.null(path_request$options$timeout_ms),
+    runtime$operation_call()$options$timeout_ms == 9000,
     root_request$policies$retry_max_tries == 3,
     path_request$policies$retry_max_tries == 3,
     length(formals(runtime$root_call)) == 0L,
@@ -721,7 +731,7 @@ request_controls_acceptance <- function() {
   stopifnot(standalone == 3L)
   for (bad in list(
     list(timeout = 0),
-    list(timeout = Inf),
+    list(timeout = -Inf),
     list(timeout = '30'),
     list(max_retries = -1),
     list(max_retries = 0.5),

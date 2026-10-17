@@ -27,7 +27,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   timeout <- if (base::is.null(controls$timeout)) 30 else controls$timeout
   retries <- if (base::is.null(controls$max_retries)) 0 else controls$max_retries
   writes <- if (base::is.null(controls$retry_writes)) FALSE else controls$retry_writes
-  if (!base::is.numeric(timeout) || base::length(timeout) != 1L || !base::is.finite(timeout) || timeout <= 0) call_error('timeout must be a finite positive number of seconds')
+  if (!base::is.numeric(timeout) || base::length(timeout) != 1L || base::is.na(timeout) || timeout <= 0) call_error('timeout must be a positive number of seconds, or Inf for no limit')
   if (!base::is.numeric(retries) || base::length(retries) != 1L || !base::is.finite(retries) || retries < 0 || retries != base::trunc(retries) || retries >= base::.Machine$integer.max) call_error('max_retries must be a nonnegative integer below .Machine$integer.max')
   if (!base::is.logical(writes) || base::length(writes) != 1L || base::is.na(writes)) call_error('retry_writes must be TRUE or FALSE')
   retry_policy <- controls$retry_policy
@@ -268,7 +268,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (base::length(encoded_cookies)) request <- httr2::req_headers(request, .redact = 'Cookie')
   # Append encoded tokens last: query authentication must not decode/re-encode them.
   if (base::length(encoded_query)) request <- httr2::req_url(request, base::paste0(request$url, if (base::grepl('?', request$url, fixed = TRUE)) '&' else '?', base::paste(encoded_query, collapse = '&')))
-  request <- httr2::req_timeout(request, timeout)
+  if (base::is.finite(timeout)) request <- httr2::req_timeout(request, timeout)
   if (retries > 0 && (base::toupper(method) %in% base::c('GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE') || writes)) {
     request <- httr2::req_retry(request, max_tries = retries + 1,
       is_transient = is_transient)
@@ -277,6 +277,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (dry) base::return(request)
   request <- httr2::req_error(request, is_error = function(response) FALSE)
   response <- base::tryCatch(httr2::req_perform(request), error = function(e) {
+    if (base::is.finite(timeout) && base::inherits(e$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', call. = FALSE)
     base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', call. = FALSE)
   })
   status <- httr2::resp_status(response)

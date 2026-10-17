@@ -323,7 +323,9 @@ defaults:
     retry_writes: false
 ```
 
-Timeout is seconds per attempt. `max_retries: 2` permits three total attempts.
+Timeout is seconds per attempt; `timeout: .inf` (`Inf` in a runtime option) sends no
+timeout, for endpoints that legitimately take longer than the 30 s default. A request
+that hits its timeout says so in the error. `max_retries: 2` permits three total attempts.
 These values use the same inheritance as other defaults: project, API, group or
 service, then operation. After editing YAML, regenerate wrappers to update their
 helper calls. Runtime `<package>.request` options override individual YAML fields.
