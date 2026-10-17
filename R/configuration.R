@@ -405,7 +405,7 @@ load_project <- function(
     overrides <- service$operations %or% list()
     validate_settings(defaults, paste(id, 'defaults'), callbacks)
     for (field in intersect(
-      c('exclude_parameters', 'routes', 'body', 'body_media_correction'),
+      c('exclude_parameters', 'routes', 'body', 'security_correction', 'body_media_correction'),
       names(defaults)
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
