@@ -409,6 +409,7 @@ load_project <- function(
         'exclude_parameters',
         'routes',
         'body',
+        'security_correction',
         'body_media_correction',
         'response_correction'
       ),
