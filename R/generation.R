@@ -162,6 +162,12 @@ iteration_settings <- function(operation, batch, explicit) {
     stop('batch.fan_out and batch.split cannot be combined: ', operation$id)
   }
   if (is.null(fan_out) && !split) {
+    if (!is.null(explicit$metadata)) {
+      stop(
+        'batch.metadata requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
     if (!is.null(explicit$on_error)) {
       stop(
         'batch.on_error requires batch.fan_out or batch.split: ',
@@ -184,7 +190,8 @@ iteration_settings <- function(operation, batch, explicit) {
     fan_out = fan_out,
     split = split,
     on_error = on_error,
-    empty = batch$empty
+    empty = batch$empty,
+    metadata = !isFALSE(batch$metadata)
   )
 }
 
@@ -828,7 +835,8 @@ render_operation <- function(operation, spec) {
     # Hooks and the request run once per item or chunk; the helper combines results.
     # With pagination, each item pages to completion inside the callback.
     input <- if (is.null(fan_out)) body_name else fan_out_name
-    combine <- length(hooks$post_combine) > 0L
+    keep_metadata <- !isFALSE(operation$iterate$metadata)
+    combine <- length(hooks$post_combine) > 0L || !keep_metadata
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
@@ -863,7 +871,12 @@ render_operation <- function(operation, spec) {
         },
         ')'
       ),
-      if (combine) post_combine_lines('failed')
+      if (!keep_metadata) '  base::attr(result, "failed") <- NULL',
+      if (length(hooks$post_combine)) {
+        post_combine_lines('failed')
+      } else if (combine) {
+        '  result'
+      }
     )
   } else if (!is.null(pg)) {
     # post_combine runs once.
