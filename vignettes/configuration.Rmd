@@ -384,6 +384,38 @@ limits remain separate work. Existing client-owned helpers need a `batch` argume
 before using these settings; generation verifies that compatibility. To send
 oversized input in several requests instead of rejecting it, see the next section.
 
+For a reviewed call-time setting, `max_items` also accepts an environment binding:
+
+```yaml
+batch:
+  max_items: {env: batch_limit, default: 100}
+  split: true
+```
+
+The generated wrapper reads the named variable once per call. Unset variables use
+`default`; empty, nonnumeric, nonfinite, fractional and nonpositive values fail
+before HTTP. Resolved values, defaults and optional caps must fit a positive R
+integer. Changing the environment between calls needs no regeneration, and the
+client does not depend on specmill at runtime. Literal numeric limits keep their
+existing behavior. On Windows, R's `Sys.setenv(batch_limit = "")` unsets the
+variable, so the default applies; platforms that retain an empty value reject it.
+
+Use `cap` to keep a reviewed service maximum separate from a caller's preferred
+size. For example, line input can preserve a legacy setting with a larger fallback
+while ensuring that no chunk exceeds the service's 200-entry limit:
+
+```yaml
+text_encoding: lines
+batch:
+  max_items: {env: batch_limit, default: 1000, cap: 200}
+  split: true
+```
+
+The effective limit is the smaller of the resolved setting and the cap. This
+binding works for array bodies and explicitly selected line encoding. Existing
+batching runtime options may lower that effective size, following their ordinary
+precedence and validation rules.
+
 ### Many inputs in one call: fan_out and split
 
 Two `batch` settings let one wrapper call send several requests and return one
