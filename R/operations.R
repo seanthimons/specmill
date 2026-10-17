@@ -1,3 +1,11 @@
+validate_request_body_correction <- function(correction) {
+  config_fields(correction, c('omit', 'reason'), 'request_body_correction')
+  config_string(correction$reason, 'request_body_correction reason')
+  if (!isTRUE(correction$omit)) {
+    stop('request_body_correction supports omit: true only')
+  }
+}
+
 operation_selection_reason <- function(key, path, method, policy) {
   if (key %in% policy$validation_blocked_keys) return('Blocked by schema validation')
   reason <- character()
@@ -42,6 +50,19 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
+  body_corrections <- Filter(
+    Negate(is.null),
+    policy$request_body_corrections %or% list()
+  )
+  config_fields(
+    body_corrections,
+    names(body_corrections),
+    'request_body_corrections'
+  )
+  for (correction in body_corrections) {
+    validate_request_body_correction(correction)
+  }
+  policy$override_keys <- union(policy$override_keys, names(body_corrections))
   policy$query_array_style <- query_array_style(policy$query_array_style)
   query_array_style_overrides <- policy$query_array_style_overrides %or% list()
   config_fields(
@@ -357,6 +378,32 @@ read_operations <- function(files, policy = list()) {
             body_example <- list()
             preferred_media <- policy$body_media_overrides[[key]] %or%
               policy[['body_media']]
+            body_correction <- policy$request_body_corrections[[key]]
+            if (!is.null(body_correction)) {
+              reviewed_body <- if (body_present) {
+                local_ref(body, document, source_location = body_location)
+              } else {
+                NULL
+              }
+              if (
+                !body_present ||
+                  startsWith(version, '2.') ||
+                  !toupper(method) %in% c('GET', 'HEAD') ||
+                  (!is.null(reviewed_body$required) &&
+                    !identical(reviewed_body$required, FALSE)) ||
+                  !is.null(policy$body_media_overrides[[key]]) ||
+                  !is.null(media_correction)
+              ) {
+                schema_problem(
+                  'request_body_correction',
+                  'review_required',
+                  'Body omission requires a declared optional OpenAPI GET/HEAD body and no media override',
+                  body_location
+                )
+              }
+              body <- NULL
+              body_present <- FALSE
+            }
             undefined_body_method <- body_present &&
               !identical(version, '2.0') &&
               toupper(method) %in% c('GET', 'HEAD', 'DELETE')
@@ -781,6 +828,7 @@ read_operations <- function(files, policy = list()) {
               body_required = body_required,
               body_media = body_media,
               body_media_correction = config_data(media_correction),
+              request_body_correction = config_data(body_correction),
               body_encoding = body_encoding,
               text_encoding = text_encoding,
               body_example = body_example,

@@ -985,6 +985,30 @@ request body are unaffected. The operation's inventory record lists
 `excluded_parameters`. The direct reader accepts
 `read_operations(file, policy = list(exclude_parameters_overrides = list('POST /api/hazard' = c('files[]', 'request'))))`.
 
+### Reviewed bodyless GET/HEAD subset
+
+An optional request body can be omitted by a reviewed operation policy:
+
+```yaml
+operations:
+  GET /api/resolver/ghs-list-count:
+    request_body_correction:
+      omit: true
+      reason: Reviewed bodyless production GET returns the existing count records.
+```
+
+This policy generates no public body argument and sends no request-body bytes.
+It selects only the bodyless subset of a declared optional OpenAPI GET/HEAD body;
+it does not claim that the service ignores supplied bodies. The schema's original
+operation and the correction remain in plan metadata, and the archived schema is
+unchanged. Other operations keep their request bodies and diagnostics.
+
+A reason is required. Omission is rejected for required or absent bodies, Swagger
+2, other HTTP methods, and operations with a body-media override or correction.
+It belongs under `operations`, never service or project defaults. Review live
+bodyless requests before applying it; this setting does not repair or infer a
+body's media type or payload contract.
+
 ### Hook-selected routes
 
 When a pre-request hook chooses another schema route, declare it on the keyed
