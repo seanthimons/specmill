@@ -19,7 +19,7 @@ flowchart TD
     Existing["Existing package without specmill.yml<br/>Record passing tests and public/runtime contracts"]
     Config["configure_client: preview YAML<br/>Select one operation and map the existing helper"]
     Adopt["propose_mappings and verify_adoption<br/>Review comparisons and fixed contracts;<br/>adopt only verified files or retain manual code"]
-    Update["Already configured client<br/>Keep reviewed YAML; inspect_client compares helpers;<br/>manually merge required helper changes"]
+    Update["Already configured client<br/>Keep reviewed YAML; plan first, then inspect_client<br/>compares helpers; merge required changes and re-plan"]
     Tailor["Tailor YAML names, selection, inputs, mappings,<br/>media, request controls and response policy;<br/>keep hooks and iteration policy in client R"]
     Plan["generate_client: plan<br/>Review inventory, diagnostics, drift and file actions"]
     Review{"Plan ready to apply?"}
@@ -34,7 +34,7 @@ flowchart TD
     Start --> Kind
     Kind -->|New| New --> Init --> Tailor
     Kind -->|Existing, not configured| Existing --> Config --> Adopt --> Tailor
-    Kind -->|Existing, configured| Update --> Tailor
+    Kind -->|Existing, configured| Update --> Plan
     Tailor --> Plan --> Review
     Review -->|Needs remediation| Remediate --> Plan
     Review -->|Reviewed| Apply --> Check --> Pass
