@@ -1,10 +1,13 @@
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 security_diagnostic_acceptance <- function() {
   workspace <- tempfile('security-diagnostic-')
   dir.create(workspace)
   on.exit(unlink(workspace, recursive = TRUE), add = TRUE)
-  op <- function(id, security) {
+  op <- function(id, security, tag = NULL) {
     value <- list(
       operationId = id,
+      tags = list(tag %||% 'default'),
       responses = list('200' = list(description = 'ok'))
     )
     if (!is.null(security)) {
@@ -71,6 +74,20 @@ security_diagnostic_acceptance <- function() {
     grepl('without security', mixed),
     grepl('/b', mixed, fixed = TRUE),
     !grepl('/a', mixed, fixed = TRUE)
+  )
+  # Tag services are generated separately; the comparison still covers the whole schema file.
+  split <- build(
+    'split',
+    list(
+      '/a' = op('a', secured, 'first'),
+      '/b' = op('b', NULL, 'second')
+    )
+  )
+  stopifnot(
+    length(split) == 1L,
+    grepl('without security', split),
+    grepl('/b', split, fixed = TRUE),
+    !grepl('/a', split, fixed = TRUE)
   )
   # Fully public, fully protected, and an explicit public override stay quiet.
   stopifnot(

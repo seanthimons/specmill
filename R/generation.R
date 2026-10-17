@@ -1013,12 +1013,16 @@ generate_client <- function(
   previous <- if (file.exists(manifest_path)) {
     jsonlite::read_json(manifest_path)$files
   } else list()
+  # Compared across services: a schema split into tag services keeps its secured siblings in other services.
+  if (!is.null(authentication)) {
+    warn_unsecured_operations(unlist(
+      lapply(parsed, function(file) file$operations),
+      recursive = FALSE
+    ))
+  }
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
-    if (!is.null(authentication)) {
-      warn_unsecured_operations(parsed[[i]]$operations)
-    }
     for (op in parsed[[i]]$operations) {
       configured <- configure_operation(op, service)
       op <- configured$operation
