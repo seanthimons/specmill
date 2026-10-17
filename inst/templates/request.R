@@ -415,9 +415,12 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL)
     if (!base::is.numeric(limit) || base::length(limit) != 1L || base::is.na(limit) || limit < 1 || limit != base::floor(limit) || limit > size) base::stop('batching max_items must be a whole number from 1 to ', size, call. = FALSE)
     size <- limit
   }
-  if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
+  if (base::is.list(on_error)) {
+    if (base::length(on_error) != 2L || !base::setequal(base::names(on_error), base::c('single', 'multiple')) || !base::all(base::vapply(on_error, function(choice) base::identical(choice, 'stop') || base::identical(choice, 'drop'), base::logical(1)))) base::stop('on_error requires single and multiple stop/drop choices', call. = FALSE)
+  } else if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
   # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
+  if (base::is.list(on_error)) on_error <- on_error[[if (base::length(chunks) == 1L) 'single' else 'multiple']]
   failed <- base::character()
   run <- function(chunk) {
     outer <- api_request_batch_state$active

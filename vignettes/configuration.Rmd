@@ -2001,3 +2001,26 @@ client at call time. Array-body splitting uses the normalized whole input to for
 chunks. No normalization is inferred for other inputs, duplicates, or text lines;
 line encoding preserves its existing entry boundaries and newline bytes unless
 that input explicitly opts into a client function.
+
+### Error policy by request count
+
+Reviewed operations that abort one failed request but retain partial results for
+multiple requests can select both branches explicitly:
+
+```yaml
+operations:
+  GET /items/{id}:
+    batch:
+      fan_out: id
+      on_error: {single: stop, multiple: drop}
+      empty: empty_table
+```
+
+The runner selects a branch from the number of chunks after input normalization
+and effective batch sizing, including runtime limits. Two entries sent in one
+array request use `single`; two separate requests use `multiple`. Both choices
+must be `stop` or `drop`. Existing literal policies and session policy overrides
+keep their behavior. A client `batch.empty` constructor is allowed when either
+branch drops failures. Credential and other call-level errors still abort every
+branch. This policy applies to errors reaching the runner; a client response
+policy can separately handle received HTTP responses before decoding.
