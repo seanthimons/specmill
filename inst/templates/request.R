@@ -402,13 +402,19 @@ api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_
 }
 
 # Sends one request per item or chunk for batch.fan_out and batch.split wrappers.
-# The <helper>.batching option's on_error overrides the generated default.
+# The <helper>.batching option's on_error, empty and max_items override the generated defaults.
 # on_error = 'drop' covers per-item failures only; errors classed specmill_call_error stop the call.
 # When drop leaves no successes, `empty()` (the batch.empty client function) supplies the result instead of list().
 api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL) {
   policy <- base::getOption(base::paste0(base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV)), '.api_request.batching'), base::list())
   if (!base::is.null(policy$on_error)) on_error <- policy$on_error
   if (!base::is.null(policy$empty)) empty <- policy$empty
+  # max_items lowers a split wrapper's chunk size; the generated max_items is the cap. Fan-out (size 1) is unaffected.
+  if (!base::is.null(policy$max_items) && size > 1L) {
+    limit <- policy$max_items
+    if (!base::is.numeric(limit) || base::length(limit) != 1L || base::is.na(limit) || limit < 1 || limit != base::floor(limit) || limit > size) base::stop('batching max_items must be a whole number from 1 to ', size, call. = FALSE)
+    size <- limit
+  }
   if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
   # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
