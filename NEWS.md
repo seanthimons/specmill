@@ -1,6 +1,18 @@
 
 
 
+## specmill 0.1.26 (2026-10-17)
+
+#### Other changes
+
+- release v0.1.26 \[skip ci\]
+  ([50f0736](https://github.com/seanthimons/specmill/tree/50f07360eb8ec7d6e7ab5c2f24d3e8f6774337bb))
+- integrate released normalization baseline (#27)
+  ([4cf2f67](https://github.com/seanthimons/specmill/tree/4cf2f67da2daa61216ab86a8105f8dbebfd227a6))
+
+Full set of changes:
+[`v0.1.25...v0.1.26`](https://github.com/seanthimons/specmill/compare/v0.1.25...v0.1.26)
+
 ## specmill 0.1.25 (2026-10-17)
 
 #### New features
@@ -12,7 +24,9 @@
 #### Other changes
 
 - release v0.1.25 \[skip ci\]
-  ([bbf90a6](https://github.com/seanthimons/specmill/tree/bbf90a6ce935d88b4ab29f486a28077b9fbd03d1))
+  ([01fe162](https://github.com/seanthimons/specmill/tree/01fe162db735249a497ea9d30811b1d646733aa4))
+- retain reviewed paths with input normalization (#27)
+  ([2c4ac63](https://github.com/seanthimons/specmill/tree/2c4ac63d09424fda04b35fe93f1083cfd25cb499))
 - integrate released batch support baseline (#135)
   ([777551c](https://github.com/seanthimons/specmill/tree/777551c253692bb176b18e7bcb872589fface34f))
 
@@ -30,6 +44,8 @@ Full set of changes:
 
 - release v0.1.24 \[skip ci\]
   ([49b2dde](https://github.com/seanthimons/specmill/tree/49b2ddeea8476dd9d2b2e6a7f6fa2908815a1b3a))
+- integrate released security corrections (#27)
+  ([f0460a3](https://github.com/seanthimons/specmill/tree/f0460a3c154584f04759edf8a5feacba2b804e98))
 
 Full set of changes:
 [`v0.1.23...v0.1.24`](https://github.com/seanthimons/specmill/compare/v0.1.23...v0.1.24)
@@ -38,6 +54,8 @@ Full set of changes:
 
 #### New features
 
+- support reviewed path declarations (#27)
+  ([9ca9db1](https://github.com/seanthimons/specmill/tree/9ca9db18101ba2a43f128691ef05960cf35e1030))
 - resolve reviewed batch limits at call time (#128)
   ([7374c5e](https://github.com/seanthimons/specmill/tree/7374c5ee3a6182499c3e7b5537aa37c63cc5201f))
 
