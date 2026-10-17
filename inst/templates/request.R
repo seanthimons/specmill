@@ -289,7 +289,10 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   decode <- function(format = 'native', check_status = TRUE, col_classes = NA) {
     format <- base::match.arg(format, base::c('native', 'delimited'))
     if (!base::is.logical(check_status) || base::length(check_status) != 1L || base::is.na(check_status)) base::stop('check_status must be TRUE or FALSE', call. = FALSE)
-    if (check_status && status >= 400L) base::stop(diagnostic, ' response', call. = FALSE)
+    if (check_status && status >= 400L) {
+      # A rejected credential applies to every item of a batch, so it stops the call rather than being dropped per item.
+      base::stop(if (status == 401L) base::errorCondition(base::paste0(diagnostic, ' response'), class = 'specmill_call_error', call = NULL) else base::simpleError(base::paste0(diagnostic, ' response')))
+    }
     delimited <- format == 'delimited' && media %in% base::c('text/csv', 'application/csv', 'text/tab-separated-values', 'text/tsv')
     if (!httr2::resp_has_body(response) || !base::length(httr2::resp_body_raw(response))) {
       base::return(if (delimited) base::data.frame() else NULL)
@@ -400,9 +403,11 @@ api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_
 # Sends one request per item or chunk for batch.fan_out and batch.split wrappers.
 # The <helper>.batching option's on_error overrides the generated default.
 # on_error = 'drop' covers per-item failures only; errors classed specmill_call_error stop the call.
-api_request_each <- function(send, items, size, on_error = 'stop') {
+# When drop leaves no successes, `empty()` (the batch.empty client function) supplies the result instead of list().
+api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL) {
   policy <- base::getOption(base::paste0(base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV)), '.api_request.batching'), base::list())
   if (!base::is.null(policy$on_error)) on_error <- policy$on_error
+  if (!base::is.null(policy$empty)) empty <- policy$empty
   if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
   # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
@@ -424,7 +429,7 @@ api_request_each <- function(send, items, size, on_error = 'stop') {
       NULL
     })
   })
-  result <- api_request_combine(results)
+  result <- if (!base::is.null(empty) && base::length(failed) && base::all(base::vapply(results, base::is.null, base::logical(1)))) empty() else api_request_combine(results)
   if (base::length(failed)) base::attr(result, 'failed') <- failed
   result
 }
