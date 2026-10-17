@@ -1943,3 +1943,33 @@ behavior. The localhost tests exercise body and header links, relative resolutio
 cycles, and credential isolation. The opt-in `dev/verify_amos_pagination.R` script
 checks generated GET and filtered POST wrappers against dev or staging without
 production access or credentials.
+
+### Normalize selected inputs before validation
+
+An operation may name client-owned functions in `normalize_inputs`, keyed by
+public input names, including renamed parameters and body inputs:
+
+```yaml
+operations:
+  GET /items/{id}:
+    normalize_inputs:
+      id: clean_identifiers
+    batch:
+      fan_out: id
+```
+
+Each function receives one input value and returns its replacement. Functions run
+once per wrapper call, in mapping order, before required/type/body checks,
+parameter capture, hooks, and iteration. They resolve in the client wrapper's
+enclosing environment. The generated client does not depend on specmill at runtime.
+For example, `clean_identifiers` may deduplicate identifiers, remove blank or missing
+values, and reject an empty result with a client-specific error. The normalized
+value still undergoes the usual native validation. An early error does not force
+unrelated option arguments.
+
+The setting belongs under an operation, not service defaults. Unknown public input
+names and invalid function names are rejected. The function must exist in the
+client at call time. Array-body splitting uses the normalized whole input to form
+chunks. No normalization is inferred for other inputs, duplicates, or text lines;
+line encoding preserves its existing entry boundaries and newline bytes unless
+that input explicitly opts into a client function.
