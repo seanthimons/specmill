@@ -45,6 +45,7 @@ validate_settings <- function(
       'extra_parameters',
       'request',
       'post_on_skip',
+      'preserve_visibility',
       'post_state',
       'parameter_order',
       'docs',
@@ -65,6 +66,15 @@ validate_settings <- function(
     ),
     label
   )
+  if ('preserve_visibility' %in% names(settings)) {
+    value <- settings$preserve_visibility
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      stop('preserve_visibility must be true or false')
+    }
+    if (isTRUE(value) && identical(settings$implementation, 'existing')) {
+      stop('preserve_visibility requires a generated implementation')
+    }
+  }
   if (!is.null(settings$security_correction)) {
     validate_security_correction(settings$security_correction)
   }
