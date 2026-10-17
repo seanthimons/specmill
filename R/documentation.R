@@ -170,8 +170,12 @@ operation_documentation <- function(op, policy = list()) {
       ),
       paste0(
         '@param max_pages Maximum number of pages requested when all_pages is ',
-        'TRUE. Reaching it stops paging with a warning; attr(result, ',
-        "'pagination')$stop_reason records why paging stopped."
+        'TRUE. Reaching it stops paging with a warning',
+        if (is.null(op$iterate)) {
+          "; attr(result, 'pagination')$stop_reason records why paging stopped."
+        } else {
+          ', and it applies to each item or chunk.'
+        }
       )
     )
   }
@@ -196,9 +200,15 @@ operation_documentation <- function(op, policy = list()) {
             'Decoded response returned by the client request helper.',
             if (paged) {
               paste0(
-                ' With all_pages = TRUE the pages are combined, and ',
-                "attr(result, 'pagination') lists requests, item_count and ",
-                'stop_reason.'
+                ' With all_pages = TRUE the pages are combined',
+                if (is.null(op$iterate)) {
+                  paste0(
+                    ", and attr(result, 'pagination') lists requests, ",
+                    'item_count and stop_reason.'
+                  )
+                } else {
+                  '.'
+                }
               )
             }
           )

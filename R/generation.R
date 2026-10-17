@@ -1,6 +1,6 @@
 # Inherited pagination applies only where its parameter exists; an operation-level
 # setting must fit. Paging is explicit: nothing is inferred from parameter names.
-pagination_settings <- function(operation, pagination, explicit, iterate) {
+pagination_settings <- function(operation, pagination, explicit) {
   if (!length(pagination)) {
     return(NULL)
   }
@@ -34,12 +34,6 @@ pagination_settings <- function(operation, pagination, explicit, iterate) {
       )
     }
     return(NULL)
-  }
-  if (!is.null(iterate)) {
-    stop(
-      'pagination cannot be combined with batch.fan_out or batch.split: ',
-      operation$id
-    )
   }
   p <- hit[[1L]]
   required <- isTRUE(p$public_required %or% p$required)
@@ -715,8 +709,42 @@ render_operation <- function(operation, spec) {
       '  result'
     )
   }
+  # One request per page, with hooks and policy per page; the pages are combined.
+  # all_pages = FALSE is the plain single request.
+  pages_lines <- function(indent, assign = '') {
+    paste0(
+      indent,
+      c(
+        'if (!base::isTRUE(all_pages)) base::return(send(params))',
+        paste0(
+          'if (base::is.null(params[[',
+          r_literal(page_formal),
+          ']])) base::stop(',
+          r_literal(paste0(
+            'Supply ',
+            page_formal,
+            ' to start paging, or set all_pages = FALSE'
+          )),
+          ', call. = FALSE)'
+        ),
+        paste0(assign, helper, '_pages(function(page) {'),
+        '  params[base::names(page)] <- page',
+        '  send(params)',
+        paste0(
+          '}, ',
+          r_literal(page_formal),
+          ', params[[',
+          r_literal(page_formal),
+          ']], max_pages, completed = ',
+          if (identical(pg$completed, 'empty')) 'NULL' else pg$completed,
+          ')'
+        )
+      )
+    )
+  }
   if (!is.null(operation$iterate)) {
     # Hooks and the request run once per item or chunk; the helper combines results.
+    # With pagination, each item pages to completion inside the callback.
     input <- if (is.null(fan_out)) body_name else fan_out_name
     combine <- length(hooks$post_combine) > 0L
     lines <- c(
@@ -724,6 +752,9 @@ render_operation <- function(operation, spec) {
       '  send <- function(params) {',
       paste0('  ', tail(lines, -per_request)),
       '  }',
+      if (!is.null(pg)) {
+        c('  fetch <- function(params) {', pages_lines('    '), '  }')
+      },
       paste0(
         '  ',
         if (combine) 'result <- ',
@@ -731,7 +762,7 @@ render_operation <- function(operation, spec) {
         '_each(function(chunk) {'
       ),
       paste0('    params[', r_literal(input), '] <- base::list(chunk)'),
-      '    send(params)',
+      if (is.null(pg)) '    send(params)' else '    fetch(params)',
       paste0(
         '  }, params[[',
         r_literal(input),
@@ -748,43 +779,14 @@ render_operation <- function(operation, spec) {
       ),
       if (combine) post_combine_lines('failed')
     )
-  }
-  if (!is.null(pg)) {
-    # One request per page, with hooks and policy per page; the pages are combined
-    # and post_combine runs once. all_pages = FALSE is the plain single request.
+  } else if (!is.null(pg)) {
+    # post_combine runs once.
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
       paste0('  ', tail(lines, -per_request)),
       '  }',
-      '  if (!base::isTRUE(all_pages)) base::return(send(params))',
-      paste0(
-        '  if (base::is.null(params[[',
-        r_literal(page_formal),
-        ']])) base::stop(',
-        r_literal(paste0(
-          'Supply ',
-          page_formal,
-          ' to start paging, or set all_pages = FALSE'
-        )),
-        ', call. = FALSE)'
-      ),
-      paste0(
-        '  result <- ',
-        helper,
-        '_pages(function(page) {'
-      ),
-      '    params[base::names(page)] <- page',
-      '    send(params)',
-      paste0(
-        '  }, ',
-        r_literal(page_formal),
-        ', params[[',
-        r_literal(page_formal),
-        ']], max_pages, completed = ',
-        if (identical(pg$completed, 'empty')) 'NULL' else pg$completed,
-        ')'
-      ),
+      pages_lines('  ', 'result <- '),
       '  if (base::inherits(result, "httr2_request")) base::return(result)',
       if (length(hooks$post_combine)) {
         post_combine_lines('pagination')
@@ -1115,8 +1117,7 @@ generate_client <- function(
       op$paginate <- pagination_settings(
         op,
         operation_spec[['pagination']] %or% list(),
-        service$operations[[op$key]][['pagination']] %or% list(),
-        op$iterate
+        service$operations[[op$key]][['pagination']] %or% list()
       )
       if (!is.null(op$paginate)) {
         if (identical(operation_spec$implementation, 'existing')) {
