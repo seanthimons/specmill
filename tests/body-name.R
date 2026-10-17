@@ -23,6 +23,7 @@ body_name_acceptance <- function() {
           body <- rawToChar(req$rook.input$read())
           history[[length(history) + 1L]] <<- list(
             path = req$PATH_INFO,
+            query = req$QUERY_STRING,
             body = body
           )
           items <- jsonlite::fromJSON(body, simplifyVector = FALSE)
@@ -77,6 +78,21 @@ body_name_acceptance <- function() {
           post = operation(
             'bulk',
             body = list(type = 'array', items = string, maxItems = 2L)
+          )
+        ),
+        '/ordered' = list(
+          post = operation(
+            'ordered',
+            list(list(
+              name = 'projection',
+              `in` = 'query',
+              schema = list(
+                type = 'string',
+                default = 'chemicaldetailall',
+                enum = list('chemicaldetailall')
+              )
+            )),
+            body = list(type = 'array', items = string)
           )
         ),
         '/object' = list(
@@ -258,6 +274,38 @@ body_name_acceptance <- function() {
   )
   error <- tryCatch(runtime$bulk(body = 'a'), error = identity)
   stopifnot(inherits(error, 'error'))
+
+  # Body ordering preserves positional calls and the body/query wire mapping.
+  service <- original
+  service$operations[['POST /ordered']] <- list(
+    body = list(name = 'dtxcid'),
+    parameter_order = list('dtxcid')
+  )
+  yaml::write_yaml(service, service_path)
+  run()
+  sys.source(file.path(root, 'R', 'ordered.R'), runtime)
+  stopifnot(identical(
+    names(formals(runtime$ordered)),
+    c('dtxcid', 'projection')
+  ))
+  runtime$ordered(c('a', 'b'))
+  runtime$ordered(dtxcid = c('a', 'b'), projection = 'chemicaldetailall')
+  requests <- tail(history(), 2L)
+  stopifnot(
+    identical(requests[[1L]], requests[[2L]]),
+    identical(requests[[1L]]$body, '["a","b"]'),
+    identical(requests[[1L]]$query, '?projection=chemicaldetailall')
+  )
+  for (order in list(list('dtxcid', 'dtxcid'), list('unknown'))) {
+    invalid <- service
+    invalid$operations[['POST /ordered']]$parameter_order <- order
+    fails(invalid, 'Invalid public parameter_order')
+  }
+  service$operations[['POST /object']] <- list(parameter_order = list('body.1'))
+  yaml::write_yaml(service, service_path)
+  run()
+  sys.source(file.path(root, 'R', 'object_body.R'), runtime)
+  stopifnot(identical(names(formals(runtime$object_body)), c('body.1', 'body')))
 
   # A description alone keeps the default name and an unrenamed sibling is untouched.
   yaml::write_yaml(

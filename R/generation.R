@@ -251,6 +251,13 @@ render_operation <- function(operation, spec) {
       paste0(body_name, if (!operation$body_required) ' = NULL' else '')
     )
   }
+  if (length(spec$parameter_order)) {
+    order <- unlist(spec$parameter_order, use.names = FALSE)
+    signature <- signature[match(
+      c(order, setdiff(formal_names, order)),
+      formal_names
+    )]
+  }
   pg <- operation$paginate
   page_formal <- if (!is.null(pg)) {
     mapping[[paste(pg$location, pg$parameter)]]
