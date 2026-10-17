@@ -1,6 +1,24 @@
 
 
 
+## specmill 0.1.25 (2026-10-17)
+
+#### New features
+
+- normalize selected client values before validation and iteration
+  (#135)
+  ([213dd7e](https://github.com/seanthimons/specmill/tree/213dd7ee68dc1a643264db795d97aa83be5a98ef))
+
+#### Other changes
+
+- release v0.1.25 \[skip ci\]
+  ([bbf90a6](https://github.com/seanthimons/specmill/tree/bbf90a6ce935d88b4ab29f486a28077b9fbd03d1))
+- integrate released batch support baseline (#135)
+  ([777551c](https://github.com/seanthimons/specmill/tree/777551c253692bb176b18e7bcb872589fface34f))
+
+Full set of changes:
+[`v0.1.24...v0.1.25`](https://github.com/seanthimons/specmill/compare/v0.1.24...v0.1.25)
+
 ## specmill 0.1.24 (2026-10-17)
 
 #### Tests
@@ -11,7 +29,7 @@
 #### Other changes
 
 - release v0.1.24 \[skip ci\]
-  ([3e160c8](https://github.com/seanthimons/specmill/tree/3e160c8ff7bbcfd2e40ac19c9d65554075599d4c))
+  ([49b2dde](https://github.com/seanthimons/specmill/tree/49b2ddeea8476dd9d2b2e6a7f6fa2908815a1b3a))
 
 Full set of changes:
 [`v0.1.23...v0.1.24`](https://github.com/seanthimons/specmill/compare/v0.1.23...v0.1.24)
