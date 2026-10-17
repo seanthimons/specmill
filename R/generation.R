@@ -323,6 +323,14 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  normalizers <- spec$normalize_inputs
+  unknown <- setdiff(names(normalizers), formal_names)
+  if (length(unknown)) {
+    stop(
+      'Unknown public input in normalize_inputs: ',
+      paste(unknown, collapse = ', ')
+    )
+  }
   lines <- c(
     '# Generated with specmill; do not edit by hand.',
     paste0(
@@ -330,6 +338,21 @@ render_operation <- function(operation, spec) {
       ' <- function(',
       paste(signature, collapse = ', '),
       ') {'
+    ),
+    vapply(
+      names(normalizers),
+      function(name) {
+        paste0(
+          '  ',
+          name,
+          ' <- base::get(',
+          r_literal(normalizers[[name]]),
+          ', envir = base::parent.env(base::environment()), mode = "function", inherits = TRUE)(',
+          name,
+          ')'
+        )
+      },
+      character(1)
     ),
     if (dynamic_limit) {
       paste0(
