@@ -1,17 +1,34 @@
 
 
 
+## specmill 0.1.22 (2026-10-17)
+
+#### Other changes
+
+- release v0.1.22 \[skip ci\]
+  ([7fed2d3](https://github.com/seanthimons/specmill/tree/7fed2d34f84fe50c7616cc1ad5ec16b8942d9f1e))
+
+Full set of changes:
+[`v0.1.21...v0.1.22`](https://github.com/seanthimons/specmill/compare/v0.1.21...v0.1.22)
+
 ## specmill 0.1.21 (2026-10-17)
 
 #### New features
 
+- correct reviewed text media and split line batches (#125)
+  ([39ad4a4](https://github.com/seanthimons/specmill/tree/39ad4a4dc6b2d4e233e69ff6ea465f346e145952))
 - allow request bodies in parameter_order (#123)
   ([a176f15](https://github.com/seanthimons/specmill/tree/a176f15d6e96fdd3e8f37336411b8adfb69b5962))
+
+#### Bug fixes
+
+- render line body examples as character vectors (#125)
+  ([48080bf](https://github.com/seanthimons/specmill/tree/48080bfd147cb8919d1b28d07d6a41c898a2ff08))
 
 #### Other changes
 
 - release v0.1.21 \[skip ci\]
-  ([034719d](https://github.com/seanthimons/specmill/tree/034719d8f0ab3ee39d102a7ce04aea45cad56e1f))
+  ([8fd2913](https://github.com/seanthimons/specmill/tree/8fd291363223fc9dc43e43cc0609b5229af3daef))
 
 Full set of changes:
 [`v0.1.20...v0.1.21`](https://github.com/seanthimons/specmill/compare/v0.1.20...v0.1.21)
