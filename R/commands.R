@@ -23,9 +23,9 @@ generation_command <- function(
   if (any(args %in% c('--help', '-h'))) {
     cat(
       if (kind == 'tests') {
-        'Generate fixed offline contracts: --generate (default), --check, --dry-run, --force.\n'
+        'Generate fixed offline contracts: --generate (default), --check, --dry-run, --force (legacy, ignored).\n'
       } else {
-        'Generate wrappers and documentation: apply (default), --check, --plan, --rebuild=<prefix>.\n'
+        'Generate wrappers and documentation: apply (default), --check, --plan, --rebuild=<prefix> (legacy, ignored).\n'
       }
     )
     return(invisible(NULL))
@@ -54,6 +54,12 @@ generation_command <- function(
     stop(
       'Unknown generation argument: ',
       paste(setdiff(args, allowed), collapse = ', ')
+    )
+  }
+  ignored <- grep('^--(rebuild=|force$)', args, value = TRUE)
+  if (length(ignored)) {
+    cli::cli_alert_warning(
+      'Ignoring legacy flag{?s} {.val {ignored}}: YAML controls selection and ownership is never overridden.'
     )
   }
   mode <- if ('--check' %in% args) {

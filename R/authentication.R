@@ -80,3 +80,38 @@ operation_authentication <- function(operation, envvars) {
     })
   })
 }
+
+# Warns when one schema file protects some operations and leaves others without
+# `security`: OpenAPI reads the gap as public, but it is often a schema omission.
+warn_unsecured_operations <- function(operations) {
+  for (source in unique(vapply(
+    operations,
+    function(op) op$source,
+    character(1)
+  ))) {
+    own <- Filter(function(op) identical(op$source, source), operations)
+    protected <- vapply(
+      own,
+      function(op) length(op$security) > 0L,
+      logical(1)
+    )
+    missing <- vapply(
+      own,
+      function(op) is.null(op$security) && length(op$security_schemes) > 0L,
+      logical(1)
+    )
+    if (any(protected) && any(missing)) {
+      warning(
+        basename(source),
+        ': operations without security while others declare it (treated as public): ',
+        paste(
+          vapply(own[missing], function(op) op$id, character(1)),
+          collapse = ', '
+        ),
+        '. Check the schema.',
+        call. = FALSE
+      )
+    }
+  }
+  invisible(NULL)
+}

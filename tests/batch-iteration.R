@@ -31,6 +31,9 @@ batch_iteration_acceptance <- function() {
           )$query
           if (startsWith(req$PATH_INFO, '/items/')) {
             id <- sub('^/items/', '', req$PATH_INFO)
+            if (id == 'denied') {
+              return(json(list(error = 'no key'), 401L))
+            }
             if (id == 'bad') {
               return(json(list(error = 'missing'), 404L))
             }
@@ -182,6 +185,19 @@ batch_iteration_acceptance <- function() {
     batch = list(fan_out = 'name', on_error = 'keep')
   )
   fails(bad, 'on_error must be stop or drop')
+  bad <- original
+  bad$operations[['GET /items/{id}']] <- list(
+    batch = list(fan_out = 'id', on_error = 'drop', empty = 'no_such_empty')
+  )
+  fails(bad, 'Missing client batch.empty function')
+  bad <- original
+  bad$operations[['GET /items/{id}']] <- list(
+    batch = list(fan_out = 'id', empty = 'no_such_empty')
+  )
+  fails(bad, 'batch.empty requires batch.on_error: drop')
+  bad <- original
+  bad$operations[['GET /search']] <- list(batch = list(empty = 'no_such_empty'))
+  fails(bad, 'batch.empty requires batch.fan_out or batch.split')
   # One per-API item limit; split opts in to chunking with it.
   service <- original
   service$defaults$batch <- list(max_items = 2L, split = TRUE)
@@ -371,6 +387,51 @@ batch_iteration_acceptance <- function() {
     on_error = 'drop'
   ))
   stopifnot(identical(attr(dropped, 'failed'), c(b = 'item failed')))
+  # When drop leaves nothing, `empty` supplies the result; failures are still recorded. Without it the result stays list().
+  all_failed <- function(...) {
+    suppressWarnings(runtime$api_request_each(
+      function(chunk) stop('item failed'),
+      c('a', 'b'),
+      1L,
+      on_error = 'drop',
+      ...
+    ))
+  }
+  nothing <- all_failed()
+  stopifnot(
+    identical(length(nothing), 0L),
+    is.list(nothing),
+    identical(names(attr(nothing, 'failed')), c('a', 'b'))
+  )
+  table <- all_failed(empty = function() data.frame())
+  stopifnot(
+    is.data.frame(table),
+    identical(nrow(table), 0L),
+    identical(names(attr(table, 'failed')), c('a', 'b'))
+  )
+  # A partial failure is not empty.
+  partial <- suppressWarnings(runtime$api_request_each(
+    function(chunk) if (identical(chunk, 'b')) stop('x') else list(chunk),
+    c('a', 'b'),
+    1L,
+    on_error = 'drop',
+    empty = function() data.frame()
+  ))
+  stopifnot(is.list(partial), !is.data.frame(partial), length(partial) == 1L)
+  # A rejected credential (401) stops the call once; a 404 is still dropped.
+  warnings <- character()
+  error <- withCallingHandlers(
+    tryCatch(runtime$get_item(c('a', 'denied', 'b')), error = identity),
+    warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      invokeRestart('muffleWarning')
+    }
+  )
+  stopifnot(
+    inherits(error, 'specmill_call_error'),
+    grepl('HTTP 401', conditionMessage(error)),
+    !length(warnings)
+  )
   # The runtime option overrides the generated on_error default.
   withr::with_options(
     list(iterationclient.api_request.batching = list(on_error = 'stop')),
