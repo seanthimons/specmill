@@ -1943,3 +1943,16 @@ behavior. The localhost tests exercise body and header links, relative resolutio
 cycles, and credential isolation. The opt-in `dev/verify_amos_pagination.R` script
 checks generated GET and filtered POST wrappers against dev or staging without
 production access or credentials.
+
+### Preserve a single helper call's return visibility
+
+An operation may set `preserve_visibility: true` to forward its helper's visible
+or invisible return, including `NULL`, without changing the value or attributes.
+The generated wrapper ends with the helper call rather than assigning and then
+returning its result. This also works with reviewed request bindings and route
+guards. The default remains the existing visible result behavior.
+
+This policy belongs under an operation and requires an unbatched, unpaged
+generated wrapper without hooks or `post_on_skip`. Pipelines that combine or
+replace results have separate return behavior and are rejected by this setting.
+The policy does not add file-upload support or change request construction.
