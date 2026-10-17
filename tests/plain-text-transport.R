@@ -14,16 +14,17 @@ plain_text_acceptance <- function() {
         list(call = function(req) {
           count <<- count + 1L
           writeLines(as.character(count), count_file)
+          record <- list(
+            bytes = as.integer(req$rook.input$read()),
+            type = req$CONTENT_TYPE,
+            query = req$QUERY_STRING,
+            key = req$HTTP_X_API_KEY
+          )
           list(
             status = 200L,
             headers = list('Content-Type' = 'application/json'),
             body = jsonlite::toJSON(
-              list(
-                bytes = as.integer(req$rook.input$read()),
-                type = req$CONTENT_TYPE,
-                query = req$QUERY_STRING,
-                key = req$HTTP_X_API_KEY
-              ),
+              record,
               auto_unbox = TRUE,
               null = 'null'
             )
@@ -99,10 +100,24 @@ plain_text_acceptance <- function() {
       info = list(title = 'Text transport', version = '1'),
       paths = list(
         '/scalar' = list(post = operation('send_scalar')),
+        '/corrected' = list(post = operation('send_corrected', TRUE)),
         '/lines' = list(post = operation('send_lines')),
         '/required' = list(post = operation('send_required', TRUE))
       )
     )
+    if (version == '2.0') {
+      document$paths[['/corrected']]$post$consumes <- list('application/json')
+      document$paths[['/corrected']]$post$parameters <- document$paths[[
+        '/corrected'
+      ]]$post$parameters[2L]
+    } else {
+      document$paths[['/corrected']]$post$parameters <- list()
+      document$paths[['/corrected']]$post$requestBody$content <- list(
+        'application/json' = list(
+          schema = list(type = 'string', maxLength = 2799L)
+        )
+      )
+    }
     key <- list(type = 'apiKey', name = 'x-api-key', 'in' = 'header')
     document$security <- list(list(key = list()))
     if (version == '2.0') {
@@ -134,6 +149,33 @@ plain_text_acceptance <- function() {
       text_encoding = 'lines',
       batch = list(max_items = 3)
     )
+    service$operations[['POST /corrected']] <- list(
+      body = list(name = 'query'),
+      body_media_correction = list(
+        from = 'application/json',
+        to = 'text/plain',
+        reason = 'Reviewed endpoint accepts newline-delimited UTF-8 identifiers.'
+      ),
+      text_encoding = 'lines',
+      batch = list(max_items = 200L, max_bytes = 2799L, split = TRUE)
+    )
+    schema_hash <- tools::md5sum(schema)
+    invalid <- service
+    invalid$operations[['POST /corrected']]$body_media_correction$reason <- NULL
+    yaml::write_yaml(invalid, service_path)
+    stopifnot(inherits(
+      try(specmill::load_project(root), silent = TRUE),
+      'try-error'
+    ))
+    invalid <- service
+    invalid$defaults$body_media_correction <- invalid$operations[[
+      'POST /corrected'
+    ]]$body_media_correction
+    yaml::write_yaml(invalid, service_path)
+    stopifnot(inherits(
+      try(specmill::load_project(root), silent = TRUE),
+      'try-error'
+    ))
     yaml::write_yaml(service, service_path)
     withr::local_envvar(c(TEXTCLIENT_KEY = 'fixture-key'))
     plan <- specmill::generate_client(
@@ -142,7 +184,19 @@ plain_text_acceptance <- function() {
       config = 'specmill.yml',
       mode = 'apply'
     )
-    stopifnot(!length(plan$diagnostics), length(plan$operations) == 3L)
+    stopifnot(
+      !length(plan$diagnostics),
+      length(plan$operations) == 4L,
+      identical(schema_hash, tools::md5sum(schema))
+    )
+    corrected <- Filter(
+      function(x) x$name == 'send_corrected',
+      plan$operations
+    )[[1L]]
+    stopifnot(identical(
+      corrected$body_media_correction,
+      service$operations[['POST /corrected']]$body_media_correction
+    ))
     repeat_plan <- specmill::generate_client(
       validation = FALSE,
       root,
@@ -180,6 +234,22 @@ plain_text_acceptance <- function() {
     check_wire(runtime$send_lines(body = c('a\nb', 'c\n')), 'a\nb\nc\n')
     check_wire(runtime$send_lines(body = character()), '')
     check_wire(runtime$send_lines(body = 'single'), 'single')
+    ids <- sprintf('DTXSID%07d', seq_len(201L))
+    first <- runtime$send_corrected(query = ids[1:2])
+    second <- runtime$send_corrected(ids[1:2])
+    stopifnot(identical(first, second))
+    check_wire(first[[1L]], paste(ids[1:2], collapse = '\n'))
+    count_before <- as.integer(readLines(count_file))
+    runtime$send_corrected(query = ids[1:200])
+    stopifnot(as.integer(readLines(count_file)) == count_before + 1L)
+    chunks <- runtime$send_corrected(query = ids)
+    stopifnot(length(chunks) == 2L)
+    check_wire(chunks[[1L]], paste(ids[1:200], collapse = '\n'))
+    check_wire(chunks[[2L]], ids[[201L]])
+    check_wire(
+      runtime$send_corrected(query = c('α', '', 'α\n'))[[1L]],
+      'α\n\nα\n'
+    )
     if (version == '3.0.3') {
       standalone <- callr::r(
         function(root) {
@@ -223,7 +293,14 @@ plain_text_acceptance <- function() {
       function() runtime$send_lines(body = letters[1:4]),
       function() runtime$send_scalar(body = paste(rep('α', 33), collapse = '')),
       function() runtime$send_required(),
-      function() runtime$send_required(body = NULL)
+      function() runtime$send_required(body = NULL),
+      function() runtime$send_corrected(query = c('a', NA_character_)),
+      function() runtime$send_corrected(query = c(ids[1:200], NA_character_)),
+      function() runtime$send_corrected(query = c(named = 'a')),
+      function() runtime$send_corrected(query = matrix('a')),
+      function() {
+        runtime$send_corrected(query = paste(rep('α', 1400L), collapse = ''))
+      }
     )) {
       stopifnot(
         inherits(try(call(), silent = TRUE), 'try-error'),
@@ -294,6 +371,26 @@ plain_text_acceptance <- function() {
       list(text_encoding = 'lines', body_media = 'application/json')
     )
     stopifnot(length(parsed$diagnostics) > 0L)
+    correction <- service$operations[['POST /corrected']]$body_media_correction
+    strict <- specmill::read_operations(schema, list(body_media = 'text/plain'))
+    stopifnot(any(vapply(strict$diagnostics, function(x) {
+      identical(x$key, 'POST /corrected') && identical(x$code, 'body_media_type')
+    }, logical(1))))
+    for (policy in list(
+      list(body_media_corrections = list('POST /scalar' = correction)),
+      list(body_media_corrections = list('POST /lines' = correction)),
+      list(
+        body_media = 'application/json',
+        body_media_corrections = list('POST /corrected' = correction)
+      )
+    )) {
+      parsed <- specmill::read_operations(schema, policy)
+      stopifnot(any(vapply(
+        parsed$diagnostics,
+        function(x) identical(x$code, 'body_media_correction'),
+        logical(1)
+      )))
+    }
     helper <- file.path(root, 'R', 'api_request.R')
     cat('\n# Client customization retained.\n', file = helper, append = TRUE)
     before <- tools::md5sum(helper)

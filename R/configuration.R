@@ -405,7 +405,7 @@ load_project <- function(
     overrides <- service$operations %or% list()
     validate_settings(defaults, paste(id, 'defaults'), callbacks)
     for (field in intersect(
-      c('exclude_parameters', 'routes', 'body'),
+      c('exclude_parameters', 'routes', 'body', 'body_media_correction'),
       names(defaults)
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
@@ -525,12 +525,15 @@ load_project <- function(
         include = include,
         names = names,
         override_keys = names(overrides),
-        body_media = defaults$body_media,
+        body_media = defaults[['body_media']],
         text_encoding = defaults$text_encoding,
         text_encoding_overrides = lapply(overrides, function(x) {
           x$text_encoding
         }),
-        body_media_overrides = lapply(overrides, function(x) x$body_media),
+        body_media_overrides = lapply(overrides, function(x) x[['body_media']]),
+        body_media_corrections = lapply(overrides, function(x) {
+          x$body_media_correction
+        }),
         query_array_style = defaults$query_array_style,
         query_array_style_overrides = lapply(
           overrides,
@@ -616,6 +619,7 @@ load_project <- function(
         policy$override_keys <- character()
         for (field in c(
           'body_media_overrides',
+          'body_media_corrections',
           'text_encoding_overrides',
           'query_array_style_overrides',
           'exclude_parameters_overrides'
