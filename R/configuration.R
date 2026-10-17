@@ -410,6 +410,9 @@ load_project <- function(
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
     }
+    if ('metadata' %in% names(defaults$pagination)) {
+      stop(id, ': pagination.metadata belongs under operations, not defaults')
+    }
     config_fields(overrides, names(overrides), 'operations')
     for (key in names(overrides)) {
       validate_settings(overrides[[key]], key, callbacks)
