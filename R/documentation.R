@@ -246,6 +246,31 @@ operation_documentation <- function(op, policy = list()) {
                     value <- config_data(inputs[[name]])
                     index <- match(name, parameters)
                     if (
+                      identical(name, body_argument) &&
+                        identical(op$body_media, 'text/plain') &&
+                        identical(op$text_encoding, 'lines') &&
+                        is.list(value)
+                    ) {
+                      if (
+                        !is.null(names(value)) ||
+                          !all(vapply(
+                            value,
+                            function(x) {
+                              is.character(x) && length(x) == 1L && !is.na(x)
+                            },
+                            logical(1)
+                          ))
+                      ) {
+                        stop('Line body example must be a sequence of strings')
+                      }
+                      value <- vapply(
+                        value,
+                        identity,
+                        character(1),
+                        USE.NAMES = FALSE
+                      )
+                    }
+                    if (
                       !is.na(index) &&
                         is.list(value) &&
                         op$parameters[[index]]$public_type %or%
