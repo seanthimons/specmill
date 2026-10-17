@@ -1,6 +1,22 @@
 
 
 
+## specmill 0.1.20 (2026-10-17)
+
+#### New features
+
+- let the batching option lower a split wrapper’s chunk size at runtime
+  (#121)
+  ([e552fae](https://github.com/seanthimons/specmill/tree/e552faeca998c604654e2cf1190e0f5b4aa0ca31))
+
+#### Other changes
+
+- release v0.1.20 \[skip ci\]
+  ([2af18fe](https://github.com/seanthimons/specmill/tree/2af18fefc322b0a64b8129e1625b6f19dfbe3e81))
+
+Full set of changes:
+[`v0.1.19...v0.1.20`](https://github.com/seanthimons/specmill/compare/v0.1.19...v0.1.20)
+
 ## specmill 0.1.19 (2026-10-17)
 
 #### Tests
@@ -12,7 +28,7 @@
 #### Other changes
 
 - release v0.1.19 \[skip ci\]
-  ([f463a4f](https://github.com/seanthimons/specmill/tree/f463a4f4acc41284b6cd2ff88e970766bfee87b5))
+  ([3e80a68](https://github.com/seanthimons/specmill/tree/3e80a68a3c5d29e593a9441b732b8ce5d4fc8d66))
 
 Full set of changes:
 [`v0.1.18...v0.1.19`](https://github.com/seanthimons/specmill/compare/v0.1.18...v0.1.19)
@@ -43,6 +59,8 @@ Full set of changes:
 
 #### Docs
 
+- add a typical workflow diagram with command and recovery tables
+  ([b161cf1](https://github.com/seanthimons/specmill/tree/b161cf1ef88b35cd2ae2e4083253a5f1cb817562))
 - run every generated contract test after apply (#113)
   ([6b2d3e9](https://github.com/seanthimons/specmill/tree/6b2d3e905272544f7ed6152eef89e6b55aeb5844))
 
@@ -102,6 +120,8 @@ Full set of changes:
 
 - release v0.1.17 \[skip ci\]
   ([8080158](https://github.com/seanthimons/specmill/tree/808015823009bebe36991f2a7c9856b104d46c6d))
+- capture public EPA CAMD and Water Quality Portal specs
+  ([b6b14a6](https://github.com/seanthimons/specmill/tree/b6b14a6d2ed457a65c75f994c6b781a57738a4be))
 
 Full set of changes:
 [`v0.1.16...v0.1.17`](https://github.com/seanthimons/specmill/compare/v0.1.16...v0.1.17)
