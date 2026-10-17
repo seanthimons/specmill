@@ -177,7 +177,7 @@ iteration_settings <- function(operation, batch, explicit) {
     return(NULL)
   }
   on_error <- batch$on_error %or% 'stop'
-  if (!is.null(explicit$empty) && on_error != 'drop') {
+  if (!is.null(explicit$empty) && !any(unlist(on_error) == 'drop')) {
     stop('batch.empty requires batch.on_error: drop: ', operation$id)
   }
   list(
