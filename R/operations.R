@@ -325,6 +325,19 @@ read_operations <- function(files, policy = list()) {
             body_required <- FALSE
             body_media <- 'application/json'
             body_encoding <- list()
+            media_correction <- policy$body_media_corrections[[key]]
+            if (
+              !is.null(media_correction) &&
+                !body_present &&
+                !startsWith(version, '2.')
+            ) {
+              schema_problem(
+                'body_media_correction',
+                'review_required',
+                'Body media correction requires a declared request body',
+                body_location
+              )
+            }
             text_encoding <- policy$text_encoding_overrides[[key]] %or%
               policy$text_encoding %or%
               'scalar'
@@ -343,7 +356,7 @@ read_operations <- function(files, policy = list()) {
             }
             body_example <- list()
             preferred_media <- policy$body_media_overrides[[key]] %or%
-              policy$body_media
+              policy[['body_media']]
             undefined_body_method <- body_present &&
               !identical(version, '2.0') &&
               toupper(method) %in% c('GET', 'HEAD', 'DELETE')
@@ -469,7 +482,8 @@ read_operations <- function(files, policy = list()) {
                 body_media <- request_body_media(
                   op$consumes %or% document$consumes %or% character(),
                   preferred_media,
-                  body_location
+                  body_location,
+                  correction = media_correction
                 )
               }
               parameter_locations <- parameter_locations[vapply(
@@ -488,21 +502,33 @@ read_operations <- function(files, policy = list()) {
               body_media <- request_body_media(
                 names(body$content),
                 preferred_media,
-                body_location
+                body_location,
+                correction = media_correction
               )
-              body_encoding <- body$content[[body_media]]$encoding %or% list()
-              body_example <- body$content[[body_media]][intersect(
+              schema_media <- media_correction$from %or% body_media
+              body_encoding <- body$content[[schema_media]]$encoding %or% list()
+              body_example <- body$content[[schema_media]][intersect(
                 'example',
-                names(body$content[[body_media]])
+                names(body$content[[schema_media]])
               )]
               body_location <- schema_location(
                 schema_location(
                   schema_location(body_location, 'content'),
-                  body_media
+                  schema_media
                 ),
                 'schema'
               )
-              body <- body$content[[body_media]]$schema
+              body <- body$content[[schema_media]]$schema
+            }
+            if (
+              !is.null(media_correction) && !identical(body_media, 'text/plain')
+            ) {
+              schema_problem(
+                'body_media_correction',
+                'review_required',
+                'Body media correction requires a declared scalar request body',
+                body_location
+              )
             }
             params <- lapply(seq_along(params), function(i) {
               p <- params[[i]]
@@ -754,6 +780,7 @@ read_operations <- function(files, policy = list()) {
               body = body,
               body_required = body_required,
               body_media = body_media,
+              body_media_correction = config_data(media_correction),
               body_encoding = body_encoding,
               text_encoding = text_encoding,
               body_example = body_example,

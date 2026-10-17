@@ -239,6 +239,9 @@ render_operation <- function(operation, spec) {
     character(1)
   )
   body_name <- if (!is.null(operation$body)) tail(formal_names, 1L) else NULL
+  split_lines <- isTRUE(operation$iterate$split) &&
+    identical(operation$body_media, 'text/plain') &&
+    identical(operation$text_encoding, 'lines')
   # A split body may exceed the per-request item limit; each chunk is checked by the helper.
   whole <- operation
   if (isTRUE(operation$iterate$split)) {
@@ -377,7 +380,11 @@ render_operation <- function(operation, spec) {
         ')) base::stop("Binary body must be a raw vector")'
       )
     } else if (identical(operation$body_media, 'text/plain')) {
-      text_checks(whole, body_name)
+      if (split_lines) {
+        paste0('.api_validation$text_input(', body_name, ')')
+      } else {
+        text_checks(whole, body_name)
+      }
     } else if (form_media(operation$body_media)) {
       form_checks(operation$body, body_name, operation$body_media)
     } else {
@@ -425,6 +432,15 @@ render_operation <- function(operation, spec) {
     }
   }
   per_request <- length(lines)
+  if (split_lines) {
+    value <- paste0('params[[', r_literal(body_name), ']]')
+    lines <- c(
+      lines,
+      paste0('  if (!base::is.null(', value, ')) {'),
+      paste0('    ', text_checks(operation, value)),
+      '  }'
+    )
+  }
   hooks <- spec$hooks[[operation$name]] %or% list()
   if (length(hooks$pre_request)) {
     lines <- c(

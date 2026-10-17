@@ -4,7 +4,25 @@ form_media <- function(media) {
   )
 }
 
-request_body_media <- function(available, preferred = NULL, at = '#') {
+validate_body_media_correction <- function(correction) {
+  config_fields(correction, c('from', 'to', 'reason'), 'body_media_correction')
+  for (field in c('from', 'to', 'reason')) {
+    config_string(correction[[field]], paste('body_media_correction', field))
+  }
+  if (
+    !identical(correction$from, 'application/json') ||
+      !identical(correction$to, 'text/plain')
+  ) {
+    stop('body_media_correction supports application/json to text/plain only')
+  }
+}
+
+request_body_media <- function(
+  available,
+  preferred = NULL,
+  at = '#',
+  correction = NULL
+) {
   supported <- c(
     'application/json',
     'application/octet-stream',
@@ -13,6 +31,22 @@ request_body_media <- function(available, preferred = NULL, at = '#') {
     'text/plain'
   )
   available <- unlist(available, use.names = FALSE)
+  if (!is.null(correction)) {
+    validate_body_media_correction(correction)
+    if (
+      !correction$from %in% available ||
+        correction$to %in% available ||
+        (!is.null(preferred) && !identical(preferred, correction$to))
+    ) {
+      schema_problem(
+        'body_media_correction',
+        'review_required',
+        'Body media correction disagrees with declared media or selected body_media',
+        at
+      )
+    }
+    return(correction$to)
+  }
   selected <- if (is.null(preferred)) {
     intersect(supported, available)[1L]
   } else {
@@ -224,6 +258,19 @@ form_fixture <- function(schema, allow_empty = TRUE) {
   form_value(value, schema, body_value, allow_empty)
 }
 
+text_input <- function(value) {
+  if (
+    !is.character(value) ||
+      is.object(value) ||
+      !is.null(dim(value)) ||
+      !is.null(names(value)) ||
+      anyNA(value)
+  ) {
+    stop('Text body must be a character value without missing values')
+  }
+  value
+}
+
 # Explicit lines encoding happens before validating the declared scalar schema.
 text_value <- function(value, encoding = 'scalar', max_items = NULL) {
   if (
@@ -234,15 +281,7 @@ text_value <- function(value, encoding = 'scalar', max_items = NULL) {
   ) {
     stop('Text encoding must be scalar or lines')
   }
-  if (
-    !is.character(value) ||
-      is.object(value) ||
-      !is.null(dim(value)) ||
-      !is.null(names(value)) ||
-      anyNA(value)
-  ) {
-    stop('Text body must be a character value without missing values')
-  }
+  value <- text_input(value)
   if (encoding == 'scalar' && length(value) != 1L) {
     stop('Scalar text body must contain exactly one string')
   }

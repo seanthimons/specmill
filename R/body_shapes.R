@@ -671,6 +671,7 @@ validation_runtime <- function() {
     body_value = body_value,
     parameter_values = parameter_values,
     form_value = form_value,
+    text_input = text_input,
     text_value = text_value
   )
   paste(
