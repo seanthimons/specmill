@@ -1,6 +1,43 @@
 
 
 
+## specmill 0.1.18 (2026-10-17)
+
+#### New features
+
+- page each item inside batch.fan_out and batch.split (#111)
+  ([b80469d](https://github.com/seanthimons/specmill/tree/b80469d04738bee9f5e6ad2171e3848a0310db97))
+- allow request_controls.timeout of Inf for no limit and name timeout
+  failures (#110)
+  ([aa61bcd](https://github.com/seanthimons/specmill/tree/aa61bcdb1a89d4b7c0aa11cafbe7e40163b0f983))
+- add empty result and stop on rejected credentials
+  ([d392646](https://github.com/seanthimons/specmill/tree/d392646f9f71c93367e2fb9ae74d11fee47ad2e0))
+- warn when a schema leaves security off some operations while others
+  declare it (#108)
+  ([8ebfdbb](https://github.com/seanthimons/specmill/tree/8ebfdbbee05e96f1a837d0ec0317444315d8176b))
+
+#### Bug fixes
+
+- point lock errors at the guide, warn on ignored legacy flags, order
+  update workflow (#114, #115, #116)
+  ([7b6ef16](https://github.com/seanthimons/specmill/tree/7b6ef16622251cc5347db6eecdef312e55d84f0a))
+- warn about unsecured operations across tag services of one schema
+  (#112)
+  ([5091919](https://github.com/seanthimons/specmill/tree/50919196c94630757943b4717b8fca523e426f2f))
+
+#### Docs
+
+- run every generated contract test after apply (#113)
+  ([6b2d3e9](https://github.com/seanthimons/specmill/tree/6b2d3e905272544f7ed6152eef89e6b55aeb5844))
+
+#### Other changes
+
+- release v0.1.18 \[skip ci\]
+  ([4f76d58](https://github.com/seanthimons/specmill/tree/4f76d586cca887623bcce23e56f5d3354fc5f19c))
+
+Full set of changes:
+[`v0.1.17...v0.1.18`](https://github.com/seanthimons/specmill/compare/v0.1.17...v0.1.18)
+
 ## specmill 0.1.17 (2026-10-16)
 
 #### New features
@@ -48,7 +85,7 @@
 #### Other changes
 
 - release v0.1.17 \[skip ci\]
-  ([ff2c72b](https://github.com/seanthimons/specmill/tree/ff2c72b2d3d65e94b6abcb6468b6f9a609e9aed4))
+  ([8080158](https://github.com/seanthimons/specmill/tree/808015823009bebe36991f2a7c9856b104d46c6d))
 
 Full set of changes:
 [`v0.1.16...v0.1.17`](https://github.com/seanthimons/specmill/compare/v0.1.16...v0.1.17)
