@@ -663,6 +663,29 @@ body_value <- function(value, schema) {
   validate(value, schema)
 }
 
+batch_limit <- function(env, default, cap = NULL) {
+  value <- suppressWarnings(as.numeric(Sys.getenv(
+    env,
+    unset = as.character(default)
+  )))
+  if (
+    length(value) != 1L ||
+      is.na(value) ||
+      !is.finite(value) ||
+      value < 1 ||
+      value != floor(value) ||
+      value > .Machine$integer.max
+  ) {
+    stop(
+      'batch.max_items from ',
+      env,
+      ' must resolve to a positive R integer',
+      call. = FALSE
+    )
+  }
+  if (is.null(cap)) value else min(value, cap)
+}
+
 # One specmill-owned copy serves every wrapper and API in the client. The
 # closures resolve names through a private environment whose parent is
 # baseenv(), so package functions named list or c cannot shadow them.
@@ -672,6 +695,7 @@ validation_runtime <- function() {
     parameter_values = parameter_values,
     form_value = form_value,
     text_input = text_input,
+    batch_limit = batch_limit,
     text_value = text_value
   )
   paste(
