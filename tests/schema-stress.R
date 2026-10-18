@@ -272,7 +272,7 @@ schema_stress_acceptance <- function() {
   stopifnot(
     request$method == 'GET',
     request$path == '/latest/chem/HOSEcode',
-    request$query == '?smiles=C%2FC%3DC%5CC&spheres=0&ringsize=FALSE',
+    request$query == '?smiles=C%2FC%3DC%5CC&spheres=0&ringsize=false',
     request$body == ''
   )
   before_request <- tools::md5sum(request_file)
