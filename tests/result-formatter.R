@@ -253,6 +253,7 @@ result_formatter_acceptance <- function() {
   write()
   fails('needs the current client helper template')
   writeLines(helper, helper_path)
+  service$operations[['GET /plain']]$result_formatter <- 'send'
   service$operations[['GET /plain']]$preserve_visibility <- TRUE
   write()
   run()
