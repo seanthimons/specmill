@@ -270,9 +270,17 @@ validate_settings <- function(
     pagination <- settings[['pagination']]
     config_fields(
       pagination,
-      c('mode', 'parameter', 'start', 'completed', 'max_pages'),
+      c('mode', 'parameter', 'start', 'completed', 'max_pages', 'metadata'),
       'pagination'
     )
+    if (
+      'metadata' %in%
+        names(pagination) &&
+        !isTRUE(pagination$metadata) &&
+        !isFALSE(pagination$metadata)
+    ) {
+      stop('pagination.metadata must be true or false')
+    }
     if (!is.null(pagination[['mode']])) {
       config_string(pagination[['mode']], 'pagination.mode')
       if (!identical(pagination[['mode']], 'page')) {

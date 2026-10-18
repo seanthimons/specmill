@@ -507,6 +507,79 @@ pagination_wrapper_acceptance <- function() {
   )
   options(pagewrap.rewrite = NULL)
 
+  # A reviewed operation can return plain legacy attributes while retaining paging.
+  service <- yaml::read_yaml(service_path, handlers = list(seq = identity))
+  service$operations[['GET /items/{kind}']] <- list(
+    pagination = list(metadata = FALSE)
+  )
+  yaml::write_yaml(service, service_path)
+  metadata_plan <- run()
+  plain <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, plain)
+  }
+  expected <- hooked
+  attr(expected, 'pagination') <- NULL
+  seen <- sent()
+  stopifnot(
+    identical(plain$get_items('a'), expected),
+    identical(tail(history()$page, -seen), 1:3),
+    identical(
+      plain$get_items('a', all_pages = FALSE),
+      runtime$get_items('a', all_pages = FALSE)
+    )
+  )
+  empty <- runtime$get_items('none')
+  attr(empty, 'pagination') <- NULL
+  stopifnot(
+    identical(plain$get_items('none'), empty),
+    inherits(try(plain$get_items('missing'), silent = TRUE), 'try-error')
+  )
+  warned <- character()
+  limited <- withCallingHandlers(
+    plain$get_items('forever', max_pages = 2L),
+    warning = function(w) {
+      warned <<- c(warned, conditionMessage(w))
+      invokeRestart('muffleWarning')
+    }
+  )
+  stopifnot(
+    nrow(limited) == 2L,
+    is.null(attr(limited, 'pagination')),
+    length(warned) == 1L,
+    grepl('max_pages', warned)
+  )
+  dry <- withr::with_envvar(c(PAGEWRAP_DRY_RUN = 'true'), plain$get_items('a'))
+  stopifnot(
+    inherits(dry, 'httr2_request'),
+    !grepl("attr(result, 'pagination')", code('get_items'), fixed = TRUE)
+  )
+  # Raw list results also retain exact classes and attributes after omission.
+  raw_operation <- Filter(
+    function(op) op$name == 'get_items',
+    metadata_plan$operations
+  )[[1L]]
+  raw_operation$name <- 'get_records'
+  raw_operation$response_policy <- NULL
+  raw_operation$paginate$completed <- 'empty'
+  eval(
+    parse(
+      text = specmill::render_operation(
+        raw_operation,
+        list(helper = 'api_request')
+      )
+    ),
+    plain
+  )
+  stopifnot(
+    identical(
+      plain$get_records('a'),
+      list(list(id = '1'), list(id = '2'), list(id = '3'))
+    ),
+    identical(plain$get_records('none'), list())
+  )
+  run('check')
+
   # An operation opts out of inherited paging with null.
   service <- paged()
   service$operations[['GET /items/{kind}']] <- list(pagination = NULL)
@@ -520,7 +593,8 @@ pagination_wrapper_acceptance <- function() {
   # --- Pagination inside fan-out (#111) ----------------------------------------------
   service <- paged()
   service$operations[['GET /items/{kind}']] <- list(
-    batch = list(fan_out = 'kind', on_error = 'drop')
+    batch = list(fan_out = 'kind', on_error = 'drop'),
+    pagination = list(metadata = FALSE)
   )
   yaml::write_yaml(service, service_path)
   run()
@@ -594,6 +668,16 @@ pagination_wrapper_acceptance <- function() {
   options(pagewrap.log = NULL, pagewrap.combined = NULL)
 
   # --- Configuration errors --------------------------------------------------------------
+  service <- paged()
+  service$defaults$pagination$metadata <- FALSE
+  yaml::write_yaml(service, service_path)
+  fails('pagination.metadata belongs under operations')
+  service <- paged()
+  service$operations[['GET /items/{kind}']] <- list(
+    pagination = list(metadata = 'no')
+  )
+  yaml::write_yaml(service, service_path)
+  fails('pagination.metadata must be true or false')
   paged()
   write_executor()
   # An operation-level setting must fit; the same setting inherited from defaults need not.
