@@ -477,6 +477,33 @@ request, and `post_response` once per element or chunk:
   only path parameter. A fanned-out query parameter is attributed when the
   operation has no path parameters and it is the only query value sent.
 
+**Final client formatting.** An operation may select `result_formatter` when it
+uses `batch.fan_out`, `batch.split` or pagination:
+
+~~~yaml
+operations:
+  GET /items/{id}:
+    batch:
+      fan_out: id
+    result_formatter: format_items
+~~~
+
+The client-owned `format_items(data)` function receives `data$result` and
+`data$params` with the full normalized public inputs. It runs once after all
+requests, combination, metadata selection and any `post_combine` hook. Its
+return value is final, including `NULL`; specmill does not restore attributes
+after it. Its warnings and errors propagate unchanged, outside both the batch
+drop policy and the hook executor. Existing hooks still use their normal
+wrapping semantics. Use a response policy to collect responses without decoding
+when parsing must wait until every request finishes; the formatter itself must
+implement the desired final projection.
+
+This selection belongs under an individual generated operation, never defaults.
+The named function must exist in the client and cannot name a generated wrapper.
+It is resolved outside generated local variables. For paged wrappers, manual
+`all_pages = FALSE` and a prepared dry-run request bypass final formatting, as
+they bypass `post_combine`. No formatter is selected by default.
+
 **What is returned.** The per-request results are combined, whatever the number
 of inputs, so `f('A')` and `f(c('A', 'B'))` return the same type:
 
