@@ -1,12 +1,26 @@
 
 
 
+## specmill 0.1.28 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.28 \[skip ci\]
+  ([a698a36](https://github.com/seanthimons/specmill/tree/a698a36589ce5f52e093b8d11c4a09cebf26c956))
+- integrate released bodyless operation baseline (#129)
+  ([33cd5b2](https://github.com/seanthimons/specmill/tree/33cd5b2ed0b84828b779d9039234409e97fe6309))
+
+Full set of changes:
+[`v0.1.27...v0.1.28`](https://github.com/seanthimons/specmill/compare/v0.1.27...v0.1.28)
+
 ## specmill 0.1.27 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.27 \[skip ci\]
-  ([9826416](https://github.com/seanthimons/specmill/tree/9826416b51e364c982db9542d10df67e8b1d290e))
+  ([6eb0d55](https://github.com/seanthimons/specmill/tree/6eb0d557b92603862180d170079068db53a124b5))
+- integrate reviewed operation policies (#129)
+  ([d33561b](https://github.com/seanthimons/specmill/tree/d33561b50c37eb3ba51e8aeac9daa2adebc3edc5))
 - integrate released reviewed path baseline (#29)
   ([ff4e410](https://github.com/seanthimons/specmill/tree/ff4e4108fdeffc7222482ecb686c980fde8c8162))
 
@@ -72,6 +86,8 @@ Full set of changes:
 
 #### New features
 
+- allow plain result attributes by policy (#129)
+  ([e7c625a](https://github.com/seanthimons/specmill/tree/e7c625ad1b2509586bd5fa646602021d264f295a))
 - support reviewed bodyless GET subsets (#29)
   ([884f0b5](https://github.com/seanthimons/specmill/tree/884f0b5d47ca30f1725a8002bbe2b514eaa816ae))
 - support reviewed path declarations (#27)
