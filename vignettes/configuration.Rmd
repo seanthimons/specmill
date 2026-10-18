@@ -963,12 +963,57 @@ operations:
       split: true
 ```
 
-`body_media_correction` currently supports only `application/json` to `text/plain`.
-It requires a nonempty review reason and a scalar string source schema. It cannot
-be inherited through defaults. The source media must exist and the target must
-be absent; conflicting `body_media` selections fail review. Plans retain the
+`body_media_correction` supports `application/json` to `text/plain` for a scalar
+string source schema. It requires a nonempty review reason and cannot
+be inherited through defaults. For the text correction, the source media must
+exist and the target must be absent; conflicting `body_media` selections fail review. Plans retain the
 correction and the original source operation; the schema file stays unchanged.
 Ordinary `body_media` continues to select only declared media types.
+
+For a Swagger 2 body with no declared request media, a verified JSON contract can
+be recorded with an explicit null source:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    body_media_correction:
+      from: null
+      to: application/json
+      reason: Reviewed staging declaration and production JSON request capture.
+```
+
+The `from` key must be present. This form applies only to a declared Swagger body
+with no available media declaration, including inherited `consumes`. Existing or
+conflicting declarations, conflicting `body_media` selections, absent bodies and
+OpenAPI bodies are rejected. The source body schema is validated unchanged.
+This is a reviewed declaration for that operation, never a JSON fallback for
+other AMOS routes. The same correction/source-operation provenance is retained.
+
+An explicitly empty `responses: {}` map also needs a reviewed declaration before
+whole-client schema validation can accept that operation:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    response_correction:
+      status: '200'
+      media_type: application/json
+      description: Substance information for the supplied DTXSIDs.
+      reason: Reviewed staging response declaration and captured production 200 JSON.
+```
+
+This operation-only policy requires a quoted HTTP status, JSON media, description
+and review reason. It cannot replace existing response declarations or conflict
+with declared Swagger response media. It records only the status and media; no
+payload fields or types are inferred from one captured response.
+
+The archived file and `source_operation` stay unchanged. The source validation
+report retains its original status, hash and findings. Its `reviewed` entry for
+the service separately records validation of the corrected in-memory document,
+its hash and applied response corrections. That view passes through the same
+schema validator. Other invalid operations or document defects remain blocked;
+this policy never disables schema validation. Parser metadata also retains
+`response_correction` alongside the effective response declaration.
 
 For a reviewed vector-of-lines input, select encoding explicitly:
 
@@ -2046,3 +2091,16 @@ Use the existing `batch.empty` client function to choose the container when ever
 request fails, for example an empty tibble instead of a list. This constructor
 does not change partial-success combination. `batch.metadata` belongs under
 `operations`, never project or service defaults.
+
+### Preserve a single helper call's return visibility
+
+An operation may set `preserve_visibility: true` to forward its helper's visible
+or invisible return, including `NULL`, without changing the value or attributes.
+The generated wrapper ends with the helper call rather than assigning and then
+returning its result. This also works with reviewed request bindings and route
+guards. The default remains the existing visible result behavior.
+
+This policy belongs under an operation and requires an unbatched, unpaged
+generated wrapper without hooks or `post_on_skip`. Pipelines that combine or
+replace results have separate return behavior and are rejected by this setting.
+The policy does not add file-upload support or change request construction.
