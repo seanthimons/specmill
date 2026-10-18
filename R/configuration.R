@@ -562,7 +562,7 @@ load_project <- function(
         body_media_corrections = lapply(overrides, function(x) {
           x$body_media_correction
         }),
-        duplicate_responses = lapply(overrides, function(x) {
+        duplicate_response_overrides = lapply(overrides, function(x) {
           x$duplicate_response
         }),
         response_corrections = lapply(overrides, function(x) {

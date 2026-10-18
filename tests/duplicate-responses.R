@@ -1,4 +1,4 @@
-duplicate_responses_acceptance <- function() {
+duplicate_response_overrides_acceptance <- function() {
   root <- tempfile('duplicate-responses-')
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE), add = TRUE)
@@ -28,7 +28,7 @@ duplicate_responses_acceptance <- function() {
                 content = stats::setNames(
                   list(
                     if (media == '*/*') {
-                      list()
+                      list(schema = list(type = 'string'))
                     } else {
                       list(schema = list(type = 'string', format = 'binary'))
                     }
@@ -68,7 +68,7 @@ duplicate_responses_acceptance <- function() {
     source = 'alerts.json',
     reason = 'Reviewed binary response declaration for the same request'
   )
-  policy$duplicate_responses <- list('GET /render' = reviewed)
+  policy$duplicate_response_overrides <- list('GET /render' = reviewed)
   parsed <- specmill::read_operations(files, policy)
   selected <- parsed$operations[[1L]]
   stopifnot(
@@ -85,16 +85,16 @@ duplicate_responses_acceptance <- function() {
   )
   reverse <- specmill::read_operations(rev(files), policy)
   stopifnot(identical(reverse$operations[[1L]]$response, selected$response))
-  policy$duplicate_responses[['GET /render']]$source <- 'missing.json'
+  policy$duplicate_response_overrides[['GET /render']]$source <- 'missing.json'
   fails(specmill::read_operations(files, policy), 'one loaded duplicate')
-  policy$duplicate_responses[['GET /render']] <- reviewed
+  policy$duplicate_response_overrides[['GET /render']] <- reviewed
   fails(
     specmill::read_operations(files[1L], policy),
     'requires a loaded duplicate'
   )
-  policy$duplicate_responses[['GET /render']]$reason <- ''
+  policy$duplicate_response_overrides[['GET /render']]$reason <- ''
   fails(specmill::read_operations(files, policy), 'duplicate_response.reason')
-  policy$duplicate_responses[['GET /render']] <- reviewed
+  policy$duplicate_response_overrides[['GET /render']] <- reviewed
   write_schema('*/*', 'safety.json', 'other')
   fails(
     specmill::read_operations(files, policy),
@@ -149,5 +149,5 @@ duplicate_responses_acceptance <- function() {
   )
 }
 if (sys.nframe() == 0L) {
-  duplicate_responses_acceptance()
+  duplicate_response_overrides_acceptance()
 }

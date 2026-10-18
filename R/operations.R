@@ -1032,7 +1032,7 @@ read_operations <- function(files, policy = list()) {
   duplicate_ids <- unique(ids[duplicated(ids)])
   reviewed_duplicates <- Filter(
     Negate(is.null),
-    policy$duplicate_responses %or% list()
+    policy$duplicate_response_overrides %or% list()
   )
   for (key in names(reviewed_duplicates)) {
     review <- reviewed_duplicates[[key]]
@@ -1048,7 +1048,7 @@ read_operations <- function(files, policy = list()) {
   }
   for (id in duplicate_ids) {
     group <- operations[ids == id]
-    reviewed <- policy$duplicate_responses[[group[[1L]]$key]]
+    reviewed <- policy$duplicate_response_overrides[[group[[1L]]$key]]
     contract <- function(x) {
       x <- x[setdiff(names(x), c('source', 'source_hash'))]
       if (!is.null(reviewed)) {
