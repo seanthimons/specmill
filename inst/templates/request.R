@@ -405,7 +405,7 @@ api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_
 # The <helper>.batching option's on_error, empty and max_items override the generated defaults.
 # on_error = 'drop' covers per-item failures only; errors classed specmill_call_error stop the call.
 # When drop leaves no successes, `empty()` (the batch.empty client function) supplies the result instead of list().
-api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL) {
+api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL, warning = NULL) {
   policy <- base::getOption(base::paste0(base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV)), '.api_request.batching'), base::list())
   if (!base::is.null(policy$on_error)) on_error <- policy$on_error
   if (!base::is.null(policy$empty)) empty <- policy$empty
@@ -421,6 +421,7 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL)
   # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
   if (base::is.list(on_error)) on_error <- on_error[[if (base::length(chunks) == 1L) 'single' else 'multiple']]
+  if (!base::is.null(warning) && !base::isFALSE(warning) && !base::is.function(warning)) base::stop(base::errorCondition('batch.warning must be a function or FALSE', class = 'specmill_call_error', call = NULL))
   failed <- base::character()
   run <- function(chunk) {
     outer <- api_request_batch_state$active
@@ -434,7 +435,14 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL)
       # Call-level errors (credentials, server, options) apply to every item: stop rather than drop.
       if (base::inherits(e, 'specmill_call_error')) base::stop(e)
       label <- base::paste(base::as.character(base::unlist(chunk)), collapse = ', ')
-      base::warning('Request for ', label, ' failed: ', base::conditionMessage(e), call. = FALSE)
+      message <- if (base::is.null(warning)) base::paste0('Request for ', label, ' failed: ', base::conditionMessage(e)) else if (base::isFALSE(warning)) NULL else base::tryCatch(warning(e, chunk), error = function(error) {
+        base::class(error) <- base::unique(base::c('specmill_call_error', base::class(error)))
+        base::stop(error)
+      })
+      if (!base::is.null(message)) {
+        if (!base::is.character(message) || base::length(message) != 1L || base::is.na(message) || !base::nzchar(message)) base::stop(base::errorCondition('batch.warning must return one nonempty string or NULL', class = 'specmill_call_error', call = NULL))
+        base::warning(message, call. = FALSE)
+      }
       failed[[label]] <<- base::conditionMessage(e)
       NULL
     })

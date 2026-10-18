@@ -175,17 +175,24 @@ iteration_settings <- function(operation, batch, explicit) {
         operation$id
       )
     }
+    if (!is.null(explicit$warning)) {
+      stop('batch.warning requires batch.fan_out or batch.split: ', operation$id)
+    }
     return(NULL)
   }
   on_error <- batch$on_error %or% 'stop'
   if (!is.null(explicit$empty) && !any(unlist(on_error) == 'drop')) {
     stop('batch.empty requires batch.on_error: drop: ', operation$id)
   }
+  if (!is.null(explicit$warning) && !any(unlist(on_error) == 'drop')) {
+    stop('batch.warning requires batch.on_error: drop: ', operation$id)
+  }
   list(
     fan_out = fan_out,
     split = split,
     on_error = on_error,
-    empty = batch$empty
+    empty = batch$empty,
+    warning = batch$warning
   )
 }
 
@@ -221,6 +228,12 @@ render_operation <- function(operation, spec) {
   } else {
     make.unique(c(formal_names, if (!is.null(operation$body)) 'body'))
   }
+  if (
+    is.character(operation$iterate$warning) &&
+      operation$iterate$warning %in% formal_names
+  ) {
+    stop('batch.warning function collides with a public parameter: ', operation$iterate$warning)
+  }
   mapping <- setNames(
     formal_names[seq_along(input_names)],
     vapply(params, function(p) paste(p$location, p$name), character(1))
@@ -250,6 +263,7 @@ render_operation <- function(operation, spec) {
         callback,
         operation$response_policy,
         operation$iterate$empty,
+        if (is.character(operation$iterate$warning)) operation$iterate$warning,
         '.batch_limit'
       )),
       1L
@@ -891,6 +905,12 @@ render_operation <- function(operation, spec) {
         if (!is.null(operation$iterate$empty)) {
           paste0(', empty = ', operation$iterate$empty)
         },
+        if (!is.null(operation$iterate$warning)) {
+          paste0(
+            ', warning = ',
+            if (isFALSE(operation$iterate$warning)) 'FALSE' else operation$iterate$warning
+          )
+        },
         ')'
       ),
       if (combine) post_combine_lines('failed')
@@ -1227,6 +1247,29 @@ generate_client <- function(
           op$id,
           '. Compare the helper with the current template and adopt them.'
         )
+      }
+      if (!is.null(op$iterate$warning)) {
+        warning_formatter <- op$iterate$warning
+        if (
+          is.character(warning_formatter) &&
+            (!warning_formatter %in% names(runtime_definitions) ||
+              warning_formatter %in% operation_names)
+        ) {
+          stop(
+            'Missing client batch.warning function or wrapper collision: ',
+            warning_formatter
+          )
+        }
+        runner <- runtime_definitions[[paste0(operation_spec$helper, '_each')]]
+        if (
+          !is.null(config) &&
+            !'warning' %in% names(formals(eval(runner$expr, baseenv())))
+        ) {
+          stop(
+            'batch.warning needs the current ', operation_spec$helper,
+            '_each() helper with a warning argument: ', op$id
+          )
+        }
       }
       op$paginate <- pagination_settings(
         op,

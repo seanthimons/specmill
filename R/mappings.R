@@ -219,11 +219,14 @@ validate_settings <- function(
   if ('batch' %in% names(settings)) {
     config_fields(
       settings$batch,
-      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error', 'empty'),
+      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error', 'empty', 'warning'),
       'batch'
     )
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')
+    }
+    if (!is.null(settings$batch$warning) && !isFALSE(settings$batch$warning)) {
+      config_string(settings$batch$warning, 'batch.warning')
     }
     if (!is.null(settings$batch$empty)) {
       config_string(settings$batch$empty, 'batch.empty')

@@ -599,6 +599,150 @@ batch_iteration_acceptance <- function() {
     bad$operations[['GET /items/{id}']]$batch$on_error <- policy
     fails(bad, 'batch.on_error')
   }
+  # Operation warning formatters see the original dropped condition and chunk.
+  warning_service <- counted_service
+  warning_service$operations[[
+    'GET /items/{id}'
+  ]]$batch$warning <- 'failure_warning'
+  warning_service$operations[['POST /bulk']]$batch$warning <- 'failure_warning'
+  cat(
+    '\nfailure_warning <- function(error, items) paste0("Legacy ", paste(items, collapse = ", "), ": ", conditionMessage(error))\n',
+    file = file.path(root, 'R/hooks.R'),
+    append = TRUE
+  )
+  yaml::write_yaml(warning_service, service_path)
+  run()
+  run('check')
+  formatted <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, formatted)
+  }
+  capture <- function(expr) {
+    warnings <- character()
+    value <- withCallingHandlers(
+      tryCatch(expr, error = identity),
+      warning = function(w) {
+        warnings <<- c(warnings, conditionMessage(w))
+        invokeRestart('muffleWarning')
+      }
+    )
+    list(value = value, warnings = warnings)
+  }
+  get <- capture(formatted$get_item(c('a', 'bad')))
+  post <- capture(formatted$bulk(c('a', 'b', 'bad')))
+  stopifnot(
+    length(get$warnings) == 1L,
+    startsWith(get$warnings, 'Legacy bad: '),
+    length(post$warnings) == 1L,
+    startsWith(post$warnings, 'Legacy bad: '),
+    identical(get$value[[1L]]$id, 'a'),
+    length(post$value) == 2L,
+    inherits(capture(formatted$get_item('bad'))$value, 'error'),
+    !length(capture(formatted$get_item('bad'))$warnings)
+  )
+  denied <- capture(formatted$get_item(c('a', 'denied')))
+  stopifnot(
+    inherits(denied$value, 'specmill_call_error'),
+    !length(denied$warnings)
+  )
+  formatted$failure_warning <- function(error, items) {
+    sprintf(
+      'API request to "bulk" failed for "%s" with status %s',
+      paste(items, collapse = ', '),
+      error$status
+    )
+  }
+  exact <- withr::with_options(
+    list(iterationclient.response_policy = function(response, context, decode) {
+      if (context$status >= 400L && context$status != 401L) {
+        stop(errorCondition(
+          'request failed',
+          status = context$status,
+          class = 'client_http_error'
+        ))
+      }
+      decode()
+    }),
+    capture(formatted$bulk(c('a', 'b', 'bad')))
+  )
+  stopifnot(identical(
+    exact$warnings,
+    'API request to "bulk" failed for "bad" with status 500'
+  ))
+  formatted$failure_warning <- function(error, items) NULL
+  stopifnot(!length(capture(formatted$get_item(c('a', 'bad')))$warnings))
+  for (invalid in list(NA_character_, '', c('one', 'two'), FALSE)) {
+    formatted$failure_warning <- function(error, items) invalid
+    stopifnot(inherits(
+      capture(formatted$get_item(c('a', 'bad')))$value,
+      'specmill_call_error'
+    ))
+  }
+  formatted$failure_warning <- function(error, items) stop('formatter sentinel')
+  stopifnot(inherits(
+    capture(formatted$get_item(c('a', 'bad')))$value,
+    'specmill_call_error'
+  ))
+  # Structured client errors retain status and chunk data without parsing messages.
+  seen <- NULL
+  result <- formatted$api_request_each(
+    function(items) {
+      stop(errorCondition(
+        'HTTP failure',
+        status = 500L,
+        class = 'client_http_error'
+      ))
+    },
+    c('one', 'two'),
+    1L,
+    on_error = 'drop',
+    warning = function(error, items) {
+      seen <<- c(seen, error$status)
+      NULL
+    }
+  )
+  stopifnot(
+    identical(seen, c(500L, 500L)),
+    length(attr(result, 'failed')) == 2L
+  )
+  warning_service$operations[['GET /items/{id}']]$batch$warning <- FALSE
+  yaml::write_yaml(warning_service, service_path)
+  run()
+  silent <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, silent)
+  }
+  stopifnot(!length(capture(silent$get_item(c('a', 'bad')))$warnings))
+  for (choice in list(
+    TRUE,
+    1L,
+    list('failure_warning'),
+    'missing_warning',
+    'get_item'
+  )) {
+    bad <- warning_service
+    bad$operations[['GET /items/{id}']]$batch$warning <- choice
+    fails(bad, 'batch.warning')
+  }
+  bad <- original
+  bad$operations[['GET /items/{id}']] <- list(batch = list(warning = FALSE))
+  fails(bad, 'batch.warning requires batch.fan_out or batch.split')
+  bad$operations[['GET /items/{id}']]$batch$fan_out <- 'id'
+  fails(bad, 'batch.warning requires batch.on_error: drop')
+  bad <- warning_service
+  bad$defaults$batch$warning <- FALSE
+  fails(bad, 'batch.warning belongs under operations')
+  # A pre-policy runner must be explicitly adopted before the wrapper uses it.
+  yaml::write_yaml(warning_service, service_path)
+  helper <- file.path(root, 'R/api_request.R')
+  helper_text <- readLines(helper)
+  writeLines(sub(', warning = NULL)', ')', helper_text, fixed = TRUE), helper)
+  error <- tryCatch(run(), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('helper with a warning argument', conditionMessage(error))
+  )
+  writeLines(helper_text, helper)
   yaml::write_yaml(counted_service, service_path)
   run()
   # A helper without the runner fails generation with a clear message.
