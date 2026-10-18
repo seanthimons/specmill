@@ -48,6 +48,7 @@ validate_settings <- function(
       'request',
       'post_on_skip',
       'preserve_visibility',
+      'result_formatter',
       'post_state',
       'parameter_order',
       'docs',
@@ -95,6 +96,20 @@ validate_settings <- function(
     }
     if (identical(settings$implementation, 'existing')) {
       stop('defer_inputs requires a generated implementation')
+    }
+  }
+  if (!is.null(settings$result_formatter)) {
+    config_string(settings$result_formatter, paste(label, 'result_formatter'))
+    if (
+      !identical(
+        make.names(settings$result_formatter),
+        settings$result_formatter
+      )
+    ) {
+      stop('result_formatter must be a client function name')
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('result_formatter requires a generated implementation')
     }
   }
   if ('preserve_visibility' %in% names(settings)) {
