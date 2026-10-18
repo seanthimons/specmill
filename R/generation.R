@@ -190,6 +190,14 @@ iteration_settings <- function(operation, batch, explicit) {
       fan_out <- NULL
     }
   }
+  input <- batch$input
+  if (
+    !is.null(input) &&
+      (!isTRUE(operation$explicit_inputs) ||
+        !input %in% vapply(operation$parameters, `[[`, character(1), 'name'))
+  ) {
+    stop('batch.input must name an explicit client input: ', operation$id)
+  }
   split <- isTRUE(batch$split) && !is.null(operation$batch$max_items)
   if (isTRUE(explicit$split) && !split) {
     stop(
@@ -233,6 +241,7 @@ iteration_settings <- function(operation, batch, explicit) {
   }
   list(
     fan_out = fan_out,
+    input = input,
     split = split,
     on_error = on_error,
     empty = batch$empty,
@@ -312,12 +321,15 @@ render_operation <- function(operation, spec) {
     text_operation$batch$max_items <- as.name(limit_name)
   }
   transport_batch <- operation$batch
+  if (!is.null(operation$iterate$input)) {
+    transport_batch$max_items <- NULL
+  }
   if (identical(operation$body_media, 'text/plain')) {
     transport_batch <- transport_batch[setdiff(
       names(transport_batch),
       'max_items'
     )]
-  } else if (dynamic_limit) {
+  } else if (dynamic_limit && is.null(operation$iterate$input)) {
     transport_batch$max_items <- as.name(limit_name)
     transport_batch <- as.call(c(list(quote(base::list)), transport_batch))
   }
@@ -407,6 +419,11 @@ render_operation <- function(operation, spec) {
     stop('Unknown post_params selection')
   }
   deferred <- unlist(spec$defer_inputs, use.names = FALSE)
+  if (
+    !is.null(operation$iterate$input) && operation$iterate$input %in% deferred
+  ) {
+    stop('batch.input must name an eager input')
+  }
   client_inputs <- formal_names[which(vapply(
     params,
     function(p) identical(p$location, 'client'),
@@ -1112,7 +1129,8 @@ render_operation <- function(operation, spec) {
   if (!is.null(operation$iterate)) {
     # Hooks and the request run once per item or chunk; the helper combines results.
     # With pagination, each item pages to completion inside the callback.
-    input <- if (is.null(fan_out)) body_name else fan_out_name
+    input <- operation$iterate$input %or%
+      if (is.null(fan_out)) body_name else fan_out_name
     keep_metadata <- !isFALSE(operation$iterate$metadata)
     combine <- length(hooks$post_combine) > 0L ||
       !keep_metadata ||
@@ -1492,13 +1510,15 @@ generate_client <- function(
       op$guard_literals <- guard_literals
       operation_spec <- configured$spec
       batch <- Filter(Negate(is.null), operation_spec$batch %or% list())
-      op$batch <- if (is.null(op$body)) {
+      client_split <- isTRUE(op$explicit_inputs) && !is.null(batch$input)
+      op$batch <- if (is.null(op$body) && !client_split) {
         list()
       } else {
         batch[intersect(names(batch), c('max_items', 'max_bytes'))]
       }
       if (
         !is.null(op$batch$max_items) &&
+          !client_split &&
           !identical(op$body$type, 'array') &&
           !(identical(op$body_media, 'text/plain') &&
             identical(op$text_encoding, 'lines'))
@@ -1510,6 +1530,7 @@ generate_client <- function(
       }
       if (
         length(op$batch) &&
+          !client_split &&
           (is.null(op$body) ||
             !op$body_media %in%
               c('application/json', 'application/octet-stream', 'text/plain'))
