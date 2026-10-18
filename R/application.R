@@ -237,7 +237,7 @@ apply_files <- function(
     list(file = name, path = path, action = action)
   })
   for (entry in entries[adoptable]) {
-    if (entry$action == 'remove') {
+    if (entry$file %in% remove) {
       manifest$files[[entry$file]] <- NULL
     } else if (entry$file %in% names(desired)) {
       manifest$files[[entry$file]] <- list(
