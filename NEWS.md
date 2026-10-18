@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.33 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.33 \[skip ci\]
+  ([1426579](https://github.com/seanthimons/specmill/tree/1426579fd1c2a9080af4b6713be29cc2823550f7))
+
+Full set of changes:
+[`v0.1.32...v0.1.33`](https://github.com/seanthimons/specmill/compare/v0.1.32...v0.1.33)
+
 ## specmill 0.1.32 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.32 \[skip ci\]
-  ([21d2c59](https://github.com/seanthimons/specmill/tree/21d2c599185d6147463866e90bf0480cc727f4c1))
+  ([daa69c8](https://github.com/seanthimons/specmill/tree/daa69c84d7076e10385508eb54279548b149d849))
 
 Full set of changes:
 [`v0.1.31...v0.1.32`](https://github.com/seanthimons/specmill/compare/v0.1.31...v0.1.32)
@@ -27,6 +37,8 @@ Full set of changes:
 
 - release v0.1.30 \[skip ci\]
   ([f4efdbc](https://github.com/seanthimons/specmill/tree/f4efdbcf23f879553e5de50325d637ab46625ed3))
+- integrate reviewed visibility and response policies (#142)
+  ([91ba6d7](https://github.com/seanthimons/specmill/tree/91ba6d703f383edf8bbadc1e572571bb4f61c61c))
 
 Full set of changes:
 [`v0.1.29...v0.1.30`](https://github.com/seanthimons/specmill/compare/v0.1.29...v0.1.30)
@@ -39,6 +51,8 @@ Full set of changes:
   ([0f43627](https://github.com/seanthimons/specmill/tree/0f436277450801c9640e27725b0805561fd91984))
 - integrate reviewed response and paging policies (#31)
   ([b8ebc70](https://github.com/seanthimons/specmill/tree/b8ebc70836dd740d163ef51a3842a13f5b96ebc2))
+- integrate released pagination policies (#142)
+  ([70c9b7b](https://github.com/seanthimons/specmill/tree/70c9b7b3b5b3c5ee28f92d514507cd00a8242c44))
 
 Full set of changes:
 [`v0.1.28...v0.1.29`](https://github.com/seanthimons/specmill/compare/v0.1.28...v0.1.29)
@@ -56,6 +70,11 @@ Full set of changes:
 [`v0.1.27...v0.1.28`](https://github.com/seanthimons/specmill/compare/v0.1.27...v0.1.28)
 
 ## specmill 0.1.27 (2026-10-18)
+
+#### New features
+
+- allow plain failure result attributes by policy (#142)
+  ([03a8523](https://github.com/seanthimons/specmill/tree/03a8523b1098f1a5ee22db161ccfc03e64b8cb56))
 
 #### Other changes
 
