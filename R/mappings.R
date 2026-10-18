@@ -266,7 +266,20 @@ validate_settings <- function(
     pagination <- settings[['pagination']]
     config_fields(
       pagination,
-      c('mode', 'parameter', 'start', 'completed', 'max_pages', 'metadata'),
+      c(
+        'mode',
+        'parameter',
+        'start',
+        'completed',
+        'max_pages',
+        'metadata',
+        'next_cursor',
+        'items',
+        'error_policy',
+        'warn_limits',
+        'warn_errors',
+        'on_limit'
+      ),
       'pagination'
     )
     if (
@@ -279,10 +292,9 @@ validate_settings <- function(
     }
     if (!is.null(pagination[['mode']])) {
       config_string(pagination[['mode']], 'pagination.mode')
-      if (!identical(pagination[['mode']], 'page')) {
+      if (!pagination[['mode']] %in% c('page', 'cursor')) {
         stop(
-          'pagination.mode must be page; offset and cursor paging are not ',
-          'available for generated wrappers yet'
+          'pagination.mode must be page or cursor; offset paging is not available for generated wrappers yet'
         )
       }
     }
@@ -301,7 +313,46 @@ validate_settings <- function(
         stop('pagination.completed must be empty or a client function name')
       }
     }
-    for (field in c('start', 'max_pages')) {
+    for (field in c('next_cursor', 'items', 'on_limit')) {
+      if (!is.null(pagination[[field]])) {
+        value <- config_string(
+          pagination[[field]],
+          paste0('pagination.', field)
+        )
+        if (!identical(make.names(value), value)) {
+          stop('Pagination callbacks must name client functions')
+        }
+      }
+    }
+    for (field in intersect(
+      c('warn_limits', 'warn_errors'),
+      names(pagination)
+    )) {
+      if (!isTRUE(pagination[[field]]) && !isFALSE(pagination[[field]])) {
+        stop('pagination.', field, ' must be true or false')
+      }
+    }
+    if (!is.null(pagination$error_policy)) {
+      policy <- config_string(
+        pagination$error_policy,
+        'pagination.error_policy'
+      )
+      if (!policy %in% c('stop', 'partial', 'empty')) {
+        stop('pagination.error_policy must be stop, partial, or empty')
+      }
+    }
+    cursor <- identical(pagination$mode, 'cursor') ||
+      (is.null(pagination$mode) && is.character(pagination$start))
+    if (
+      cursor &&
+        !is.null(pagination$start) &&
+        (!is.character(pagination$start) ||
+          length(pagination$start) != 1L ||
+          is.na(pagination$start))
+    ) {
+      stop('pagination.start must be NULL or one nonmissing cursor string')
+    }
+    for (field in if (cursor) 'max_pages' else c('start', 'max_pages')) {
       value <- pagination[[field]]
       if (
         !is.null(value) &&

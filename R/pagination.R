@@ -34,6 +34,7 @@
 #' @param error_policy One of stop, partial, or empty. Partial/empty recover only
 #'   request errors, warn, and respectively retain or discard successful pages.
 #' @param warn_limits Warn when a page or item limit truncates retrieval.
+#' @param warn_errors Warn when a request error returns partial or empty results.
 #' @param format Optional function applied to the completed result after metadata
 #'   iteration. Response decoding remains the single-request function's responsibility.
 #' @param policy Named list of shared pagination defaults. Explicit arguments
@@ -80,7 +81,8 @@ paginated <- function(
   error_policy = 'stop',
   warn_limits = FALSE,
   format = NULL,
-  policy = list()
+  policy = list(),
+  warn_errors = TRUE
 ) {
   allowed <- setdiff(names(formals(sys.function())), c('fn', '...', 'policy'))
   if (
@@ -103,7 +105,7 @@ paginated <- function(
       stop('Pagination callbacks must be functions')
     }
   }
-  for (value in list(stop_on_short, warn_limits)) {
+  for (value in list(stop_on_short, warn_limits, warn_errors)) {
     if (!is.logical(value) || length(value) != 1L || is.na(value)) {
       stop('Pagination flags must be logical')
     }
@@ -256,18 +258,23 @@ paginated <- function(
     }
     requests <- requests + 1
     response <- tryCatch(do.call(fn, args), error = function(e) {
-      if (error_policy == 'stop' || inherits(e, 'pagination_security_error')) {
+      if (
+        error_policy == 'stop' ||
+          inherits(e, c('pagination_security_error', 'specmill_call_error'))
+      ) {
         stop(e)
       }
       e
     })
     if (inherits(response, 'error')) {
-      warning(
-        'Pagination request failed; returning ',
-        error_policy,
-        ' results',
-        call. = FALSE
-      )
+      if (warn_errors) {
+        warning(
+          'Pagination request failed; returning ',
+          error_policy,
+          ' results',
+          call. = FALSE
+        )
+      }
       if (error_policy == 'empty') {
         pages <- list()
         count <- 0
