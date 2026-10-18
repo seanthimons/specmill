@@ -1,6 +1,23 @@
 
 
 
+## specmill 0.1.39 (2026-10-18)
+
+#### New features
+
+- expose the generated response decoder (#156)
+  ([da88138](https://github.com/seanthimons/specmill/tree/da88138c0b2b25d7dda1a0ce45f668ba51ace20e))
+- preserve typed request errors when selected (#156)
+  ([e77e862](https://github.com/seanthimons/specmill/tree/e77e862da77c7e2f35dc49e6085715ed6863f1bb))
+
+#### Other changes
+
+- release v0.1.39 \[skip ci\]
+  ([78d5b98](https://github.com/seanthimons/specmill/tree/78d5b98a81a239b00d93695232b04b337f66ed87))
+
+Full set of changes:
+[`v0.1.38...v0.1.39`](https://github.com/seanthimons/specmill/compare/v0.1.38...v0.1.39)
+
 ## specmill 0.1.38 (2026-10-18)
 
 #### New features
@@ -11,7 +28,7 @@
 #### Other changes
 
 - release v0.1.38 \[skip ci\]
-  ([7c4cf28](https://github.com/seanthimons/specmill/tree/7c4cf28c2782b2df67b8cdc634267c5811640772))
+  ([f0adbc0](https://github.com/seanthimons/specmill/tree/f0adbc08f35142cd2f85b1a1b60606b58e9d749e))
 
 Full set of changes:
 [`v0.1.37...v0.1.38`](https://github.com/seanthimons/specmill/compare/v0.1.37...v0.1.38)
