@@ -355,6 +355,18 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  deferred <- unlist(spec$defer_inputs, use.names = FALSE)
+  client_inputs <- formal_names[which(vapply(
+    params,
+    function(p) identical(p$location, 'client'),
+    logical(1)
+  ))]
+  if (length(setdiff(deferred, client_inputs))) {
+    stop('defer_inputs must name client inputs, not native wire parameters')
+  }
+  if (length(intersect(deferred, names(spec$normalize_inputs)))) {
+    stop('defer_inputs cannot select normalize_inputs values')
+  }
   normalizers <- spec$normalize_inputs
   unknown <- setdiff(names(normalizers), formal_names)
   if (length(unknown)) {
@@ -404,7 +416,14 @@ render_operation <- function(operation, spec) {
       paste(
         vapply(
           formal_names,
-          function(n) paste0(r_literal(n), ' = ', n),
+          function(n) {
+            paste0(
+              r_literal(n),
+              ' = ',
+              if (n %in% deferred) 'function() ' else '',
+              n
+            )
+          },
           character(1)
         ),
         collapse = ', '
@@ -429,7 +448,8 @@ render_operation <- function(operation, spec) {
     }
     if (
       isTRUE(params[[i]]$public_required %or% params[[i]]$required) &&
-        !isTRUE(operation$explicit_inputs)
+        !isTRUE(operation$explicit_inputs) &&
+        !formal_names[[i]] %in% deferred
     ) {
       lines <- c(
         lines,

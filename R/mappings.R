@@ -43,6 +43,7 @@ validate_settings <- function(
       'body',
       'inputs',
       'normalize_inputs',
+      'defer_inputs',
       'extra_parameters',
       'request',
       'post_on_skip',
@@ -70,6 +71,32 @@ validate_settings <- function(
     ),
     label
   )
+  if ('defer_inputs' %in% names(settings)) {
+    deferred <- settings$defer_inputs
+    if (
+      (!is.list(deferred) && !is.character(deferred)) ||
+        !length(deferred) ||
+        !is.null(names(deferred))
+    ) {
+      stop('defer_inputs must be an unnamed sequence of client input names')
+    }
+    for (name in deferred) {
+      if (
+        !is.character(name) ||
+          length(name) != 1L ||
+          is.na(name) ||
+          !identical(make.names(name), name)
+      ) {
+        stop('defer_inputs must contain client input names')
+      }
+    }
+    if (anyDuplicated(unlist(deferred))) {
+      stop('defer_inputs must be unique')
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('defer_inputs requires a generated implementation')
+    }
+  }
   if ('preserve_visibility' %in% names(settings)) {
     value <- settings$preserve_visibility
     if (!is.logical(value) || length(value) != 1L || is.na(value)) {

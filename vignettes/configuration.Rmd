@@ -2086,6 +2086,34 @@ chunks. No normalization is inferred for other inputs, duplicates, or text lines
 line encoding preserves its existing entry boundaries and newline bytes unless
 that input explicitly opts into a client function.
 
+### Deferred client inputs
+
+By default, wrappers capture every public input eagerly before request hooks.
+For a reviewed facade with response-only options, an operation can defer selected
+client inputs:
+
+```yaml
+operations:
+  POST /api/resolver/lookup:
+    defer_inputs: [tidy]
+```
+
+Each selected value in `params` becomes a zero-argument function. Client hooks
+pass it through unchanged, and the response callback calls `params$tidy()` when
+formatting needs that option. The function evaluates the original R argument
+promise, so repeated calls evaluate the supplied expression once. This lets
+initial input guards and body-option capture run first, followed by request
+cleanup, HTTP, and response formatting. A request or cleanup failure need not
+force the response-only argument.
+
+Only explicit `inputs` or `extra_parameters` can be selected. Native wire
+parameters, unknown names, duplicate names, and inputs also selected by
+`normalize_inputs` are rejected. The policy belongs under `operations`, not
+project or service defaults, and requires a generated implementation. It does
+not change the public signature or automatically invoke deferred values in
+request bindings: client code must call them where the reviewed contract needs
+them. Other inputs and existing frontloaded normalizers keep their behavior.
+
 ### Error policy by request count
 
 Reviewed operations that abort one failed request but retain partial results for
@@ -2123,6 +2151,7 @@ return values also abort. For exact HTTP wording, an existing client response
 policy can raise a structured error containing the reviewed status or route; the
 formatter can read those fields without parsing an error message. Result metadata
 and the `batch.empty` constructor remain separate policies.
+
 
 ### Plain batch result attributes
 
