@@ -2310,3 +2310,27 @@ This policy belongs under an operation and requires an unbatched, unpaged
 generated wrapper without hooks or `post_on_skip`. Pipelines that combine or
 replace results have separate return behavior and are rejected by this setting.
 The policy does not add file-upload support or change request construction.
+
+### Reviewed duplicate response declarations
+
+When two loaded schemas describe the same request but disagree about its
+response, select the reviewed response source explicitly:
+
+```yaml
+operations:
+  GET /api/alerts/render:
+    duplicate_response:
+      source: chemi-alerts-prod.json
+      reason: Reviewed PNG/SVG response declaration for the shared render route
+```
+
+The source must identify one loaded duplicate. Request parameters, security,
+server and other operation metadata must still agree. Without this policy,
+conflicting duplicates remain errors. The selected response drives generation;
+both source response contracts and hashes are retained in inventory and file
+ownership provenance. This does not rewrite either schema.
+
+Declared alternative routes compare the configured server resolver, key,
+relative base path and recorded absolute fallback. A common resolver can join
+relative OpenAPI and hostless Swagger routes with the same base path; different
+resolver settings or fallback URLs remain errors.

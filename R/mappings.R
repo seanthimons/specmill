@@ -66,6 +66,7 @@ validate_settings <- function(
       'security_correction',
       'body_media_correction',
       'response_correction',
+      'duplicate_response',
       'request_body_correction',
       'path_parameters_correction',
       'text_encoding',
@@ -102,6 +103,21 @@ validate_settings <- function(
     if (identical(settings$implementation, 'existing')) {
       stop('defer_inputs requires a generated implementation')
     }
+  }
+  if (!is.null(settings$duplicate_response)) {
+    config_fields(
+      settings$duplicate_response,
+      c('source', 'reason'),
+      paste(label, 'duplicate_response')
+    )
+    config_string(
+      settings$duplicate_response$source,
+      'duplicate_response.source'
+    )
+    config_string(
+      settings$duplicate_response$reason,
+      'duplicate_response.reason'
+    )
   }
   if (!is.null(settings$result_formatter)) {
     config_string(settings$result_formatter, paste(label, 'result_formatter'))
