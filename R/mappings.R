@@ -50,6 +50,8 @@ validate_settings <- function(
       'preserve_visibility',
       'result_formatter',
       'post_state',
+      'private_params',
+      'post_params',
       'parameter_order',
       'docs',
       'batch',
@@ -110,6 +112,52 @@ validate_settings <- function(
     }
     if (identical(settings$implementation, 'existing')) {
       stop('result_formatter requires a generated implementation')
+    }
+  }
+  if ('private_params' %in% names(settings)) {
+    private <- settings$private_params
+    config_fields(private, names(private), paste(label, 'private_params'))
+    if (
+      !length(private) ||
+        !all(
+          vapply(
+            names(private),
+            function(name) identical(make.names(name), name),
+            logical(1)
+          )
+        )
+    ) {
+      stop(
+        'private_params must be a nonempty named mapping of private parameters'
+      )
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('private_params requires a generated implementation')
+    }
+  }
+  if ('post_params' %in% names(settings)) {
+    selected <- settings$post_params
+    if (
+      (!is.list(selected) && !is.character(selected)) ||
+        !is.null(names(selected)) ||
+        !all(
+          vapply(
+            selected,
+            function(name) {
+              is.character(name) &&
+                length(name) == 1L &&
+                !is.na(name) &&
+                identical(make.names(name), name)
+            },
+            logical(1)
+          )
+        ) ||
+        anyDuplicated(unlist(selected))
+    ) {
+      stop('post_params must be an unnamed sequence of unique parameter names')
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('post_params requires a generated implementation')
     }
   }
   if ('preserve_visibility' %in% names(settings)) {
