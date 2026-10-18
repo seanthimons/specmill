@@ -2102,6 +2102,21 @@ branch drops failures. Credential and other call-level errors still abort every
 branch. This policy applies to errors reaching the runner; a client response
 policy can separately handle received HTTP responses before decoding.
 
+An operation can set `batch.warning: failure_warning` to a client function
+`function(error, items)` that formats each dropped request's warning. It receives
+the original error condition and that request's normalized chunk. Return one
+nonempty string for the warning, or `NULL` to suppress it. `batch.warning: false`
+suppresses dropped-request warnings directly. Omitting the field keeps the
+existing warning text. This setting requires a dropping branch and belongs under
+operations. Adopt the current request helper before using it.
+
+The formatter runs only for dropped request errors. Credential and other
+`specmill_call_error` conditions bypass it and abort. Formatter failures or invalid
+return values also abort. For exact HTTP wording, an existing client response
+policy can raise a structured error containing the reviewed status or route; the
+formatter can read those fields without parsing an error message. Result metadata
+and the `batch.empty` constructor remain separate policies.
+
 ### Preserve a single helper call's return visibility
 
 An operation may set `preserve_visibility: true` to forward its helper's visible
