@@ -1248,6 +1248,7 @@ generate_client <- function(
       paste0(
         x$helper,
         c(
+          '_decode',
           '_delimited',
           '_records',
           '_table',
@@ -1715,6 +1716,10 @@ generate_client <- function(
             'request_controls.preserve_errors needs the current client helper template: ',
             op$id
           )
+        }
+        if (preserve_errors &&
+            !paste0(operation_spec$helper, '_decode') %in% names(runtime_definitions)) {
+          stop('request_controls.preserve_errors needs the current client decoder companion: ', op$id)
         }
         helper_formals <- tg_formal_records(helper_definition$expr)
         required_arguments <- names(Filter(

@@ -58,6 +58,19 @@ typed_errors_acceptance <- function() {
       c(one = 'transport sentinel', two = 'transport sentinel')
     ))
   })
+  # The scaffold's standalone decoder has no transport-scope closure variables.
+  decoder <- runtime$api_request_decode
+  response <- httr2::response(
+    200L,
+    headers = list('content-type' = 'application/json'),
+    body = charToRaw('{"ok":true}')
+  )
+  stopifnot(identical(decoder(response), list(ok = TRUE)))
+  policy <- function(response, context, decode) decode()
+  stopifnot(identical(
+    decoder(response, response_policy = policy),
+    list(ok = TRUE)
+  ))
   # Real received HTTP responses, not req_perform mocks that bypass httr2 handling.
   port_file <- tempfile()
   on.exit(unlink(port_file), add = TRUE)
