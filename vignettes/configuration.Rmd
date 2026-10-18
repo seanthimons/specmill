@@ -1785,6 +1785,15 @@ returns the pages combined as a batched wrapper does, so tables built with
 (`empty_page`, `completed` or `max_pages`). The caller guide is
 [Fetch every page of a result](paged-wrappers.html).
 
+To preserve a plain legacy result, set `pagination: {metadata: false}` on the
+operation. The default is `true`. This field is operation-only, so inherited
+paging settings keep their existing metadata behavior. With `false`, the wrapper
+removes the generated `pagination` attribute before `post_combine`; it will not
+restore that attribute afterward. Page completion, limit warnings, error
+propagation, manual single-page calls and dry runs keep their existing behavior.
+The same setting works when paging is nested inside fan-out. Other result
+attributes are not removed by this policy.
+
 **Hooks and policy.** `pre_request`, the response policy and `post_response` run
 once per page. An optional `post_combine` hook runs once on the combined result
 (see [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper)).
@@ -1795,7 +1804,7 @@ a hook that does stops the call with an error before the request is sent.
 generation requires it to set `all_pages: false` in its inputs. A `calls`
 contract describes the page sequence: one entry per page request in order, ending
 with the empty page (or with page `max_pages`), and a `result` that includes the
-`pagination` attribute.
+`pagination` attribute unless operation policy disables it.
 
 **The client helper.** The loop uses `<helper>_paginated()`, `<helper>_combine()`
 and `<helper>_pages()` in the client-owned helper file. Initialize a new client with
