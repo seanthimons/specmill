@@ -1,12 +1,32 @@
 
 
 
+## specmill 0.1.42 (2026-10-18)
+
+#### New features
+
+- validate full inputs before permissive fan out (#166)
+  ([16928dc](https://github.com/seanthimons/specmill/tree/16928dc49804d8149bbf8e126a3bd02c8a68de75))
+
+#### Other changes
+
+- release v0.1.42 \[skip ci\]
+  ([beb68c7](https://github.com/seanthimons/specmill/tree/beb68c7d2fa841455c27c03ffc1042c5510843c0))
+
+Full set of changes:
+[`v0.1.41...v0.1.42`](https://github.com/seanthimons/specmill/compare/v0.1.41...v0.1.42)
+
 ## specmill 0.1.41 (2026-10-18)
+
+#### CI
+
+- build documentation after publication or on demand
+  ([0a4bd66](https://github.com/seanthimons/specmill/tree/0a4bd66f03bc847875f06573341a98b7c4613bec))
 
 #### Other changes
 
 - release v0.1.41 \[skip ci\]
-  ([6890071](https://github.com/seanthimons/specmill/tree/689007193543bf0e7ccf0c689d50b417a90db129))
+  ([05862be](https://github.com/seanthimons/specmill/tree/05862bee1804806cea157ff1962300d741516301))
 
 Full set of changes:
 [`v0.1.40...v0.1.41`](https://github.com/seanthimons/specmill/compare/v0.1.40...v0.1.41)
