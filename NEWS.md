@@ -1,18 +1,113 @@
 
 
 
+## specmill 0.1.31 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.31 \[skip ci\]
+  ([90cc1b6](https://github.com/seanthimons/specmill/tree/90cc1b692687e9e6c4977c273c349713030082d9))
+
+Full set of changes:
+[`v0.1.30...v0.1.31`](https://github.com/seanthimons/specmill/compare/v0.1.30...v0.1.31)
+
+## specmill 0.1.30 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.30 \[skip ci\]
+  ([f4efdbc](https://github.com/seanthimons/specmill/tree/f4efdbcf23f879553e5de50325d637ab46625ed3))
+
+Full set of changes:
+[`v0.1.29...v0.1.30`](https://github.com/seanthimons/specmill/compare/v0.1.29...v0.1.30)
+
+## specmill 0.1.29 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.29 \[skip ci\]
+  ([0f43627](https://github.com/seanthimons/specmill/tree/0f436277450801c9640e27725b0805561fd91984))
+- integrate reviewed response and paging policies (#31)
+  ([b8ebc70](https://github.com/seanthimons/specmill/tree/b8ebc70836dd740d163ef51a3842a13f5b96ebc2))
+
+Full set of changes:
+[`v0.1.28...v0.1.29`](https://github.com/seanthimons/specmill/compare/v0.1.28...v0.1.29)
+
+## specmill 0.1.28 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.28 \[skip ci\]
+  ([69656fe](https://github.com/seanthimons/specmill/tree/69656feb96241a1a8b45cc66909e260f931df224))
+- integrate released bodyless operation baseline (#129)
+  ([33cd5b2](https://github.com/seanthimons/specmill/tree/33cd5b2ed0b84828b779d9039234409e97fe6309))
+
+Full set of changes:
+[`v0.1.27...v0.1.28`](https://github.com/seanthimons/specmill/compare/v0.1.27...v0.1.28)
+
+## specmill 0.1.27 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.27 \[skip ci\]
+  ([6eb0d55](https://github.com/seanthimons/specmill/tree/6eb0d557b92603862180d170079068db53a124b5))
+- retain reviewed responses and bodyless subsets (#26)
+  ([9ce8d92](https://github.com/seanthimons/specmill/tree/9ce8d927a8c1002c4a2a408752c3ae9e18d111c5))
+- retain visibility with bodyless operation policy (#31)
+  ([2088545](https://github.com/seanthimons/specmill/tree/2088545156f54996bf8fd5f5916411c574319a4f))
+- integrate reviewed operation policies (#129)
+  ([d33561b](https://github.com/seanthimons/specmill/tree/d33561b50c37eb3ba51e8aeac9daa2adebc3edc5))
+- integrate released reviewed path baseline (#29)
+  ([ff4e410](https://github.com/seanthimons/specmill/tree/ff4e4108fdeffc7222482ecb686c980fde8c8162))
+
+Full set of changes:
+[`v0.1.26...v0.1.27`](https://github.com/seanthimons/specmill/compare/v0.1.26...v0.1.27)
+
+## specmill 0.1.26 (2026-10-17)
+
+#### Other changes
+
+- release v0.1.26 \[skip ci\]
+  ([3206891](https://github.com/seanthimons/specmill/tree/3206891c579f4a8464c8bf137ee533bbb39a5f38))
+- combine response declarations with reviewed paths (#26)
+  ([ee3b2ca](https://github.com/seanthimons/specmill/tree/ee3b2ca4cc18046ba9c7d753d0e1b71d0e66227c))
+- retain visibility alongside reviewed paths (#31)
+  ([df7fd39](https://github.com/seanthimons/specmill/tree/df7fd394168528d7ab26dbaabf46ed2f9e0f6629))
+- combine reviewed paths and bodyless subsets (#29)
+  ([07d18ad](https://github.com/seanthimons/specmill/tree/07d18ad929f4c63c311e83244e1c61fe9bf2000c))
+- integrate released normalization baseline (#27)
+  ([4cf2f67](https://github.com/seanthimons/specmill/tree/4cf2f67da2daa61216ab86a8105f8dbebfd227a6))
+
+Full set of changes:
+[`v0.1.25...v0.1.26`](https://github.com/seanthimons/specmill/compare/v0.1.25...v0.1.26)
+
 ## specmill 0.1.25 (2026-10-17)
 
 #### New features
 
+- preserve single helper return visibility by policy (#31)
+  ([920c248](https://github.com/seanthimons/specmill/tree/920c2487c70f6dc239e9272890f942f02c132f00))
 - normalize selected client values before validation and iteration
   (#135)
   ([213dd7e](https://github.com/seanthimons/specmill/tree/213dd7ee68dc1a643264db795d97aa83be5a98ef))
 
+#### Bug fixes
+
+- trim trailing blanks from emitted validators (#138)
+  ([a346efb](https://github.com/seanthimons/specmill/tree/a346efbbd9213fba3130beb3276f790822a329e6))
+
 #### Other changes
 
 - release v0.1.25 \[skip ci\]
-  ([bbf90a6](https://github.com/seanthimons/specmill/tree/bbf90a6ce935d88b4ab29f486a28077b9fbd03d1))
+  ([01fe162](https://github.com/seanthimons/specmill/tree/01fe162db735249a497ea9d30811b1d646733aa4))
+- combine input normalization and return visibility (#31)
+  ([851c88a](https://github.com/seanthimons/specmill/tree/851c88a7cb5ec5f11a788fd1c655c89c236dd5a4))
+- retain contract corrections with input normalization (#26)
+  ([f9d4389](https://github.com/seanthimons/specmill/tree/f9d43896013c584719cfd6cc8c89325e8f372615))
+- retain bodyless subsets with input normalization (#29)
+  ([0dbd138](https://github.com/seanthimons/specmill/tree/0dbd138abed98585925141b430ebac0931991eb2))
+- retain reviewed paths with input normalization (#27)
+  ([2c4ac63](https://github.com/seanthimons/specmill/tree/2c4ac63d09424fda04b35fe93f1083cfd25cb499))
 - integrate released batch support baseline (#135)
   ([777551c](https://github.com/seanthimons/specmill/tree/777551c253692bb176b18e7bcb872589fface34f))
 
@@ -20,6 +115,11 @@ Full set of changes:
 [`v0.1.24...v0.1.25`](https://github.com/seanthimons/specmill/compare/v0.1.24...v0.1.25)
 
 ## specmill 0.1.24 (2026-10-17)
+
+#### New features
+
+- review empty response declarations per operation (#26)
+  ([2031e26](https://github.com/seanthimons/specmill/tree/2031e26e32dad52b55974ef6b503dcb834e83f4b))
 
 #### Tests
 
@@ -30,6 +130,12 @@ Full set of changes:
 
 - release v0.1.24 \[skip ci\]
   ([49b2dde](https://github.com/seanthimons/specmill/tree/49b2ddeea8476dd9d2b2e6a7f6fa2908815a1b3a))
+- preserve reviewed corrections with security policy (#26)
+  ([1b3be43](https://github.com/seanthimons/specmill/tree/1b3be43c36af4e6b385e159de95d06b2b87de9fa))
+- integrate released security policy (#29)
+  ([0f91f01](https://github.com/seanthimons/specmill/tree/0f91f016e2ce4b39fe47d17b770b2cb2c11264a6))
+- integrate released security corrections (#27)
+  ([f0460a3](https://github.com/seanthimons/specmill/tree/f0460a3c154584f04759edf8a5feacba2b804e98))
 
 Full set of changes:
 [`v0.1.23...v0.1.24`](https://github.com/seanthimons/specmill/compare/v0.1.23...v0.1.24)
@@ -38,6 +144,14 @@ Full set of changes:
 
 #### New features
 
+- declare reviewed missing Swagger JSON media (#26)
+  ([e72308c](https://github.com/seanthimons/specmill/tree/e72308ccafd13f7496612e25ee3a37fe85fa02b5))
+- allow plain result attributes by policy (#129)
+  ([e7c625a](https://github.com/seanthimons/specmill/tree/e7c625ad1b2509586bd5fa646602021d264f295a))
+- support reviewed bodyless GET subsets (#29)
+  ([884f0b5](https://github.com/seanthimons/specmill/tree/884f0b5d47ca30f1725a8002bbe2b514eaa816ae))
+- support reviewed path declarations (#27)
+  ([9ca9db1](https://github.com/seanthimons/specmill/tree/9ca9db18101ba2a43f128691ef05960cf35e1030))
 - resolve reviewed batch limits at call time (#128)
   ([7374c5e](https://github.com/seanthimons/specmill/tree/7374c5ee3a6182499c3e7b5537aa37c63cc5201f))
 
