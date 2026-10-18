@@ -822,6 +822,14 @@ render_operation <- function(operation, spec) {
   # One request per page, with hooks and policy per page; the pages are combined.
   # all_pages = FALSE is the plain single request.
   pages_lines <- function(indent, assign = '') {
+    callback_reference <- function(name) {
+      if (is.null(name)) return('NULL')
+      paste0(
+        'base::get(', r_literal(name),
+        ', envir = base::environment(', helper, '_pages), ',
+        'mode = "function", inherits = FALSE)'
+      )
+    }
     paste0(
       indent,
       c(
@@ -832,7 +840,7 @@ render_operation <- function(operation, spec) {
             'if (!base::isTRUE(all_pages)) {',
             '  result <- send(params)',
             '  if (base::inherits(result, "httr2_request")) base::return(result)',
-            paste0('  base::return(', pg$items, '(result))'),
+            paste0('  base::return(', callback_reference(pg$items), '(result))'),
             '}'
           )
         },
@@ -862,7 +870,11 @@ render_operation <- function(operation, spec) {
           ', params[[',
           r_literal(page_formal),
           ']], max_pages, completed = ',
-          if (identical(pg$completed, 'empty')) 'NULL' else pg$completed,
+          if (identical(pg$completed, 'empty')) {
+            'NULL'
+          } else {
+            callback_reference(pg$completed)
+          },
           if (
             identical(pg$mode, 'cursor') ||
               !is.null(pg$items) ||
@@ -876,9 +888,9 @@ render_operation <- function(operation, spec) {
               ', mode = ',
               r_literal(pg$mode),
               ', next_cursor = ',
-              pg$next_cursor %or% 'NULL',
+              callback_reference(pg$next_cursor),
               ', items = ',
-              pg$items %or% 'NULL',
+              callback_reference(pg$items),
               ', error_policy = ',
               r_literal(pg$error_policy),
               ', warn_limits = ',
@@ -888,7 +900,7 @@ render_operation <- function(operation, spec) {
               ', stop_on_empty = ',
               r_literal(pg$stop_on_empty),
               ', on_limit = ',
-              pg$on_limit %or% 'NULL'
+              callback_reference(pg$on_limit)
             )
           },
           ')'

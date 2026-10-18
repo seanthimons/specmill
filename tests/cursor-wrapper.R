@@ -302,6 +302,43 @@ cursor_wrapper_acceptance <- function() {
     env$get_cursor('normal')
   )
   stopifnot(inherits(dry, 'httr2_request'))
+  # Client callbacks can share names with generated transport and paging locals.
+  saved_service <- service
+  policy_file <- file.path(root, 'R/policy.R')
+  saved_policy <- readLines(policy_file)
+  for (field in c('items', 'next_cursor', 'on_limit')) {
+    definition <- switch(
+      field,
+      items = 'send <- function(page) cursor_items(page)',
+      next_cursor = 'send <- function(page) cursor_next(page)',
+      on_limit = 'send <- function(result, limit) cursor_limit(result, limit)'
+    )
+    writeLines(c(saved_policy, definition), policy_file)
+    service <- saved_service
+    for (key in names(service$operations)) {
+      service$operations[[key]]$pagination[[field]] <- 'send'
+    }
+    # Fan-out puts the paging callback in a nested generated closure.
+    service$operations[['GET /get/{kind}']]$batch <- list(fan_out = 'kind')
+    run()
+    run('check')
+    load()
+    for (name in c('get_cursor', 'post_cursor')) {
+      fn <- env[[name]]
+      manual <- fn('normal', all_pages = FALSE)
+      limited <- warnings(fn('normal', max_pages = 2L))
+      stopifnot(
+        nrow(manual) == 1L,
+        nrow(limited$value) == 2L,
+        identical(limited$value$sex, c('F', 'MF')),
+        identical(limited$warnings, 'legacy limit 2')
+      )
+    }
+  }
+  service <- saved_service
+  writeLines(saved_policy, policy_file)
+  run()
+  load()
   # A reviewed envelope may advertise a next cursor on an empty collection.
   for (key in names(service$operations)) {
     service$operations[[key]]$pagination$stop_on_empty <- FALSE
