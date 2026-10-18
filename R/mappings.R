@@ -46,6 +46,7 @@ validate_settings <- function(
       'extra_parameters',
       'request',
       'post_on_skip',
+      'preserve_visibility',
       'post_state',
       'parameter_order',
       'docs',
@@ -57,6 +58,9 @@ validate_settings <- function(
       'body_media',
       'security_correction',
       'body_media_correction',
+      'response_correction',
+      'request_body_correction',
+      'path_parameters_correction',
       'text_encoding',
       'query_array_style',
       'exclude_parameters',
@@ -66,6 +70,15 @@ validate_settings <- function(
     ),
     label
   )
+  if ('preserve_visibility' %in% names(settings)) {
+    value <- settings$preserve_visibility
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      stop('preserve_visibility must be true or false')
+    }
+    if (isTRUE(value) && identical(settings$implementation, 'existing')) {
+      stop('preserve_visibility requires a generated implementation')
+    }
+  }
   if ('normalize_inputs' %in% names(settings)) {
     normalizers <- settings$normalize_inputs
     config_fields(
@@ -88,6 +101,15 @@ validate_settings <- function(
   }
   if (!is.null(settings$body_media_correction)) {
     validate_body_media_correction(settings$body_media_correction)
+  }
+  if (!is.null(settings$response_correction)) {
+    validate_response_correction(settings$response_correction)
+  }
+  if (!is.null(settings$request_body_correction)) {
+    validate_request_body_correction(settings$request_body_correction)
+  }
+  if (!is.null(settings$path_parameters_correction)) {
+    validate_path_parameters_correction(settings$path_parameters_correction)
   }
   if (!is.null(settings[['body_media']])) {
     config_string(settings[['body_media']], paste(label, 'body_media'))
@@ -258,9 +280,17 @@ validate_settings <- function(
     pagination <- settings[['pagination']]
     config_fields(
       pagination,
-      c('mode', 'parameter', 'start', 'completed', 'max_pages'),
+      c('mode', 'parameter', 'start', 'completed', 'max_pages', 'metadata'),
       'pagination'
     )
+    if (
+      'metadata' %in%
+        names(pagination) &&
+        !isTRUE(pagination$metadata) &&
+        !isFALSE(pagination$metadata)
+    ) {
+      stop('pagination.metadata must be true or false')
+    }
     if (!is.null(pagination[['mode']])) {
       config_string(pagination[['mode']], 'pagination.mode')
       if (!identical(pagination[['mode']], 'page')) {

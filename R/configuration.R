@@ -411,11 +411,18 @@ load_project <- function(
         'body',
         'security_correction',
         'body_media_correction',
+        'preserve_visibility',
+        'response_correction',
+        'request_body_correction',
+        'path_parameters_correction',
         'normalize_inputs'
       ),
       names(defaults)
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
+    }
+    if ('metadata' %in% names(defaults$pagination)) {
+      stop(id, ': pagination.metadata belongs under operations, not defaults')
     }
     config_fields(overrides, names(overrides), 'operations')
     for (key in names(overrides)) {
@@ -541,6 +548,15 @@ load_project <- function(
         body_media_corrections = lapply(overrides, function(x) {
           x$body_media_correction
         }),
+        response_corrections = lapply(overrides, function(x) {
+          x$response_correction
+        }),
+        request_body_corrections = lapply(overrides, function(x) {
+          x$request_body_correction
+        }),
+        path_parameters_corrections = lapply(overrides, function(x) {
+          x$path_parameters_correction
+        }),
         query_array_style = defaults$query_array_style,
         query_array_style_overrides = lapply(
           overrides,
@@ -627,6 +643,9 @@ load_project <- function(
         for (field in c(
           'body_media_overrides',
           'body_media_corrections',
+          'response_corrections',
+          'request_body_corrections',
+          'path_parameters_corrections',
           'text_encoding_overrides',
           'query_array_style_overrides',
           'exclude_parameters_overrides'
