@@ -240,7 +240,11 @@ operation_documentation <- function(op, policy = list()) {
             if (
               length(setdiff(
                 names(inputs),
-                c(parameters, if (!is.null(op$body)) body_argument)
+                c(
+                  parameters,
+                  if (!is.null(op$body)) body_argument,
+                  if (paged) c('all_pages', 'max_pages')
+                )
               ))
             ) {
               stop('Example references missing public parameter')
