@@ -207,6 +207,26 @@ result_formatter_acceptance <- function() {
   write()
   fails('requires batch.fan_out, batch.split or pagination')
   service$operations[['GET /plain']] <- list(
+    request_controls = list(preserve_errors = TRUE)
+  )
+  write()
+  run()
+  generated <- paste(readLines(file.path(root, 'R/plain.R')), collapse = '\n')
+  stopifnot(grepl('preserve_errors', generated, fixed = TRUE))
+  service$operations[['GET /plain']]$request_controls$preserve_errors <- 'yes'
+  write()
+  fails('preserve_errors must be true or false')
+  service$operations[['GET /plain']]$request_controls$preserve_errors <- TRUE
+  helper_path <- file.path(root, 'R/api_request.R')
+  helper <- readLines(helper_path)
+  writeLines(
+    gsub('preserve_errors', 'old_error_flag', helper, fixed = TRUE),
+    helper_path
+  )
+  write()
+  fails('needs the current client helper template')
+  writeLines(helper, helper_path)
+  service$operations[['GET /plain']] <- list(
     implementation = 'existing',
     result_formatter = 'send'
   )

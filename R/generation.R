@@ -1699,6 +1699,23 @@ generate_client <- function(
         if (is.null(helper_definition)) {
           stop('Missing client helper: ', operation_spec$helper)
         }
+        preserve_errors <- isTRUE(op$request_controls$preserve_errors) ||
+          isTRUE(
+            operation_spec$request$arguments$request_controls$value$preserve_errors
+          )
+        if (
+          preserve_errors &&
+            !any(grepl(
+              'preserve_errors',
+              deparse(helper_definition$expr),
+              fixed = TRUE
+            ))
+        ) {
+          stop(
+            'request_controls.preserve_errors needs the current client helper template: ',
+            op$id
+          )
+        }
         helper_formals <- tg_formal_records(helper_definition$expr)
         required_arguments <- names(Filter(
           function(x) isTRUE(x$required),

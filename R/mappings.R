@@ -219,9 +219,24 @@ validate_settings <- function(
     controls <- settings$request_controls
     config_fields(
       controls,
-      c('timeout', 'max_retries', 'retry_writes', 'retry_policy'),
+      c(
+        'timeout',
+        'max_retries',
+        'retry_writes',
+        'retry_policy',
+        'preserve_errors'
+      ),
       paste(label, 'request_controls')
     )
+    if (
+      'preserve_errors' %in%
+        names(controls) &&
+        (!is.logical(controls$preserve_errors) ||
+          length(controls$preserve_errors) != 1L ||
+          is.na(controls$preserve_errors))
+    ) {
+      stop('request_controls.preserve_errors must be true or false')
+    }
     if (!is.null(controls$retry_policy)) {
       name <- config_string(controls$retry_policy, paste(label, 'retry_policy'))
       if (!identical(make.names(name), name)) {

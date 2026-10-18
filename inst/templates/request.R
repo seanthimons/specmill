@@ -20,8 +20,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   for (flag in base::list(verbose = verbose, dry_run = dry)) {
     if (!base::is.logical(flag) || base::length(flag) != 1L || base::is.na(flag)) call_error('run_verbose and dry_run options must be TRUE or FALSE')
   }
-  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy')
-  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy')) {
+  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy, preserve_errors')
+  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors')) {
     if (base::is.null(controls[[name]])) controls[[name]] <- request_controls[[name]]
   }
   timeout <- if (base::is.null(controls$timeout)) 30 else controls$timeout
@@ -30,6 +30,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (!base::is.numeric(timeout) || base::length(timeout) != 1L || base::is.na(timeout) || timeout <= 0) call_error('timeout must be a positive number of seconds, or Inf for no limit')
   if (!base::is.numeric(retries) || base::length(retries) != 1L || !base::is.finite(retries) || retries < 0 || retries != base::trunc(retries) || retries >= base::.Machine$integer.max) call_error('max_retries must be a nonnegative integer below .Machine$integer.max')
   if (!base::is.logical(writes) || base::length(writes) != 1L || base::is.na(writes)) call_error('retry_writes must be TRUE or FALSE')
+  preserve_errors <- if (base::is.null(controls$preserve_errors)) FALSE else controls$preserve_errors
+  if (!base::is.logical(preserve_errors) || base::length(preserve_errors) != 1L || base::is.na(preserve_errors)) call_error('preserve_errors must be TRUE or FALSE')
   retry_policy <- controls$retry_policy
   if (base::is.character(retry_policy) && base::length(retry_policy) == 1L && !base::is.na(retry_policy) && base::identical(base::make.names(retry_policy), retry_policy)) {
     retry_policy <- base::get0(retry_policy, envir = base::parent.env(base::environment()), mode = 'function', inherits = FALSE)
@@ -277,6 +279,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (dry) base::return(request)
   request <- httr2::req_error(request, is_error = function(response) FALSE)
   response <- base::tryCatch(httr2::req_perform(request), error = function(e) {
+    if (preserve_errors) base::stop(e)
     if (base::is.finite(timeout) && base::inherits(e$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', call. = FALSE)
     base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', call. = FALSE)
   })
@@ -291,6 +294,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     format <- base::match.arg(format, base::c('native', 'delimited'))
     if (!base::is.logical(check_status) || base::length(check_status) != 1L || base::is.na(check_status)) base::stop('check_status must be TRUE or FALSE', call. = FALSE)
     if (check_status && status >= 400L) {
+      if (preserve_errors && status != 401L) httr2::resp_check_status(response)
       # A rejected credential applies to every item of a batch, so it stops the call rather than being dropped per item.
       base::stop(if (status == 401L) base::errorCondition(base::paste0(diagnostic, ' response'), class = 'specmill_call_error', call = NULL) else base::simpleError(base::paste0(diagnostic, ' response')))
     }

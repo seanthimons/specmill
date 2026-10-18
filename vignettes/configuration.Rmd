@@ -311,6 +311,32 @@ resolver. Generation fails if the function is missing. It also fails if the
 client's request helper does not accept `server_resolver`; helpers created
 before this setting need the upstream template change (see `inspect_client()`).
 
+### Opt-in typed request errors
+
+Select `request_controls.preserve_errors: true` in an operation's
+request_controls to rethrow the original transport condition and use httr2's
+HTTP error classes, status and response when the decoder checks a failed status.
+The default remains false, with the existing sanitized diagnostics. Typed errors
+retain their original details; clients choosing this mode control their reporting.
+
+~~~yaml
+operations:
+  GET /items/{id}:
+    request_controls:
+      preserve_errors: true
+~~~
+
+Adopt the released client request helper template before selecting this control;
+generation rejects a helper that lacks support. With a complete request mapping,
+pass `request_controls: {value: {preserve_errors: true}}` explicitly through request.arguments.
+The session request option can override the same logical control.
+
+HTTP 401 and configuration/credential failures remain hard call-level errors
+and cannot be dropped. Response policies can still handle a received status
+explicitly using `decode(check_status = FALSE)`; this control does not
+move parsing earlier or bypass policies. Batch single/multiple stop/drop and
+warning policies remain independent of error preservation.
+
 ### Request controls and batch limits
 
 Generated project YAML includes request defaults:
