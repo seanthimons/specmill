@@ -222,7 +222,8 @@ apply_files <- function(
       !owned_hash &&
       grepl('\\.R$', name) &&
       has_protected_lifecycle(path)
-    adoptable[[i]] <<- verified && !protected
+    # Restored desired bytes can reconcile an existing owner's stale hash.
+    adoptable[[i]] <<- (verified || (same && !is.null(previous))) && !protected
     action <- if (same) {
       'unchanged'
     } else if (protected) {
