@@ -1,7 +1,22 @@
 
 
 
+## specmill 0.1.41 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.41 \[skip ci\]
+  ([6890071](https://github.com/seanthimons/specmill/tree/689007193543bf0e7ccf0c689d50b417a90db129))
+
+Full set of changes:
+[`v0.1.40...v0.1.41`](https://github.com/seanthimons/specmill/compare/v0.1.40...v0.1.41)
+
 ## specmill 0.1.40 (2026-10-18)
+
+#### New features
+
+- run post response once after final formatting (#162)
+  ([b79412f](https://github.com/seanthimons/specmill/tree/b79412fd330ddad452ff1a31c22917ba6fa543eb))
 
 #### CI
 
@@ -16,7 +31,7 @@
 #### Other changes
 
 - release v0.1.40 \[skip ci\]
-  ([f90734f](https://github.com/seanthimons/specmill/tree/f90734f0f640e18b8718cb4ab2614d9a6b132305))
+  ([8fa120e](https://github.com/seanthimons/specmill/tree/8fa120e84fe8d0267c11e515e6fd1f387ff4a36f))
 
 Full set of changes:
 [`v0.1.39...v0.1.40`](https://github.com/seanthimons/specmill/compare/v0.1.39...v0.1.40)
