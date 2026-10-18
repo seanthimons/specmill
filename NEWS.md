@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.31 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.31 \[skip ci\]
+  ([90cc1b6](https://github.com/seanthimons/specmill/tree/90cc1b692687e9e6c4977c273c349713030082d9))
+
+Full set of changes:
+[`v0.1.30...v0.1.31`](https://github.com/seanthimons/specmill/compare/v0.1.30...v0.1.31)
+
 ## specmill 0.1.30 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.30 \[skip ci\]
-  ([f2014e0](https://github.com/seanthimons/specmill/tree/f2014e049d45347b4246e4e46e4d9502c883a4a2))
+  ([f4efdbc](https://github.com/seanthimons/specmill/tree/f4efdbcf23f879553e5de50325d637ab46625ed3))
 
 Full set of changes:
 [`v0.1.29...v0.1.30`](https://github.com/seanthimons/specmill/compare/v0.1.29...v0.1.30)
@@ -80,6 +90,11 @@ Full set of changes:
 - normalize selected client values before validation and iteration
   (#135)
   ([213dd7e](https://github.com/seanthimons/specmill/tree/213dd7ee68dc1a643264db795d97aa83be5a98ef))
+
+#### Bug fixes
+
+- trim trailing blanks from emitted validators (#138)
+  ([a346efb](https://github.com/seanthimons/specmill/tree/a346efbbd9213fba3130beb3276f790822a329e6))
 
 #### Other changes
 
