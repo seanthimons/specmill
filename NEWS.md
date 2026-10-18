@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.44 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.44 \[skip ci\]
+  ([f36a67f](https://github.com/seanthimons/specmill/tree/f36a67fc5c5192e8c135187178af253fc01635a0))
+
+Full set of changes:
+[`v0.1.43...v0.1.44`](https://github.com/seanthimons/specmill/compare/v0.1.43...v0.1.44)
+
 ## specmill 0.1.43 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.43 \[skip ci\]
-  ([234d92b](https://github.com/seanthimons/specmill/tree/234d92bdabe6a3dd57c598145548fb6873de1eca))
+  ([c48adef](https://github.com/seanthimons/specmill/tree/c48adef1c9f4c25101fd3c6da7d00f0d1d47e7eb))
 
 Full set of changes:
 [`v0.1.42...v0.1.43`](https://github.com/seanthimons/specmill/compare/v0.1.42...v0.1.43)
@@ -19,6 +29,11 @@ Full set of changes:
   ([0dd5d30](https://github.com/seanthimons/specmill/tree/0dd5d3041c0c9d3de438b7e09dd1e0b9cd0c9cc3))
 - validate full inputs before permissive fan out (#166)
   ([16928dc](https://github.com/seanthimons/specmill/tree/16928dc49804d8149bbf8e126a3bd02c8a68de75))
+
+#### Bug fixes
+
+- reconcile restored desired output hashes (#170)
+  ([6b04d89](https://github.com/seanthimons/specmill/tree/6b04d89a39617fcb829adcb24ab8a88285febca5))
 
 #### Tests
 
