@@ -1,3 +1,11 @@
+validate_request_body_correction <- function(correction) {
+  config_fields(correction, c('omit', 'reason'), 'request_body_correction')
+  config_string(correction$reason, 'request_body_correction reason')
+  if (!isTRUE(correction$omit)) {
+    stop('request_body_correction supports omit: true only')
+  }
+}
+
 validate_path_parameters_correction <- function(correction) {
   config_fields(
     correction,
@@ -74,6 +82,35 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
+  response_corrections <- Filter(
+    Negate(is.null),
+    policy$response_corrections %or% list()
+  )
+  config_fields(
+    response_corrections,
+    names(response_corrections),
+    'response_corrections'
+  )
+  for (correction in response_corrections) {
+    validate_response_correction(correction)
+  }
+  policy$override_keys <- union(
+    policy$override_keys,
+    names(response_corrections)
+  )
+  body_corrections <- Filter(
+    Negate(is.null),
+    policy$request_body_corrections %or% list()
+  )
+  config_fields(
+    body_corrections,
+    names(body_corrections),
+    'request_body_corrections'
+  )
+  for (correction in body_corrections) {
+    validate_request_body_correction(correction)
+  }
+  policy$override_keys <- union(policy$override_keys, names(body_corrections))
   path_corrections <- Filter(
     Negate(is.null),
     policy$path_parameters_corrections %or% list()
@@ -220,6 +257,14 @@ read_operations <- function(files, policy = list()) {
               item[[method]],
               document,
               source_location = operation_location
+            )
+            response_correction <- policy$response_corrections[[key]]
+            response_operation <- response_corrected_operation(
+              op,
+              response_correction,
+              version,
+              schema_location(operation_location, 'responses'),
+              document$produces
             )
             document$paths[[path]][[method]] <- op
             if (
@@ -408,6 +453,18 @@ read_operations <- function(files, policy = list()) {
                 body_location
               )
             }
+            if (
+              !is.null(media_correction) &&
+                is.null(media_correction$from) &&
+                !startsWith(version, '2.')
+            ) {
+              schema_problem(
+                'body_media_correction',
+                'review_required',
+                'Missing-media declaration requires a Swagger body without declared media',
+                body_location
+              )
+            }
             text_encoding <- policy$text_encoding_overrides[[key]] %or%
               policy$text_encoding %or%
               'scalar'
@@ -427,6 +484,32 @@ read_operations <- function(files, policy = list()) {
             body_example <- list()
             preferred_media <- policy$body_media_overrides[[key]] %or%
               policy[['body_media']]
+            body_correction <- policy$request_body_corrections[[key]]
+            if (!is.null(body_correction)) {
+              reviewed_body <- if (body_present) {
+                local_ref(body, document, source_location = body_location)
+              } else {
+                NULL
+              }
+              if (
+                !body_present ||
+                  startsWith(version, '2.') ||
+                  !toupper(method) %in% c('GET', 'HEAD') ||
+                  (!is.null(reviewed_body$required) &&
+                    !identical(reviewed_body$required, FALSE)) ||
+                  !is.null(policy$body_media_overrides[[key]]) ||
+                  !is.null(media_correction)
+              ) {
+                schema_problem(
+                  'request_body_correction',
+                  'review_required',
+                  'Body omission requires a declared optional OpenAPI GET/HEAD body and no media override',
+                  body_location
+                )
+              }
+              body <- NULL
+              body_present <- FALSE
+            }
             undefined_body_method <- body_present &&
               !identical(version, '2.0') &&
               toupper(method) %in% c('GET', 'HEAD', 'DELETE')
@@ -591,12 +674,13 @@ read_operations <- function(files, policy = list()) {
               body <- body$content[[schema_media]]$schema
             }
             if (
-              !is.null(media_correction) && !identical(body_media, 'text/plain')
+              !is.null(media_correction) &&
+                (!body_present || !identical(body_media, media_correction$to))
             ) {
               schema_problem(
                 'body_media_correction',
                 'review_required',
-                'Body media correction requires a declared scalar request body',
+                'Body media correction requires a declared request body with the reviewed target media',
                 body_location
               )
             }
@@ -851,6 +935,7 @@ read_operations <- function(files, policy = list()) {
               body_required = body_required,
               body_media = body_media,
               body_media_correction = config_data(media_correction),
+              request_body_correction = config_data(body_correction),
               path_parameters_correction = config_data(path_correction),
               body_encoding = body_encoding,
               text_encoding = text_encoding,
@@ -866,7 +951,8 @@ read_operations <- function(files, policy = list()) {
               schema_version = version,
               transport_diagnostics = transport_diagnostics,
               source_operation = op,
-              response = op$responses,
+              response = response_operation$responses,
+              response_correction = config_data(response_correction),
               summary = op$summary %or% name
             )
           },
