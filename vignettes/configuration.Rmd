@@ -963,12 +963,57 @@ operations:
       split: true
 ```
 
-`body_media_correction` currently supports only `application/json` to `text/plain`.
-It requires a nonempty review reason and a scalar string source schema. It cannot
-be inherited through defaults. The source media must exist and the target must
-be absent; conflicting `body_media` selections fail review. Plans retain the
+`body_media_correction` supports `application/json` to `text/plain` for a scalar
+string source schema. It requires a nonempty review reason and cannot
+be inherited through defaults. For the text correction, the source media must
+exist and the target must be absent; conflicting `body_media` selections fail review. Plans retain the
 correction and the original source operation; the schema file stays unchanged.
 Ordinary `body_media` continues to select only declared media types.
+
+For a Swagger 2 body with no declared request media, a verified JSON contract can
+be recorded with an explicit null source:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    body_media_correction:
+      from: null
+      to: application/json
+      reason: Reviewed staging declaration and production JSON request capture.
+```
+
+The `from` key must be present. This form applies only to a declared Swagger body
+with no available media declaration, including inherited `consumes`. Existing or
+conflicting declarations, conflicting `body_media` selections, absent bodies and
+OpenAPI bodies are rejected. The source body schema is validated unchanged.
+This is a reviewed declaration for that operation, never a JSON fallback for
+other AMOS routes. The same correction/source-operation provenance is retained.
+
+An explicitly empty `responses: {}` map also needs a reviewed declaration before
+whole-client schema validation can accept that operation:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    response_correction:
+      status: '200'
+      media_type: application/json
+      description: Substance information for the supplied DTXSIDs.
+      reason: Reviewed staging response declaration and captured production 200 JSON.
+```
+
+This operation-only policy requires a quoted HTTP status, JSON media, description
+and review reason. It cannot replace existing response declarations or conflict
+with declared Swagger response media. It records only the status and media; no
+payload fields or types are inferred from one captured response.
+
+The archived file and `source_operation` stay unchanged. The source validation
+report retains its original status, hash and findings. Its `reviewed` entry for
+the service separately records validation of the corrected in-memory document,
+its hash and applied response corrections. That view passes through the same
+schema validator. Other invalid operations or document defects remain blocked;
+this policy never disables schema validation. Parser metadata also retains
+`response_correction` alongside the effective response declaration.
 
 For a reviewed vector-of-lines input, select encoding explicitly:
 
@@ -1037,6 +1082,57 @@ operations keep their diagnostics, and real uploads declared as a multipart
 request body are unaffected. The operation's inventory record lists
 `excluded_parameters`. The direct reader accepts
 `read_operations(file, policy = list(exclude_parameters_overrides = list('POST /api/hazard' = c('files[]', 'request'))))`.
+
+### Reviewed bodyless GET/HEAD subset
+
+An optional request body can be omitted by a reviewed operation policy:
+
+```yaml
+operations:
+  GET /api/resolver/ghs-list-count:
+    request_body_correction:
+      omit: true
+      reason: Reviewed bodyless production GET returns the existing count records.
+```
+
+This policy generates no public body argument and sends no request-body bytes.
+It selects only the bodyless subset of a declared optional OpenAPI GET/HEAD body;
+it does not claim that the service ignores supplied bodies. The schema's original
+operation and the correction remain in plan metadata, and the archived schema is
+unchanged. Other operations keep their request bodies and diagnostics.
+
+A reason is required. Omission is rejected for required or absent bodies, Swagger
+2, other HTTP methods, and operations with a body-media override or correction.
+It belongs under `operations`, never service or project defaults. Review live
+bodyless requests before applying it; this setting does not repair or infer a
+body's media type or payload contract.
+### Reviewed path declarations
+
+When a published schema has missing or incorrectly named path parameters, an
+operation-only correction can replace its effective path declarations after
+review against service-owned documentation and captured requests:
+
+```yaml
+operations:
+  GET /api/amos/get_similar_structures/{identifier_type}/{identifier}:
+    path_parameters_correction:
+      parameters:
+        identifier_type: {type: string}
+        identifier: {type: string}
+      reason: Reviewed staging declarations and production read-only captures.
+```
+
+`parameters` maps wire names to parameter schemas. Every replacement is required;
+the normal parser validates its schema and requires exact agreement with the route
+placeholders. Query, header and cookie declarations keep their existing behavior.
+The correction replaces all path declarations for this operation, including any
+inherited from its path item. Other operations keep their original declarations.
+It does not rename public inputs; use `parameters` and `parameter_order` for that.
+
+Plans retain `path_parameters_correction`, `source_operation` and the original
+schema hash. The archived schema is never rewritten. Supply only constraints
+established by the reviewed contract; an empty successful response does not prove
+an accepted identifier or record-type vocabulary.
 
 ### Hook-selected routes
 
@@ -1734,6 +1830,15 @@ returns the pages combined as a batched wrapper does, so tables built with
 (`empty_page`, `completed` or `max_pages`). The caller guide is
 [Fetch every page of a result](paged-wrappers.html).
 
+To preserve a plain legacy result, set `pagination: {metadata: false}` on the
+operation. The default is `true`. This field is operation-only, so inherited
+paging settings keep their existing metadata behavior. With `false`, the wrapper
+removes the generated `pagination` attribute before `post_combine`; it will not
+restore that attribute afterward. Page completion, limit warnings, error
+propagation, manual single-page calls and dry runs keep their existing behavior.
+The same setting works when paging is nested inside fan-out. Other result
+attributes are not removed by this policy.
+
 **Hooks and policy.** `pre_request`, the response policy and `post_response` run
 once per page. An optional `post_combine` hook runs once on the combined result
 (see [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper)).
@@ -1744,7 +1849,7 @@ a hook that does stops the call with an error before the request is sent.
 generation requires it to set `all_pages: false` in its inputs. A `calls`
 contract describes the page sequence: one entry per page request in order, ending
 with the empty page (or with page `max_pages`), and a `result` that includes the
-`pagination` attribute.
+`pagination` attribute unless operation policy disables it.
 
 **The client helper.** The loop uses `<helper>_paginated()`, `<helper>_combine()`
 and `<helper>_pages()` in the client-owned helper file. Initialize a new client with
@@ -1943,3 +2048,46 @@ behavior. The localhost tests exercise body and header links, relative resolutio
 cycles, and credential isolation. The opt-in `dev/verify_amos_pagination.R` script
 checks generated GET and filtered POST wrappers against dev or staging without
 production access or credentials.
+
+### Normalize selected inputs before validation
+
+An operation may name client-owned functions in `normalize_inputs`, keyed by
+public input names, including renamed parameters and body inputs:
+
+```yaml
+operations:
+  GET /items/{id}:
+    normalize_inputs:
+      id: clean_identifiers
+    batch:
+      fan_out: id
+```
+
+Each function receives one input value and returns its replacement. Functions run
+once per wrapper call, in mapping order, before required/type/body checks,
+parameter capture, hooks, and iteration. They resolve in the client wrapper's
+enclosing environment. The generated client does not depend on specmill at runtime.
+For example, `clean_identifiers` may deduplicate identifiers, remove blank or missing
+values, and reject an empty result with a client-specific error. The normalized
+value still undergoes the usual native validation. An early error does not force
+unrelated option arguments.
+
+The setting belongs under an operation, not service defaults. Unknown public input
+names and invalid function names are rejected. The function must exist in the
+client at call time. Array-body splitting uses the normalized whole input to form
+chunks. No normalization is inferred for other inputs, duplicates, or text lines;
+line encoding preserves its existing entry boundaries and newline bytes unless
+that input explicitly opts into a client function.
+
+### Preserve a single helper call's return visibility
+
+An operation may set `preserve_visibility: true` to forward its helper's visible
+or invisible return, including `NULL`, without changing the value or attributes.
+The generated wrapper ends with the helper call rather than assigning and then
+returning its result. This also works with reviewed request bindings and route
+guards. The default remains the existing visible result behavior.
+
+This policy belongs under an operation and requires an unbatched, unpaged
+generated wrapper without hooks or `post_on_skip`. Pipelines that combine or
+replace results have separate return behavior and are rejected by this setting.
+The policy does not add file-upload support or change request construction.

@@ -69,7 +69,8 @@ pagination_settings <- function(operation, pagination, explicit) {
     location = p$location,
     start = pagination[['start']],
     completed = pagination[['completed']] %or% 'empty',
-    max_pages = as.integer(pagination[['max_pages']] %or% 100L)
+    max_pages = as.integer(pagination[['max_pages']] %or% 100L),
+    metadata = !isFALSE(pagination[['metadata']])
   )
 }
 
@@ -323,6 +324,14 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  normalizers <- spec$normalize_inputs
+  unknown <- setdiff(names(normalizers), formal_names)
+  if (length(unknown)) {
+    stop(
+      'Unknown public input in normalize_inputs: ',
+      paste(unknown, collapse = ', ')
+    )
+  }
   lines <- c(
     '# Generated with specmill; do not edit by hand.',
     paste0(
@@ -330,6 +339,21 @@ render_operation <- function(operation, spec) {
       ' <- function(',
       paste(signature, collapse = ', '),
       ') {'
+    ),
+    vapply(
+      names(normalizers),
+      function(name) {
+        paste0(
+          '  ',
+          name,
+          ' <- base::get(',
+          r_literal(normalizers[[name]]),
+          ', envir = base::parent.env(base::environment()), mode = "function", inherits = TRUE)(',
+          name,
+          ')'
+        )
+      },
+      character(1)
     ),
     if (dynamic_limit) {
       paste0(
@@ -484,6 +508,18 @@ render_operation <- function(operation, spec) {
     )
   }
   hooks <- spec$hooks[[operation$name]] %or% list()
+  preserve_visibility <- isTRUE(spec$preserve_visibility)
+  if (
+    preserve_visibility &&
+      (!is.null(operation$iterate) ||
+        !is.null(pg) ||
+        any(lengths(hooks) > 0L) ||
+        isTRUE(spec$post_on_skip))
+  ) {
+    stop(
+      'preserve_visibility requires an unbatched, unpaged wrapper without hooks'
+    )
+  }
   if (length(hooks$pre_request)) {
     lines <- c(
       lines,
@@ -712,6 +748,11 @@ render_operation <- function(operation, spec) {
       '  }'
     )
   }
+  if (preserve_visibility) {
+    assigned <- startsWith(request, '  result <- ')
+    stopifnot(sum(assigned) == 1L)
+    request[assigned] <- sub('^  result <- ', '  ', request[assigned])
+  }
   lines <- c(lines, request)
   if (length(hooks$post_response)) {
     if (identical(spec$post_state, 'hook_state')) {
@@ -735,7 +776,9 @@ render_operation <- function(operation, spec) {
       )
     )
   }
-  lines <- c(lines, '  result')
+  if (!preserve_visibility) {
+    lines <- c(lines, '  result')
+  }
   if (
     length(hooks$post_combine) &&
       is.null(operation$iterate) &&
@@ -786,7 +829,11 @@ render_operation <- function(operation, spec) {
           )),
           ', call. = FALSE)'
         ),
-        paste0(assign, helper, '_pages(function(page) {'),
+        paste0(
+          if (isFALSE(pg$metadata)) 'result <- ' else assign,
+          helper,
+          '_pages(function(page) {'
+        ),
         '  params[base::names(page)] <- page',
         '  send(params)',
         paste0(
@@ -797,7 +844,13 @@ render_operation <- function(operation, spec) {
           ']], max_pages, completed = ',
           if (identical(pg$completed, 'empty')) 'NULL' else pg$completed,
           ')'
-        )
+        ),
+        if (isFALSE(pg$metadata)) {
+          c(
+            'if (!base::inherits(result, "httr2_request") && !base::is.null(result)) base::attr(result, "pagination") <- NULL',
+            'result'
+          )
+        }
       )
     )
   }
@@ -987,6 +1040,11 @@ generate_client <- function(
     lapply(services, read_service_operations)
   } else {
     lapply(services, validated_service_operations, reports = validation_reports)
+  }
+  for (service_result in parsed) {
+    for (view in service_result$reviewed_validation) {
+      validation_reports[[view$source]]$reviewed[[view$service]] <- view
+    }
   }
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
