@@ -963,12 +963,57 @@ operations:
       split: true
 ```
 
-`body_media_correction` currently supports only `application/json` to `text/plain`.
-It requires a nonempty review reason and a scalar string source schema. It cannot
-be inherited through defaults. The source media must exist and the target must
-be absent; conflicting `body_media` selections fail review. Plans retain the
+`body_media_correction` supports `application/json` to `text/plain` for a scalar
+string source schema. It requires a nonempty review reason and cannot
+be inherited through defaults. For the text correction, the source media must
+exist and the target must be absent; conflicting `body_media` selections fail review. Plans retain the
 correction and the original source operation; the schema file stays unchanged.
 Ordinary `body_media` continues to select only declared media types.
+
+For a Swagger 2 body with no declared request media, a verified JSON contract can
+be recorded with an explicit null source:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    body_media_correction:
+      from: null
+      to: application/json
+      reason: Reviewed staging declaration and production JSON request capture.
+```
+
+The `from` key must be present. This form applies only to a declared Swagger body
+with no available media declaration, including inherited `consumes`. Existing or
+conflicting declarations, conflicting `body_media` selections, absent bodies and
+OpenAPI bodies are rejected. The source body schema is validated unchanged.
+This is a reviewed declaration for that operation, never a JSON fallback for
+other AMOS routes. The same correction/source-operation provenance is retained.
+
+An explicitly empty `responses: {}` map also needs a reviewed declaration before
+whole-client schema validation can accept that operation:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    response_correction:
+      status: '200'
+      media_type: application/json
+      description: Substance information for the supplied DTXSIDs.
+      reason: Reviewed staging response declaration and captured production 200 JSON.
+```
+
+This operation-only policy requires a quoted HTTP status, JSON media, description
+and review reason. It cannot replace existing response declarations or conflict
+with declared Swagger response media. It records only the status and media; no
+payload fields or types are inferred from one captured response.
+
+The archived file and `source_operation` stay unchanged. The source validation
+report retains its original status, hash and findings. Its `reviewed` entry for
+the service separately records validation of the corrected in-memory document,
+its hash and applied response corrections. That view passes through the same
+schema validator. Other invalid operations or document defects remain blocked;
+this policy never disables schema validation. Parser metadata also retains
+`response_correction` alongside the effective response declaration.
 
 For a reviewed vector-of-lines input, select encoding explicitly:
 
@@ -1785,6 +1830,15 @@ returns the pages combined as a batched wrapper does, so tables built with
 (`empty_page`, `completed` or `max_pages`). The caller guide is
 [Fetch every page of a result](paged-wrappers.html).
 
+To preserve a plain legacy result, set `pagination: {metadata: false}` on the
+operation. The default is `true`. This field is operation-only, so inherited
+paging settings keep their existing metadata behavior. With `false`, the wrapper
+removes the generated `pagination` attribute before `post_combine`; it will not
+restore that attribute afterward. Page completion, limit warnings, error
+propagation, manual single-page calls and dry runs keep their existing behavior.
+The same setting works when paging is nested inside fan-out. Other result
+attributes are not removed by this policy.
+
 **Hooks and policy.** `pre_request`, the response policy and `post_response` run
 once per page. An optional `post_combine` hook runs once on the combined result
 (see [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper)).
@@ -1795,7 +1849,7 @@ a hook that does stops the call with an error before the request is sent.
 generation requires it to set `all_pages: false` in its inputs. A `calls`
 contract describes the page sequence: one entry per page request in order, ending
 with the empty page (or with page `max_pages`), and a `result` that includes the
-`pagination` attribute.
+`pagination` attribute unless operation policy disables it.
 
 **The client helper.** The loop uses `<helper>_paginated()`, `<helper>_combine()`
 and `<helper>_pages()` in the client-owned helper file. Initialize a new client with

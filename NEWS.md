@@ -1,12 +1,40 @@
 
 
 
+## specmill 0.1.28 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.28 \[skip ci\]
+  ([a698a36](https://github.com/seanthimons/specmill/tree/a698a36589ce5f52e093b8d11c4a09cebf26c956))
+- integrate released bodyless operation baseline (#129)
+  ([33cd5b2](https://github.com/seanthimons/specmill/tree/33cd5b2ed0b84828b779d9039234409e97fe6309))
+
+Full set of changes:
+[`v0.1.27...v0.1.28`](https://github.com/seanthimons/specmill/compare/v0.1.27...v0.1.28)
+
+## specmill 0.1.27 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.27 \[skip ci\]
+  ([6eb0d55](https://github.com/seanthimons/specmill/tree/6eb0d557b92603862180d170079068db53a124b5))
+- integrate reviewed operation policies (#129)
+  ([d33561b](https://github.com/seanthimons/specmill/tree/d33561b50c37eb3ba51e8aeac9daa2adebc3edc5))
+- integrate released reviewed path baseline (#29)
+  ([ff4e410](https://github.com/seanthimons/specmill/tree/ff4e4108fdeffc7222482ecb686c980fde8c8162))
+
+Full set of changes:
+[`v0.1.26...v0.1.27`](https://github.com/seanthimons/specmill/compare/v0.1.26...v0.1.27)
+
 ## specmill 0.1.26 (2026-10-17)
 
 #### Other changes
 
 - release v0.1.26 \[skip ci\]
-  ([50f0736](https://github.com/seanthimons/specmill/tree/50f07360eb8ec7d6e7ab5c2f24d3e8f6774337bb))
+  ([3206891](https://github.com/seanthimons/specmill/tree/3206891c579f4a8464c8bf137ee533bbb39a5f38))
+- combine reviewed paths and bodyless subsets (#29)
+  ([07d18ad](https://github.com/seanthimons/specmill/tree/07d18ad929f4c63c311e83244e1c61fe9bf2000c))
 - integrate released normalization baseline (#27)
   ([4cf2f67](https://github.com/seanthimons/specmill/tree/4cf2f67da2daa61216ab86a8105f8dbebfd227a6))
 
@@ -25,6 +53,8 @@ Full set of changes:
 
 - release v0.1.25 \[skip ci\]
   ([01fe162](https://github.com/seanthimons/specmill/tree/01fe162db735249a497ea9d30811b1d646733aa4))
+- retain bodyless subsets with input normalization (#29)
+  ([0dbd138](https://github.com/seanthimons/specmill/tree/0dbd138abed98585925141b430ebac0931991eb2))
 - retain reviewed paths with input normalization (#27)
   ([2c4ac63](https://github.com/seanthimons/specmill/tree/2c4ac63d09424fda04b35fe93f1083cfd25cb499))
 - integrate released batch support baseline (#135)
@@ -44,6 +74,8 @@ Full set of changes:
 
 - release v0.1.24 \[skip ci\]
   ([49b2dde](https://github.com/seanthimons/specmill/tree/49b2ddeea8476dd9d2b2e6a7f6fa2908815a1b3a))
+- integrate released security policy (#29)
+  ([0f91f01](https://github.com/seanthimons/specmill/tree/0f91f016e2ce4b39fe47d17b770b2cb2c11264a6))
 - integrate released security corrections (#27)
   ([f0460a3](https://github.com/seanthimons/specmill/tree/f0460a3c154584f04759edf8a5feacba2b804e98))
 
@@ -54,6 +86,10 @@ Full set of changes:
 
 #### New features
 
+- allow plain result attributes by policy (#129)
+  ([e7c625a](https://github.com/seanthimons/specmill/tree/e7c625ad1b2509586bd5fa646602021d264f295a))
+- support reviewed bodyless GET subsets (#29)
+  ([884f0b5](https://github.com/seanthimons/specmill/tree/884f0b5d47ca30f1725a8002bbe2b514eaa816ae))
 - support reviewed path declarations (#27)
   ([9ca9db1](https://github.com/seanthimons/specmill/tree/9ca9db18101ba2a43f128691ef05960cf35e1030))
 - resolve reviewed batch limits at call time (#128)
