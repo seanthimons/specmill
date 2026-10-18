@@ -58,6 +58,7 @@ validate_settings <- function(
       'security_correction',
       'body_media_correction',
       'response_correction',
+      'request_body_correction',
       'path_parameters_correction',
       'text_encoding',
       'query_array_style',
@@ -93,6 +94,9 @@ validate_settings <- function(
   }
   if (!is.null(settings$response_correction)) {
     validate_response_correction(settings$response_correction)
+  }
+  if (!is.null(settings$request_body_correction)) {
+    validate_request_body_correction(settings$request_body_correction)
   }
   if (!is.null(settings$path_parameters_correction)) {
     validate_path_parameters_correction(settings$path_parameters_correction)
