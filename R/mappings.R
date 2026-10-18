@@ -205,9 +205,24 @@ validate_settings <- function(
   if ('batch' %in% names(settings)) {
     config_fields(
       settings$batch,
-      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error', 'empty'),
+      c(
+        'max_items',
+        'max_bytes',
+        'fan_out',
+        'split',
+        'on_error',
+        'empty',
+        'metadata'
+      ),
       'batch'
     )
+    if (
+      !is.null(settings$batch$metadata) &&
+        !isTRUE(settings$batch$metadata) &&
+        !isFALSE(settings$batch$metadata)
+    ) {
+      stop('batch.metadata must be true or false')
+    }
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')
     }
