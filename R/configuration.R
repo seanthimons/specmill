@@ -404,6 +404,9 @@ load_project <- function(
     defaults <- merge_settings(project_defaults, service$defaults %or% list())
     overrides <- service$operations %or% list()
     validate_settings(defaults, paste(id, 'defaults'), callbacks)
+    if (!is.null(defaults$request$pagination)) {
+      stop(id, ': request.pagination belongs under operations, not defaults')
+    }
     for (field in intersect(
       c(
         'exclude_parameters',

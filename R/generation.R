@@ -432,6 +432,7 @@ render_operation <- function(operation, spec) {
     1L
   )
   combined_post <- identical(spec$post_response_scope, 'combined')
+  request_paging <- spec$request$pagination
   normalizers <- spec$normalize_inputs
   unknown <- setdiff(names(normalizers), formal_names)
   if (length(unknown)) {
@@ -676,14 +677,16 @@ render_operation <- function(operation, spec) {
   }
   if (combined_post || original_post_params) {
     if (
-      !length(hooks$post_response) || identical(spec$post_state, 'hook_state')
+      !length(hooks$post_response) ||
+        (identical(spec$post_state, 'hook_state') &&
+          (original_post_params || is.null(request_paging)))
     ) {
       stop(
         'post_response_scope and post_params_source require a post-response hook with post_state parameters'
       )
     }
   }
-  if (combined_post && is.null(operation$iterate)) {
+  if (combined_post && is.null(operation$iterate) && is.null(request_paging)) {
     stop(
       'post_response_scope combined requires batch.fan_out or batch.split'
     )
@@ -870,6 +873,15 @@ render_operation <- function(operation, spec) {
       ),
       ')'
     )
+    if (!is.null(request_paging)) {
+      request <- render_request_pagination(
+        request,
+        operation,
+        spec,
+        state_parameters,
+        length(hooks$pre_request) > 0L
+      )
+    }
   }
   if (!is.null(spec$route_guard) && !identical(spec$route_guard, FALSE)) {
     if (!length(operation$routes)) {
@@ -1214,7 +1226,17 @@ render_operation <- function(operation, spec) {
     lines <- c(
       lines,
       '  if (base::inherits(result, "httr2_request")) base::return(result)',
+      if (
+        !is.null(request_paging) && isTRUE(spec$post_on_skip) && !combined_post
+      ) {
+        '  if (base::isTRUE(state$skip_request)) base::return(result)'
+      },
       paste0(
+        if (
+          !is.null(request_paging) && isTRUE(spec$post_on_skip) && combined_post
+        ) {
+          '  if (!base::isTRUE(state$skip_request)) '
+        },
         if (combined_post) '  result <- base::get(' else '  base::get(',
         r_literal(spec$result_formatter),
         ', envir = base::parent.env(base::environment()), ',
@@ -1493,6 +1515,38 @@ generate_client <- function(
           'Missing client result_formatter function or wrapper collision: ',
           result_formatter
         )
+      }
+      request_pagination <- configured$spec$request$pagination
+      if (!is.null(request_pagination)) {
+        for (name in unlist(
+          request_pagination[c('items', 'completed', 'advance')],
+          use.names = FALSE
+        )) {
+          if (
+            !name %in% names(runtime_definitions) || name %in% operation_names
+          ) {
+            stop(
+              'Missing client request.pagination callback or wrapper collision: ',
+              name
+            )
+          }
+        }
+        helper <- configured$spec$helper
+        needed <- paste0(helper, c('_pages', '_paginated', '_combine'))
+        adapter <- runtime_definitions[[paste0(helper, '_pages')]]
+        if (
+          !is.null(config) &&
+            (!all(needed %in% names(runtime_definitions)) ||
+              !all(
+                c('size_parameter', 'page_size', 'advance') %in%
+                  names(tg_formal_records(adapter$expr))
+              ))
+        ) {
+          stop(
+            'request.pagination needs the current client pagination companions; adopt the current helper template: ',
+            op$id
+          )
+        }
       }
       retry_policy <- op$request_controls$retry_policy
       if (

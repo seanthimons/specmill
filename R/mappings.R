@@ -734,7 +734,11 @@ validate_settings <- function(
     validate_documentation(settings$docs)
   }
   if ('request' %in% names(settings)) {
-    config_fields(settings[['request']], c('arguments'), 'request')
+    config_fields(
+      settings[['request']],
+      c('arguments', 'pagination'),
+      'request'
+    )
     config_fields(
       settings[['request']]$arguments,
       names(settings[['request']]$arguments),
@@ -742,6 +746,9 @@ validate_settings <- function(
     )
     for (binding in settings[['request']]$arguments) {
       validate_binding(binding, callbacks)
+    }
+    if (!is.null(settings$request$pagination)) {
+      validate_request_pagination(settings$request$pagination, callbacks)
     }
   }
   invisible(settings)
