@@ -53,6 +53,7 @@ validate_settings <- function(
       'post_state',
       'private_params',
       'post_result_null',
+      'cache',
       'pre_params',
       'post_params',
       'post_response_scope',
@@ -306,6 +307,9 @@ validate_settings <- function(
     if (!is.null(settings$server$key)) {
       config_string(settings$server$key, paste(label, 'server key'))
     }
+  }
+  if (!is.null(settings$cache)) {
+    validate_cache(settings$cache, callbacks)
   }
   if ('request_controls' %in% names(settings)) {
     controls <- settings$request_controls
