@@ -421,6 +421,9 @@ load_project <- function(
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
     }
+    if (!is.null(defaults$batch$metadata)) {
+      stop(id, ': batch.metadata belongs under operations, not defaults')
+    }
     if ('warning' %in% names(defaults$batch)) {
       stop(id, ': batch.warning belongs under operations, not defaults')
     }

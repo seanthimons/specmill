@@ -219,9 +219,25 @@ validate_settings <- function(
   if ('batch' %in% names(settings)) {
     config_fields(
       settings$batch,
-      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error', 'empty', 'warning'),
+      c(
+        'max_items',
+        'max_bytes',
+        'fan_out',
+        'split',
+        'on_error',
+        'empty',
+        'metadata',
+        'warning'
+      ),
       'batch'
     )
+    if (
+      !is.null(settings$batch$metadata) &&
+        !isTRUE(settings$batch$metadata) &&
+        !isFALSE(settings$batch$metadata)
+    ) {
+      stop('batch.metadata must be true or false')
+    }
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')
     }
@@ -847,7 +863,17 @@ request_binding <- function(
   if (path[[1L]] == 'hook_state' && !has_hook) {
     stop('Request references hook_state without a pre-request hook')
   }
-  expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  text_reference <- operation$text_body_reference
+  if (
+    path[[1L]] == 'params' &&
+      length(path) > 1L &&
+      path[[2L]] %in% names(text_reference)
+  ) {
+    expression <- unname(text_reference[[path[[2L]]]])
+    path <- path[-1L]
+  } else {
+    expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  }
   for (name in path[-1L]) {
     expression <- paste0(expression, '[[', r_literal(name), ']]')
   }

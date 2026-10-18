@@ -745,6 +745,140 @@ batch_iteration_acceptance <- function() {
   writeLines(helper_text, helper)
   yaml::write_yaml(counted_service, service_path)
   run()
+  # Reviewed plain results suppress only failure metadata, before post-combine.
+  metadata_service <- original
+  metadata_service$operations[['GET /items/{id}']] <- list(
+    batch = list(
+      fan_out = 'id',
+      on_error = 'drop',
+      empty = 'empty_result',
+      metadata = FALSE
+    )
+  )
+  metadata_service$operations[['POST /bulk']] <- list(
+    batch = list(
+      max_items = 1L,
+      split = TRUE,
+      on_error = 'drop',
+      empty = 'empty_result',
+      metadata = FALSE
+    )
+  )
+  metadata_service$hooks <- list(
+    get_item = list(post_combine = list('log_hook'))
+  )
+  writeLines(
+    c(
+      'empty_result <- function() list()',
+      'log_hook <- function(state) state$result',
+      'run_hook <- function(fn_name, hook_type, state) {',
+      '  if (hook_type == "post_combine") {',
+      '    stopifnot(is.null(attr(state$result, "failed")))',
+      '    return(state$result)',
+      '  }',
+      '  if (hook_type == "pre_request") state else state$result',
+      '}'
+    ),
+    file.path(root, 'R/hooks.R')
+  )
+  yaml::write_yaml(metadata_service, service_path)
+  run()
+  run('check')
+  plain <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, plain)
+  }
+  for (empty in list(function() list(), function() data.frame())) {
+    plain$empty_result <- empty
+    for (invoke in list(plain$get_item, plain$bulk)) {
+      result <- suppressWarnings(invoke('bad'))
+      stopifnot(identical(result, empty()))
+      partial <- suppressWarnings(invoke(c('a', 'bad')))
+      stopifnot(length(partial) == 1L, is.null(attr(partial, 'failed')))
+    }
+  }
+  # Table successes keep their classes and attributes on partial failure too.
+  plain$as_table <- function(response, context, decode) as.data.frame(decode())
+  metadata_service$defaults$response_policy <- 'as_table'
+  write(
+    'as_table <- function(response, context, decode) as.data.frame(decode())',
+    file.path(root, 'R/hooks.R'),
+    append = TRUE
+  )
+  yaml::write_yaml(metadata_service, service_path)
+  run()
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, plain)
+  }
+  plain$empty_result <- function() data.frame()
+  for (invoke in list(plain$get_item, plain$bulk)) {
+    stopifnot(identical(suppressWarnings(invoke(c('a', 'bad'))), invoke('a')))
+  }
+  # Metadata remains enabled when requested, even if post-combine removes it.
+  metadata_service$operations[['GET /items/{id}']]$batch$metadata <- TRUE
+  yaml::write_yaml(metadata_service, service_path)
+  run()
+  defaults <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, defaults)
+  }
+  defaults$run_hook <- function(fn_name, hook_type, state) {
+    out <- state$result
+    attr(out, 'failed') <- NULL
+    out
+  }
+  stopifnot(
+    !is.null(attr(suppressWarnings(defaults$get_item(c('a', 'bad'))), 'failed'))
+  )
+  metadata_service$operations[['GET /items/{id}']]$batch$metadata <- FALSE
+  # Drop still warns, and call-level configuration errors still abort before HTTP.
+  warnings <- character()
+  withCallingHandlers(plain$get_item('bad'), warning = function(w) {
+    warnings <<- c(warnings, conditionMessage(w))
+    invokeRestart('muffleWarning')
+  })
+  stopifnot(length(warnings) == 1L)
+  sent <- length(history())
+  error <- withr::with_options(
+    list(iterationclient.request = list(timeout = -1)),
+    tryCatch(plain$get_item('a'), error = identity)
+  )
+  stopifnot(inherits(error, 'specmill_call_error'), length(history()) == sent)
+  bad <- metadata_service
+  bad$defaults$batch <- list(metadata = FALSE)
+  fails(bad, 'batch.metadata belongs under operations')
+  bad <- metadata_service
+  bad$operations[['GET /items/{id}']]$batch$metadata <- 'false'
+  fails(bad, 'batch.metadata must be true or false')
+  bad <- original
+  bad$operations[['GET /search']] <- list(batch = list(metadata = FALSE))
+  fails(bad, 'batch.metadata requires batch.fan_out or batch.split')
+  yaml::write_yaml(metadata_service, service_path)
+  run()
+  joint_service <- counted_service
+  for (key in names(joint_service$operations)) {
+    joint_service$operations[[key]]$batch$metadata <- FALSE
+  }
+  joint_service$hooks <- list(get_item = list(post_combine = list('log_hook')))
+  write(
+    'normalize_ids <- function(x) unique(x)',
+    file.path(root, 'R/hooks.R'),
+    append = TRUE
+  )
+  yaml::write_yaml(joint_service, service_path)
+  run()
+  run('check')
+  joint <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, joint)
+  }
+  joint$api_request <- function(...) stop('transport sentinel')
+  error <- tryCatch(joint$get_item('one'), error = identity)
+  stopifnot(inherits(error, 'error'))
+  stopifnot(identical(
+    suppressWarnings(joint$get_item(c('one', 'two'))),
+    list()
+  ))
   # A helper without the runner fails generation with a clear message.
   helper <- file.path(root, 'R/api_request.R')
   text <- readLines(helper)
