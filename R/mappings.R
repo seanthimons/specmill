@@ -52,6 +52,7 @@ validate_settings <- function(
       'result_formatter',
       'post_state',
       'private_params',
+      'post_result_null',
       'pre_params',
       'post_params',
       'post_response_scope',
@@ -273,6 +274,16 @@ validate_settings <- function(
     names(settings)
   )) {
     config_string(settings[[name]], paste(label, name))
+  }
+  if (
+    !is.null(settings$post_result_null) &&
+      !config_string(
+        settings$post_result_null,
+        paste(label, 'post_result_null')
+      ) %in%
+        c('keep', 'remove')
+  ) {
+    stop('post_result_null must be keep or remove')
   }
   if (!is.null(settings$response_policy)) {
     name <- config_string(

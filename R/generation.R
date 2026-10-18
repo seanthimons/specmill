@@ -675,6 +675,15 @@ render_operation <- function(operation, spec) {
   ) {
     stop('post_params requires a post-response hook with post_state parameters')
   }
+  if (
+    !is.null(spec$post_result_null) &&
+      (!identical(spec$post_state, 'hook_state') ||
+        !length(hooks$post_response))
+  ) {
+    stop(
+      'post_result_null requires a post-response hook with post_state hook_state'
+    )
+  }
   if (combined_post || original_post_params) {
     if (
       !length(hooks$post_response) ||
@@ -730,6 +739,13 @@ render_operation <- function(operation, spec) {
         '  if (base::isTRUE(state$skip_request)) base::return(state$result)'
       },
       '  changed <- base::intersect(base::names(params), base::names(state$params))',
+      if (!is.null(spec[['pre_params']])) {
+        paste0(
+          '  changed <- base::intersect(changed, ',
+          r_literal(unlist(spec[['pre_params']], use.names = FALSE)),
+          ')'
+        )
+      },
       '  params[changed] <- state$params[changed]',
       if (!is.null(pg)) {
         paste0(
@@ -975,7 +991,14 @@ render_operation <- function(operation, spec) {
       if (!length(hooks$pre_request)) {
         stop('post_state hook_state requires a pre-request hook')
       }
-      lines <- c(lines, '  state["result"] <- base::list(result)')
+      lines <- c(
+        lines,
+        if (identical(spec$post_result_null, 'remove')) {
+          '  state$result <- result'
+        } else {
+          '  state["result"] <- base::list(result)'
+        }
+      )
     }
     lines <- c(
       lines,

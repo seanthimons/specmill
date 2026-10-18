@@ -569,13 +569,21 @@ inputs remain available to request bindings. Combine it with `defer_inputs`
 when a transport-only input must remain lazy on a skipped call; a deferred
 input remains a thunk in internal request parameters and can be forced by a
 pure request projection after the hook. Selection alone does not defer input
-evaluation. With `post_state: hook_state`, the post hook still receives the
+evaluation. Only selected parameter names are applied as pre-hook updates to
+request parameters. Other fields in the returned hook state remain available
+to the post hook. With `post_state: hook_state`, the post hook still receives the
 complete state returned by the pre hook, including partial params and extra
-fields.
+fields. By default a NULL result remains a named NULL in that state. Select
+operation-only `post_result_null: remove` to reproduce a client that assigns
+`state$result <- result` and removes the result key when NULL. This requires
+a post-response hook with `post_state: hook_state`.
 
 For a facade that already has an `all_pages` input, operation-only
 `request.pagination` selects native offset pagination without adding public
-arguments. It requires complete native request bindings and the current
+arguments. `max_pages` accepts a positive integer or a request binding, such as
+`{from: [params, max_pages]}`. A binding is evaluated after pre-hook updates,
+only when paging is selected; the pagination engine validates its value before
+HTTP. It requires complete native request bindings and the current
 pagination companions. The `when` binding runs after the pre hook and request
 construction; it can force a deferred transport input. False sends one request.
 True uses the existing pagination engine with explicit nested body paths:
