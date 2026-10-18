@@ -508,6 +508,18 @@ render_operation <- function(operation, spec) {
     )
   }
   hooks <- spec$hooks[[operation$name]] %or% list()
+  preserve_visibility <- isTRUE(spec$preserve_visibility)
+  if (
+    preserve_visibility &&
+      (!is.null(operation$iterate) ||
+        !is.null(pg) ||
+        any(lengths(hooks) > 0L) ||
+        isTRUE(spec$post_on_skip))
+  ) {
+    stop(
+      'preserve_visibility requires an unbatched, unpaged wrapper without hooks'
+    )
+  }
   if (length(hooks$pre_request)) {
     lines <- c(
       lines,
@@ -736,6 +748,11 @@ render_operation <- function(operation, spec) {
       '  }'
     )
   }
+  if (preserve_visibility) {
+    assigned <- startsWith(request, '  result <- ')
+    stopifnot(sum(assigned) == 1L)
+    request[assigned] <- sub('^  result <- ', '  ', request[assigned])
+  }
   lines <- c(lines, request)
   if (length(hooks$post_response)) {
     if (identical(spec$post_state, 'hook_state')) {
@@ -759,7 +776,9 @@ render_operation <- function(operation, spec) {
       )
     )
   }
-  lines <- c(lines, '  result')
+  if (!preserve_visibility) {
+    lines <- c(lines, '  result')
+  }
   if (
     length(hooks$post_combine) &&
       is.null(operation$iterate) &&
