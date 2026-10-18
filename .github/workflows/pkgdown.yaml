@@ -1,12 +1,9 @@
-# Copy to .github/workflows/pkgdown.yaml. Builds the pkgdown site on every push/PR
-# and deploys to GitHub Pages on non-PR events via the baseline reusable workflow.
+# Build and deploy the pkgdown site after publication or on manual dispatch.
+# Keep site builds outside the PR and main-push path.
 # One-time setup: Settings > Pages > Build and deployment > Source must be "GitHub Actions".
 name: pkgdown
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   release:
     types: [published]
   workflow_dispatch:
