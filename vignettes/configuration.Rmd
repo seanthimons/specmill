@@ -963,12 +963,57 @@ operations:
       split: true
 ```
 
-`body_media_correction` currently supports only `application/json` to `text/plain`.
-It requires a nonempty review reason and a scalar string source schema. It cannot
-be inherited through defaults. The source media must exist and the target must
-be absent; conflicting `body_media` selections fail review. Plans retain the
+`body_media_correction` supports `application/json` to `text/plain` for a scalar
+string source schema. It requires a nonempty review reason and cannot
+be inherited through defaults. For the text correction, the source media must
+exist and the target must be absent; conflicting `body_media` selections fail review. Plans retain the
 correction and the original source operation; the schema file stays unchanged.
 Ordinary `body_media` continues to select only declared media types.
+
+For a Swagger 2 body with no declared request media, a verified JSON contract can
+be recorded with an explicit null source:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    body_media_correction:
+      from: null
+      to: application/json
+      reason: Reviewed staging declaration and production JSON request capture.
+```
+
+The `from` key must be present. This form applies only to a declared Swagger body
+with no available media declaration, including inherited `consumes`. Existing or
+conflicting declarations, conflicting `body_media` selections, absent bodies and
+OpenAPI bodies are rejected. The source body schema is validated unchanged.
+This is a reviewed declaration for that operation, never a JSON fallback for
+other AMOS routes. The same correction/source-operation provenance is retained.
+
+An explicitly empty `responses: {}` map also needs a reviewed declaration before
+whole-client schema validation can accept that operation:
+
+```yaml
+operations:
+  POST /api/amos/dtxsids/:
+    response_correction:
+      status: '200'
+      media_type: application/json
+      description: Substance information for the supplied DTXSIDs.
+      reason: Reviewed staging response declaration and captured production 200 JSON.
+```
+
+This operation-only policy requires a quoted HTTP status, JSON media, description
+and review reason. It cannot replace existing response declarations or conflict
+with declared Swagger response media. It records only the status and media; no
+payload fields or types are inferred from one captured response.
+
+The archived file and `source_operation` stay unchanged. The source validation
+report retains its original status, hash and findings. Its `reviewed` entry for
+the service separately records validation of the corrected in-memory document,
+its hash and applied response corrections. That view passes through the same
+schema validator. Other invalid operations or document defects remain blocked;
+this policy never disables schema validation. Parser metadata also retains
+`response_correction` alongside the effective response declaration.
 
 For a reviewed vector-of-lines input, select encoding explicitly:
 
@@ -994,6 +1039,13 @@ newlines still count as single input entries. Without `split`, oversized inputs
 are rejected. Scalar text has no inferred splitting boundaries. Existing client helpers need
 manual adoption of plain-text transport; generation preserves their code and
 provenance baseline.
+
+For line bodies, callback and hook `params` retain the original character entries
+for the current chunk. Encoding and wire-schema validation use a separate value;
+a two-entry vector and a single entry containing LF may produce identical bytes
+but remain distinguishable to a client response callback. Request bindings that
+reference the body input use its encoded wire value. Callback expressions can
+still read the logical entries through `params` without splitting the wire text.
 
 ### Parameter serialization
 
@@ -2035,3 +2087,97 @@ client at call time. Array-body splitting uses the normalized whole input to for
 chunks. No normalization is inferred for other inputs, duplicates, or text lines;
 line encoding preserves its existing entry boundaries and newline bytes unless
 that input explicitly opts into a client function.
+
+### Deferred client inputs
+
+By default, wrappers capture every public input eagerly before request hooks.
+For a reviewed facade with response-only options, an operation can defer selected
+client inputs:
+
+```yaml
+operations:
+  POST /api/resolver/lookup:
+    defer_inputs: [tidy]
+```
+
+Each selected value in `params` becomes a zero-argument function. Client hooks
+pass it through unchanged, and the response callback calls `params$tidy()` when
+formatting needs that option. The function evaluates the original R argument
+promise, so repeated calls evaluate the supplied expression once. This lets
+initial input guards and body-option capture run first, followed by request
+cleanup, HTTP, and response formatting. A request or cleanup failure need not
+force the response-only argument.
+
+Only explicit `inputs` or `extra_parameters` can be selected. Native wire
+parameters, unknown names, duplicate names, and inputs also selected by
+`normalize_inputs` are rejected. The policy belongs under `operations`, not
+project or service defaults, and requires a generated implementation. It does
+not change the public signature or automatically invoke deferred values in
+request bindings: client code must call them where the reviewed contract needs
+them. Other inputs and existing frontloaded normalizers keep their behavior.
+
+### Error policy by request count
+
+Reviewed operations that abort one failed request but retain partial results for
+multiple requests can select both branches explicitly:
+
+```yaml
+operations:
+  GET /items/{id}:
+    batch:
+      fan_out: id
+      on_error: {single: stop, multiple: drop}
+      empty: empty_table
+```
+
+The runner selects a branch from the number of chunks after input normalization
+and effective batch sizing, including runtime limits. Two entries sent in one
+array request use `single`; two separate requests use `multiple`. Both choices
+must be `stop` or `drop`. Existing literal policies and session policy overrides
+keep their behavior. A client `batch.empty` constructor is allowed when either
+branch drops failures. Credential and other call-level errors still abort every
+branch. This policy applies to errors reaching the runner; a client response
+policy can separately handle received HTTP responses before decoding.
+
+An operation can set `batch.warning: failure_warning` to a client function
+`function(error, items)` that formats each dropped request's warning. It receives
+the original error condition and that request's normalized chunk. Return one
+nonempty string for the warning, or `NULL` to suppress it. `batch.warning: false`
+suppresses dropped-request warnings directly. Omitting the field keeps the
+existing warning text. This setting requires a dropping branch and belongs under
+operations. Adopt the current request helper before using it.
+
+The formatter runs only for dropped request errors. Credential and other
+`specmill_call_error` conditions bypass it and abort. Formatter failures or invalid
+return values also abort. For exact HTTP wording, an existing client response
+policy can raise a structured error containing the reviewed status or route; the
+formatter can read those fields without parsing an error message. Result metadata
+and the `batch.empty` constructor remain separate policies.
+
+
+### Plain batch result attributes
+
+A reviewed operation can use `batch: {metadata: false}` alongside `fan_out` or
+`split` to suppress the generated `failed` attribute for dropped requests. The
+default remains `true`. Suppression happens before `post_combine`, and the
+wrapper does not restore the suppressed attribute after the hook. Per-request
+warnings and call-level errors keep their existing behavior.
+
+Use the existing `batch.empty` client function to choose the container when every
+request fails, for example an empty tibble instead of a list. This constructor
+does not change partial-success combination. `batch.metadata` belongs under
+`operations`, never project or service defaults.
+
+
+### Preserve a single helper call's return visibility
+
+An operation may set `preserve_visibility: true` to forward its helper's visible
+or invisible return, including `NULL`, without changing the value or attributes.
+The generated wrapper ends with the helper call rather than assigning and then
+returning its result. This also works with reviewed request bindings and route
+guards. The default remains the existing visible result behavior.
+
+This policy belongs under an operation and requires an unbatched, unpaged
+generated wrapper without hooks or `post_on_skip`. Pipelines that combine or
+replace results have separate return behavior and are rejected by this setting.
+The policy does not add file-upload support or change request construction.

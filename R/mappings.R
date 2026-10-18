@@ -43,9 +43,11 @@ validate_settings <- function(
       'body',
       'inputs',
       'normalize_inputs',
+      'defer_inputs',
       'extra_parameters',
       'request',
       'post_on_skip',
+      'preserve_visibility',
       'post_state',
       'parameter_order',
       'docs',
@@ -57,6 +59,7 @@ validate_settings <- function(
       'body_media',
       'security_correction',
       'body_media_correction',
+      'response_correction',
       'request_body_correction',
       'path_parameters_correction',
       'text_encoding',
@@ -68,6 +71,41 @@ validate_settings <- function(
     ),
     label
   )
+  if ('defer_inputs' %in% names(settings)) {
+    deferred <- settings$defer_inputs
+    if (
+      (!is.list(deferred) && !is.character(deferred)) ||
+        !length(deferred) ||
+        !is.null(names(deferred))
+    ) {
+      stop('defer_inputs must be an unnamed sequence of client input names')
+    }
+    for (name in deferred) {
+      if (
+        !is.character(name) ||
+          length(name) != 1L ||
+          is.na(name) ||
+          !identical(make.names(name), name)
+      ) {
+        stop('defer_inputs must contain client input names')
+      }
+    }
+    if (anyDuplicated(unlist(deferred))) {
+      stop('defer_inputs must be unique')
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('defer_inputs requires a generated implementation')
+    }
+  }
+  if ('preserve_visibility' %in% names(settings)) {
+    value <- settings$preserve_visibility
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      stop('preserve_visibility must be true or false')
+    }
+    if (isTRUE(value) && identical(settings$implementation, 'existing')) {
+      stop('preserve_visibility requires a generated implementation')
+    }
+  }
   if ('normalize_inputs' %in% names(settings)) {
     normalizers <- settings$normalize_inputs
     config_fields(
@@ -90,6 +128,9 @@ validate_settings <- function(
   }
   if (!is.null(settings$body_media_correction)) {
     validate_body_media_correction(settings$body_media_correction)
+  }
+  if (!is.null(settings$response_correction)) {
+    validate_response_correction(settings$response_correction)
   }
   if (!is.null(settings$request_body_correction)) {
     validate_request_body_correction(settings$request_body_correction)
@@ -205,11 +246,30 @@ validate_settings <- function(
   if ('batch' %in% names(settings)) {
     config_fields(
       settings$batch,
-      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error', 'empty'),
+      c(
+        'max_items',
+        'max_bytes',
+        'fan_out',
+        'split',
+        'on_error',
+        'empty',
+        'metadata',
+        'warning'
+      ),
       'batch'
     )
+    if (
+      !is.null(settings$batch$metadata) &&
+        !isTRUE(settings$batch$metadata) &&
+        !isFALSE(settings$batch$metadata)
+    ) {
+      stop('batch.metadata must be true or false')
+    }
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')
+    }
+    if (!is.null(settings$batch$warning) && !isFALSE(settings$batch$warning)) {
+      config_string(settings$batch$warning, 'batch.warning')
     }
     if (!is.null(settings$batch$empty)) {
       config_string(settings$batch$empty, 'batch.empty')
@@ -221,13 +281,27 @@ validate_settings <- function(
     ) {
       stop('batch.split must be true or false')
     }
-    if (
-      !is.null(settings$batch$on_error) &&
-        (!is.character(settings$batch$on_error) ||
-          length(settings$batch$on_error) != 1L ||
-          !settings$batch$on_error %in% c('stop', 'drop'))
-    ) {
-      stop('batch.on_error must be stop or drop')
+    on_error <- settings$batch$on_error
+    if (is.list(on_error)) {
+      config_fields(on_error, c('single', 'multiple'), 'batch.on_error')
+      if (
+        length(on_error) != 2L ||
+          !setequal(names(on_error), c('single', 'multiple'))
+      ) {
+        stop('batch.on_error requires single and multiple')
+      }
+    } else {
+      on_error <- if (is.null(on_error)) list() else list(on_error)
+    }
+    for (choice in on_error) {
+      if (
+        !is.character(choice) ||
+          length(choice) != 1L ||
+          is.na(choice) ||
+          !choice %in% c('stop', 'drop')
+      ) {
+        stop('batch.on_error must be stop or drop')
+      }
     }
     limits <- settings$batch[c('max_items', 'max_bytes')]
     binding <- settings$batch$max_items
@@ -868,7 +942,17 @@ request_binding <- function(
   if (path[[1L]] == 'hook_state' && !has_hook) {
     stop('Request references hook_state without a pre-request hook')
   }
-  expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  text_reference <- operation$text_body_reference
+  if (
+    path[[1L]] == 'params' &&
+      length(path) > 1L &&
+      path[[2L]] %in% names(text_reference)
+  ) {
+    expression <- unname(text_reference[[path[[2L]]]])
+    path <- path[-1L]
+  } else {
+    expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  }
   for (name in path[-1L]) {
     expression <- paste0(expression, '[[', r_literal(name), ']]')
   }

@@ -190,6 +190,12 @@ iteration_settings <- function(operation, batch, explicit) {
     stop('batch.fan_out and batch.split cannot be combined: ', operation$id)
   }
   if (is.null(fan_out) && !split) {
+    if (!is.null(explicit$metadata)) {
+      stop(
+        'batch.metadata requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
     if (!is.null(explicit$on_error)) {
       stop(
         'batch.on_error requires batch.fan_out or batch.split: ',
@@ -202,17 +208,25 @@ iteration_settings <- function(operation, batch, explicit) {
         operation$id
       )
     }
+    if (!is.null(explicit$warning)) {
+      stop('batch.warning requires batch.fan_out or batch.split: ', operation$id)
+    }
     return(NULL)
   }
   on_error <- batch$on_error %or% 'stop'
-  if (!is.null(explicit$empty) && on_error != 'drop') {
+  if (!is.null(explicit$empty) && !any(unlist(on_error) == 'drop')) {
     stop('batch.empty requires batch.on_error: drop: ', operation$id)
+  }
+  if (!is.null(explicit$warning) && !any(unlist(on_error) == 'drop')) {
+    stop('batch.warning requires batch.on_error: drop: ', operation$id)
   }
   list(
     fan_out = fan_out,
     split = split,
     on_error = on_error,
-    empty = batch$empty
+    empty = batch$empty,
+    metadata = !isFALSE(batch$metadata),
+    warning = batch$warning
   )
 }
 
@@ -296,9 +310,26 @@ render_operation <- function(operation, spec) {
     transport_batch$max_items <- as.name(limit_name)
     transport_batch <- as.call(c(list(quote(base::list)), transport_batch))
   }
-  split_lines <- isTRUE(operation$iterate$split) &&
+  line_body <- !is.null(body_name) &&
     identical(operation$body_media, 'text/plain') &&
     identical(operation$text_encoding, 'lines')
+  if (line_body) {
+    operation$text_body_reference <- setNames(
+      tail(
+        make.unique(c(
+          formal_names,
+          helper,
+          callback,
+          operation$response_policy,
+          operation$iterate$empty,
+          if (dynamic_limit) limit_name,
+          '.text_body'
+        )),
+        1L
+      ),
+      body_name
+    )
+  }
   # A split body may exceed the per-request item limit; each chunk is checked by the helper.
   whole <- operation
   if (isTRUE(operation$iterate$split)) {
@@ -351,6 +382,18 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  deferred <- unlist(spec$defer_inputs, use.names = FALSE)
+  client_inputs <- formal_names[which(vapply(
+    params,
+    function(p) identical(p$location, 'client'),
+    logical(1)
+  ))]
+  if (length(setdiff(deferred, client_inputs))) {
+    stop('defer_inputs must name client inputs, not native wire parameters')
+  }
+  if (length(intersect(deferred, names(spec$normalize_inputs)))) {
+    stop('defer_inputs cannot select normalize_inputs values')
+  }
   normalizers <- spec$normalize_inputs
   unknown <- setdiff(names(normalizers), formal_names)
   if (length(unknown)) {
@@ -400,7 +443,14 @@ render_operation <- function(operation, spec) {
       paste(
         vapply(
           formal_names,
-          function(n) paste0(r_literal(n), ' = ', n),
+          function(n) {
+            paste0(
+              r_literal(n),
+              ' = ',
+              if (n %in% deferred) 'function() ' else '',
+              n
+            )
+          },
           character(1)
         ),
         collapse = ', '
@@ -425,7 +475,8 @@ render_operation <- function(operation, spec) {
     }
     if (
       isTRUE(params[[i]]$public_required %or% params[[i]]$required) &&
-        !isTRUE(operation$explicit_inputs)
+        !isTRUE(operation$explicit_inputs) &&
+        !formal_names[[i]] %in% deferred
     ) {
       lines <- c(
         lines,
@@ -473,7 +524,7 @@ render_operation <- function(operation, spec) {
         ')) base::stop("Binary body must be a raw vector")'
       )
     } else if (identical(operation$body_media, 'text/plain')) {
-      if (split_lines) {
+      if (line_body) {
         paste0('.api_validation$text_input(', body_name, ')')
       } else {
         text_checks(text_operation, body_name)
@@ -525,16 +576,19 @@ render_operation <- function(operation, spec) {
     }
   }
   per_request <- length(lines)
-  if (split_lines) {
-    value <- paste0('params[[', r_literal(body_name), ']]')
-    lines <- c(
-      lines,
-      paste0('  if (!base::is.null(', value, ')) {'),
-      paste0('    ', text_checks(text_operation, value)),
-      '  }'
+  hooks <- spec$hooks[[operation$name]] %or% list()
+  preserve_visibility <- isTRUE(spec$preserve_visibility)
+  if (
+    preserve_visibility &&
+      (!is.null(operation$iterate) ||
+        !is.null(pg) ||
+        any(lengths(hooks) > 0L) ||
+        isTRUE(spec$post_on_skip))
+  ) {
+    stop(
+      'preserve_visibility requires an unbatched, unpaged wrapper without hooks'
     )
   }
-  hooks <- spec$hooks[[operation$name]] %or% list()
   if (length(hooks$pre_request)) {
     lines <- c(
       lines,
@@ -564,6 +618,16 @@ render_operation <- function(operation, spec) {
       }
     )
   }
+  if (line_body) {
+    wire_body <- unname(operation$text_body_reference[[body_name]])
+    lines <- c(
+      lines,
+      paste0('  ', wire_body, ' <- params[[', r_literal(body_name), ']]'),
+      paste0('  if (!base::is.null(', wire_body, ')) {'),
+      paste0('    ', text_checks(text_operation, wire_body)),
+      '  }'
+    )
+  }
   request <- paste0(
     '  result <- ',
     helper,
@@ -578,6 +642,8 @@ render_operation <- function(operation, spec) {
     ', body = ',
     if (is.null(body_name)) {
       'NULL'
+    } else if (line_body) {
+      wire_body
     } else {
       paste0('params[[', r_literal(body_name), ']]')
     },
@@ -763,6 +829,11 @@ render_operation <- function(operation, spec) {
       '  }'
     )
   }
+  if (preserve_visibility) {
+    assigned <- startsWith(request, '  result <- ')
+    stopifnot(sum(assigned) == 1L)
+    request[assigned] <- sub('^  result <- ', '  ', request[assigned])
+  }
   lines <- c(lines, request)
   if (length(hooks$post_response)) {
     if (identical(spec$post_state, 'hook_state')) {
@@ -786,7 +857,9 @@ render_operation <- function(operation, spec) {
       )
     )
   }
-  lines <- c(lines, '  result')
+  if (!preserve_visibility) {
+    lines <- c(lines, '  result')
+  }
   if (
     length(hooks$post_combine) &&
       is.null(operation$iterate) &&
@@ -918,7 +991,8 @@ render_operation <- function(operation, spec) {
     # Hooks and the request run once per item or chunk; the helper combines results.
     # With pagination, each item pages to completion inside the callback.
     input <- if (is.null(fan_out)) body_name else fan_out_name
-    combine <- length(hooks$post_combine) > 0L
+    keep_metadata <- !isFALSE(operation$iterate$metadata)
+    combine <- length(hooks$post_combine) > 0L || !keep_metadata
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
@@ -951,9 +1025,28 @@ render_operation <- function(operation, spec) {
         if (!is.null(operation$iterate$empty)) {
           paste0(', empty = ', operation$iterate$empty)
         },
+        if (!is.null(operation$iterate$warning)) {
+          paste0(
+            ', warning = ',
+            if (isFALSE(operation$iterate$warning)) {
+              'FALSE'
+            } else {
+              paste0(
+                'base::get(', r_literal(operation$iterate$warning),
+                ', envir = base::parent.env(base::environment()), ',
+                'mode = "function", inherits = FALSE)'
+              )
+            }
+          )
+        },
         ')'
       ),
-      if (combine) post_combine_lines('failed')
+      if (!keep_metadata) '  base::attr(result, "failed") <- NULL',
+      if (length(hooks$post_combine)) {
+        post_combine_lines('failed')
+      } else if (combine) {
+        '  result'
+      }
     )
   } else if (!is.null(pg)) {
     # post_combine runs once.
@@ -1100,6 +1193,11 @@ generate_client <- function(
     lapply(services, read_service_operations)
   } else {
     lapply(services, validated_service_operations, reports = validation_reports)
+  }
+  for (service_result in parsed) {
+    for (view in service_result$reviewed_validation) {
+      validation_reports[[view$source]]$reviewed[[view$service]] <- view
+    }
   }
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
@@ -1282,6 +1380,29 @@ generate_client <- function(
           op$id,
           '. Compare the helper with the current template and adopt them.'
         )
+      }
+      if (!is.null(op$iterate$warning)) {
+        warning_formatter <- op$iterate$warning
+        if (
+          is.character(warning_formatter) &&
+            (!warning_formatter %in% names(runtime_definitions) ||
+              warning_formatter %in% operation_names)
+        ) {
+          stop(
+            'Missing client batch.warning function or wrapper collision: ',
+            warning_formatter
+          )
+        }
+        runner <- runtime_definitions[[paste0(operation_spec$helper, '_each')]]
+        if (
+          !is.null(config) &&
+            !'warning' %in% names(formals(eval(runner$expr, baseenv())))
+        ) {
+          stop(
+            'batch.warning needs the current ', operation_spec$helper,
+            '_each() helper with a warning argument: ', op$id
+          )
+        }
       }
       op$paginate <- pagination_settings(
         op,

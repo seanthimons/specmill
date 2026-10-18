@@ -6,14 +6,20 @@ form_media <- function(media) {
 
 validate_body_media_correction <- function(correction) {
   config_fields(correction, c('from', 'to', 'reason'), 'body_media_correction')
-  for (field in c('from', 'to', 'reason')) {
+  if (!'from' %in% names(correction)) {
+    stop('body_media_correction requires an explicit from field')
+  }
+  for (field in c('to', 'reason')) {
     config_string(correction[[field]], paste('body_media_correction', field))
   }
-  if (
-    !identical(correction$from, 'application/json') ||
-      !identical(correction$to, 'text/plain')
-  ) {
-    stop('body_media_correction supports application/json to text/plain only')
+  missing_json <- is.null(correction$from) &&
+    identical(correction$to, 'application/json')
+  text_correction <- identical(correction$from, 'application/json') &&
+    identical(correction$to, 'text/plain')
+  if (!missing_json && !text_correction) {
+    stop(
+      'body_media_correction supports missing media to application/json or application/json to text/plain only'
+    )
   }
 }
 
@@ -34,7 +40,11 @@ request_body_media <- function(
   if (!is.null(correction)) {
     validate_body_media_correction(correction)
     if (
-      !correction$from %in% available ||
+      (if (is.null(correction$from)) {
+        length(available) > 0L
+      } else {
+        !correction$from %in% available
+      }) ||
         correction$to %in% available ||
         (!is.null(preferred) && !identical(preferred, correction$to))
     ) {
