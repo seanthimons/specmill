@@ -22,7 +22,8 @@ paginated(
   error_policy = "stop",
   warn_limits = FALSE,
   format = NULL,
-  policy = list()
+  policy = list(),
+  warn_errors = TRUE
 )
 }
 \arguments{
@@ -78,6 +79,8 @@ iteration. Response decoding remains the single-request function's responsibilit
 
 \item{policy}{Named list of shared pagination defaults. Explicit arguments
 override policy. Callbacks allow service defaults and operation exceptions.}
+
+\item{warn_errors}{Warn when a request error returns partial or empty results.}
 }
 \value{
 A list with \code{pages} (extracted, unmerged collections), \code{requests},

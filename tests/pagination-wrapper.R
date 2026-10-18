@@ -690,7 +690,7 @@ pagination_wrapper_acceptance <- function() {
     'pagination.parameter must name an integer or number path or query parameter'
   )
   service <- paged()
-  service$defaults$pagination$mode <- 'cursor'
+  service$defaults$pagination$mode <- 'offset'
   yaml::write_yaml(service, service_path)
   fails('pagination.mode must be page')
   service <- paged()
