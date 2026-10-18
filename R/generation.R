@@ -181,18 +181,25 @@ iteration_settings <- function(operation, batch, explicit) {
         operation$id
       )
     }
+    if (!is.null(explicit$warning)) {
+      stop('batch.warning requires batch.fan_out or batch.split: ', operation$id)
+    }
     return(NULL)
   }
   on_error <- batch$on_error %or% 'stop'
-  if (!is.null(explicit$empty) && on_error != 'drop') {
+  if (!is.null(explicit$empty) && !any(unlist(on_error) == 'drop')) {
     stop('batch.empty requires batch.on_error: drop: ', operation$id)
+  }
+  if (!is.null(explicit$warning) && !any(unlist(on_error) == 'drop')) {
+    stop('batch.warning requires batch.on_error: drop: ', operation$id)
   }
   list(
     fan_out = fan_out,
     split = split,
     on_error = on_error,
     empty = batch$empty,
-    metadata = !isFALSE(batch$metadata)
+    metadata = !isFALSE(batch$metadata),
+    warning = batch$warning
   )
 }
 
@@ -939,6 +946,20 @@ render_operation <- function(operation, spec) {
         if (!is.null(operation$iterate$empty)) {
           paste0(', empty = ', operation$iterate$empty)
         },
+        if (!is.null(operation$iterate$warning)) {
+          paste0(
+            ', warning = ',
+            if (isFALSE(operation$iterate$warning)) {
+              'FALSE'
+            } else {
+              paste0(
+                'base::get(', r_literal(operation$iterate$warning),
+                ', envir = base::parent.env(base::environment()), ',
+                'mode = "function", inherits = FALSE)'
+              )
+            }
+          )
+        },
         ')'
       ),
       if (!keep_metadata) '  base::attr(result, "failed") <- NULL',
@@ -1280,6 +1301,29 @@ generate_client <- function(
           op$id,
           '. Compare the helper with the current template and adopt them.'
         )
+      }
+      if (!is.null(op$iterate$warning)) {
+        warning_formatter <- op$iterate$warning
+        if (
+          is.character(warning_formatter) &&
+            (!warning_formatter %in% names(runtime_definitions) ||
+              warning_formatter %in% operation_names)
+        ) {
+          stop(
+            'Missing client batch.warning function or wrapper collision: ',
+            warning_formatter
+          )
+        }
+        runner <- runtime_definitions[[paste0(operation_spec$helper, '_each')]]
+        if (
+          !is.null(config) &&
+            !'warning' %in% names(formals(eval(runner$expr, baseenv())))
+        ) {
+          stop(
+            'batch.warning needs the current ', operation_spec$helper,
+            '_each() helper with a warning argument: ', op$id
+          )
+        }
       }
       op$paginate <- pagination_settings(
         op,

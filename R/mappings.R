@@ -253,7 +253,8 @@ validate_settings <- function(
         'split',
         'on_error',
         'empty',
-        'metadata'
+        'metadata',
+        'warning'
       ),
       'batch'
     )
@@ -267,6 +268,9 @@ validate_settings <- function(
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')
     }
+    if (!is.null(settings$batch$warning) && !isFALSE(settings$batch$warning)) {
+      config_string(settings$batch$warning, 'batch.warning')
+    }
     if (!is.null(settings$batch$empty)) {
       config_string(settings$batch$empty, 'batch.empty')
     }
@@ -277,13 +281,27 @@ validate_settings <- function(
     ) {
       stop('batch.split must be true or false')
     }
-    if (
-      !is.null(settings$batch$on_error) &&
-        (!is.character(settings$batch$on_error) ||
-          length(settings$batch$on_error) != 1L ||
-          !settings$batch$on_error %in% c('stop', 'drop'))
-    ) {
-      stop('batch.on_error must be stop or drop')
+    on_error <- settings$batch$on_error
+    if (is.list(on_error)) {
+      config_fields(on_error, c('single', 'multiple'), 'batch.on_error')
+      if (
+        length(on_error) != 2L ||
+          !setequal(names(on_error), c('single', 'multiple'))
+      ) {
+        stop('batch.on_error requires single and multiple')
+      }
+    } else {
+      on_error <- if (is.null(on_error)) list() else list(on_error)
+    }
+    for (choice in on_error) {
+      if (
+        !is.character(choice) ||
+          length(choice) != 1L ||
+          is.na(choice) ||
+          !choice %in% c('stop', 'drop')
+      ) {
+        stop('batch.on_error must be stop or drop')
+      }
     }
     limits <- settings$batch[c('max_items', 'max_bytes')]
     binding <- settings$batch$max_items
