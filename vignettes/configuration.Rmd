@@ -2114,6 +2114,45 @@ not change the public signature or automatically invoke deferred values in
 request bindings: client code must call them where the reviewed contract needs
 them. Other inputs and existing frontloaded normalizers keep their behavior.
 
+### Error policy by request count
+
+Reviewed operations that abort one failed request but retain partial results for
+multiple requests can select both branches explicitly:
+
+```yaml
+operations:
+  GET /items/{id}:
+    batch:
+      fan_out: id
+      on_error: {single: stop, multiple: drop}
+      empty: empty_table
+```
+
+The runner selects a branch from the number of chunks after input normalization
+and effective batch sizing, including runtime limits. Two entries sent in one
+array request use `single`; two separate requests use `multiple`. Both choices
+must be `stop` or `drop`. Existing literal policies and session policy overrides
+keep their behavior. A client `batch.empty` constructor is allowed when either
+branch drops failures. Credential and other call-level errors still abort every
+branch. This policy applies to errors reaching the runner; a client response
+policy can separately handle received HTTP responses before decoding.
+
+An operation can set `batch.warning: failure_warning` to a client function
+`function(error, items)` that formats each dropped request's warning. It receives
+the original error condition and that request's normalized chunk. Return one
+nonempty string for the warning, or `NULL` to suppress it. `batch.warning: false`
+suppresses dropped-request warnings directly. Omitting the field keeps the
+existing warning text. This setting requires a dropping branch and belongs under
+operations. Adopt the current request helper before using it.
+
+The formatter runs only for dropped request errors. Credential and other
+`specmill_call_error` conditions bypass it and abort. Formatter failures or invalid
+return values also abort. For exact HTTP wording, an existing client response
+policy can raise a structured error containing the reviewed status or route; the
+formatter can read those fields without parsing an error message. Result metadata
+and the `batch.empty` constructor remain separate policies.
+
+
 ### Plain batch result attributes
 
 A reviewed operation can use `batch: {metadata: false}` alongside `fan_out` or
