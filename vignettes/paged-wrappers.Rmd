@@ -149,3 +149,66 @@ results <- lapply(c('books', 'films'), get_items)
 Hooks run once per page, and an optional `post_combine` hook runs once on the
 combined result. A `pre_request` hook must not change the page argument; see
 [hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper).
+
+## Reviewed cursor paging
+
+Generated wrappers accept `pagination.mode: cursor` for a string query/path input,
+or an explicit client input used by a complete request binding. Use the client
+input for a POST facade whose request mapping places its cursor in the body.
+No response field names or cursor locations are inferred.
+
+```yaml
+operations:
+  GET /items:
+    pagination:
+      mode: cursor
+      parameter: cursor
+      next_cursor: cursor_next
+      completed: cursor_done
+      items: cursor_items
+      metadata: false
+      error_policy: partial
+      warn_errors: false
+      on_limit: cursor_limit
+```
+
+These reviewed client functions describe an envelope explicitly:
+
+```r
+cursor_next <- function(page) page$pagination$nextCursor
+cursor_done <- function(page, state) identical(page$pagination$hasNext, FALSE)
+cursor_items <- function(page) api_request_table(page$results)
+cursor_limit <- function(state, limit) {
+  warning(paste('Pagination stopped at', limit, 'pages'), call. = FALSE)
+}
+```
+
+The next cursor is opaque: NULL or an empty string ends iteration. Repeated
+nonempty cursors, NA, non-string values and multi-entry cursors abort before
+another request. A NULL initial GET cursor and an empty
+initial POST cursor retain their public defaults. `all_pages = FALSE` sends one
+request and applies `items` to that response. Automatic paging retains each raw
+page for `completed` and `next_cursor`, and combines the extracted items.
+Table extraction runs inside the batching context so `api_request_table()` can
+build types over all pages. A dry run returns the first prepared request.
+
+`error_policy` defaults to `stop`; `partial` retains successful pages and `empty`
+discards them after a request error. `warn_errors` defaults to TRUE. Credential
+and other `specmill_call_error` conditions always abort. Extraction and cursor
+callback failures abort as well; successful-response formatter failures inside a
+client response policy can use the documented call-error class when they must
+remain hard errors.
+
+Limit warnings default to the existing pager warning. An `on_limit(state, limit)`
+client function replaces that warning when the successful page count reaches the
+limit, including completion on that last page. Set `warn_limits: false` to
+suppress limit warnings. The callback owns any service-specific warning text.
+Existing page-mode wrappers and their defaults remain supported. Client helpers
+must include the current pager adapter and pagination companion before adopting
+these controls; generated clients do not need specmill at runtime.
+
+`stop_on_empty` defaults to TRUE. Set `pagination.stop_on_empty: false` when an
+empty collection can still advertise a next page. The reviewed completion and
+next-cursor callbacks then determine continuation; cursor validation, repeat
+detection and `max_pages` still apply. This does not override `stop_on_short` in
+the standalone companion.
