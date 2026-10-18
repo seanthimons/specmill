@@ -304,10 +304,39 @@ validate_settings <- function(
         'max_retries',
         'retry_writes',
         'retry_policy',
-        'preserve_errors'
+        'preserve_errors',
+        'throttle'
       ),
       paste(label, 'request_controls')
     )
+    if (!is.null(controls$throttle)) {
+      throttle <- controls$throttle
+      config_fields(
+        throttle,
+        c('capacity', 'fill_time_s', 'realm'),
+        'request_controls.throttle'
+      )
+      for (field in c('capacity', 'fill_time_s')) {
+        value <- throttle[[field]]
+        if (
+          !is.numeric(value) ||
+            length(value) != 1L ||
+            !is.finite(value) ||
+            value <= 0 ||
+            (field == 'capacity' && value != trunc(value))
+        ) {
+          stop(
+            'request_controls.throttle.',
+            field,
+            ' must be one positive finite ',
+            if (field == 'capacity') 'integer' else 'number'
+          )
+        }
+      }
+      if (!is.null(throttle$realm)) {
+        config_string(throttle$realm, 'request_controls.throttle.realm')
+      }
+    }
     if (
       'preserve_errors' %in%
         names(controls) &&
