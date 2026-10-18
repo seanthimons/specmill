@@ -1,12 +1,26 @@
 
 
 
+## specmill 0.1.37 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.37 \[skip ci\]
+  ([a0a94f0](https://github.com/seanthimons/specmill/tree/a0a94f0afb82a4802c5c881ac8d9907577c3c714))
+- finalize released pagination integration (#152)
+  ([8332063](https://github.com/seanthimons/specmill/tree/83320639ce4b7fb3162bd2d4b92717cd60e333d9))
+- integrate reviewed generator policies (#152)
+  ([cf86737](https://github.com/seanthimons/specmill/tree/cf86737aa4d60cd7977a326c8c8c00af93955a4f))
+
+Full set of changes:
+[`v0.1.36...v0.1.37`](https://github.com/seanthimons/specmill/compare/v0.1.36...v0.1.37)
+
 ## specmill 0.1.36 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.36 \[skip ci\]
-  ([48d2dc1](https://github.com/seanthimons/specmill/tree/48d2dc10d875dca4c70a8fb45e2efff91f53791b))
+  ([0e3ed64](https://github.com/seanthimons/specmill/tree/0e3ed64ddc48b0104c00fb541678d5f75935afe3))
 - integrate released client policies (#149)
   ([d8ef8ba](https://github.com/seanthimons/specmill/tree/d8ef8bab73df161c720e328ac301c0c1d7f64516))
 
@@ -82,6 +96,11 @@ Full set of changes:
 [`v0.1.30...v0.1.31`](https://github.com/seanthimons/specmill/compare/v0.1.30...v0.1.31)
 
 ## specmill 0.1.30 (2026-10-18)
+
+#### Bug fixes
+
+- forget explicitly retired missing outputs (#152)
+  ([26ebea1](https://github.com/seanthimons/specmill/tree/26ebea1d3328fd16dfaac14e89d94e07f1a1be91))
 
 #### Other changes
 
