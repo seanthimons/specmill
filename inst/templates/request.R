@@ -405,7 +405,7 @@ api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_
 # The <helper>.batching option's on_error, empty and max_items override the generated defaults.
 # on_error = 'drop' covers per-item failures only; errors classed specmill_call_error stop the call.
 # When drop leaves no successes, `empty()` (the batch.empty client function) supplies the result instead of list().
-api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL) {
+api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL, warning = NULL) {
   policy <- base::getOption(base::paste0(base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV)), '.api_request.batching'), base::list())
   if (!base::is.null(policy$on_error)) on_error <- policy$on_error
   if (!base::is.null(policy$empty)) empty <- policy$empty
@@ -415,9 +415,13 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL)
     if (!base::is.numeric(limit) || base::length(limit) != 1L || base::is.na(limit) || limit < 1 || limit != base::floor(limit) || limit > size) base::stop('batching max_items must be a whole number from 1 to ', size, call. = FALSE)
     size <- limit
   }
-  if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
+  if (base::is.list(on_error)) {
+    if (base::length(on_error) != 2L || !base::setequal(base::names(on_error), base::c('single', 'multiple')) || !base::all(base::vapply(on_error, function(choice) base::identical(choice, 'stop') || base::identical(choice, 'drop'), base::logical(1)))) base::stop('on_error requires single and multiple stop/drop choices', call. = FALSE)
+  } else if (!base::identical(on_error, 'stop') && !base::identical(on_error, 'drop')) base::stop('on_error must be stop or drop for fan_out and split wrappers', call. = FALSE)
   # Input within one request (including empty or NULL) is sent unchanged, as an unbatched call would.
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
+  if (base::is.list(on_error)) on_error <- on_error[[if (base::length(chunks) == 1L) 'single' else 'multiple']]
+  if (!base::is.null(warning) && !base::isFALSE(warning) && !base::is.function(warning)) base::stop(base::errorCondition('batch.warning must be a function or FALSE', class = 'specmill_call_error', call = NULL))
   failed <- base::character()
   run <- function(chunk) {
     outer <- api_request_batch_state$active
@@ -431,7 +435,14 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL)
       # Call-level errors (credentials, server, options) apply to every item: stop rather than drop.
       if (base::inherits(e, 'specmill_call_error')) base::stop(e)
       label <- base::paste(base::as.character(base::unlist(chunk)), collapse = ', ')
-      base::warning('Request for ', label, ' failed: ', base::conditionMessage(e), call. = FALSE)
+      message <- if (base::is.null(warning)) base::paste0('Request for ', label, ' failed: ', base::conditionMessage(e)) else if (base::isFALSE(warning)) NULL else base::tryCatch(warning(e, chunk), error = function(error) {
+        base::class(error) <- base::unique(base::c('specmill_call_error', base::class(error)))
+        base::stop(error)
+      })
+      if (!base::is.null(message)) {
+        if (!base::is.character(message) || base::length(message) != 1L || base::is.na(message) || !base::nzchar(message)) base::stop(base::errorCondition('batch.warning must return one nonempty string or NULL', class = 'specmill_call_error', call = NULL))
+        base::warning(message, call. = FALSE)
+      }
       failed[[label]] <<- base::conditionMessage(e)
       NULL
     })
@@ -441,31 +452,33 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL)
   result
 }
 
-# Runs one request per page for a wrapper with pagination.mode: page. `send` takes the page argument as a named
+# Runs one request per page for a wrapper with page or cursor pagination. `send` takes the page argument as a named
 # list and returns that page's result; <helper>_paginated() decides when to stop. The pages are combined like a
 # batched wrapper's, so tables are typed once. Every control the pagination option could change is fixed here,
 # so the shape of a wrapper's result never depends on it. A dry run returns its first prepared request.
-api_request_pages <- function(send, parameter, start, max_pages, completed = NULL) {
+api_request_pages <- function(send, parameter, start, max_pages, completed = NULL, mode = 'page', next_cursor = NULL, items = NULL, error_policy = 'stop', warn_limits = TRUE, warn_errors = TRUE, stop_on_empty = TRUE, on_limit = NULL) {
+  for (callback in base::list(completed, next_cursor, items, on_limit)) if (!base::is.null(callback) && !base::is.function(callback)) base::stop('Pagination callbacks must be functions', call. = FALSE)
   pages <- base::list()
   prepared <- NULL
   fetch <- function(...) {
     outer <- api_request_batch_state$active
     api_request_batch_state$active <- TRUE
     base::on.exit(api_request_batch_state$active <- outer, add = TRUE)
-    # The engine adds a double step; send whole page numbers as integers so they never print as 1e+05.
     page <- send(base::lapply(base::list(...), function(x) if (base::is.numeric(x) && base::length(x) == 1L && !base::is.na(x) && x == base::trunc(x) && base::abs(x) <= base::.Machine$integer.max) base::as.integer(x) else x))
     if (base::inherits(page, 'httr2_request')) {
       prepared <<- page
-      return(base::list())
+      return(base::list(response = NULL, items = base::list()))
     }
-    pages[base::length(pages) + 1L] <<- base::list(page)
-    page
+    selected <- if (base::is.null(items)) page else base::tryCatch(items(page), error = function(e) { base::class(e) <- base::unique(base::c('pagination_security_error', base::class(e))); base::stop(e) })
+    pages[base::length(pages) + 1L] <<- base::list(selected)
+    base::list(response = page, items = selected)
   }
-  # The engine ships with the pagination companion, so look it up rather than name it: a client without the companion must still check clean.
   paginate <- base::get0('api_request_paginated', mode = 'function')
   if (base::is.null(paginate)) base::stop('Paging needs the pagination companion (api_request_paginated) in the client helper', call. = FALSE)
-  paged <- paginate(fetch, mode = 'page', parameter = parameter, start = start, size_parameter = NULL, page_size = NULL, items = function(x) if (base::is.null(x)) base::list() else x, completed = completed, max_pages = max_pages, max_items = NULL, advance = NULL, format = NULL, stop_on_short = FALSE, error_policy = 'stop', warn_limits = TRUE)
+  paged <- paginate(fetch, mode = mode, parameter = parameter, start = start, size_parameter = NULL, page_size = NULL, items = function(x) if (base::is.null(x$items)) base::list() else x$items, completed = if (base::is.null(completed)) NULL else function(x, state) completed(x$response, state), next_cursor = if (base::is.null(next_cursor)) NULL else function(x) next_cursor(x$response), max_pages = max_pages, max_items = NULL, advance = NULL, format = NULL, stop_on_short = FALSE, error_policy = error_policy, warn_limits = warn_limits && base::is.null(on_limit), warn_errors = warn_errors, stop_on_empty = stop_on_empty, policy = base::list())
   if (!base::is.null(prepared)) base::return(prepared)
+  if (paged$stop_reason == 'request_error' && error_policy == 'empty') pages <- base::list()
+  if (warn_limits && !base::is.null(on_limit) && base::length(pages) >= max_pages) on_limit(paged, max_pages)
   result <- api_request_combine(pages)
   base::attr(result, 'pagination') <- base::list(requests = base::as.integer(paged$requests), item_count = base::as.integer(paged$item_count), stop_reason = paged$stop_reason)
   result

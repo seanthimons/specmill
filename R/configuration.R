@@ -411,14 +411,22 @@ load_project <- function(
         'body',
         'security_correction',
         'body_media_correction',
+        'preserve_visibility',
         'response_correction',
         'request_body_correction',
         'path_parameters_correction',
-        'normalize_inputs'
+        'normalize_inputs',
+        'defer_inputs'
       ),
       names(defaults)
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
+    }
+    if (!is.null(defaults$batch$metadata)) {
+      stop(id, ': batch.metadata belongs under operations, not defaults')
+    }
+    if ('warning' %in% names(defaults$batch)) {
+      stop(id, ': batch.warning belongs under operations, not defaults')
     }
     if ('metadata' %in% names(defaults$pagination)) {
       stop(id, ': pagination.metadata belongs under operations, not defaults')
