@@ -1,17 +1,39 @@
 
 
 
+## specmill 0.1.43 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.43 \[skip ci\]
+  ([234d92b](https://github.com/seanthimons/specmill/tree/234d92bdabe6a3dd57c598145548fb6873de1eca))
+
+Full set of changes:
+[`v0.1.42...v0.1.43`](https://github.com/seanthimons/specmill/compare/v0.1.42...v0.1.43)
+
 ## specmill 0.1.42 (2026-10-18)
 
 #### New features
 
+- format unbatched results with client callbacks (#157)
+  ([0dd5d30](https://github.com/seanthimons/specmill/tree/0dd5d3041c0c9d3de438b7e09dd1e0b9cd0c9cc3))
 - validate full inputs before permissive fan out (#166)
   ([16928dc](https://github.com/seanthimons/specmill/tree/16928dc49804d8149bbf8e126a3bd02c8a68de75))
+
+#### Tests
+
+- retain formatter in visibility regression
+  ([520d448](https://github.com/seanthimons/specmill/tree/520d448b60614bd4036909f6485e121d95d98ce6))
+
+#### Docs
+
+- retain unresolved production similarity list (#165)
+  ([13c6fbb](https://github.com/seanthimons/specmill/tree/13c6fbb3b68aa6d4b696c7f72d8cffc63f97da4a))
 
 #### Other changes
 
 - release v0.1.42 \[skip ci\]
-  ([beb68c7](https://github.com/seanthimons/specmill/tree/beb68c7d2fa841455c27c03ffc1042c5510843c0))
+  ([b17a085](https://github.com/seanthimons/specmill/tree/b17a0856263e0179a164a9673399f221168cda6d))
 
 Full set of changes:
 [`v0.1.41...v0.1.42`](https://github.com/seanthimons/specmill/compare/v0.1.41...v0.1.42)
