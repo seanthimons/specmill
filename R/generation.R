@@ -96,6 +96,7 @@ pagination_settings <- function(operation, pagination, explicit) {
     error_policy = pagination$error_policy %or% 'stop',
     warn_limits = !isFALSE(pagination$warn_limits),
     warn_errors = !isFALSE(pagination$warn_errors),
+    stop_on_empty = !isFALSE(pagination$stop_on_empty),
     on_limit = pagination$on_limit
   )
 }
@@ -868,7 +869,8 @@ render_operation <- function(operation, spec) {
               !is.null(pg$on_limit) ||
               pg$error_policy != 'stop' ||
               !pg$warn_limits ||
-              !pg$warn_errors
+              !pg$warn_errors ||
+              !pg$stop_on_empty
           ) {
             paste0(
               ', mode = ',
@@ -883,6 +885,8 @@ render_operation <- function(operation, spec) {
               r_literal(pg$warn_limits),
               ', warn_errors = ',
               r_literal(pg$warn_errors),
+              ', stop_on_empty = ',
+              r_literal(pg$stop_on_empty),
               ', on_limit = ',
               pg$on_limit %or% 'NULL'
             )
@@ -1320,7 +1324,8 @@ generate_client <- function(
           !is.null(op$paginate$on_limit) ||
           op$paginate$error_policy != 'stop' ||
           !op$paginate$warn_limits ||
-          !op$paginate$warn_errors
+          !op$paginate$warn_errors ||
+          !op$paginate$stop_on_empty
         adapter <- runtime_definitions[[paste0(helper, '_pages')]]
         if (extended && !is.null(config) && !is.null(adapter)) {
           accepted <- names(tg_formal_records(adapter$expr))
@@ -1331,6 +1336,7 @@ generate_client <- function(
             'error_policy',
             'warn_limits',
             'warn_errors',
+            'stop_on_empty',
             'on_limit'
           )
           if (!'...' %in% accepted && !all(required %in% accepted)) {
@@ -1348,7 +1354,10 @@ generate_client <- function(
           extended &&
             !is.null(config) &&
             !is.null(engine) &&
-            !'warn_errors' %in% names(tg_formal_records(engine$expr))
+            !all(
+              c('warn_errors', 'stop_on_empty') %in%
+                names(tg_formal_records(engine$expr))
+            )
         ) {
           stop(
             'Extended pagination needs the current ',

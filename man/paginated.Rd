@@ -23,7 +23,8 @@ paginated(
   warn_limits = FALSE,
   format = NULL,
   policy = list(),
-  warn_errors = TRUE
+  warn_errors = TRUE,
+  stop_on_empty = TRUE
 )
 }
 \arguments{
@@ -81,6 +82,9 @@ iteration. Response decoding remains the single-request function's responsibilit
 override policy. Callbacks allow service defaults and operation exceptions.}
 
 \item{warn_errors}{Warn when a request error returns partial or empty results.}
+
+\item{stop_on_empty}{Stop at an empty collection. FALSE lets completion and
+cursor callbacks continue through empty pages, subject to the page limit.}
 }
 \value{
 A list with \code{pages} (extracted, unmerged collections), \code{requests},
