@@ -1,7 +1,7 @@
 # Build and release workflows
 
-The R CMD check caller runs on main pushes, pull requests, and manual dispatch.
-It checks Windows and Linux with Air installed. The pkgdown caller builds the
+The R CMD check caller runs only on manual dispatch.
+It checks Windows and Linux with Air installed; automatic releases retain their own package check. The pkgdown caller builds the
 site on pull requests and deploys after main pushes or published releases.
 
 Shared checks use caller stubs from [baseline v1.0.0](https://github.com/seanthimons/baseline/tree/0a2a80a6d045ffbdacedd59e35dce1497e2acfc1), pinned to that full commit except for the R CMD check caller, which pins the [TESTTHAT_PARALLEL fix](https://github.com/seanthimons/baseline/pull/1):
@@ -9,7 +9,7 @@ Shared checks use caller stubs from [baseline v1.0.0](https://github.com/seanthi
 - `gitleaks.yaml`: full-history scans on main pushes, main pull requests, manual runs, and Mondays at 06:43 UTC. The default-rule `.gitleaks.toml` is copied from baseline; the existing narrow `.gitleaksignore` stays in use.
 - `commit-lint.yaml`: commit subjects, PR titles, and branch names on all pull requests.
 - `lint-workflows.yaml`: actionlint and zizmor on workflow changes.
-- `r-cmd-check.yaml`: automatic and manual Windows/Linux package checks.
+- `r-cmd-check.yaml`: manual Windows/Linux package checks.
 - `pkgdown.yaml`: site build on pull requests, Pages deployment on main and release events.
 - `release-r-package.yaml`: manual release build, check, and publication.
 - `.github/dependabot.yml`: weekly grouped action updates after a seven-day cooldown.
@@ -87,7 +87,7 @@ All assets are attached to a draft before publication because releases become
 [immutable](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
 A failed upload leaves a draft for inspection. Do not retag or replace a published
 archive; use a new version for corrections. The `RELEASE_PAT` push triggers the
-automatic package check and documentation workflows.
+automatic documentation workflow.
 
 Specmill has manually maintained help pages. Automatic roxygen regeneration,
 rolling releases, and ComptoxR's database/schema schedules remain excluded.
