@@ -1,19 +1,46 @@
 
 
 
+## specmill 0.1.40 (2026-10-18)
+
+#### CI
+
+- exclude verified historical schema hashes
+  ([d6f89b9](https://github.com/seanthimons/specmill/tree/d6f89b9a56adb5d718095e340127cb1bc39527c3))
+
+#### Docs
+
+- describe manual platform checks
+  ([77346ab](https://github.com/seanthimons/specmill/tree/77346ab132688bf0824df4f24c68e20c6ecf0386))
+
+#### Other changes
+
+- release v0.1.40 \[skip ci\]
+  ([f90734f](https://github.com/seanthimons/specmill/tree/f90734f0f640e18b8718cb4ab2614d9a6b132305))
+
+Full set of changes:
+[`v0.1.39...v0.1.40`](https://github.com/seanthimons/specmill/compare/v0.1.39...v0.1.40)
+
 ## specmill 0.1.39 (2026-10-18)
 
 #### New features
 
 - expose the generated response decoder (#156)
   ([da88138](https://github.com/seanthimons/specmill/tree/da88138c0b2b25d7dda1a0ce45f668ba51ace20e))
+- preserve private initial and selected post params (#158)
+  ([c93a8c9](https://github.com/seanthimons/specmill/tree/c93a8c96f0818c8d1e74bfc5d74ac971e7f20f88))
 - preserve typed request errors when selected (#156)
   ([e77e862](https://github.com/seanthimons/specmill/tree/e77e862da77c7e2f35dc49e6085715ed6863f1bb))
+
+#### CI
+
+- run platform package checks only on demand
+  ([b236c84](https://github.com/seanthimons/specmill/tree/b236c84cafa75ce9c71a97495b99087fd0dd9450))
 
 #### Other changes
 
 - release v0.1.39 \[skip ci\]
-  ([78d5b98](https://github.com/seanthimons/specmill/tree/78d5b98a81a239b00d93695232b04b337f66ed87))
+  ([01a6142](https://github.com/seanthimons/specmill/tree/01a6142e1c8b9aef736664627063efa5d1849416))
 
 Full set of changes:
 [`v0.1.38...v0.1.39`](https://github.com/seanthimons/specmill/compare/v0.1.38...v0.1.39)
