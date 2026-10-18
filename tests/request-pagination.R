@@ -99,14 +99,15 @@ request_pagination_acceptance <- function() {
   )
   writeLines(
     c(
-      'trace <- character(); returned <- NULL; skips <- FALSE; formatted <- 0L',
+      'trace <- character(); returned <- NULL; skips <- FALSE; formatted <- 0L; skip_value <- "skipped"; drop_null <- FALSE; override_limit <- NULL',
       'prepare <- function(state) {',
       '  stopifnot(identical(names(state$params), c("query", "limit")))',
-      '  returned <<- list(params = list(query = state$params$query, extra = "keep"), marker = "preserved", skip_request = skips, result = "skipped", request = list(body = list(query = state$params$query, offset = 0L, options = list(limit = state$params$limit))))',
+      '  returned <<- list(params = list(query = state$params$query, extra = "keep", all_pages = FALSE), marker = "preserved", skip_request = skips, result = skip_value, request = list(body = list(query = state$params$query, offset = 0L, options = list(limit = state$params$limit))))',
+      '  if (!is.null(override_limit)) returned$params$limit <<- override_limit',
       '  returned',
       '}',
       'format <- function(state) {',
-      '  expected <- returned; expected["result"] <- state["result"]',
+      '  expected <- returned; if (drop_null) expected$result <- state$result else expected["result"] <- state["result"]',
       '  stopifnot(identical(state, expected)); state$result',
       '}',
       'run_hook <- function(name, stage, state) { trace <<- c(trace, stage); if (stage == "pre_request") prepare(state) else format(state) }',
@@ -176,6 +177,7 @@ request_pagination_acceptance <- function() {
       config = 'specmill.yml',
       callbacks = callbacks,
       mode = mode,
+      artifacts = 'wrappers',
       validation = FALSE
     )
   }
@@ -255,6 +257,63 @@ request_pagination_acceptance <- function() {
       field
     ]] <- settings$request$pagination[[field]]
   }
+  env$skips <- TRUE
+  env$skip_value <- NULL
+  stopifnot(is.null(env$search(all_pages = stop('must remain lazy'))))
+  service$operations[[1L]]$post_result_null <- 'remove'
+  service$operations[[1L]]$request$pagination$max_pages <- ref(
+    'params',
+    'limit'
+  )
+  run()
+  env <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, env)
+  }
+  env$drop_null <- TRUE
+  env$skips <- TRUE
+  env$skip_value <- NULL
+  stopifnot(is.null(env$search(all_pages = stop('must remain lazy'))))
+  env$skips <- FALSE
+  sent <- length(history())
+  stopifnot(
+    length(env$search(limit = 1, all_pages = TRUE)) == 1L,
+    length(history()) == sent + 1L
+  )
+  env$override_limit <- 2
+  sent <- length(history())
+  stopifnot(
+    length(env$search(limit = 1, all_pages = TRUE)) == 2L,
+    length(history()) == sent + 2L
+  )
+  env$override_limit <- NULL
+  sent <- length(history())
+  stopifnot(
+    inherits(
+      tryCatch(env$search(limit = 0, all_pages = TRUE), error = identity),
+      'error'
+    ),
+    length(history()) == sent
+  )
+  stopifnot(
+    length(env$search(limit = 0, all_pages = FALSE)$records) == 1L,
+    length(history()) == sent + 1L
+  )
+  callbacks$cap <- function(operation) quote(params[['limit']])
+  service$operations[[1L]]$request$pagination$max_pages <- list(
+    callback = 'cap'
+  )
+  run()
+  env <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, env)
+  }
+  env$drop_null <- TRUE
+  sent <- length(history())
+  stopifnot(
+    length(env$search(limit = 1, all_pages = TRUE)) == 1L,
+    length(history()) == sent + 1L
+  )
   validate <- getFromNamespace('validate_settings', 'specmill')
   for (bad in list(
     list(parameter = list(named = 'body', 'offset')),
@@ -272,7 +331,7 @@ request_pagination_acceptance <- function() {
     ))
   }
   cat(
-    'Request pagination: unchanged formals, lazy skip, one hook cycle/full state, nested body offset/size, single envelope and combined records, partial HTTP recovery, hard errors, malformed metadata and dry run passed.\n'
+    'Request pagination: unchanged formals, lazy skip, one hook cycle/full state, nested body offset/size, single envelope and combined records, partial HTTP recovery, hard errors, malformed metadata, dry run, excluded control updates, NULL result policy and dynamic page caps passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

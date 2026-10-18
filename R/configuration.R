@@ -416,6 +416,7 @@ load_project <- function(
         'body_media_correction',
         'preserve_visibility',
         'private_params',
+        'post_result_null',
         'pre_params',
         'post_params',
         'post_response_scope',

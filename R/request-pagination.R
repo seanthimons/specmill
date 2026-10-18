@@ -62,17 +62,21 @@ validate_request_pagination <- function(paging, callbacks) {
     }
   }
   max_pages <- paging$max_pages %or% 100L
-  if (
-    !is.numeric(max_pages) ||
-      length(max_pages) != 1L ||
-      !is.finite(max_pages) ||
-      max_pages < 1 ||
-      max_pages != trunc(max_pages) ||
-      max_pages >= .Machine$integer.max
-  ) {
-    stop(
-      'request.pagination.max_pages must be a positive integer below .Machine$integer.max'
-    )
+  if (is.list(max_pages)) {
+    validate_binding(max_pages, callbacks)
+  } else {
+    if (
+      !is.numeric(max_pages) ||
+        length(max_pages) != 1L ||
+        !is.finite(max_pages) ||
+        max_pages < 1 ||
+        max_pages != trunc(max_pages) ||
+        max_pages >= .Machine$integer.max
+    ) {
+      stop(
+        'request.pagination.max_pages must be a positive integer below .Machine$integer.max'
+      )
+    }
   }
   for (field in intersect(
     c('metadata', 'warn_limits', 'warn_errors', 'stop_on_empty'),
@@ -168,7 +172,11 @@ render_request_pagination <- function(
       ', start = ',
       binding('start'),
       ', max_pages = ',
-      r_literal(as.integer(paging$max_pages %or% 100L)),
+      if (is.list(paging$max_pages)) {
+        binding('max_pages')
+      } else {
+        r_literal(as.integer(paging$max_pages %or% 100L))
+      },
       ','
     ),
     paste0(
