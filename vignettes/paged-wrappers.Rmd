@@ -76,7 +76,10 @@ API documents.
 
 ## Find out why it stopped
 
-The result carries a record of the paging in `attr(, 'pagination')`:
+By default, the result carries a record of the paging in `attr(, 'pagination')`.
+A wrapper generated with operation policy `pagination: {metadata: false}` omits
+this attribute while retaining limit warnings and errors:
+
 
 ```{r reason}
 attr(items, 'pagination')

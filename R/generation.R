@@ -69,7 +69,8 @@ pagination_settings <- function(operation, pagination, explicit) {
     location = p$location,
     start = pagination[['start']],
     completed = pagination[['completed']] %or% 'empty',
-    max_pages = as.integer(pagination[['max_pages']] %or% 100L)
+    max_pages = as.integer(pagination[['max_pages']] %or% 100L),
+    metadata = !isFALSE(pagination[['metadata']])
   )
 }
 
@@ -828,7 +829,11 @@ render_operation <- function(operation, spec) {
           )),
           ', call. = FALSE)'
         ),
-        paste0(assign, helper, '_pages(function(page) {'),
+        paste0(
+          if (isFALSE(pg$metadata)) 'result <- ' else assign,
+          helper,
+          '_pages(function(page) {'
+        ),
         '  params[base::names(page)] <- page',
         '  send(params)',
         paste0(
@@ -839,7 +844,13 @@ render_operation <- function(operation, spec) {
           ']], max_pages, completed = ',
           if (identical(pg$completed, 'empty')) 'NULL' else pg$completed,
           ')'
-        )
+        ),
+        if (isFALSE(pg$metadata)) {
+          c(
+            'if (!base::inherits(result, "httr2_request") && !base::is.null(result)) base::attr(result, "pagination") <- NULL',
+            'result'
+          )
+        }
       )
     )
   }
@@ -1029,6 +1040,11 @@ generate_client <- function(
     lapply(services, read_service_operations)
   } else {
     lapply(services, validated_service_operations, reports = validation_reports)
+  }
+  for (service_result in parsed) {
+    for (view in service_result$reviewed_validation) {
+      validation_reports[[view$source]]$reviewed[[view$service]] <- view
+    }
   }
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
