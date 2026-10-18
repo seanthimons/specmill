@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.32 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.32 \[skip ci\]
+  ([21d2c59](https://github.com/seanthimons/specmill/tree/21d2c599185d6147463866e90bf0480cc727f4c1))
+
+Full set of changes:
+[`v0.1.31...v0.1.32`](https://github.com/seanthimons/specmill/compare/v0.1.31...v0.1.32)
+
 ## specmill 0.1.31 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.31 \[skip ci\]
-  ([90cc1b6](https://github.com/seanthimons/specmill/tree/90cc1b692687e9e6c4977c273c349713030082d9))
+  ([d572fcc](https://github.com/seanthimons/specmill/tree/d572fcc50f739387a689289efdaa9ee8b1338908))
 
 Full set of changes:
 [`v0.1.30...v0.1.31`](https://github.com/seanthimons/specmill/compare/v0.1.30...v0.1.31)
@@ -64,6 +74,11 @@ Full set of changes:
 [`v0.1.26...v0.1.27`](https://github.com/seanthimons/specmill/compare/v0.1.26...v0.1.27)
 
 ## specmill 0.1.26 (2026-10-17)
+
+#### Bug fixes
+
+- retain line entries for response callbacks (#140)
+  ([8d84947](https://github.com/seanthimons/specmill/tree/8d84947149392b103ee23ba80aad29ac4b8cc731))
 
 #### Other changes
 
