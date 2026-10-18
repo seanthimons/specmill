@@ -52,6 +52,7 @@ validate_settings <- function(
       'result_formatter',
       'post_state',
       'private_params',
+      'pre_params',
       'post_params',
       'post_response_scope',
       'post_params_source',
@@ -155,8 +156,8 @@ validate_settings <- function(
       stop('private_params requires a generated implementation')
     }
   }
-  if ('post_params' %in% names(settings)) {
-    selected <- settings$post_params
+  for (field in intersect(c('pre_params', 'post_params'), names(settings))) {
+    selected <- settings[[field]]
     if (
       (!is.list(selected) && !is.character(selected)) ||
         !is.null(names(selected)) ||
@@ -174,10 +175,10 @@ validate_settings <- function(
         ) ||
         anyDuplicated(unlist(selected))
     ) {
-      stop('post_params must be an unnamed sequence of unique parameter names')
+      stop(field, ' must be an unnamed sequence of unique parameter names')
     }
     if (identical(settings$implementation, 'existing')) {
-      stop('post_params requires a generated implementation')
+      stop(field, ' requires a generated implementation')
     }
   }
   if ('preserve_visibility' %in% names(settings)) {

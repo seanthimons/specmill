@@ -400,6 +400,14 @@ render_operation <- function(operation, spec) {
   state_parameters <- c(formal_names, names(private))
   if (
     length(setdiff(
+      unlist(spec[['pre_params']], use.names = FALSE),
+      state_parameters
+    ))
+  ) {
+    stop('Unknown pre_params selection')
+  }
+  if (
+    length(setdiff(
       unlist(spec[['post_params']], use.names = FALSE),
       state_parameters
     ))
@@ -656,6 +664,9 @@ render_operation <- function(operation, spec) {
   if (length(private) && !length(hooks$pre_request)) {
     stop('private_params requires a pre-request hook')
   }
+  if (!is.null(spec[['pre_params']]) && !length(hooks$pre_request)) {
+    stop('pre_params requires a pre-request hook')
+  }
   if (
     !is.null(spec[['post_params']]) &&
       (!length(hooks$post_response) ||
@@ -700,7 +711,17 @@ render_operation <- function(operation, spec) {
         callback,
         '(',
         r_literal(operation$name),
-        ', "pre_request", base::list(params = params))'
+        ', "pre_request", base::list(params = ',
+        if (is.null(spec[['pre_params']])) {
+          'params'
+        } else {
+          paste0(
+            'params[',
+            r_literal(unlist(spec[['pre_params']], use.names = FALSE)),
+            ']'
+          )
+        },
+        '))'
       ),
       if (!isTRUE(spec$post_on_skip)) {
         '  if (base::isTRUE(state$skip_request)) base::return(state$result)'
