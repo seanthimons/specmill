@@ -2042,6 +2042,14 @@ generate_client <- function(
       'id'
     )
   )
+  response_sources <- Filter(
+    function(op) length(op$response_sources),
+    configured_operations
+  )
+  attr(desired, 'response_sources') <- stats::setNames(
+    lapply(response_sources, `[[`, 'response_sources'),
+    vapply(response_sources, `[[`, character(1), 'id')
+  )
   if (!is.null(formatter)) {
     desired <- format_output(root, desired, formatter)
   }
