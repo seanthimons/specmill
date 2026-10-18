@@ -1,9 +1,7 @@
 name: R-CMD-check
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # Run platform checks on demand; automatic releases retain their own check.
   workflow_dispatch:
 
 concurrency:
