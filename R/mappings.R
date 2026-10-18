@@ -52,6 +52,8 @@ validate_settings <- function(
       'post_state',
       'private_params',
       'post_params',
+      'post_response_scope',
+      'post_params_source',
       'parameter_order',
       'docs',
       'batch',
@@ -112,6 +114,23 @@ validate_settings <- function(
     }
     if (identical(settings$implementation, 'existing')) {
       stop('result_formatter requires a generated implementation')
+    }
+  }
+  for (field in c('post_response_scope', 'post_params_source')) {
+    if (is.null(settings[[field]])) {
+      next
+    }
+    value <- config_string(settings[[field]], paste(label, field))
+    choices <- if (field == 'post_response_scope') {
+      c('request', 'combined')
+    } else {
+      c('current', 'original')
+    }
+    if (!value %in% choices) {
+      stop(field, ' must be ', paste(choices, collapse = ' or '))
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop(field, ' requires a generated implementation')
     }
   }
   if ('private_params' %in% names(settings)) {

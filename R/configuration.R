@@ -414,6 +414,8 @@ load_project <- function(
         'preserve_visibility',
         'private_params',
         'post_params',
+        'post_response_scope',
+        'post_params_source',
         'result_formatter',
         'response_correction',
         'request_body_correction',
