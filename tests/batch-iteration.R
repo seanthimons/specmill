@@ -705,6 +705,23 @@ batch_iteration_acceptance <- function() {
     identical(seen, c(500L, 500L)),
     length(attr(result, 'failed')) == 2L
   )
+  # A formatter name can also be used by a generated local request closure.
+  cat(
+    '\nsend <- function(error, items) "client formatter"\n',
+    file = file.path(root, 'R/hooks.R'),
+    append = TRUE
+  )
+  warning_service$operations[['GET /items/{id}']]$batch$warning <- 'send'
+  yaml::write_yaml(warning_service, service_path)
+  run()
+  shadowed <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, shadowed)
+  }
+  stopifnot(identical(
+    capture(shadowed$get_item(c('a', 'bad')))$warnings,
+    'client formatter'
+  ))
   warning_service$operations[['GET /items/{id}']]$batch$warning <- FALSE
   yaml::write_yaml(warning_service, service_path)
   run()

@@ -235,12 +235,6 @@ render_operation <- function(operation, spec) {
   } else {
     make.unique(c(formal_names, if (!is.null(operation$body)) 'body'))
   }
-  if (
-    is.character(operation$iterate$warning) &&
-      operation$iterate$warning %in% formal_names
-  ) {
-    stop('batch.warning function collides with a public parameter: ', operation$iterate$warning)
-  }
   mapping <- setNames(
     formal_names[seq_along(input_names)],
     vapply(params, function(p) paste(p$location, p$name), character(1))
@@ -270,7 +264,6 @@ render_operation <- function(operation, spec) {
         callback,
         operation$response_policy,
         operation$iterate$empty,
-        if (is.character(operation$iterate$warning)) operation$iterate$warning,
         '.batch_limit'
       )),
       1L
@@ -936,7 +929,15 @@ render_operation <- function(operation, spec) {
         if (!is.null(operation$iterate$warning)) {
           paste0(
             ', warning = ',
-            if (isFALSE(operation$iterate$warning)) 'FALSE' else operation$iterate$warning
+            if (isFALSE(operation$iterate$warning)) {
+              'FALSE'
+            } else {
+              paste0(
+                'base::get(', r_literal(operation$iterate$warning),
+                ', envir = base::parent.env(base::environment()), ',
+                'mode = "function", inherits = FALSE)'
+              )
+            }
           )
         },
         ')'
