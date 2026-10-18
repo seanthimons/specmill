@@ -992,7 +992,9 @@ render_operation <- function(operation, spec) {
     # With pagination, each item pages to completion inside the callback.
     input <- if (is.null(fan_out)) body_name else fan_out_name
     keep_metadata <- !isFALSE(operation$iterate$metadata)
-    combine <- length(hooks$post_combine) > 0L || !keep_metadata
+    combine <- length(hooks$post_combine) > 0L ||
+      !keep_metadata ||
+      !is.null(spec$result_formatter)
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
@@ -1062,6 +1064,24 @@ render_operation <- function(operation, spec) {
       } else {
         '  result'
       }
+    )
+  }
+  if (!is.null(spec$result_formatter)) {
+    if (is.null(operation$iterate) && is.null(pg)) {
+      stop(
+        'result_formatter requires batch.fan_out, batch.split or pagination: ',
+        operation$id
+      )
+    }
+    lines <- c(
+      lines,
+      '  if (base::inherits(result, "httr2_request")) base::return(result)',
+      paste0(
+        '  base::get(',
+        r_literal(spec$result_formatter),
+        ', envir = base::parent.env(base::environment()), ',
+        'mode = "function", inherits = FALSE)(base::list(result = result, params = params))'
+      )
     )
   }
   code <- paste(c(lines, '}'), collapse = '\n')
@@ -1303,6 +1323,17 @@ generate_client <- function(
         stop(
           'Missing client response policy or wrapper collision: ',
           op$response_policy
+        )
+      }
+      result_formatter <- configured$spec$result_formatter
+      if (
+        !is.null(result_formatter) &&
+          (!result_formatter %in% names(runtime_definitions) ||
+            result_formatter %in% operation_names)
+      ) {
+        stop(
+          'Missing client result_formatter function or wrapper collision: ',
+          result_formatter
         )
       }
       retry_policy <- op$request_controls$retry_policy
