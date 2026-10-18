@@ -421,6 +421,7 @@ load_project <- function(
         'request_body_correction',
         'path_parameters_correction',
         'normalize_inputs',
+        'validate_inputs',
         'defer_inputs'
       ),
       names(defaults)
