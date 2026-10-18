@@ -50,7 +50,7 @@ cursor_wrapper_acceptance <- function() {
           } else {
             'two+/='
           }
-          rows <- if (kind == 'empty') {
+          rows <- if (kind == 'empty' || (kind == 'skip' && first)) {
             list()
           } else {
             list(list(
@@ -259,7 +259,8 @@ cursor_wrapper_acceptance <- function() {
     stopifnot(
       nrow(fn('missing')) == 1L,
       nrow(fn('terminal')) == 1L,
-      nrow(fn('empty')) == 0L
+      nrow(fn('empty')) == 0L,
+      nrow(fn('skip')) == 0L
     )
     error <- tryCatch(fn('repeat'), error = identity)
     stopifnot(
@@ -301,6 +302,22 @@ cursor_wrapper_acceptance <- function() {
     env$get_cursor('normal')
   )
   stopifnot(inherits(dry, 'httr2_request'))
+  # A reviewed envelope may advertise a next cursor on an empty collection.
+  for (key in names(service$operations)) {
+    service$operations[[key]]$pagination$stop_on_empty <- FALSE
+  }
+  run()
+  load()
+  for (name in c('get_cursor', 'post_cursor')) {
+    fn <- env[[name]]
+    continued <- warnings(fn('skip'))
+    stopifnot(
+      nrow(continued$value) == 1L,
+      identical(as.character(continued$value$id), '2')
+    )
+    error <- tryCatch(fn('repeat'), error = identity)
+    stopifnot(inherits(error, 'error'))
+  }
   # Explicit metadata and default engine warning remain available.
   service$hooks <- NULL
   for (key in names(service$operations)) {

@@ -35,6 +35,8 @@
 #'   request errors, warn, and respectively retain or discard successful pages.
 #' @param warn_limits Warn when a page or item limit truncates retrieval.
 #' @param warn_errors Warn when a request error returns partial or empty results.
+#' @param stop_on_empty Stop at an empty collection. FALSE lets completion and
+#'   cursor callbacks continue through empty pages, subject to the page limit.
 #' @param format Optional function applied to the completed result after metadata
 #'   iteration. Response decoding remains the single-request function's responsibility.
 #' @param policy Named list of shared pagination defaults. Explicit arguments
@@ -82,7 +84,8 @@ paginated <- function(
   warn_limits = FALSE,
   format = NULL,
   policy = list(),
-  warn_errors = TRUE
+  warn_errors = TRUE,
+  stop_on_empty = TRUE
 ) {
   allowed <- setdiff(names(formals(sys.function())), c('fn', '...', 'policy'))
   if (
@@ -105,7 +108,7 @@ paginated <- function(
       stop('Pagination callbacks must be functions')
     }
   }
-  for (value in list(stop_on_short, warn_limits, warn_errors)) {
+  for (value in list(stop_on_short, warn_limits, warn_errors, stop_on_empty)) {
     if (!is.logical(value) || length(value) != 1L || is.na(value)) {
       stop('Pagination flags must be logical')
     }
@@ -291,7 +294,7 @@ paginated <- function(
       stop('items must return a list, atomic vector, or data frame')
     }
     n <- if (is.data.frame(page)) nrow(page) else length(page)
-    if (!n) {
+    if (!n && stop_on_empty) {
       reason <- 'empty_page'
       break
     }

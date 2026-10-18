@@ -278,6 +278,7 @@ validate_settings <- function(
         'error_policy',
         'warn_limits',
         'warn_errors',
+        'stop_on_empty',
         'on_limit'
       ),
       'pagination'
@@ -325,7 +326,7 @@ validate_settings <- function(
       }
     }
     for (field in intersect(
-      c('warn_limits', 'warn_errors'),
+      c('warn_limits', 'warn_errors', 'stop_on_empty'),
       names(pagination)
     )) {
       if (!isTRUE(pagination[[field]]) && !isFALSE(pagination[[field]])) {

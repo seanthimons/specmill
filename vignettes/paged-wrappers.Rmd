@@ -206,3 +206,9 @@ suppress limit warnings. The callback owns any service-specific warning text.
 Existing page-mode wrappers and their defaults remain supported. Client helpers
 must include the current pager adapter and pagination companion before adopting
 these controls; generated clients do not need specmill at runtime.
+
+`stop_on_empty` defaults to TRUE. Set `pagination.stop_on_empty: false` when an
+empty collection can still advertise a next page. The reviewed completion and
+next-cursor callbacks then determine continuation; cursor validation, repeat
+detection and `max_pages` still apply. This does not override `stop_on_short` in
+the standalone companion.
