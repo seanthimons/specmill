@@ -1,12 +1,27 @@
 
 
 
+## specmill 0.1.38 (2026-10-18)
+
+#### New features
+
+- preserve final client formatting conditions (#154)
+  ([2cadcc9](https://github.com/seanthimons/specmill/tree/2cadcc9e2ed0e01a21d97717242215d12704b365))
+
+#### Other changes
+
+- release v0.1.38 \[skip ci\]
+  ([7c4cf28](https://github.com/seanthimons/specmill/tree/7c4cf28c2782b2df67b8cdc634267c5811640772))
+
+Full set of changes:
+[`v0.1.37...v0.1.38`](https://github.com/seanthimons/specmill/compare/v0.1.37...v0.1.38)
+
 ## specmill 0.1.37 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.37 \[skip ci\]
-  ([a0a94f0](https://github.com/seanthimons/specmill/tree/a0a94f0afb82a4802c5c881ac8d9907577c3c714))
+  ([ac1fa33](https://github.com/seanthimons/specmill/tree/ac1fa3389dbce30d22236bdf470105647fe69ca8))
 - finalize released pagination integration (#152)
   ([8332063](https://github.com/seanthimons/specmill/tree/83320639ce4b7fb3162bd2d4b92717cd60e333d9))
 - integrate reviewed generator policies (#152)
