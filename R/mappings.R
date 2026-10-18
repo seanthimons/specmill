@@ -43,6 +43,7 @@ validate_settings <- function(
       'body',
       'inputs',
       'normalize_inputs',
+      'validate_inputs',
       'defer_inputs',
       'extra_parameters',
       'request',
@@ -186,6 +187,18 @@ validate_settings <- function(
     }
     if (isTRUE(value) && identical(settings$implementation, 'existing')) {
       stop('preserve_visibility requires a generated implementation')
+    }
+  }
+  if (!is.null(settings$validate_inputs)) {
+    name <- config_string(
+      settings$validate_inputs,
+      paste(label, 'validate_inputs')
+    )
+    if (!identical(make.names(name), name)) {
+      stop('validate_inputs must name a client function')
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('validate_inputs requires a generated implementation')
     }
   }
   if ('normalize_inputs' %in% names(settings)) {
