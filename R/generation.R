@@ -269,9 +269,26 @@ render_operation <- function(operation, spec) {
     transport_batch$max_items <- as.name(limit_name)
     transport_batch <- as.call(c(list(quote(base::list)), transport_batch))
   }
-  split_lines <- isTRUE(operation$iterate$split) &&
+  line_body <- !is.null(body_name) &&
     identical(operation$body_media, 'text/plain') &&
     identical(operation$text_encoding, 'lines')
+  if (line_body) {
+    operation$text_body_reference <- setNames(
+      tail(
+        make.unique(c(
+          formal_names,
+          helper,
+          callback,
+          operation$response_policy,
+          operation$iterate$empty,
+          if (dynamic_limit) limit_name,
+          '.text_body'
+        )),
+        1L
+      ),
+      body_name
+    )
+  }
   # A split body may exceed the per-request item limit; each chunk is checked by the helper.
   whole <- operation
   if (isTRUE(operation$iterate$split)) {
@@ -446,7 +463,7 @@ render_operation <- function(operation, spec) {
         ')) base::stop("Binary body must be a raw vector")'
       )
     } else if (identical(operation$body_media, 'text/plain')) {
-      if (split_lines) {
+      if (line_body) {
         paste0('.api_validation$text_input(', body_name, ')')
       } else {
         text_checks(text_operation, body_name)
@@ -498,15 +515,6 @@ render_operation <- function(operation, spec) {
     }
   }
   per_request <- length(lines)
-  if (split_lines) {
-    value <- paste0('params[[', r_literal(body_name), ']]')
-    lines <- c(
-      lines,
-      paste0('  if (!base::is.null(', value, ')) {'),
-      paste0('    ', text_checks(text_operation, value)),
-      '  }'
-    )
-  }
   hooks <- spec$hooks[[operation$name]] %or% list()
   preserve_visibility <- isTRUE(spec$preserve_visibility)
   if (
@@ -549,6 +557,16 @@ render_operation <- function(operation, spec) {
       }
     )
   }
+  if (line_body) {
+    wire_body <- unname(operation$text_body_reference[[body_name]])
+    lines <- c(
+      lines,
+      paste0('  ', wire_body, ' <- params[[', r_literal(body_name), ']]'),
+      paste0('  if (!base::is.null(', wire_body, ')) {'),
+      paste0('    ', text_checks(text_operation, wire_body)),
+      '  }'
+    )
+  }
   request <- paste0(
     '  result <- ',
     helper,
@@ -563,6 +581,8 @@ render_operation <- function(operation, spec) {
     ', body = ',
     if (is.null(body_name)) {
       'NULL'
+    } else if (line_body) {
+      wire_body
     } else {
       paste0('params[[', r_literal(body_name), ']]')
     },
