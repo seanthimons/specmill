@@ -1040,6 +1040,13 @@ are rejected. Scalar text has no inferred splitting boundaries. Existing client 
 manual adoption of plain-text transport; generation preserves their code and
 provenance baseline.
 
+For line bodies, callback and hook `params` retain the original character entries
+for the current chunk. Encoding and wire-schema validation use a separate value;
+a two-entry vector and a single entry containing LF may produce identical bytes
+but remain distinguishable to a client response callback. Request bindings that
+reference the body input use its encoded wire value. Callback expressions can
+still read the logical entries through `params` without splitting the wire text.
+
 ### Parameter serialization
 
 OpenAPI 3.0 and 3.1 support the following flat parameter shapes. Arrays contain
