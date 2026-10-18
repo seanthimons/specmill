@@ -563,6 +563,16 @@ operations:
         body: {from: [params, chemicals]}
 ~~~
 
+`pre_params` selects parameter names and order for the initial `pre_request`
+state. It requires a pre-request hook and belongs under `operations`. Other
+inputs remain available to request bindings. Combine it with `defer_inputs`
+when a transport-only input must remain lazy on a skipped call; a deferred
+input remains a thunk in internal request parameters and can be forced by a
+pure request projection after the hook. Selection alone does not defer input
+evaluation. With `post_state: hook_state`, the post hook still receives the
+complete state returned by the pre hook, including partial params and extra
+fields.
+
 `post_params` selects parameter names and order for the `post_response` state.
 This selection applies after pre-request updates and only to that hook; request
 bindings retain the complete state. Unknown or duplicate selections and private
