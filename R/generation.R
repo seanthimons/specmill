@@ -1022,6 +1022,11 @@ generate_client <- function(
   } else {
     lapply(services, validated_service_operations, reports = validation_reports)
   }
+  for (service_result in parsed) {
+    for (view in service_result$reviewed_validation) {
+      validation_reports[[view$source]]$reviewed[[view$service]] <- view
+    }
+  }
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
   inventory <- do.call(c, unname(lapply(parsed, `[[`, 'inventory')))
