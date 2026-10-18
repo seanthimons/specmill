@@ -540,6 +540,29 @@ Without these settings, parameter capture and hook state remain unchanged.
 The default skip still returns immediately before request/post-response work;
 `post_on_skip` retains its existing explicit behavior.
 
+**A post-response hook on the final result.** Set `post_response_scope: combined`
+on an individual `batch.fan_out` or `batch.split` operation to run its existing `post_response`
+hook once after combination, metadata selection, `post_combine` and any
+`result_formatter`. The hook keeps its `post_response` stage and the client
+executor's usual error wrapping. The default
+`request` scope continues to run the hook for each response.
+
+Set `post_params_source: original` to give the post-response hook parameters
+captured before input normalization and pre-request updates. The default
+`current` source retains existing capture behavior. `post_params` can select
+names from either source. These options require a post-response hook using
+`post_state: parameters`; they cannot be configured in defaults.
+
+~~~yaml
+operations:
+  GET /chemical/list/search/by-name/{listName}:
+    batch: {fan_out: listName}
+    normalize_inputs: {listName: normalize_list_names}
+    result_formatter: tidy_list_results
+    post_response_scope: combined
+    post_params_source: original
+~~~
+
 **Final client formatting.** An operation may select `result_formatter` when it
 uses `batch.fan_out`, `batch.split` or pagination:
 
@@ -554,7 +577,7 @@ operations:
 The client-owned `format_items(data)` function receives `data$result` and
 `data$params` with the full normalized public inputs. It runs once after all
 requests, combination, metadata selection and any `post_combine` hook. Its
-return value is final, including `NULL`; specmill does not restore attributes
+return value is final, including `NULL`, unless a combined post-response hook is selected; specmill does not restore attributes
 after it. Its warnings and errors propagate unchanged, outside both the batch
 drop policy and the hook executor. Existing hooks still use their normal
 wrapping semantics. Use a response policy to collect responses without decoding
