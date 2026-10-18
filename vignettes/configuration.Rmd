@@ -512,6 +512,21 @@ request, and `post_response` once per element or chunk:
   only path parameter. A fanned-out query parameter is attributed when the
   operation has no path parameters and it is the only query value sent.
 
+**Cross-input validation before iteration.** An operation can select a pure
+client function with `validate_inputs: check_search_inputs`. It receives one
+list of captured parameters after `normalize_inputs`, before schema checks,
+hooks and fan-out/split. Its return value is ignored. Raise a client condition
+to reject incompatible inputs before any requests; warnings and errors propagate
+directly, outside the batch drop policy and hook executor. This setting belongs
+under an individual generated operation; the named client function must exist.
+
+Explicit `inputs` with a complete request mapping may use `batch.fan_out` on a
+scalar client input, including `type: any`. This lets a reviewed client normalizer
+accept legacy numeric/list inputs without relaxing the source schema or native
+parameter validation. Native fan-out continues to require a scalar path or query
+parameter. Use the validation callback for constraints spanning inputs, such as
+allowing multiple primary values only when an optional suffix is absent.
+
 **Private hook parameters.** An individual generated operation can declare
 `private_params`, a named mapping of literal initial values. These values join
 the captured parameter list before `pre_request` without adding public
