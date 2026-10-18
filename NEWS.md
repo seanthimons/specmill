@@ -1,12 +1,34 @@
 
 
 
+## specmill 0.1.34 (2026-10-18)
+
+#### Bug fixes
+
+- resolve warning formatters outside generated locals (#145)
+  ([1043728](https://github.com/seanthimons/specmill/tree/104372855c3072cd64e59a9b9748dbe03bc3fe8b))
+
+#### Other changes
+
+- release v0.1.34 \[skip ci\]
+  ([9f3e7f1](https://github.com/seanthimons/specmill/tree/9f3e7f1ad05486da38b8f712f9e13637a5dbd4f3))
+- integrate released metadata and line policies (#145)
+  ([f3f47d1](https://github.com/seanthimons/specmill/tree/f3f47d111f412e5e57989c11eb8731f1d24bd034))
+
+Full set of changes:
+[`v0.1.33...v0.1.34`](https://github.com/seanthimons/specmill/compare/v0.1.33...v0.1.34)
+
 ## specmill 0.1.33 (2026-10-18)
+
+#### New features
+
+- preserve reviewed dropped-request warnings (#145)
+  ([802acb4](https://github.com/seanthimons/specmill/tree/802acb40592fa708ef3f0ee6458e0c6551539186))
 
 #### Other changes
 
 - release v0.1.33 \[skip ci\]
-  ([1426579](https://github.com/seanthimons/specmill/tree/1426579fd1c2a9080af4b6713be29cc2823550f7))
+  ([28b8e45](https://github.com/seanthimons/specmill/tree/28b8e4516013c078baa977460453418b0c760e3f))
 
 Full set of changes:
 [`v0.1.32...v0.1.33`](https://github.com/seanthimons/specmill/compare/v0.1.32...v0.1.33)
@@ -37,6 +59,8 @@ Full set of changes:
 
 - release v0.1.30 \[skip ci\]
   ([f4efdbc](https://github.com/seanthimons/specmill/tree/f4efdbcf23f879553e5de50325d637ab46625ed3))
+- integrate reviewed return visibility policies (#145)
+  ([e860b21](https://github.com/seanthimons/specmill/tree/e860b21cd0c33a8b170618cc22de5cc2e46b5a98))
 - integrate reviewed visibility and response policies (#142)
   ([91ba6d7](https://github.com/seanthimons/specmill/tree/91ba6d703f383edf8bbadc1e572571bb4f61c61c))
 
@@ -73,6 +97,8 @@ Full set of changes:
 
 #### New features
 
+- select error policy by effective request count (#145)
+  ([0097d0e](https://github.com/seanthimons/specmill/tree/0097d0edc3f3af734ba102698c0f7694983066ca))
 - allow plain failure result attributes by policy (#142)
   ([03a8523](https://github.com/seanthimons/specmill/tree/03a8523b1098f1a5ee22db161ccfc03e64b8cb56))
 
