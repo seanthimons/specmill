@@ -413,7 +413,8 @@ load_project <- function(
         'body_media_correction',
         'request_body_correction',
         'path_parameters_correction',
-        'normalize_inputs'
+        'normalize_inputs',
+        'defer_inputs'
       ),
       names(defaults)
     )) {
