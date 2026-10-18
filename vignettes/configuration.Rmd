@@ -337,6 +337,15 @@ explicitly using `decode(check_status = FALSE)`; this control does not
 move parsing earlier or bypass policies. Batch single/multiple stop/drop and
 warning policies remain independent of error preservation.
 
+The scaffold also includes a client-owned `api_request_decode()` companion:
+`api_request_decode(response, method = 'GET', response_policy = NULL, policy_query = NULL, preserve_errors = FALSE)` decodes an
+already-received response without performing transport. Its defaults preserve
+the existing native decoder behavior; true enables typed HTTP failures.
+A response policy receives the same response/context/decode interface. Existing
+transport facades can call this generated companion directly rather than
+extracting the decoder body or maintaining a handwritten copy. For a helper
+named `.ct_request`, the companion is `.ct_request_decode()`.
+
 ### Request controls and batch limits
 
 Generated project YAML includes request defaults:

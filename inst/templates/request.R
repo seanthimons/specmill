@@ -283,8 +283,14 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     if (base::is.finite(timeout) && base::inherits(e$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', call. = FALSE)
     base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', call. = FALSE)
   })
+  if (verbose) base::message('HTTP ', httr2::resp_status(response))
+  api_request_decode(response, method, response_policy, policy_query, preserve_errors)
+}
+
+# Decode an already-received response without performing transport or changing hook execution.
+api_request_decode <- function(response, method = 'GET', response_policy = NULL, policy_query = NULL, preserve_errors = FALSE) {
+  if (!base::is.logical(preserve_errors) || base::length(preserve_errors) != 1L || base::is.na(preserve_errors)) base::stop(base::errorCondition('preserve_errors must be TRUE or FALSE', class = 'specmill_call_error', call = NULL))
   status <- httr2::resp_status(response)
-  if (verbose) base::message('HTTP ', status)
   media <- httr2::resp_header(response, 'content-type')
   if (base::is.null(media)) media <- ''
   media <- base::tolower(base::trimws(base::sub(';.*$', '', media)))
