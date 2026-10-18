@@ -382,6 +382,19 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  private <- config_data(spec$private_params)
+  if (length(intersect(names(private), formal_names))) {
+    stop('Private parameters collide with public formals')
+  }
+  state_parameters <- c(formal_names, names(private))
+  if (
+    length(setdiff(
+      unlist(spec$post_params, use.names = FALSE),
+      state_parameters
+    ))
+  ) {
+    stop('Unknown post_params selection')
+  }
   deferred <- unlist(spec$defer_inputs, use.names = FALSE)
   client_inputs <- formal_names[which(vapply(
     params,
@@ -458,6 +471,15 @@ render_operation <- function(operation, spec) {
       ')'
     )
   )
+  if (length(private)) {
+    lines[length(lines)] <- paste0(
+      '  params <- base::c(',
+      sub('^  params <- ', '', tail(lines, 1L)),
+      ', ',
+      r_literal(private),
+      ')'
+    )
+  }
   parameter_capture <- tail(lines, 1L)
   lines <- head(lines, -1L)
   for (i in seq_along(params)) {
@@ -577,6 +599,16 @@ render_operation <- function(operation, spec) {
   }
   per_request <- length(lines)
   hooks <- spec$hooks[[operation$name]] %or% list()
+  if (length(private) && !length(hooks$pre_request)) {
+    stop('private_params requires a pre-request hook')
+  }
+  if (
+    !is.null(spec$post_params) &&
+      (!length(hooks$post_response) ||
+        identical(spec$post_state, 'hook_state'))
+  ) {
+    stop('post_params requires a post-response hook with post_state parameters')
+  }
   preserve_visibility <- isTRUE(spec$preserve_visibility)
   if (
     preserve_visibility &&
@@ -736,7 +768,7 @@ render_operation <- function(operation, spec) {
               ' = ',
               request_binding(
                 arguments[[name]],
-                formal_names,
+                state_parameters,
                 length(hooks$pre_request) > 0L,
                 operation,
                 spec$callbacks %or% new.env(parent = emptyenv())
@@ -852,7 +884,19 @@ render_operation <- function(operation, spec) {
         if (identical(spec$post_state, 'hook_state')) {
           ', "post_response", state)'
         } else {
-          ', "post_response", base::list(result = result, params = params))'
+          paste0(
+            ', "post_response", base::list(result = result, params = ',
+            if (is.null(spec$post_params)) {
+              'params'
+            } else {
+              paste0(
+                'params[',
+                r_literal(unlist(spec$post_params, use.names = FALSE)),
+                ']'
+              )
+            },
+            '))'
+          )
         }
       )
     )
