@@ -17,18 +17,35 @@ pagination_settings <- function(operation, pagination, explicit) {
       operation$id
     )
   }
+  cursor <- identical(pagination$mode, 'cursor')
+  if (cursor && is.null(pagination$next_cursor)) {
+    stop('Cursor pagination requires next_cursor: ', operation$id)
+  }
+  if (!cursor && !is.null(pagination$next_cursor)) {
+    stop('pagination.next_cursor requires cursor mode: ', operation$id)
+  }
   hit <- Filter(
     function(p) {
-      p$name == pagination[['parameter']] && p$location %in% c('path', 'query')
+      p$name == pagination[['parameter']] &&
+        p$location %in%
+          (if (cursor) c('path', 'query', 'client') else c('path', 'query'))
     },
     operation$parameters
   )
   if (
-    !length(hit) || !isTRUE(hit[[1L]]$schema$type %in% c('integer', 'number'))
+    !length(hit) ||
+      !isTRUE(
+        hit[[1L]]$schema$type %in%
+          (if (cursor) 'string' else c('integer', 'number'))
+      )
   ) {
     if (length(explicit)) {
       stop(
-        'pagination.parameter must name an integer or number path or query ',
+        if (cursor) {
+          'pagination.parameter must name a string path, query or client '
+        } else {
+          'pagination.parameter must name an integer or number path or query '
+        },
         'parameter: ',
         operation$id
       )
@@ -54,7 +71,10 @@ pagination_settings <- function(operation, pagination, explicit) {
     )
   }
   if (
-    !required && is.null(pagination[['start']]) && is.null(parameter_default(p))
+    !cursor &&
+      !required &&
+      is.null(pagination[['start']]) &&
+      is.null(parameter_default(p))
   ) {
     stop(
       'pagination.start is required because ',
@@ -64,13 +84,20 @@ pagination_settings <- function(operation, pagination, explicit) {
     )
   }
   list(
-    mode = 'page',
+    mode = if (cursor) 'cursor' else 'page',
     parameter = p$name,
     location = p$location,
     start = pagination[['start']],
     completed = pagination[['completed']] %or% 'empty',
     max_pages = as.integer(pagination[['max_pages']] %or% 100L),
-    metadata = !isFALSE(pagination[['metadata']])
+    metadata = !isFALSE(pagination[['metadata']]),
+    next_cursor = pagination$next_cursor,
+    items = pagination$items,
+    error_policy = pagination$error_policy %or% 'stop',
+    warn_limits = !isFALSE(pagination$warn_limits),
+    warn_errors = !isFALSE(pagination$warn_errors),
+    stop_on_empty = !isFALSE(pagination$stop_on_empty),
+    on_limit = pagination$on_limit
   )
 }
 
@@ -163,6 +190,12 @@ iteration_settings <- function(operation, batch, explicit) {
     stop('batch.fan_out and batch.split cannot be combined: ', operation$id)
   }
   if (is.null(fan_out) && !split) {
+    if (!is.null(explicit$metadata)) {
+      stop(
+        'batch.metadata requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
     if (!is.null(explicit$on_error)) {
       stop(
         'batch.on_error requires batch.fan_out or batch.split: ',
@@ -175,17 +208,25 @@ iteration_settings <- function(operation, batch, explicit) {
         operation$id
       )
     }
+    if (!is.null(explicit$warning)) {
+      stop('batch.warning requires batch.fan_out or batch.split: ', operation$id)
+    }
     return(NULL)
   }
   on_error <- batch$on_error %or% 'stop'
-  if (!is.null(explicit$empty) && on_error != 'drop') {
+  if (!is.null(explicit$empty) && !any(unlist(on_error) == 'drop')) {
     stop('batch.empty requires batch.on_error: drop: ', operation$id)
+  }
+  if (!is.null(explicit$warning) && !any(unlist(on_error) == 'drop')) {
+    stop('batch.warning requires batch.on_error: drop: ', operation$id)
   }
   list(
     fan_out = fan_out,
     split = split,
     on_error = on_error,
-    empty = batch$empty
+    empty = batch$empty,
+    metadata = !isFALSE(batch$metadata),
+    warning = batch$warning
   )
 }
 
@@ -269,9 +310,26 @@ render_operation <- function(operation, spec) {
     transport_batch$max_items <- as.name(limit_name)
     transport_batch <- as.call(c(list(quote(base::list)), transport_batch))
   }
-  split_lines <- isTRUE(operation$iterate$split) &&
+  line_body <- !is.null(body_name) &&
     identical(operation$body_media, 'text/plain') &&
     identical(operation$text_encoding, 'lines')
+  if (line_body) {
+    operation$text_body_reference <- setNames(
+      tail(
+        make.unique(c(
+          formal_names,
+          helper,
+          callback,
+          operation$response_policy,
+          operation$iterate$empty,
+          if (dynamic_limit) limit_name,
+          '.text_body'
+        )),
+        1L
+      ),
+      body_name
+    )
+  }
   # A split body may exceed the per-request item limit; each chunk is checked by the helper.
   whole <- operation
   if (isTRUE(operation$iterate$split)) {
@@ -324,6 +382,18 @@ render_operation <- function(operation, spec) {
       ')'
     )
   }
+  deferred <- unlist(spec$defer_inputs, use.names = FALSE)
+  client_inputs <- formal_names[which(vapply(
+    params,
+    function(p) identical(p$location, 'client'),
+    logical(1)
+  ))]
+  if (length(setdiff(deferred, client_inputs))) {
+    stop('defer_inputs must name client inputs, not native wire parameters')
+  }
+  if (length(intersect(deferred, names(spec$normalize_inputs)))) {
+    stop('defer_inputs cannot select normalize_inputs values')
+  }
   normalizers <- spec$normalize_inputs
   unknown <- setdiff(names(normalizers), formal_names)
   if (length(unknown)) {
@@ -373,7 +443,14 @@ render_operation <- function(operation, spec) {
       paste(
         vapply(
           formal_names,
-          function(n) paste0(r_literal(n), ' = ', n),
+          function(n) {
+            paste0(
+              r_literal(n),
+              ' = ',
+              if (n %in% deferred) 'function() ' else '',
+              n
+            )
+          },
           character(1)
         ),
         collapse = ', '
@@ -398,7 +475,8 @@ render_operation <- function(operation, spec) {
     }
     if (
       isTRUE(params[[i]]$public_required %or% params[[i]]$required) &&
-        !isTRUE(operation$explicit_inputs)
+        !isTRUE(operation$explicit_inputs) &&
+        !formal_names[[i]] %in% deferred
     ) {
       lines <- c(
         lines,
@@ -446,7 +524,7 @@ render_operation <- function(operation, spec) {
         ')) base::stop("Binary body must be a raw vector")'
       )
     } else if (identical(operation$body_media, 'text/plain')) {
-      if (split_lines) {
+      if (line_body) {
         paste0('.api_validation$text_input(', body_name, ')')
       } else {
         text_checks(text_operation, body_name)
@@ -498,16 +576,19 @@ render_operation <- function(operation, spec) {
     }
   }
   per_request <- length(lines)
-  if (split_lines) {
-    value <- paste0('params[[', r_literal(body_name), ']]')
-    lines <- c(
-      lines,
-      paste0('  if (!base::is.null(', value, ')) {'),
-      paste0('    ', text_checks(text_operation, value)),
-      '  }'
+  hooks <- spec$hooks[[operation$name]] %or% list()
+  preserve_visibility <- isTRUE(spec$preserve_visibility)
+  if (
+    preserve_visibility &&
+      (!is.null(operation$iterate) ||
+        !is.null(pg) ||
+        any(lengths(hooks) > 0L) ||
+        isTRUE(spec$post_on_skip))
+  ) {
+    stop(
+      'preserve_visibility requires an unbatched, unpaged wrapper without hooks'
     )
   }
-  hooks <- spec$hooks[[operation$name]] %or% list()
   if (length(hooks$pre_request)) {
     lines <- c(
       lines,
@@ -537,6 +618,16 @@ render_operation <- function(operation, spec) {
       }
     )
   }
+  if (line_body) {
+    wire_body <- unname(operation$text_body_reference[[body_name]])
+    lines <- c(
+      lines,
+      paste0('  ', wire_body, ' <- params[[', r_literal(body_name), ']]'),
+      paste0('  if (!base::is.null(', wire_body, ')) {'),
+      paste0('    ', text_checks(text_operation, wire_body)),
+      '  }'
+    )
+  }
   request <- paste0(
     '  result <- ',
     helper,
@@ -551,6 +642,8 @@ render_operation <- function(operation, spec) {
     ', body = ',
     if (is.null(body_name)) {
       'NULL'
+    } else if (line_body) {
+      wire_body
     } else {
       paste0('params[[', r_literal(body_name), ']]')
     },
@@ -736,6 +829,11 @@ render_operation <- function(operation, spec) {
       '  }'
     )
   }
+  if (preserve_visibility) {
+    assigned <- startsWith(request, '  result <- ')
+    stopifnot(sum(assigned) == 1L)
+    request[assigned] <- sub('^  result <- ', '  ', request[assigned])
+  }
   lines <- c(lines, request)
   if (length(hooks$post_response)) {
     if (identical(spec$post_state, 'hook_state')) {
@@ -759,7 +857,9 @@ render_operation <- function(operation, spec) {
       )
     )
   }
-  lines <- c(lines, '  result')
+  if (!preserve_visibility) {
+    lines <- c(lines, '  result')
+  }
   if (
     length(hooks$post_combine) &&
       is.null(operation$iterate) &&
@@ -795,21 +895,41 @@ render_operation <- function(operation, spec) {
   # One request per page, with hooks and policy per page; the pages are combined.
   # all_pages = FALSE is the plain single request.
   pages_lines <- function(indent, assign = '') {
+    callback_reference <- function(name) {
+      if (is.null(name)) return('NULL')
+      paste0(
+        'base::get(', r_literal(name),
+        ', envir = base::environment(', helper, '_pages), ',
+        'mode = "function", inherits = FALSE)'
+      )
+    }
     paste0(
       indent,
       c(
-        'if (!base::isTRUE(all_pages)) base::return(send(params))',
-        paste0(
-          'if (base::is.null(params[[',
-          r_literal(page_formal),
-          ']])) base::stop(',
-          r_literal(paste0(
-            'Supply ',
-            page_formal,
-            ' to start paging, or set all_pages = FALSE'
-          )),
-          ', call. = FALSE)'
-        ),
+        if (is.null(pg$items)) {
+          'if (!base::isTRUE(all_pages)) base::return(send(params))'
+        } else {
+          c(
+            'if (!base::isTRUE(all_pages)) {',
+            '  result <- send(params)',
+            '  if (base::inherits(result, "httr2_request")) base::return(result)',
+            paste0('  base::return(', callback_reference(pg$items), '(result))'),
+            '}'
+          )
+        },
+        if (!identical(pg$mode, 'cursor')) {
+          paste0(
+            'if (base::is.null(params[[',
+            r_literal(page_formal),
+            ']])) base::stop(',
+            r_literal(paste0(
+              'Supply ',
+              page_formal,
+              ' to start paging, or set all_pages = FALSE'
+            )),
+            ', call. = FALSE)'
+          )
+        },
         paste0(
           if (isFALSE(pg$metadata)) 'result <- ' else assign,
           helper,
@@ -823,7 +943,39 @@ render_operation <- function(operation, spec) {
           ', params[[',
           r_literal(page_formal),
           ']], max_pages, completed = ',
-          if (identical(pg$completed, 'empty')) 'NULL' else pg$completed,
+          if (identical(pg$completed, 'empty')) {
+            'NULL'
+          } else {
+            callback_reference(pg$completed)
+          },
+          if (
+            identical(pg$mode, 'cursor') ||
+              !is.null(pg$items) ||
+              !is.null(pg$on_limit) ||
+              pg$error_policy != 'stop' ||
+              !pg$warn_limits ||
+              !pg$warn_errors ||
+              !pg$stop_on_empty
+          ) {
+            paste0(
+              ', mode = ',
+              r_literal(pg$mode),
+              ', next_cursor = ',
+              callback_reference(pg$next_cursor),
+              ', items = ',
+              callback_reference(pg$items),
+              ', error_policy = ',
+              r_literal(pg$error_policy),
+              ', warn_limits = ',
+              r_literal(pg$warn_limits),
+              ', warn_errors = ',
+              r_literal(pg$warn_errors),
+              ', stop_on_empty = ',
+              r_literal(pg$stop_on_empty),
+              ', on_limit = ',
+              callback_reference(pg$on_limit)
+            )
+          },
           ')'
         ),
         if (isFALSE(pg$metadata)) {
@@ -839,7 +991,8 @@ render_operation <- function(operation, spec) {
     # Hooks and the request run once per item or chunk; the helper combines results.
     # With pagination, each item pages to completion inside the callback.
     input <- if (is.null(fan_out)) body_name else fan_out_name
-    combine <- length(hooks$post_combine) > 0L
+    keep_metadata <- !isFALSE(operation$iterate$metadata)
+    combine <- length(hooks$post_combine) > 0L || !keep_metadata
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
@@ -872,9 +1025,28 @@ render_operation <- function(operation, spec) {
         if (!is.null(operation$iterate$empty)) {
           paste0(', empty = ', operation$iterate$empty)
         },
+        if (!is.null(operation$iterate$warning)) {
+          paste0(
+            ', warning = ',
+            if (isFALSE(operation$iterate$warning)) {
+              'FALSE'
+            } else {
+              paste0(
+                'base::get(', r_literal(operation$iterate$warning),
+                ', envir = base::parent.env(base::environment()), ',
+                'mode = "function", inherits = FALSE)'
+              )
+            }
+          )
+        },
         ')'
       ),
-      if (combine) post_combine_lines('failed')
+      if (!keep_metadata) '  base::attr(result, "failed") <- NULL',
+      if (length(hooks$post_combine)) {
+        post_combine_lines('failed')
+      } else if (combine) {
+        '  result'
+      }
     )
   } else if (!is.null(pg)) {
     # post_combine runs once.
@@ -1209,6 +1381,29 @@ generate_client <- function(
           '. Compare the helper with the current template and adopt them.'
         )
       }
+      if (!is.null(op$iterate$warning)) {
+        warning_formatter <- op$iterate$warning
+        if (
+          is.character(warning_formatter) &&
+            (!warning_formatter %in% names(runtime_definitions) ||
+              warning_formatter %in% operation_names)
+        ) {
+          stop(
+            'Missing client batch.warning function or wrapper collision: ',
+            warning_formatter
+          )
+        }
+        runner <- runtime_definitions[[paste0(operation_spec$helper, '_each')]]
+        if (
+          !is.null(config) &&
+            !'warning' %in% names(formals(eval(runner$expr, baseenv())))
+        ) {
+          stop(
+            'batch.warning needs the current ', operation_spec$helper,
+            '_each() helper with a warning argument: ', op$id
+          )
+        }
+      }
       op$paginate <- pagination_settings(
         op,
         operation_spec[['pagination']] %or% list(),
@@ -1229,16 +1424,21 @@ generate_client <- function(
             op$id
           )
         }
-        completed <- op$paginate$completed
-        if (
-          !identical(completed, 'empty') &&
-            (!completed %in% names(runtime_definitions) ||
-              completed %in% operation_names)
-        ) {
-          stop(
-            'Missing client pagination callback or wrapper collision: ',
-            completed
-          )
+        for (callback in c(
+          if (!identical(op$paginate$completed, 'empty')) op$paginate$completed,
+          op$paginate$next_cursor,
+          op$paginate$items,
+          op$paginate$on_limit
+        )) {
+          if (
+            !callback %in% names(runtime_definitions) ||
+              callback %in% operation_names
+          ) {
+            stop(
+              'Missing client pagination callback or wrapper collision: ',
+              callback
+            )
+          }
         }
         if (!is.null(op$paginate$start)) {
           for (index in seq_along(op$parameters)) {
@@ -1252,8 +1452,53 @@ generate_client <- function(
           }
         }
         helper <- operation_spec$helper
+        extended <- identical(op$paginate$mode, 'cursor') ||
+          !is.null(op$paginate$items) ||
+          !is.null(op$paginate$on_limit) ||
+          op$paginate$error_policy != 'stop' ||
+          !op$paginate$warn_limits ||
+          !op$paginate$warn_errors ||
+          !op$paginate$stop_on_empty
+        adapter <- runtime_definitions[[paste0(helper, '_pages')]]
+        if (extended && !is.null(config) && !is.null(adapter)) {
+          accepted <- names(tg_formal_records(adapter$expr))
+          required <- c(
+            'mode',
+            'next_cursor',
+            'items',
+            'error_policy',
+            'warn_limits',
+            'warn_errors',
+            'stop_on_empty',
+            'on_limit'
+          )
+          if (!'...' %in% accepted && !all(required %in% accepted)) {
+            stop(
+              'Cursor/extended pagination needs the current ',
+              helper,
+              '_pages() adapter; adopt the current helper template: ',
+              op$id
+            )
+          }
+        }
         needed <- paste0(helper, c('_paginated', '_combine', '_pages'))
         engine <- runtime_definitions[[paste0(helper, '_paginated')]]
+        if (
+          extended &&
+            !is.null(config) &&
+            !is.null(engine) &&
+            !all(
+              c('warn_errors', 'stop_on_empty') %in%
+                names(tg_formal_records(engine$expr))
+            )
+        ) {
+          stop(
+            'Extended pagination needs the current ',
+            helper,
+            '_paginated() companion: ',
+            op$id
+          )
+        }
         if (
           !is.null(config) &&
             (!all(needed %in% names(runtime_definitions)) ||

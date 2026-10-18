@@ -1040,6 +1040,13 @@ are rejected. Scalar text has no inferred splitting boundaries. Existing client 
 manual adoption of plain-text transport; generation preserves their code and
 provenance baseline.
 
+For line bodies, callback and hook `params` retain the original character entries
+for the current chunk. Encoding and wire-schema validation use a separate value;
+a two-entry vector and a single entry containing LF may produce identical bytes
+but remain distinguishable to a client response callback. Request bindings that
+reference the body input use its encoded wire value. Callback expressions can
+still read the logical entries through `params` without splitting the wire text.
+
 ### Parameter serialization
 
 OpenAPI 3.0 and 3.1 support the following flat parameter shapes. Arrays contain
@@ -1743,7 +1750,7 @@ exists; operations can override single fields or opt out:
 # apis/catalogue.yml
 defaults:
   pagination:
-    mode: page               # the only mode for generated wrappers so far
+    mode: page               # numeric page iteration; cursor mode is described below
     parameter: pageNumber    # original name of an integer or number path or query parameter
     start: 1                 # becomes the default of that parameter in the wrapper
     completed: empty         # empty (the default) or the name of a client function
@@ -1763,10 +1770,12 @@ be present once the levels are merged. On an operation with `batch.fan_out` or
 `batch.split`, each item or chunk pages to completion with its own `max_pages`,
 and the results are then combined; `all_pages = FALSE` sends one request per item.
 `on_error: drop` applies per item, so a failure on a later page drops that item
-and its earlier pages. `pagination` needs a generated implementation. Offset
-and cursor paging, item caps and page-size arguments are not available for
-generated wrappers yet; use the companion functions in retained code,
-described below, for those.
+and its earlier pages. `pagination` needs a generated implementation. Cursor
+mode accepts a string path, query or explicit client parameter and reviewed
+`next_cursor`, `items` and `completed` callbacks. See the cursor example in
+`vignette('paged-wrappers')` for GET queries and complete POST body bindings.
+Offset paging, item caps and page-size arguments still use the companion
+functions in retained code, described below.
 
 **The starting page.** `start` becomes the wrapper's default for the page
 parameter. It is required when the parameter is optional and has no default. It
@@ -2078,3 +2087,97 @@ client at call time. Array-body splitting uses the normalized whole input to for
 chunks. No normalization is inferred for other inputs, duplicates, or text lines;
 line encoding preserves its existing entry boundaries and newline bytes unless
 that input explicitly opts into a client function.
+
+### Deferred client inputs
+
+By default, wrappers capture every public input eagerly before request hooks.
+For a reviewed facade with response-only options, an operation can defer selected
+client inputs:
+
+```yaml
+operations:
+  POST /api/resolver/lookup:
+    defer_inputs: [tidy]
+```
+
+Each selected value in `params` becomes a zero-argument function. Client hooks
+pass it through unchanged, and the response callback calls `params$tidy()` when
+formatting needs that option. The function evaluates the original R argument
+promise, so repeated calls evaluate the supplied expression once. This lets
+initial input guards and body-option capture run first, followed by request
+cleanup, HTTP, and response formatting. A request or cleanup failure need not
+force the response-only argument.
+
+Only explicit `inputs` or `extra_parameters` can be selected. Native wire
+parameters, unknown names, duplicate names, and inputs also selected by
+`normalize_inputs` are rejected. The policy belongs under `operations`, not
+project or service defaults, and requires a generated implementation. It does
+not change the public signature or automatically invoke deferred values in
+request bindings: client code must call them where the reviewed contract needs
+them. Other inputs and existing frontloaded normalizers keep their behavior.
+
+### Error policy by request count
+
+Reviewed operations that abort one failed request but retain partial results for
+multiple requests can select both branches explicitly:
+
+```yaml
+operations:
+  GET /items/{id}:
+    batch:
+      fan_out: id
+      on_error: {single: stop, multiple: drop}
+      empty: empty_table
+```
+
+The runner selects a branch from the number of chunks after input normalization
+and effective batch sizing, including runtime limits. Two entries sent in one
+array request use `single`; two separate requests use `multiple`. Both choices
+must be `stop` or `drop`. Existing literal policies and session policy overrides
+keep their behavior. A client `batch.empty` constructor is allowed when either
+branch drops failures. Credential and other call-level errors still abort every
+branch. This policy applies to errors reaching the runner; a client response
+policy can separately handle received HTTP responses before decoding.
+
+An operation can set `batch.warning: failure_warning` to a client function
+`function(error, items)` that formats each dropped request's warning. It receives
+the original error condition and that request's normalized chunk. Return one
+nonempty string for the warning, or `NULL` to suppress it. `batch.warning: false`
+suppresses dropped-request warnings directly. Omitting the field keeps the
+existing warning text. This setting requires a dropping branch and belongs under
+operations. Adopt the current request helper before using it.
+
+The formatter runs only for dropped request errors. Credential and other
+`specmill_call_error` conditions bypass it and abort. Formatter failures or invalid
+return values also abort. For exact HTTP wording, an existing client response
+policy can raise a structured error containing the reviewed status or route; the
+formatter can read those fields without parsing an error message. Result metadata
+and the `batch.empty` constructor remain separate policies.
+
+
+### Plain batch result attributes
+
+A reviewed operation can use `batch: {metadata: false}` alongside `fan_out` or
+`split` to suppress the generated `failed` attribute for dropped requests. The
+default remains `true`. Suppression happens before `post_combine`, and the
+wrapper does not restore the suppressed attribute after the hook. Per-request
+warnings and call-level errors keep their existing behavior.
+
+Use the existing `batch.empty` client function to choose the container when every
+request fails, for example an empty tibble instead of a list. This constructor
+does not change partial-success combination. `batch.metadata` belongs under
+`operations`, never project or service defaults.
+
+
+### Preserve a single helper call's return visibility
+
+An operation may set `preserve_visibility: true` to forward its helper's visible
+or invisible return, including `NULL`, without changing the value or attributes.
+The generated wrapper ends with the helper call rather than assigning and then
+returning its result. This also works with reviewed request bindings and route
+guards. The default remains the existing visible result behavior.
+
+This policy belongs under an operation and requires an unbatched, unpaged
+generated wrapper without hooks or `post_on_skip`. Pipelines that combine or
+replace results have separate return behavior and are rejected by this setting.
+The policy does not add file-upload support or change request construction.

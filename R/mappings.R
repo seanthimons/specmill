@@ -43,9 +43,11 @@ validate_settings <- function(
       'body',
       'inputs',
       'normalize_inputs',
+      'defer_inputs',
       'extra_parameters',
       'request',
       'post_on_skip',
+      'preserve_visibility',
       'post_state',
       'parameter_order',
       'docs',
@@ -69,6 +71,41 @@ validate_settings <- function(
     ),
     label
   )
+  if ('defer_inputs' %in% names(settings)) {
+    deferred <- settings$defer_inputs
+    if (
+      (!is.list(deferred) && !is.character(deferred)) ||
+        !length(deferred) ||
+        !is.null(names(deferred))
+    ) {
+      stop('defer_inputs must be an unnamed sequence of client input names')
+    }
+    for (name in deferred) {
+      if (
+        !is.character(name) ||
+          length(name) != 1L ||
+          is.na(name) ||
+          !identical(make.names(name), name)
+      ) {
+        stop('defer_inputs must contain client input names')
+      }
+    }
+    if (anyDuplicated(unlist(deferred))) {
+      stop('defer_inputs must be unique')
+    }
+    if (identical(settings$implementation, 'existing')) {
+      stop('defer_inputs requires a generated implementation')
+    }
+  }
+  if ('preserve_visibility' %in% names(settings)) {
+    value <- settings$preserve_visibility
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      stop('preserve_visibility must be true or false')
+    }
+    if (isTRUE(value) && identical(settings$implementation, 'existing')) {
+      stop('preserve_visibility requires a generated implementation')
+    }
+  }
   if ('normalize_inputs' %in% names(settings)) {
     normalizers <- settings$normalize_inputs
     config_fields(
@@ -209,11 +246,30 @@ validate_settings <- function(
   if ('batch' %in% names(settings)) {
     config_fields(
       settings$batch,
-      c('max_items', 'max_bytes', 'fan_out', 'split', 'on_error', 'empty'),
+      c(
+        'max_items',
+        'max_bytes',
+        'fan_out',
+        'split',
+        'on_error',
+        'empty',
+        'metadata',
+        'warning'
+      ),
       'batch'
     )
+    if (
+      !is.null(settings$batch$metadata) &&
+        !isTRUE(settings$batch$metadata) &&
+        !isFALSE(settings$batch$metadata)
+    ) {
+      stop('batch.metadata must be true or false')
+    }
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')
+    }
+    if (!is.null(settings$batch$warning) && !isFALSE(settings$batch$warning)) {
+      config_string(settings$batch$warning, 'batch.warning')
     }
     if (!is.null(settings$batch$empty)) {
       config_string(settings$batch$empty, 'batch.empty')
@@ -225,13 +281,27 @@ validate_settings <- function(
     ) {
       stop('batch.split must be true or false')
     }
-    if (
-      !is.null(settings$batch$on_error) &&
-        (!is.character(settings$batch$on_error) ||
-          length(settings$batch$on_error) != 1L ||
-          !settings$batch$on_error %in% c('stop', 'drop'))
-    ) {
-      stop('batch.on_error must be stop or drop')
+    on_error <- settings$batch$on_error
+    if (is.list(on_error)) {
+      config_fields(on_error, c('single', 'multiple'), 'batch.on_error')
+      if (
+        length(on_error) != 2L ||
+          !setequal(names(on_error), c('single', 'multiple'))
+      ) {
+        stop('batch.on_error requires single and multiple')
+      }
+    } else {
+      on_error <- if (is.null(on_error)) list() else list(on_error)
+    }
+    for (choice in on_error) {
+      if (
+        !is.character(choice) ||
+          length(choice) != 1L ||
+          is.na(choice) ||
+          !choice %in% c('stop', 'drop')
+      ) {
+        stop('batch.on_error must be stop or drop')
+      }
     }
     limits <- settings$batch[c('max_items', 'max_bytes')]
     binding <- settings$batch$max_items
@@ -270,7 +340,21 @@ validate_settings <- function(
     pagination <- settings[['pagination']]
     config_fields(
       pagination,
-      c('mode', 'parameter', 'start', 'completed', 'max_pages', 'metadata'),
+      c(
+        'mode',
+        'parameter',
+        'start',
+        'completed',
+        'max_pages',
+        'metadata',
+        'next_cursor',
+        'items',
+        'error_policy',
+        'warn_limits',
+        'warn_errors',
+        'stop_on_empty',
+        'on_limit'
+      ),
       'pagination'
     )
     if (
@@ -283,10 +367,9 @@ validate_settings <- function(
     }
     if (!is.null(pagination[['mode']])) {
       config_string(pagination[['mode']], 'pagination.mode')
-      if (!identical(pagination[['mode']], 'page')) {
+      if (!pagination[['mode']] %in% c('page', 'cursor')) {
         stop(
-          'pagination.mode must be page; offset and cursor paging are not ',
-          'available for generated wrappers yet'
+          'pagination.mode must be page or cursor; offset paging is not available for generated wrappers yet'
         )
       }
     }
@@ -305,7 +388,46 @@ validate_settings <- function(
         stop('pagination.completed must be empty or a client function name')
       }
     }
-    for (field in c('start', 'max_pages')) {
+    for (field in c('next_cursor', 'items', 'on_limit')) {
+      if (!is.null(pagination[[field]])) {
+        value <- config_string(
+          pagination[[field]],
+          paste0('pagination.', field)
+        )
+        if (!identical(make.names(value), value)) {
+          stop('Pagination callbacks must name client functions')
+        }
+      }
+    }
+    for (field in intersect(
+      c('warn_limits', 'warn_errors', 'stop_on_empty'),
+      names(pagination)
+    )) {
+      if (!isTRUE(pagination[[field]]) && !isFALSE(pagination[[field]])) {
+        stop('pagination.', field, ' must be true or false')
+      }
+    }
+    if (!is.null(pagination$error_policy)) {
+      policy <- config_string(
+        pagination$error_policy,
+        'pagination.error_policy'
+      )
+      if (!policy %in% c('stop', 'partial', 'empty')) {
+        stop('pagination.error_policy must be stop, partial, or empty')
+      }
+    }
+    cursor <- identical(pagination$mode, 'cursor') ||
+      (is.null(pagination$mode) && is.character(pagination$start))
+    if (
+      cursor &&
+        !is.null(pagination$start) &&
+        (!is.character(pagination$start) ||
+          length(pagination$start) != 1L ||
+          is.na(pagination$start))
+    ) {
+      stop('pagination.start must be NULL or one nonmissing cursor string')
+    }
+    for (field in if (cursor) 'max_pages' else c('start', 'max_pages')) {
       value <- pagination[[field]]
       if (
         !is.null(value) &&
@@ -820,7 +942,17 @@ request_binding <- function(
   if (path[[1L]] == 'hook_state' && !has_hook) {
     stop('Request references hook_state without a pre-request hook')
   }
-  expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  text_reference <- operation$text_body_reference
+  if (
+    path[[1L]] == 'params' &&
+      length(path) > 1L &&
+      path[[2L]] %in% names(text_reference)
+  ) {
+    expression <- unname(text_reference[[path[[2L]]]])
+    path <- path[-1L]
+  } else {
+    expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  }
   for (name in path[-1L]) {
     expression <- paste0(expression, '[[', r_literal(name), ']]')
   }
