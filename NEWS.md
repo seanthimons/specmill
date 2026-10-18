@@ -1,6 +1,18 @@
 
 
 
+## specmill 0.1.35 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.35 \[skip ci\]
+  ([9b1a2fa](https://github.com/seanthimons/specmill/tree/9b1a2fafa5e21cb432a477dc87d4a467f5b8ba57))
+- integrate released error and warning policies (#147)
+  ([78b060d](https://github.com/seanthimons/specmill/tree/78b060d5d7905ff16306b0c13547a506b171a198))
+
+Full set of changes:
+[`v0.1.34...v0.1.35`](https://github.com/seanthimons/specmill/compare/v0.1.34...v0.1.35)
+
 ## specmill 0.1.34 (2026-10-18)
 
 #### Bug fixes
@@ -11,7 +23,9 @@
 #### Other changes
 
 - release v0.1.34 \[skip ci\]
-  ([9f3e7f1](https://github.com/seanthimons/specmill/tree/9f3e7f1ad05486da38b8f712f9e13637a5dbd4f3))
+  ([4cace56](https://github.com/seanthimons/specmill/tree/4cace56d03e34470d962a845f77d8c5ba9b9e2c8))
+- integrate released batch and line policies (#147)
+  ([10e9ea7](https://github.com/seanthimons/specmill/tree/10e9ea782ad26b7927c4529349b092d6bc4d0ea4))
 - integrate released metadata and line policies (#145)
   ([f3f47d1](https://github.com/seanthimons/specmill/tree/f3f47d111f412e5e57989c11eb8731f1d24bd034))
 
@@ -59,6 +73,8 @@ Full set of changes:
 
 - release v0.1.30 \[skip ci\]
   ([f4efdbc](https://github.com/seanthimons/specmill/tree/f4efdbcf23f879553e5de50325d637ab46625ed3))
+- integrate reviewed visibility and response policies (#147)
+  ([40ea774](https://github.com/seanthimons/specmill/tree/40ea774ae0e3dbc11394a3851ba593c0452cbf17))
 - integrate reviewed return visibility policies (#145)
   ([e860b21](https://github.com/seanthimons/specmill/tree/e860b21cd0c33a8b170618cc22de5cc2e46b5a98))
 - integrate reviewed visibility and response policies (#142)
@@ -82,6 +98,11 @@ Full set of changes:
 [`v0.1.28...v0.1.29`](https://github.com/seanthimons/specmill/compare/v0.1.28...v0.1.29)
 
 ## specmill 0.1.28 (2026-10-18)
+
+#### New features
+
+- defer reviewed response-only facade arguments (#147)
+  ([79b4691](https://github.com/seanthimons/specmill/tree/79b469124249bf0a0e0928478bdc8b1fc57114c3))
 
 #### Other changes
 
