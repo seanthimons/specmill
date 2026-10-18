@@ -20,8 +20,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   for (flag in base::list(verbose = verbose, dry_run = dry)) {
     if (!base::is.logical(flag) || base::length(flag) != 1L || base::is.na(flag)) call_error('run_verbose and dry_run options must be TRUE or FALSE')
   }
-  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy, preserve_errors')
-  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors')) {
+  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy, preserve_errors, throttle')
+  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle')) {
     if (base::is.null(controls[[name]])) controls[[name]] <- request_controls[[name]]
   }
   timeout <- if (base::is.null(controls$timeout)) 30 else controls$timeout
@@ -30,6 +30,15 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (!base::is.numeric(timeout) || base::length(timeout) != 1L || base::is.na(timeout) || timeout <= 0) call_error('timeout must be a positive number of seconds, or Inf for no limit')
   if (!base::is.numeric(retries) || base::length(retries) != 1L || !base::is.finite(retries) || retries < 0 || retries != base::trunc(retries) || retries >= base::.Machine$integer.max) call_error('max_retries must be a nonnegative integer below .Machine$integer.max')
   if (!base::is.logical(writes) || base::length(writes) != 1L || base::is.na(writes)) call_error('retry_writes must be TRUE or FALSE')
+  throttle <- controls$throttle
+  if (!base::is.null(throttle)) {
+    if (!base::is.list(throttle) || base::is.null(base::names(throttle)) || base::anyNA(base::names(throttle)) || base::anyDuplicated(base::names(throttle)) || base::length(base::setdiff(base::names(throttle), base::c('capacity', 'fill_time_s', 'realm')))) call_error('throttle must be a named list of capacity, fill_time_s and optional realm')
+    for (field in base::c('capacity', 'fill_time_s')) {
+      value <- throttle[[field]]
+      if (!base::is.numeric(value) || base::length(value) != 1L || !base::is.finite(value) || value <= 0 || (field == 'capacity' && value != base::trunc(value))) call_error('throttle.', field, ' must be one positive finite ', if (field == 'capacity') 'integer' else 'number')
+    }
+    if (!base::is.null(throttle$realm) && (!base::is.character(throttle$realm) || base::length(throttle$realm) != 1L || base::is.na(throttle$realm) || !base::nzchar(throttle$realm))) call_error('throttle.realm must be one nonempty string')
+  }
   preserve_errors <- if (base::is.null(controls$preserve_errors)) FALSE else controls$preserve_errors
   if (!base::is.logical(preserve_errors) || base::length(preserve_errors) != 1L || base::is.na(preserve_errors)) call_error('preserve_errors must be TRUE or FALSE')
   retry_policy <- controls$retry_policy
@@ -275,6 +284,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     request <- httr2::req_retry(request, max_tries = retries + 1,
       is_transient = is_transient)
   }
+  if (!base::is.null(throttle)) request <- httr2::req_throttle(request, capacity = throttle$capacity, fill_time_s = throttle$fill_time_s, realm = throttle$realm)
   if (verbose) base::message(base::toupper(method), if (dry) ' request (dry run)' else ' request')
   if (dry) base::return(request)
   request <- httr2::req_error(request, is_error = function(response) FALSE)

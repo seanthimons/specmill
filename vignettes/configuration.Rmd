@@ -369,6 +369,24 @@ normal generation never overwrites it. Complete request mappings own their helpe
 arguments and must pass any controls explicitly. Write retries still require
 `retry_writes: true`; use that only when replay is safe for the API.
 
+To preserve a service's request-rate policy, configure native httr2 throttling:
+
+```yaml
+request_controls:
+  throttle:
+    capacity: 4
+    fill_time_s: 1
+    # realm: pubchem # Optional; httr2 defaults to the request hostname.
+```
+
+Both numbers must be positive and finite; capacity must be an integer. The
+same realm shares a token bucket across calls and batch chunks in the R process.
+Choose identical capacity and fill time for operations sharing a realm. No
+throttling is added unless selected. Runtime `<package>.request` options can
+replace the complete `throttle` list. Existing clients must adopt the current
+official request scaffold through the helper-provenance workflow before using
+this control; generation does not overwrite client-owned helpers.
+
 Select a client-owned retry predicate by function name in declarative YAML:
 
 ```yaml
