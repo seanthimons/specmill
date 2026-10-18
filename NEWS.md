@@ -1,12 +1,24 @@
 
 
 
+## specmill 0.1.36 (2026-10-18)
+
+#### Other changes
+
+- release v0.1.36 \[skip ci\]
+  ([48d2dc1](https://github.com/seanthimons/specmill/tree/48d2dc10d875dca4c70a8fb45e2efff91f53791b))
+- integrate released client policies (#149)
+  ([d8ef8ba](https://github.com/seanthimons/specmill/tree/d8ef8bab73df161c720e328ac301c0c1d7f64516))
+
+Full set of changes:
+[`v0.1.35...v0.1.36`](https://github.com/seanthimons/specmill/compare/v0.1.35...v0.1.36)
+
 ## specmill 0.1.35 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.35 \[skip ci\]
-  ([9b1a2fa](https://github.com/seanthimons/specmill/tree/9b1a2fafa5e21cb432a477dc87d4a467f5b8ba57))
+  ([a4a7e52](https://github.com/seanthimons/specmill/tree/a4a7e5249c98e9cfe7c596f2ff995c6a00a44412))
 - integrate released error and warning policies (#147)
   ([78b060d](https://github.com/seanthimons/specmill/tree/78b060d5d7905ff16306b0c13547a506b171a198))
 
@@ -17,6 +29,8 @@ Full set of changes:
 
 #### Bug fixes
 
+- resolve reviewed callbacks outside generated locals (#149)
+  ([05dd31c](https://github.com/seanthimons/specmill/tree/05dd31c8ab5990c07b8bbd1c9fc4d683a7b62b0c))
 - resolve warning formatters outside generated locals (#145)
   ([1043728](https://github.com/seanthimons/specmill/tree/104372855c3072cd64e59a9b9748dbe03bc3fe8b))
 
@@ -84,6 +98,18 @@ Full set of changes:
 [`v0.1.29...v0.1.30`](https://github.com/seanthimons/specmill/compare/v0.1.29...v0.1.30)
 
 ## specmill 0.1.29 (2026-10-18)
+
+#### New features
+
+- generate reviewed cursor pagination wrappers (#149)
+  ([a83a7a5](https://github.com/seanthimons/specmill/tree/a83a7a5106f6c6af58d4afa2350016248c9eec4a))
+
+#### Bug fixes
+
+- continue across reviewed empty result pages (#149)
+  ([2fe01e3](https://github.com/seanthimons/specmill/tree/2fe01e31969e66cee1ac3e9ea757ea7e27a1faec))
+- allow generated pagination controls in examples (#149)
+  ([3f26c10](https://github.com/seanthimons/specmill/tree/3f26c10359082390418180fdb05c2f3b663d6fb7))
 
 #### Other changes
 
