@@ -158,7 +158,12 @@ iteration_settings <- function(operation, batch, explicit) {
   fan_out <- batch$fan_out
   if (!is.null(fan_out)) {
     hit <- Filter(
-      function(p) p$name == fan_out && p$location %in% c('path', 'query'),
+      function(p) {
+        p$name == fan_out &&
+          (p$location %in%
+            c('path', 'query') ||
+            (isTRUE(operation$explicit_inputs) && p$location == 'client'))
+      },
       operation$parameters
     )
     scalar <- length(hit) &&
@@ -166,13 +171,19 @@ iteration_settings <- function(operation, batch, explicit) {
         length(hit[[1L]]$schema$type) > 0L &&
           all(
             hit[[1L]]$schema$type %in%
-              c('string', 'integer', 'number', 'boolean')
+              c(
+                'string',
+                'integer',
+                'number',
+                'boolean',
+                if (isTRUE(operation$explicit_inputs)) 'any'
+              )
           )
       )
     if (!scalar) {
       if (!is.null(explicit$fan_out)) {
         stop(
-          'batch.fan_out must name a scalar path or query parameter: ',
+          'batch.fan_out must name a scalar path or query parameter or explicit client input: ',
           operation$id
         )
       }
@@ -543,13 +554,25 @@ render_operation <- function(operation, spec) {
       )
     }
   }
+  if (!is.null(spec$validate_inputs)) {
+    lines <- c(
+      lines,
+      paste0(
+        '  base::get(',
+        r_literal(spec$validate_inputs),
+        ', envir = base::parent.env(base::environment()), mode = "function", inherits = FALSE)(',
+        sub('^  params <- ', '', parameter_capture),
+        ')'
+      )
+    )
+  }
   checked <- params
   fan_out <- operation$iterate$fan_out
   for (i in seq_along(checked)) {
     # A fan-out input is a vector of the parameter's scalar values.
     if (
       identical(checked[[i]]$name, fan_out) &&
-        checked[[i]]$location %in% c('path', 'query')
+        checked[[i]]$location %in% c('path', 'query', 'client')
     ) {
       checked[[i]]$schema <- list(type = 'array', items = checked[[i]]$schema)
       fan_out_name <- formal_names[[i]]
@@ -906,7 +929,7 @@ render_operation <- function(operation, spec) {
       '  }'
     )
   }
-  if (preserve_visibility) {
+  if (preserve_visibility && is.null(spec$result_formatter)) {
     assigned <- startsWith(request, '  result <- ')
     stopifnot(sum(assigned) == 1L)
     request[assigned] <- sub('^  result <- ', '  ', request[assigned])
@@ -1167,12 +1190,6 @@ render_operation <- function(operation, spec) {
     )
   }
   if (!is.null(spec$result_formatter)) {
-    if (is.null(operation$iterate) && is.null(pg)) {
-      stop(
-        'result_formatter requires batch.fan_out, batch.split or pagination: ',
-        operation$id
-      )
-    }
     lines <- c(
       lines,
       '  if (base::inherits(result, "httr2_request")) base::return(result)',
@@ -1432,6 +1449,17 @@ generate_client <- function(
         stop(
           'Missing client response policy or wrapper collision: ',
           op$response_policy
+        )
+      }
+      validator <- configured$spec$validate_inputs
+      if (
+        !is.null(validator) &&
+          (!validator %in% names(runtime_definitions) ||
+            validator %in% operation_names)
+      ) {
+        stop(
+          'Missing client validate_inputs function or wrapper collision: ',
+          validator
         )
       }
       result_formatter <- configured$spec$result_formatter
