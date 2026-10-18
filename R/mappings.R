@@ -845,7 +845,17 @@ request_binding <- function(
   if (path[[1L]] == 'hook_state' && !has_hook) {
     stop('Request references hook_state without a pre-request hook')
   }
-  expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  text_reference <- operation$text_body_reference
+  if (
+    path[[1L]] == 'params' &&
+      length(path) > 1L &&
+      path[[2L]] %in% names(text_reference)
+  ) {
+    expression <- unname(text_reference[[path[[2L]]]])
+    path <- path[-1L]
+  } else {
+    expression <- if (path[[1L]] == 'params') 'params' else 'state'
+  }
   for (name in path[-1L]) {
     expression <- paste0(expression, '[[', r_literal(name), ']]')
   }
