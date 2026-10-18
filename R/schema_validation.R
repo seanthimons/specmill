@@ -155,6 +155,10 @@ schema_validator <- function() {
 }
 
 validate_schema <- function(file) {
+  schema_validation_report(file)
+}
+
+schema_validation_report <- function(file, document = NULL) {
   config_string(file, 'schema file')
   file <- normalizePath(file, winslash = '/', mustWork = TRUE)
   report <- list(
@@ -176,10 +180,13 @@ validate_schema <- function(file) {
     report$reason <- reason
     report
   }
-  document <- tryCatch(
-    read_schema_document(file, resolve_references = FALSE),
-    error = identity
-  )
+  reviewed_view <- !is.null(document)
+  if (!reviewed_view) {
+    document <- tryCatch(
+      read_schema_document(file, resolve_references = FALSE),
+      error = identity
+    )
+  }
   if (inherits(document, 'error')) {
     return(result('invalid', 'Cannot parse the local schema document.'))
   }
@@ -240,6 +247,13 @@ validate_schema <- function(file) {
     null = 'null',
     digits = NA
   )
+  if (reviewed_view) {
+    report$reviewed_document_sha256 <- digest::digest(
+      json,
+      algo = 'sha256',
+      serialize = FALSE
+    )
+  }
   v8 <- schema_validator()
   v8$assign('document', V8::JS(json))
   errors <- v8$get(
@@ -274,6 +288,8 @@ validated_service_operations <- function(service, reports) {
     winslash = '/',
     mustWork = TRUE
   )]
+  reviewed <- reviewed_response_validation(service, source_reports)
+  source_reports <- reviewed$reports
   blocked <- Filter(
     function(report) {
       report$status %in% c('invalid', 'unsupported')
@@ -506,5 +522,6 @@ validated_service_operations <- function(service, reports) {
       parsed$server_diagnostics
     )
   }
+  parsed$reviewed_validation <- reviewed$views
   parsed
 }

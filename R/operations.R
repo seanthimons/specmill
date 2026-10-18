@@ -82,6 +82,22 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
+  response_corrections <- Filter(
+    Negate(is.null),
+    policy$response_corrections %or% list()
+  )
+  config_fields(
+    response_corrections,
+    names(response_corrections),
+    'response_corrections'
+  )
+  for (correction in response_corrections) {
+    validate_response_correction(correction)
+  }
+  policy$override_keys <- union(
+    policy$override_keys,
+    names(response_corrections)
+  )
   body_corrections <- Filter(
     Negate(is.null),
     policy$request_body_corrections %or% list()
@@ -241,6 +257,14 @@ read_operations <- function(files, policy = list()) {
               item[[method]],
               document,
               source_location = operation_location
+            )
+            response_correction <- policy$response_corrections[[key]]
+            response_operation <- response_corrected_operation(
+              op,
+              response_correction,
+              version,
+              schema_location(operation_location, 'responses'),
+              document$produces
             )
             document$paths[[path]][[method]] <- op
             if (
@@ -426,6 +450,18 @@ read_operations <- function(files, policy = list()) {
                 'body_media_correction',
                 'review_required',
                 'Body media correction requires a declared request body',
+                body_location
+              )
+            }
+            if (
+              !is.null(media_correction) &&
+                is.null(media_correction$from) &&
+                !startsWith(version, '2.')
+            ) {
+              schema_problem(
+                'body_media_correction',
+                'review_required',
+                'Missing-media declaration requires a Swagger body without declared media',
                 body_location
               )
             }
@@ -638,12 +674,13 @@ read_operations <- function(files, policy = list()) {
               body <- body$content[[schema_media]]$schema
             }
             if (
-              !is.null(media_correction) && !identical(body_media, 'text/plain')
+              !is.null(media_correction) &&
+                (!body_present || !identical(body_media, media_correction$to))
             ) {
               schema_problem(
                 'body_media_correction',
                 'review_required',
-                'Body media correction requires a declared scalar request body',
+                'Body media correction requires a declared request body with the reviewed target media',
                 body_location
               )
             }
@@ -914,7 +951,8 @@ read_operations <- function(files, policy = list()) {
               schema_version = version,
               transport_diagnostics = transport_diagnostics,
               source_operation = op,
-              response = op$responses,
+              response = response_operation$responses,
+              response_correction = config_data(response_correction),
               summary = op$summary %or% name
             )
           },
