@@ -174,7 +174,8 @@ operation_documentation <- function(op, policy = list()) {
       ),
       paste0(
         '@param max_pages Maximum number of pages requested when all_pages is ',
-        'TRUE. Reaching it stops paging with a warning',
+        'TRUE. Reaching it stops paging',
+        if (!isFALSE(op$paginate$warn_limits)) ' with a warning',
         if (is.null(op$iterate)) {
           if (!isFALSE(op$paginate$metadata)) {
             "; attr(result, 'pagination')$stop_reason records why paging stopped."
@@ -239,7 +240,11 @@ operation_documentation <- function(op, policy = list()) {
             if (
               length(setdiff(
                 names(inputs),
-                c(parameters, if (!is.null(op$body)) body_argument)
+                c(
+                  parameters,
+                  if (!is.null(op$body)) body_argument,
+                  if (paged) c('all_pages', 'max_pages')
+                )
               ))
             ) {
               stop('Example references missing public parameter')
