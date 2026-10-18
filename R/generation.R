@@ -929,7 +929,7 @@ render_operation <- function(operation, spec) {
       '  }'
     )
   }
-  if (preserve_visibility) {
+  if (preserve_visibility && is.null(spec$result_formatter)) {
     assigned <- startsWith(request, '  result <- ')
     stopifnot(sum(assigned) == 1L)
     request[assigned] <- sub('^  result <- ', '  ', request[assigned])
@@ -1190,12 +1190,6 @@ render_operation <- function(operation, spec) {
     )
   }
   if (!is.null(spec$result_formatter)) {
-    if (is.null(operation$iterate) && is.null(pg)) {
-      stop(
-        'result_formatter requires batch.fan_out, batch.split or pagination: ',
-        operation$id
-      )
-    }
     lines <- c(
       lines,
       '  if (base::inherits(result, "httr2_request")) base::return(result)',

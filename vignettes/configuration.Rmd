@@ -578,8 +578,8 @@ operations:
     post_params_source: original
 ~~~
 
-**Final client formatting.** An operation may select `result_formatter` when it
-uses `batch.fan_out`, `batch.split` or pagination:
+**Final client formatting.** A generated operation may select `result_formatter`
+for a single response or for combined fan-out, split or paginated responses:
 
 ~~~yaml
 operations:
@@ -591,7 +591,8 @@ operations:
 
 The client-owned `format_items(data)` function receives `data$result` and
 `data$params` with the full normalized public inputs. It runs once after all
-requests, combination, metadata selection and any `post_combine` hook. Its
+requests, combination, metadata selection and any `post_combine` hook. For an
+unbatched operation it runs once after the request and its post-response hook. Its
 return value is final, including `NULL`, unless a combined post-response hook is selected; specmill does not restore attributes
 after it. Its warnings and errors propagate unchanged, outside both the batch
 drop policy and the hook executor. Existing hooks still use their normal
