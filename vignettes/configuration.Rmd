@@ -512,6 +512,34 @@ request, and `post_response` once per element or chunk:
   only path parameter. A fanned-out query parameter is attributed when the
   operation has no path parameters and it is the only query value sent.
 
+**Private hook parameters.** An individual generated operation can declare
+`private_params`, a named mapping of literal initial values. These values join
+the captured parameter list before `pre_request` without adding public
+formals. A pre-request hook can update them with the same partial named updates
+as public parameters. Explicit request bindings can read them from `params`;
+they are not automatically added to wire parameters or schema validation.
+
+~~~yaml
+operations:
+  POST /api/resolver/getsimilaritymap:
+    private_params:
+      chemicals: null
+    post_params: [query, idType, section, sort, hclust_method, format]
+    request:
+      arguments:
+        body: {from: [params, chemicals]}
+~~~
+
+`post_params` selects parameter names and order for the `post_response` state.
+This selection applies after pre-request updates and only to that hook; request
+bindings retain the complete state. Unknown or duplicate selections and private
+names colliding with public formals are rejected. Private parameters require a
+pre-request hook; selected post parameters require a post-response hook using
+`post_state: parameters`. Both settings belong under operations, not defaults.
+Without these settings, parameter capture and hook state remain unchanged.
+The default skip still returns immediately before request/post-response work;
+`post_on_skip` retains its existing explicit behavior.
+
 **Final client formatting.** An operation may select `result_formatter` when it
 uses `batch.fan_out`, `batch.split` or pagination:
 
