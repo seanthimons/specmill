@@ -389,7 +389,7 @@ render_operation <- function(operation, spec) {
   state_parameters <- c(formal_names, names(private))
   if (
     length(setdiff(
-      unlist(spec$post_params, use.names = FALSE),
+      unlist(spec[['post_params']], use.names = FALSE),
       state_parameters
     ))
   ) {
@@ -407,6 +407,12 @@ render_operation <- function(operation, spec) {
   if (length(intersect(deferred, names(spec$normalize_inputs)))) {
     stop('defer_inputs cannot select normalize_inputs values')
   }
+  original_post_params <- identical(spec$post_params_source, 'original')
+  original_params_name <- tail(
+    make.unique(c(state_parameters, 'original_params')),
+    1L
+  )
+  combined_post <- identical(spec$post_response_scope, 'combined')
   normalizers <- spec$normalize_inputs
   unknown <- setdiff(names(normalizers), formal_names)
   if (length(unknown)) {
@@ -479,6 +485,31 @@ render_operation <- function(operation, spec) {
       r_literal(private),
       ')'
     )
+  }
+  if (original_post_params) {
+    original_capture <- sub(
+      '^  params <- ',
+      paste0('  ', original_params_name, ' <- '),
+      tail(lines, 1L)
+    )
+    for (i in seq_along(params)) {
+      if (isTRUE(params[[i]]$missing_as_null)) {
+        name <- formal_names[[i]]
+        original_capture <- sub(
+          paste0(r_literal(name), ' = ', name),
+          paste0(
+            r_literal(name),
+            ' = if (base::missing(',
+            name,
+            ')) NULL else ',
+            name
+          ),
+          original_capture,
+          fixed = TRUE
+        )
+      }
+    }
+    lines <- append(lines, original_capture, after = 2L)
   }
   parameter_capture <- tail(lines, 1L)
   lines <- head(lines, -1L)
@@ -603,11 +634,25 @@ render_operation <- function(operation, spec) {
     stop('private_params requires a pre-request hook')
   }
   if (
-    !is.null(spec$post_params) &&
+    !is.null(spec[['post_params']]) &&
       (!length(hooks$post_response) ||
         identical(spec$post_state, 'hook_state'))
   ) {
     stop('post_params requires a post-response hook with post_state parameters')
+  }
+  if (combined_post || original_post_params) {
+    if (
+      !length(hooks$post_response) || identical(spec$post_state, 'hook_state')
+    ) {
+      stop(
+        'post_response_scope and post_params_source require a post-response hook with post_state parameters'
+      )
+    }
+  }
+  if (combined_post && is.null(operation$iterate)) {
+    stop(
+      'post_response_scope combined requires batch.fan_out or batch.split'
+    )
   }
   preserve_visibility <- isTRUE(spec$preserve_visibility)
   if (
@@ -867,7 +912,9 @@ render_operation <- function(operation, spec) {
     request[assigned] <- sub('^  result <- ', '  ', request[assigned])
   }
   lines <- c(lines, request)
+  post_response_lines <- character()
   if (length(hooks$post_response)) {
+    post_start <- length(lines)
     if (identical(spec$post_state, 'hook_state')) {
       if (!length(hooks$pre_request)) {
         stop('post_state hook_state requires a pre-request hook')
@@ -886,12 +933,16 @@ render_operation <- function(operation, spec) {
         } else {
           paste0(
             ', "post_response", base::list(result = result, params = ',
-            if (is.null(spec$post_params)) {
-              'params'
+            if (is.null(spec[['post_params']])) {
+              if (original_post_params) original_params_name else 'params'
             } else {
               paste0(
-                'params[',
-                r_literal(unlist(spec$post_params, use.names = FALSE)),
+                if (original_post_params) {
+                  paste0(original_params_name, '[')
+                } else {
+                  'params['
+                },
+                r_literal(unlist(spec[['post_params']], use.names = FALSE)),
                 ']'
               )
             },
@@ -900,6 +951,10 @@ render_operation <- function(operation, spec) {
         }
       )
     )
+    if (combined_post) {
+      post_response_lines <- tail(lines, -post_start)
+      lines <- head(lines, post_start)
+    }
   }
   if (!preserve_visibility) {
     lines <- c(lines, '  result')
@@ -1038,7 +1093,8 @@ render_operation <- function(operation, spec) {
     keep_metadata <- !isFALSE(operation$iterate$metadata)
     combine <- length(hooks$post_combine) > 0L ||
       !keep_metadata ||
-      !is.null(spec$result_formatter)
+      !is.null(spec$result_formatter) ||
+      combined_post
     lines <- c(
       head(lines, per_request),
       '  send <- function(params) {',
@@ -1121,11 +1177,19 @@ render_operation <- function(operation, spec) {
       lines,
       '  if (base::inherits(result, "httr2_request")) base::return(result)',
       paste0(
-        '  base::get(',
+        if (combined_post) '  result <- base::get(' else '  base::get(',
         r_literal(spec$result_formatter),
         ', envir = base::parent.env(base::environment()), ',
         'mode = "function", inherits = FALSE)(base::list(result = result, params = params))'
       )
+    )
+  }
+  if (combined_post) {
+    lines <- c(
+      lines,
+      '  if (base::inherits(result, "httr2_request")) base::return(result)',
+      post_response_lines,
+      '  result'
     )
   }
   code <- paste(c(lines, '}'), collapse = '\n')
