@@ -205,7 +205,34 @@ result_formatter_acceptance <- function() {
   service$defaults <- NULL
   service$operations[['GET /plain']] <- list(result_formatter = 'send')
   write()
-  fails('requires batch.fan_out, batch.split or pagination')
+  run()
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, runtime)
+  }
+  sent <- 0L
+  runtime$api_request <- function(...) {
+    sent <<- sent + 1L
+    list('one', 'two')
+  }
+  seen <- NULL
+  runtime$send <- function(data) {
+    seen <<- data
+    data$result
+  }
+  value <- runtime$plain()
+  stopifnot(
+    identical(value, list('one', 'two')),
+    sent == 1L,
+    identical(seen$params, list())
+  )
+  runtime$send <- function(data) stop(condition)
+  stopifnot(identical(tryCatch(runtime$plain(), error = identity), condition))
+  runtime$send <- function(data) NULL
+  stopifnot(is.null(runtime$plain()))
+  runtime$api_request <- function(...) httr2::request('http://127.0.0.1:1')
+  runtime$send <- function(data) stop('must not format dry runs')
+  stopifnot(inherits(runtime$plain(), 'httr2_request'))
+
   service$operations[['GET /plain']] <- list(
     request_controls = list(preserve_errors = TRUE)
   )
@@ -226,6 +253,17 @@ result_formatter_acceptance <- function() {
   write()
   fails('needs the current client helper template')
   writeLines(helper, helper_path)
+  service$operations[['GET /plain']]$result_formatter <- 'send'
+  service$operations[['GET /plain']]$preserve_visibility <- TRUE
+  write()
+  run()
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, runtime)
+  }
+  runtime$api_request <- function(...) 'response'
+  runtime$send <- function(data) invisible('formatted')
+  visibility <- withVisible(runtime$plain())
+  stopifnot(identical(visibility$value, 'formatted'), !visibility$visible)
   service$operations[['GET /plain']] <- list(
     implementation = 'existing',
     result_formatter = 'send'
