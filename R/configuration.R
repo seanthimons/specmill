@@ -415,7 +415,8 @@ load_project <- function(
         'response_correction',
         'request_body_correction',
         'path_parameters_correction',
-        'normalize_inputs'
+        'normalize_inputs',
+        'defer_inputs'
       ),
       names(defaults)
     )) {
