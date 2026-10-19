@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.48 (2026-10-19)
+
+#### Other changes
+
+- release v0.1.48 \[skip ci\]
+  ([112f369](https://github.com/seanthimons/specmill/tree/112f3691b10d165a4eae8c1c1e9b4d1581582bdc))
+
+Full set of changes:
+[`v0.1.47...v0.1.48`](https://github.com/seanthimons/specmill/compare/v0.1.47...v0.1.48)
+
 ## specmill 0.1.47 (2026-10-19)
 
 #### Other changes
 
 - release v0.1.47 \[skip ci\]
-  ([59277f8](https://github.com/seanthimons/specmill/tree/59277f86cfca0355a3c7c37cfe1aae37fe54938d))
+  ([5ec8252](https://github.com/seanthimons/specmill/tree/5ec825277c686a7142ad113340897039b6c3a793))
 
 Full set of changes:
 [`v0.1.46...v0.1.47`](https://github.com/seanthimons/specmill/compare/v0.1.46...v0.1.47)
@@ -22,6 +32,11 @@ Full set of changes:
 [`v0.1.45...v0.1.46`](https://github.com/seanthimons/specmill/compare/v0.1.45...v0.1.46)
 
 ## specmill 0.1.45 (2026-10-18)
+
+#### New features
+
+- preserve reviewed session cache lifecycles (#174)
+  ([72fe575](https://github.com/seanthimons/specmill/tree/72fe575bc7943d0d9d53051c25fcbcb0d2da7cfe))
 
 #### Tests
 
