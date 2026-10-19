@@ -369,6 +369,24 @@ normal generation never overwrites it. Complete request mappings own their helpe
 arguments and must pass any controls explicitly. Write retries still require
 `retry_writes: true`; use that only when replay is safe for the API.
 
+To preserve a service's request-rate policy, configure native httr2 throttling:
+
+```yaml
+request_controls:
+  throttle:
+    capacity: 4
+    fill_time_s: 1
+    # realm: pubchem # Optional; httr2 defaults to the request hostname.
+```
+
+Both numbers must be positive and finite; capacity must be an integer. The
+same realm shares a token bucket across calls and batch chunks in the R process.
+Choose identical capacity and fill time for operations sharing a realm. No
+throttling is added unless selected. Runtime `<package>.request` options can
+replace the complete `throttle` list. Existing clients must adopt the current
+official request scaffold through the helper-provenance workflow before using
+this control; generation does not overwrite client-owned helpers.
+
 Select a client-owned retry predicate by function name in declarative YAML:
 
 ```yaml
@@ -545,6 +563,66 @@ operations:
         body: {from: [params, chemicals]}
 ~~~
 
+`pre_params` selects parameter names and order for the initial `pre_request`
+state. It requires a pre-request hook and belongs under `operations`. Other
+inputs remain available to request bindings. Combine it with `defer_inputs`
+when a transport-only input must remain lazy on a skipped call; a deferred
+input remains a thunk in internal request parameters and can be forced by a
+pure request projection after the hook. Selection alone does not defer input
+evaluation. Only selected parameter names are applied as pre-hook updates to
+request parameters. Other fields in the returned hook state remain available
+to the post hook. With `post_state: hook_state`, the post hook still receives the
+complete state returned by the pre hook, including partial params and extra
+fields. By default a NULL result remains a named NULL in that state. Select
+operation-only `post_result_null: remove` to reproduce a client that assigns
+`state$result <- result` and removes the result key when NULL. This requires
+a post-response hook with `post_state: hook_state`.
+
+For a facade that already has an `all_pages` input, operation-only
+`request.pagination` selects native offset pagination without adding public
+arguments. `max_pages` accepts a positive integer or a request binding, such as
+`{from: [params, max_pages]}`. A binding is evaluated after pre-hook updates,
+only when paging is selected; the pagination engine validates its value before
+HTTP. It requires complete native request bindings and the current
+pagination companions. The `when` binding runs after the pre hook and request
+construction; it can force a deferred transport input. False sends one request.
+True uses the existing pagination engine with explicit nested body paths:
+
+~~~yaml
+request:
+  arguments: # complete native method/path/path_params/query/body bindings
+    # ...
+  pagination:
+    mode: offset
+    when: {callback: paging_enabled}
+    parameter: [body, offset]
+    size_parameter: [body, options, limit]
+    page_size: {from: [hook_state, request, body, options, limit]}
+    start: {value: 0}
+    max_pages: 100
+    items: collect_response
+    completed: search_complete
+    advance: search_next_offset
+    metadata: false
+    error_policy: partial
+    warn_errors: false
+    warn_limits: false
+    stop_on_empty: false
+~~~
+
+`items(response)` selects each page's collection. `completed(response, state)`
+and `advance(response, position, page_size)` are pure client projections of
+response metadata. Their errors propagate, even under partial request recovery.
+A raw-response collector can defer record parsing to `result_formatter` after
+collection. Single-request formatting receives one response; paged formatting
+receives the combined collection. `post_response_scope: combined` runs the
+existing post hook once after this formatting and supports `post_state:
+hook_state` for this request-level pagination. A skipped call bypasses request
+construction and final formatting; `post_on_skip` still runs the post hook.
+Dry runs return the prepared request before page callbacks or formatting.
+This mode cannot combine with operation pagination, batch iteration,
+`route_guard` or `preserve_visibility`.
+
 `post_params` selects parameter names and order for the `post_response` state.
 This selection applies after pre-request updates and only to that hook; request
 bindings retain the complete state. Unknown or duplicate selections and private
@@ -577,6 +655,69 @@ operations:
     post_response_scope: combined
     post_params_source: original
 ~~~
+
+**Session caches.** Operation-only `cache` owns lookup, environment creation and
+writes around a native request mapping. It runs after input normalization and
+validation, before constructing requests or resolving transport defaults. Cache
+callbacks are client-owned pure key/data projections, called directly without
+hook wrapping. This policy requires an unhooked operation and cannot combine
+with operation batching, pagination, request pagination or preserve_visibility.
+
+Whole-call mode returns an existing entry immediately and stores the final
+`result_formatter` output, including empty values:
+
+~~~yaml
+cache:
+  mode: call
+  enabled: {from: [params, cache]}
+  environment: {callback: session_environment}
+  name: search_cache
+  key: search_key
+~~~
+
+`environment` selects an existing parent environment. The generator creates the
+named child environment only when caching is enabled. `key(data)` receives
+`data$params` and returns one nonempty string. A hit is determined by key
+existence, so a stored NULL or empty result still prevents another request.
+Disabled caches do not evaluate the environment or key projections.
+
+Per-input mode partitions hits before choosing routes and chunks. It requires
+`purrr` in the client's Imports, an eager public input and a fixed positive
+`max_items`. More than one pending input uses named sequential chunks and
+`purrr::map`; one pending input sends directly. Thus indexed transport errors
+match that collection boundary while native credential/call-level errors stay
+hard. Every chunk sees the same full `cache_state$pending` in pure request
+binding expressions, so a final short chunk does not change the overall route
+choice. It also retains `cache_state$params`, the original normalized parameters.
+
+~~~yaml
+cache:
+  mode: items
+  enabled: {from: [params, cache]}
+  environment: {callback: session_environment}
+  name: property_cache
+  input: cid
+  max_items: 100
+  key: property_key
+  entries: property_entries
+  combine: combine_properties
+  project: final_properties
+~~~
+
+Here `key(data)` additionally receives one `data$input`. Duplicates and order are
+preserved in both the hit and pending collections. `result_formatter` receives
+`result`, original normalized `params` and `pending`; for multiple pending
+inputs, `result` is the list of per-chunk responses, otherwise one response.
+`entries(data)` receives the formatted fresh result and original params and
+returns a named list of cache values. The generator writes those values,
+allowing repeated keys to overwrite in order. It then calls
+`combine(data)` with `result`, cached values in `cached`, and original params.
+Optional `project(data)` receives the combined `result` and original params.
+An all-hit call goes straight to combine/project without transport, fresh
+formatting or stores. This permits raw cache values followed by a deferred tidy
+projection. Projection failures propagate; successful stores precede the final
+projection. Dry-run request objects bypass cache stores and projections.
+The generated client keeps this lifecycle and needs no specmill runtime.
 
 **Final client formatting.** A generated operation may select `result_formatter`
 for a single response or for combined fan-out, split or paginated responses:
@@ -1025,6 +1166,14 @@ leaving their names out; required fields are checked before sending. Explicit
 an empty URL-encoded form sends zero bytes with its form content type. Use unnamed
 vectors or lists for arrays and named lists for object fields.
 Empty multipart bodies are rejected; omit an optional body argument instead.
+
+An object declaring `additionalProperties: true` accepts additional finite scalar
+strings, numbers and booleans in URL-encoded or multipart forms. Unknown fields
+use the normal scalar encoding, including lowercase booleans and escaped names
+and values. Declared property schemas still validate their fields. Closed forms
+still reject additional fields. Free-form NULL, missing, binary and container
+values have no selected representation and fail before HTTP; declare their
+schemas and encoding explicitly when supported.
 
 ```r
 # application/x-www-form-urlencoded

@@ -31,7 +31,9 @@ response_policy_acceptance <- function() {
         })
       )
       on.exit(server$stop())
-      writeLines(as.character(port), port_file)
+      pending <- paste0(port_file, '.pending')
+      writeLines(as.character(port), pending)
+      stopifnot(file.rename(pending, port_file))
       repeat {
         httpuv::service(100)
       }
@@ -40,7 +42,7 @@ response_policy_acceptance <- function() {
     supervise = TRUE
   )
   on.exit(process$kill(), add = TRUE)
-  for (i in seq_len(200L)) {
+  for (i in seq_len(1200L)) {
     if (file.exists(port_file)) {
       break
     }
