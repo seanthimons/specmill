@@ -101,6 +101,8 @@ duplicate_response_overrides_acceptance <- function() {
     'Conflicting duplicate operation'
   )
   write_schema('*/*', 'safety.json')
+  dir.create(file.path(root, 'schema'))
+  stopifnot(all(file.copy(files, file.path(root, 'schema'))))
   writeLines(
     'api_request <- function(method, path, ...) list(method = method, path = path)',
     file.path(root, 'R/request.R')
@@ -112,7 +114,7 @@ duplicate_response_overrides_acceptance <- function() {
   writeLines(
     c(
       'id: render',
-      'schemas: {files: [safety.json, alerts.json]}',
+      'schemas: {files: [schema/safety.json, schema/alerts.json]}',
       'helper: api_request',
       'selection: {include: [GET /render]}',
       'operations:',
@@ -134,7 +136,11 @@ duplicate_response_overrides_acceptance <- function() {
     'render GET /render'
   ]]
   stopifnot(
-    basename(proof$selected) == 'alerts.json',
+    identical(proof$selected, 'schema/alerts.json'),
+    setequal(
+      vapply(proof$sources, `[[`, character(1), 'source'),
+      c('schema/safety.json', 'schema/alerts.json')
+    ),
     length(proof$sources) == 2L,
     identical(proof$reason, reviewed$reason)
   )
@@ -144,8 +150,26 @@ duplicate_response_overrides_acceptance <- function() {
     config = 'specmill.yml',
     mode = 'check'
   )
+  relocated <- tempfile('duplicate-responses-relocated-')
+  dir.create(relocated)
+  on.exit(unlink(relocated, recursive = TRUE), add = TRUE)
+  stopifnot(all(file.copy(
+    list.files(root, all.files = TRUE, no.. = TRUE, full.names = TRUE),
+    relocated,
+    recursive = TRUE
+  )))
+  specmill::generate_client(
+    validation = TRUE,
+    relocated,
+    config = 'specmill.yml',
+    mode = 'check'
+  )
+  stopifnot(identical(
+    readBin(file.path(root, '.specmill/manifest.json'), 'raw', n = 1e7),
+    readBin(file.path(relocated, '.specmill/manifest.json'), 'raw', n = 1e7)
+  ))
   cat(
-    'Duplicate responses: explicit reviewed source, both source contracts/provenance, stable selection, request conflicts, missing source and validated freshness passed.\n'
+    'Duplicate responses: explicit reviewed source, both source contracts/provenance, stable selection, request conflicts, missing source and validated freshness across checkout roots passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

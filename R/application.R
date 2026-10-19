@@ -259,7 +259,17 @@ apply_files <- function(
         attr(desired, 'operations')[[entry$file]]
       )]
       if (length(response_sources)) {
-        manifest$files[[entry$file]]$response_sources <- response_sources
+        manifest$files[[entry$file]]$response_sources <- lapply(
+          response_sources,
+          function(proof) {
+            proof$selected <- as.character(fs::path_rel(proof$selected, root))
+            proof$sources <- lapply(proof$sources, function(source) {
+              source$source <- as.character(fs::path_rel(source$source, root))
+              source
+            })
+            proof
+          }
+        )
       }
     }
   }
