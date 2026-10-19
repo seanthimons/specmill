@@ -656,6 +656,69 @@ operations:
     post_params_source: original
 ~~~
 
+**Session caches.** Operation-only `cache` owns lookup, environment creation and
+writes around a native request mapping. It runs after input normalization and
+validation, before constructing requests or resolving transport defaults. Cache
+callbacks are client-owned pure key/data projections, called directly without
+hook wrapping. This policy requires an unhooked operation and cannot combine
+with operation batching, pagination, request pagination or preserve_visibility.
+
+Whole-call mode returns an existing entry immediately and stores the final
+`result_formatter` output, including empty values:
+
+~~~yaml
+cache:
+  mode: call
+  enabled: {from: [params, cache]}
+  environment: {callback: session_environment}
+  name: search_cache
+  key: search_key
+~~~
+
+`environment` selects an existing parent environment. The generator creates the
+named child environment only when caching is enabled. `key(data)` receives
+`data$params` and returns one nonempty string. A hit is determined by key
+existence, so a stored NULL or empty result still prevents another request.
+Disabled caches do not evaluate the environment or key projections.
+
+Per-input mode partitions hits before choosing routes and chunks. It requires
+`purrr` in the client's Imports, an eager public input and a fixed positive
+`max_items`. More than one pending input uses named sequential chunks and
+`purrr::map`; one pending input sends directly. Thus indexed transport errors
+match that collection boundary while native credential/call-level errors stay
+hard. Every chunk sees the same full `cache_state$pending` in pure request
+binding expressions, so a final short chunk does not change the overall route
+choice. It also retains `cache_state$params`, the original normalized parameters.
+
+~~~yaml
+cache:
+  mode: items
+  enabled: {from: [params, cache]}
+  environment: {callback: session_environment}
+  name: property_cache
+  input: cid
+  max_items: 100
+  key: property_key
+  entries: property_entries
+  combine: combine_properties
+  project: final_properties
+~~~
+
+Here `key(data)` additionally receives one `data$input`. Duplicates and order are
+preserved in both the hit and pending collections. `result_formatter` receives
+`result`, original normalized `params` and `pending`; for multiple pending
+inputs, `result` is the list of per-chunk responses, otherwise one response.
+`entries(data)` receives the formatted fresh result and original params and
+returns a named list of cache values. The generator writes those values,
+allowing repeated keys to overwrite in order. It then calls
+`combine(data)` with `result`, cached values in `cached`, and original params.
+Optional `project(data)` receives the combined `result` and original params.
+An all-hit call goes straight to combine/project without transport, fresh
+formatting or stores. This permits raw cache values followed by a deferred tidy
+projection. Projection failures propagate; successful stores precede the final
+projection. Dry-run request objects bypass cache stores and projections.
+The generated client keeps this lifecycle and needs no specmill runtime.
+
 **Final client formatting.** A generated operation may select `result_formatter`
 for a single response or for combined fan-out, split or paginated responses:
 

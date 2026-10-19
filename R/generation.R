@@ -649,15 +649,60 @@ render_operation <- function(operation, spec) {
       params[[i]]$location == 'query' &&
         !isTRUE(params[[i]]$allow_empty_value)
     ) {
-      lines <- c(lines, paste0(
-        '  if (base::is.character(params[[',
-        r_literal(formal_names[[i]]),
-        ']]) && base::any(!base::nzchar(params[[',
-        r_literal(formal_names[[i]]),
-        ']]))) base::stop(',
-        r_literal(paste('Empty query parameter:', input_names[[i]])),
-        ')'
-      ))
+      lines <- c(
+        lines,
+        paste0(
+          '  if (base::is.character(params[[',
+          r_literal(formal_names[[i]]),
+          ']]) && base::any(!base::nzchar(params[[',
+          r_literal(formal_names[[i]]),
+          ']]))) base::stop(',
+          r_literal(paste('Empty query parameter:', input_names[[i]])),
+          ')'
+        )
+      )
+    }
+  }
+  if (!is.null(spec$cache)) {
+    reserved_cache <- c(
+      'cache_state',
+      'cache_environment',
+      'cache_key',
+      'cache_missing',
+      'cache_index',
+      'cache_entries',
+      'cache_chunks',
+      'send'
+    )
+    if (any(reserved_cache %in% state_parameters)) {
+      stop('cache internal name collides with a client input')
+    }
+    if (
+      !is.null(operation$iterate) ||
+        !is.null(pg) ||
+        !is.null(request_paging) ||
+        isTRUE(spec$preserve_visibility) ||
+        any(lengths(spec$hooks[[operation$name]]) > 0L)
+    ) {
+      stop(
+        'cache requires an unhooked request mapping without operation batching, pagination or preserve_visibility'
+      )
+    }
+    if (
+      is.null(spec$request) ||
+        !all(
+          c('method', 'path', 'path_params', 'query', 'body') %in%
+            names(spec$request$arguments)
+        )
+    ) {
+      stop('cache requires complete native request bindings')
+    }
+    if (
+      identical(spec$cache$mode, 'items') &&
+        (!spec$cache$input %in% state_parameters ||
+          spec$cache$input %in% deferred)
+    ) {
+      stop('cache.input must name an eager public input')
     }
   }
   per_request <- length(lines)
@@ -1245,6 +1290,9 @@ render_operation <- function(operation, spec) {
       }
     )
   }
+  if (identical(spec$cache$mode, 'items')) {
+    lines <- cache_iteration(lines, per_request, spec)
+  }
   if (!is.null(spec$result_formatter)) {
     lines <- c(
       lines,
@@ -1260,10 +1308,18 @@ render_operation <- function(operation, spec) {
         ) {
           '  if (!base::isTRUE(state$skip_request)) '
         },
-        if (combined_post) '  result <- base::get(' else '  base::get(',
+        if (combined_post || !is.null(spec$cache)) {
+          '  result <- base::get('
+        } else {
+          '  base::get('
+        },
         r_literal(spec$result_formatter),
         ', envir = base::parent.env(base::environment()), ',
-        'mode = "function", inherits = FALSE)(base::list(result = result, params = params))'
+        'mode = "function", inherits = FALSE)(base::list(result = result, params = params',
+        if (identical(spec$cache$mode, 'items')) {
+          ', pending = cache_state$pending'
+        },
+        '))'
       )
     )
   }
@@ -1273,6 +1329,14 @@ render_operation <- function(operation, spec) {
       '  if (base::inherits(result, "httr2_request")) base::return(result)',
       post_response_lines,
       '  result'
+    )
+  }
+  if (!is.null(spec$cache)) {
+    lines <- c(
+      head(lines, per_request),
+      cache_setup(operation, spec, state_parameters),
+      tail(lines, -per_request),
+      cache_finish(spec)
     )
   }
   code <- paste(c(lines, '}'), collapse = '\n')
@@ -1538,6 +1602,40 @@ generate_client <- function(
           'Missing client result_formatter function or wrapper collision: ',
           result_formatter
         )
+      }
+      cache <- configured$spec$cache
+      if (!is.null(cache)) {
+        cache_callbacks <- unlist(
+          cache[intersect(
+            c('key', 'entries', 'combine', 'project'),
+            names(cache)
+          )],
+          use.names = FALSE
+        )
+        for (name in cache_callbacks) {
+          if (
+            !name %in% names(runtime_definitions) || name %in% operation_names
+          ) {
+            stop('Missing client cache callback or wrapper collision: ', name)
+          }
+        }
+        if (identical(cache$mode, 'items') && !is.null(config)) {
+          metadata <- read.dcf(project_path(root, 'DESCRIPTION'))[1L, ]
+          imports <- if ('Imports' %in% names(metadata)) {
+            trimws(sub(
+              ' *\\(.*',
+              '',
+              strsplit(metadata[['Imports']], ',')[[1L]]
+            ))
+          } else {
+            character()
+          }
+          if (!'purrr' %in% imports) {
+            stop(
+              'cache items mode requires purrr in client DESCRIPTION Imports'
+            )
+          }
+        }
       }
       request_pagination <- configured$spec$request$pagination
       if (!is.null(request_pagination)) {

@@ -417,6 +417,7 @@ load_project <- function(
         'preserve_visibility',
         'private_params',
         'post_result_null',
+        'cache',
         'pre_params',
         'post_params',
         'post_response_scope',
