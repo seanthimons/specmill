@@ -1104,6 +1104,14 @@ an empty URL-encoded form sends zero bytes with its form content type. Use unnam
 vectors or lists for arrays and named lists for object fields.
 Empty multipart bodies are rejected; omit an optional body argument instead.
 
+An object declaring `additionalProperties: true` accepts additional finite scalar
+strings, numbers and booleans in URL-encoded or multipart forms. Unknown fields
+use the normal scalar encoding, including lowercase booleans and escaped names
+and values. Declared property schemas still validate their fields. Closed forms
+still reject additional fields. Free-form NULL, missing, binary and container
+values have no selected representation and fail before HTTP; declare their
+schemas and encoding explicitly when supported.
+
 ```r
 # application/x-www-form-urlencoded
 create_item(body = list(name = 'Milo', tags = list('red', 'blue')))
