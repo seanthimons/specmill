@@ -37,6 +37,15 @@ uses the same filenames. Unicode in executable schema literals uses R escapes
 that preserve the original runtime strings; documentation text remains UTF-8.
 }
 \section{Required schema validation}{
+Check mode warns before translation when a current schema differs from the last
+applied manifest's input hash. The warning identifies the schema and previous
+and current SHA-256 hashes. Newly referenced schemas report an unrecorded previous
+hash. First generation and manifests without input hashes have no comparison
+baseline. Check never rebuilds functions; review plan file actions before apply.
+Successful application records the new baseline. Hash changes need not change
+generated functions. These warnings require calling the generation check and
+are not automatically attached to package build or check commands.
+
 Every source schema is checked with \code{\link{validate_schema}} before
 operation translation. Validation runs locally and uploads nothing.
 Plans expose reports in \code{validation} and blockers in existing diagnostics;
