@@ -2502,7 +2502,9 @@ The source must identify one loaded duplicate. Request parameters, security,
 server and other operation metadata must still agree. Without this policy,
 conflicting duplicates remain errors. The selected response drives generation;
 both source response contracts and hashes are retained in inventory and file
-ownership provenance. This does not rewrite either schema.
+ownership provenance. File ownership records use project-relative source paths
+so an unchanged checkout remains fresh when moved. This does not rewrite either
+schema.
 
 Declared alternative routes compare the configured server resolver, key,
 relative base path and recorded absolute fallback. A common resolver can join
