@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.49 (2026-10-19)
+
+#### Other changes
+
+- release v0.1.49 \[skip ci\]
+  ([35c7db8](https://github.com/seanthimons/specmill/tree/35c7db88a22b48aa1936f9b31755761ff42773d8))
+
+Full set of changes:
+[`v0.1.48...v0.1.49`](https://github.com/seanthimons/specmill/compare/v0.1.48...v0.1.49)
+
 ## specmill 0.1.48 (2026-10-19)
 
 #### Other changes
 
 - release v0.1.48 \[skip ci\]
-  ([112f369](https://github.com/seanthimons/specmill/tree/112f3691b10d165a4eae8c1c1e9b4d1581582bdc))
+  ([45ef0e7](https://github.com/seanthimons/specmill/tree/45ef0e739744023c3ec460ad3a5875753e7b74cf))
 
 Full set of changes:
 [`v0.1.47...v0.1.48`](https://github.com/seanthimons/specmill/compare/v0.1.47...v0.1.48)
@@ -38,10 +48,17 @@ Full set of changes:
 - preserve reviewed session cache lifecycles (#174)
   ([72fe575](https://github.com/seanthimons/specmill/tree/72fe575bc7943d0d9d53051c25fcbcb0d2da7cfe))
 
+#### Bug fixes
+
+- reconcile reviewed shared schema contracts (#61)
+  ([a715a3b](https://github.com/seanthimons/specmill/tree/a715a3bc38f383e8643d36c7642b5ca09c19ce4e))
+
 #### Tests
 
 - publish ready server ports atomically (#177)
   ([ac4bca3](https://github.com/seanthimons/specmill/tree/ac4bca3de576e55e2ba956c9428e14813dd802e6))
+- validate reviewed response fixtures and filtering (#61)
+  ([72d357a](https://github.com/seanthimons/specmill/tree/72d357a3f1d3a4fe59ffa97ca6daf10c8754d5b3))
 - expect schema boolean query encoding (#177)
   ([0e17d61](https://github.com/seanthimons/specmill/tree/0e17d61a3706afb2e65c1e8ab20b2a337642abbe))
 
