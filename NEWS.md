@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.50 (2026-10-19)
+
+#### Other changes
+
+- release v0.1.50 \[skip ci\]
+  ([af522ee](https://github.com/seanthimons/specmill/tree/af522ee760c7590a04881e10dbb759a5d239f59c))
+
+Full set of changes:
+[`v0.1.49...v0.1.50`](https://github.com/seanthimons/specmill/compare/v0.1.49...v0.1.50)
+
 ## specmill 0.1.49 (2026-10-19)
 
 #### Other changes
 
 - release v0.1.49 \[skip ci\]
-  ([35c7db8](https://github.com/seanthimons/specmill/tree/35c7db88a22b48aa1936f9b31755761ff42773d8))
+  ([9f77037](https://github.com/seanthimons/specmill/tree/9f77037c6b76167679aaff4c3ee753c71ee89a9b))
 
 Full set of changes:
 [`v0.1.48...v0.1.49`](https://github.com/seanthimons/specmill/compare/v0.1.48...v0.1.49)
@@ -45,6 +55,8 @@ Full set of changes:
 
 #### New features
 
+- split reviewed explicit client inputs (#181)
+  ([a58aff2](https://github.com/seanthimons/specmill/tree/a58aff2e0ffd2d5f39f50000723f962892da0e4d))
 - preserve reviewed session cache lifecycles (#174)
   ([72fe575](https://github.com/seanthimons/specmill/tree/72fe575bc7943d0d9d53051c25fcbcb0d2da7cfe))
 
@@ -55,6 +67,8 @@ Full set of changes:
 
 #### Tests
 
+- publish ready server ports atomically (#177)
+  ([b4bc9b8](https://github.com/seanthimons/specmill/tree/b4bc9b84344b8f58b3d8f95d1b99899e6a734fb1))
 - publish ready server ports atomically (#177)
   ([ac4bca3](https://github.com/seanthimons/specmill/tree/ac4bca3de576e55e2ba956c9428e14813dd802e6))
 - validate reviewed response fixtures and filtering (#61)
