@@ -476,8 +476,8 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL,
 # list and returns that page's result; <helper>_paginated() decides when to stop. The pages are combined like a
 # batched wrapper's, so tables are typed once. Every control the pagination option could change is fixed here,
 # so the shape of a wrapper's result never depends on it. A dry run returns its first prepared request.
-api_request_pages <- function(send, parameter, start, max_pages, completed = NULL, mode = 'page', next_cursor = NULL, items = NULL, error_policy = 'stop', warn_limits = TRUE, warn_errors = TRUE, stop_on_empty = TRUE, on_limit = NULL) {
-  for (callback in base::list(completed, next_cursor, items, on_limit)) if (!base::is.null(callback) && !base::is.function(callback)) base::stop('Pagination callbacks must be functions', call. = FALSE)
+api_request_pages <- function(send, parameter, start, max_pages, completed = NULL, mode = 'page', next_cursor = NULL, items = NULL, error_policy = 'stop', warn_limits = TRUE, warn_errors = TRUE, stop_on_empty = TRUE, on_limit = NULL, size_parameter = NULL, page_size = NULL, advance = NULL) {
+  for (callback in base::list(completed, next_cursor, items, on_limit, advance)) if (!base::is.null(callback) && !base::is.function(callback)) base::stop('Pagination callbacks must be functions', call. = FALSE)
   pages <- base::list()
   prepared <- NULL
   fetch <- function(...) {
@@ -495,7 +495,7 @@ api_request_pages <- function(send, parameter, start, max_pages, completed = NUL
   }
   paginate <- base::get0('api_request_paginated', mode = 'function')
   if (base::is.null(paginate)) base::stop('Paging needs the pagination companion (api_request_paginated) in the client helper', call. = FALSE)
-  paged <- paginate(fetch, mode = mode, parameter = parameter, start = start, size_parameter = NULL, page_size = NULL, items = function(x) if (base::is.null(x$items)) base::list() else x$items, completed = if (base::is.null(completed)) NULL else function(x, state) completed(x$response, state), next_cursor = if (base::is.null(next_cursor)) NULL else function(x) next_cursor(x$response), max_pages = max_pages, max_items = NULL, advance = NULL, format = NULL, stop_on_short = FALSE, error_policy = error_policy, warn_limits = warn_limits && base::is.null(on_limit), warn_errors = warn_errors, stop_on_empty = stop_on_empty, policy = base::list())
+  paged <- paginate(fetch, mode = mode, parameter = parameter, start = start, size_parameter = size_parameter, page_size = page_size, items = function(x) if (base::is.null(x$items)) base::list() else x$items, completed = function(x, state) if (!base::is.null(prepared)) TRUE else if (base::is.null(completed)) FALSE else completed(x$response, state), next_cursor = if (base::is.null(next_cursor)) NULL else function(x) next_cursor(x$response), max_pages = max_pages, max_items = NULL, advance = if (base::is.null(advance)) NULL else function(x, position, page_size) advance(x$response, position, page_size), format = NULL, stop_on_short = FALSE, error_policy = error_policy, warn_limits = warn_limits && base::is.null(on_limit), warn_errors = warn_errors, stop_on_empty = stop_on_empty, policy = base::list())
   if (!base::is.null(prepared)) base::return(prepared)
   if (paged$stop_reason == 'request_error' && error_policy == 'empty') pages <- base::list()
   if (warn_limits && !base::is.null(on_limit) && base::length(pages) >= max_pages) on_limit(paged, max_pages)
