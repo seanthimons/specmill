@@ -1,12 +1,32 @@
 
 
 
+## specmill 0.1.51 (2026-10-19)
+
+#### Bug fixes
+
+- store project-relative response source paths (#186)
+  ([201c55d](https://github.com/seanthimons/specmill/tree/201c55d5b3e96cc791adc1f4a272c37c2d8cb6ac))
+
+#### Tests
+
+- compare source identities independently of schema order (#186)
+  ([ecf9299](https://github.com/seanthimons/specmill/tree/ecf929957110b4dda91b9c015bb34a0955b6b655))
+
+#### Other changes
+
+- release v0.1.51 \[skip ci\]
+  ([6b94a24](https://github.com/seanthimons/specmill/tree/6b94a241537d66c8632e56da7631158107c8bbc5))
+
+Full set of changes:
+[`v0.1.50...v0.1.51`](https://github.com/seanthimons/specmill/compare/v0.1.50...v0.1.51)
+
 ## specmill 0.1.50 (2026-10-19)
 
 #### Other changes
 
 - release v0.1.50 \[skip ci\]
-  ([af522ee](https://github.com/seanthimons/specmill/tree/af522ee760c7590a04881e10dbb759a5d239f59c))
+  ([0644787](https://github.com/seanthimons/specmill/tree/064478735580b54a732e3859b066b317e72d53a1))
 
 Full set of changes:
 [`v0.1.49...v0.1.50`](https://github.com/seanthimons/specmill/compare/v0.1.49...v0.1.50)
