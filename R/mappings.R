@@ -52,6 +52,8 @@ validate_settings <- function(
       'result_formatter',
       'post_state',
       'private_params',
+      'post_result_null',
+      'pre_params',
       'post_params',
       'post_response_scope',
       'post_params_source',
@@ -155,8 +157,8 @@ validate_settings <- function(
       stop('private_params requires a generated implementation')
     }
   }
-  if ('post_params' %in% names(settings)) {
-    selected <- settings$post_params
+  for (field in intersect(c('pre_params', 'post_params'), names(settings))) {
+    selected <- settings[[field]]
     if (
       (!is.list(selected) && !is.character(selected)) ||
         !is.null(names(selected)) ||
@@ -174,10 +176,10 @@ validate_settings <- function(
         ) ||
         anyDuplicated(unlist(selected))
     ) {
-      stop('post_params must be an unnamed sequence of unique parameter names')
+      stop(field, ' must be an unnamed sequence of unique parameter names')
     }
     if (identical(settings$implementation, 'existing')) {
-      stop('post_params requires a generated implementation')
+      stop(field, ' requires a generated implementation')
     }
   }
   if ('preserve_visibility' %in% names(settings)) {
@@ -272,6 +274,16 @@ validate_settings <- function(
     names(settings)
   )) {
     config_string(settings[[name]], paste(label, name))
+  }
+  if (
+    !is.null(settings$post_result_null) &&
+      !config_string(
+        settings$post_result_null,
+        paste(label, 'post_result_null')
+      ) %in%
+        c('keep', 'remove')
+  ) {
+    stop('post_result_null must be keep or remove')
   }
   if (!is.null(settings$response_policy)) {
     name <- config_string(
@@ -733,7 +745,11 @@ validate_settings <- function(
     validate_documentation(settings$docs)
   }
   if ('request' %in% names(settings)) {
-    config_fields(settings[['request']], c('arguments'), 'request')
+    config_fields(
+      settings[['request']],
+      c('arguments', 'pagination'),
+      'request'
+    )
     config_fields(
       settings[['request']]$arguments,
       names(settings[['request']]$arguments),
@@ -741,6 +757,9 @@ validate_settings <- function(
     )
     for (binding in settings[['request']]$arguments) {
       validate_binding(binding, callbacks)
+    }
+    if (!is.null(settings$request$pagination)) {
+      validate_request_pagination(settings$request$pagination, callbacks)
     }
   }
   invisible(settings)
