@@ -1,17 +1,39 @@
 
 
 
+## specmill 0.1.45 (2026-10-18)
+
+#### Tests
+
+- publish ready server ports atomically (#177)
+  ([ac4bca3](https://github.com/seanthimons/specmill/tree/ac4bca3de576e55e2ba956c9428e14813dd802e6))
+- expect schema boolean query encoding (#177)
+  ([0e17d61](https://github.com/seanthimons/specmill/tree/0e17d61a3706afb2e65c1e8ab20b2a337642abbe))
+
+#### Other changes
+
+- release v0.1.45 \[skip ci\]
+  ([53ad56f](https://github.com/seanthimons/specmill/tree/53ad56fc7a2f76d1d8a083eccb83645baeada2e1))
+
+Full set of changes:
+[`v0.1.44...v0.1.45`](https://github.com/seanthimons/specmill/compare/v0.1.44...v0.1.45)
+
 ## specmill 0.1.44 (2026-10-18)
 
 #### Other changes
 
 - release v0.1.44 \[skip ci\]
-  ([f36a67f](https://github.com/seanthimons/specmill/tree/f36a67fc5c5192e8c135187178af253fc01635a0))
+  ([496c91e](https://github.com/seanthimons/specmill/tree/496c91e1eb7365f8f73f9c063f6c78b0c98aa1ee))
 
 Full set of changes:
 [`v0.1.43...v0.1.44`](https://github.com/seanthimons/specmill/compare/v0.1.43...v0.1.44)
 
 ## specmill 0.1.43 (2026-10-18)
+
+#### Tests
+
+- expect native boolean query encoding (#177)
+  ([03e43c8](https://github.com/seanthimons/specmill/tree/03e43c8800e6c8adb96c9454115a6f24b2981c29))
 
 #### Other changes
 
@@ -25,6 +47,8 @@ Full set of changes:
 
 #### New features
 
+- configure shared native request throttling (#175)
+  ([1079ba7](https://github.com/seanthimons/specmill/tree/1079ba7f1e701ebe3293ee1eead57334f1010dd5))
 - format unbatched results with client callbacks (#157)
   ([0dd5d30](https://github.com/seanthimons/specmill/tree/0dd5d3041c0c9d3de438b7e09dd1e0b9cd0c9cc3))
 - validate full inputs before permissive fan out (#166)
@@ -32,6 +56,8 @@ Full set of changes:
 
 #### Bug fixes
 
+- encode native scalar query booleans (#177)
+  ([a656ce4](https://github.com/seanthimons/specmill/tree/a656ce446fd2f4fe28184e3cad69da02e209ef26))
 - reconcile restored desired output hashes (#170)
   ([6b04d89](https://github.com/seanthimons/specmill/tree/6b04d89a39617fcb829adcb24ab8a88285febca5))
 

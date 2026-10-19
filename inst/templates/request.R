@@ -208,8 +208,10 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     for (name in base::names(body)) {
       field <- form_schema$properties[[name]]
       if (base::is.null(field) && base::is.list(form_schema$additionalProperties)) field <- form_schema$additionalProperties
-      if (base::is.null(field$type)) base::stop('Form field needs a declared schema: ', name)
+      free <- base::is.null(field) && base::isTRUE(form_schema$additionalProperties)
+      if (base::is.null(field$type) && !free) base::stop('Form field needs a declared schema: ', name)
       value <- body[[name]]
+      if (free && (base::is.object(value) || !base::is.null(base::dim(value)) || !base::is.null(base::names(value)) || base::length(value) != 1L || base::anyNA(value) || !base::typeof(value) %in% base::c('character', 'logical', 'integer', 'double') || (base::is.numeric(value) && !base::is.finite(value)))) base::stop('Free-form form fields must be finite scalar strings, numbers or booleans: ', name)
       if (base::is.null(value)) base::stop('Null form fields cannot be encoded')
       enc <- body_encoding[[name]]
       if (base::is.null(enc)) enc <- base::list()
