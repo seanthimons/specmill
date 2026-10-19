@@ -1466,6 +1466,39 @@ generate_client <- function(
     input_hash,
     character(1)
   )
+  manifest_path <- project_path(root, '.specmill/manifest.json')
+  baseline <- if (file.exists(manifest_path)) {
+    jsonlite::read_json(manifest_path)
+  } else {
+    list()
+  }
+  if (mode == 'check' && length(baseline$inputs)) {
+    for (file in schema_files) {
+      input <- inputs[match(
+        file,
+        normalizePath(inputs, winslash = '/', mustWork = TRUE)
+      )]
+      label <- if (startsWith(input, paste0(root, '/'))) {
+        substring(input, nchar(root) + 2L)
+      } else {
+        basename(input)
+      }
+      previous_hash <- baseline$inputs[[label]]
+      current_hash <- input_hash(file)
+      if (!identical(previous_hash, current_hash)) {
+        warning(
+          'Schema changed since last apply: ',
+          label,
+          '\n  Previous SHA-256: ',
+          previous_hash %or% 'not recorded',
+          '\n  Current SHA-256: ',
+          current_hash,
+          '\nCheck does not rebuild functions. Run mode = "plan" to review file changes before applying.',
+          call. = FALSE
+        )
+      }
+    }
+  }
   callback_hash <- function() {
     digest::digest(
       lapply(as.list(callbacks), function(x) {
@@ -1579,10 +1612,7 @@ generate_client <- function(
   source_names <- list()
   portable_rename_ids <- character()
   portable_sources <- list()
-  manifest_path <- project_path(root, '.specmill/manifest.json')
-  previous <- if (file.exists(manifest_path)) {
-    jsonlite::read_json(manifest_path)$files
-  } else list()
+  previous <- baseline$files %or% list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation

@@ -72,6 +72,20 @@ Schema before translating operations. Invalid documents and unsupported coverage
 block apply and check; inspect `plan$validation` for the full findings.
 References outside the document must be bundled first.
 
+Check mode warns when a current schema's hash differs from the last applied
+manifest, showing its path and previous/current SHA-256 hashes. The warning
+appears before schema translation, including when the changed schema cannot be
+translated. A schema newly referenced by existing configuration reports its
+previous hash as `not recorded`. Initial generation and legacy manifests without
+input hashes have no comparison baseline. Check writes no client files; use
+plan mode to review file changes, then apply reviewed output to record the new
+baseline. A hash change alone does not mean a function needs rebuilding.
+
+This warning runs only when the generation check is called. It does not download
+schemas or automatically attach to `devtools::build()` or `devtools::check()`.
+Include the generation check in your project's development command or CI as
+shown below.
+
 Supply the same explicit `callbacks` environment on each call when your policy
 uses callbacks. Run the relevant manual/helper tests too. Reapplying unchanged
 inputs should produce only unchanged/retained file actions. Review output diffs
