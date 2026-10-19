@@ -1377,9 +1377,11 @@ generate_client <- function(
   callbacks = new.env(parent = emptyenv()),
   adopt = list(),
   artifacts = c('wrappers', 'tests', 'documentation'),
-  validation = NULL
+  validation = NULL,
+  deferrals = NULL
 ) {
   mode <- match.arg(mode)
+  deferral_request <- deferral_arguments(deferrals)
   authentication <- NULL
   if (
     !is.character(artifacts) ||
@@ -1525,9 +1527,194 @@ generate_client <- function(
       validation_reports[[view$source]]$reviewed[[view$service]] <- view
     }
   }
+  # Contract-change deferral: withhold enrolled revisions before generation.
+  schema_label <- function(file) {
+    schema_labels[match(normalizePath(file, winslash = '/'), schema_files)]
+  }
+  stored_deferrals <- baseline$deferrals %or% list()
+  all_inventory <- do.call(c, unname(lapply(parsed, `[[`, 'inventory')))
+  all_diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
+  find_entries <- function(id, label = NULL) {
+    Filter(
+      function(x) {
+        identical(x$id, id) &&
+          (is.null(label) || identical(schema_label(x$source), label))
+      },
+      all_inventory
+    )
+  }
+  # Only a diagnostic scoped to one operation can be deferred with it.
+  document_blocked <- function(source) {
+    any(vapply(
+      all_diagnostics,
+      function(x) {
+        identical(x$source, source) && grepl('^(SCHEMA|PATH) ', x$key)
+      },
+      logical(1)
+    ))
+  }
+  recorded_functions <- function(entry, label) {
+    named <- Filter(function(op) identical(op$id, entry$id), unlist(
+      lapply(parsed, `[[`, 'operations'),
+      recursive = FALSE
+    ))
+    if (length(named)) {
+      return(named[[1L]]$name)
+    }
+    as.character(unlist(
+      baseline$schema_inventory[[label]]$functions[[entry$key]]
+    ))
+  }
+  deferral_report <- list()
+  deferral_records <- list()
+  deferral_pending <- character()
+  deferral_opaque <- list()
+  withheld <- character()
+  for (id in names(stored_deferrals)) {
+    record <- stored_deferrals[[id]]
+    if (!is.list(record)) {
+      # Unusable metadata is preserved byte for byte and reported as uncertain.
+      if (id %in% c(deferral_request$clear, names(deferral_request$enroll))) {
+        if (id %in% deferral_request$clear) {
+          deferral_report[[id]] <- list(state = 'cleared')
+        }
+        next
+      }
+      deferral_opaque[[id]] <- record
+      deferral_report[[id]] <- list(
+        state = 'uncertain',
+        detail = 'enrollment metadata is missing or from an incompatible version'
+      )
+      next
+    }
+    label <- record$source
+    entries <- if (is.character(label) && length(label) == 1L) {
+      find_entries(id, label)
+    } else {
+      list()
+    }
+    fingerprint <- if (length(entries)) {
+      tryCatch(
+        operation_fingerprint(entries[[1L]]$source, record$key),
+        error = function(e) NULL
+      )
+    }
+    status <- deferral_state(record, fingerprint, id %in% deferral_request$clear)
+    if (identical(status$state, 'uncertain') && !length(entries)) {
+      status$detail <- 'the operation is not in the current schemas (renamed, removed or moved source)'
+    }
+    if (id %in% names(deferral_request$enroll)) {
+      next
+    }
+    if (deferral_record(record)) {
+      record$functions <- as.character(unlist(record$functions))
+      record$version <- deferral_fingerprint_version
+    }
+    deferral_report[[id]] <- status
+    if (status$state %in% c('deferred', 'uncertain')) {
+      deferral_records[[id]] <- record
+      if (length(entries)) withheld <- c(withheld, id)
+    } else if (identical(status$state, 'retry')) {
+      deferral_records[[id]] <- record
+      deferral_pending <- c(deferral_pending, id)
+      deferral_report[[id]]$fingerprint <- fingerprint
+    }
+  }
+  for (unknown in setdiff(deferral_request$clear, names(stored_deferrals))) {
+    stop('Cannot clear a deferral that is not enrolled: ', unknown)
+  }
+  for (id in names(deferral_request$enroll)) {
+    entries <- find_entries(id)
+    entries <- Filter(function(x) x$status != 'excluded', entries)
+    if (length(entries) != 1L) {
+      stop(
+        'Deferral enrollment needs exactly one selected operation with ID: ',
+        id
+      )
+    }
+    entry <- entries[[1L]]
+    label <- schema_label(entry$source)
+    if (document_blocked(entry$source)) {
+      stop('A document-level finding blocks ', id, '; it cannot be deferred')
+    }
+    fingerprint <- tryCatch(
+      operation_fingerprint(entry$source, entry$key),
+      error = function(e) {
+        stop(
+          'Cannot fingerprint ',
+          id,
+          ' for deferral: ',
+          conditionMessage(e),
+          call. = FALSE
+        )
+      }
+    )
+    deferral_records[[id]] <- list(
+      key = entry$key,
+      source = label,
+      reason = deferral_request$enroll[[id]],
+      fingerprint = fingerprint,
+      version = deferral_fingerprint_version,
+      functions = unique(c(
+        recorded_functions(entry, label),
+        if (is.list(stored_deferrals[[id]])) {
+          as.character(unlist(stored_deferrals[[id]]$functions))
+        }
+      ))
+    )
+    deferral_report[[id]] <- list(state = 'enrolled', detail = deferral_request$enroll[[id]])
+    withheld <- c(withheld, id)
+  }
+  withhold_operations <- function(result) {
+    keep <- function(x) !x$id %in% withheld
+    for (field in c(
+      'operations',
+      'diagnostics',
+      'mapping_diagnostics',
+      'retained_diagnostics',
+      'server_diagnostics'
+    )) {
+      result[[field]] <- Filter(keep, result[[field]])
+    }
+    result
+  }
+  parsed <- lapply(parsed, withhold_operations)
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
   inventory <- do.call(c, unname(lapply(parsed, `[[`, 'inventory')))
+  # A retried revision that is still blocked may be re-enrolled only when its
+  # service opted in to the typed diagnostic codes of every finding.
+  absorb_retries <- function() {
+    for (id in deferral_pending) {
+      found <- Filter(function(x) identical(x$id, id), diagnostics)
+      if (!length(found)) {
+        next
+      }
+      record <- deferral_records[[id]]
+      service <- Find(
+        function(x) identical(x$id, found[[1L]]$service),
+        services
+      )
+      codes <- vapply(found, function(x) x$code %or% 'unclassified_error', character(1))
+      reason <- paste(unique(vapply(found, function(x) x$reason %or% '', character(1))), collapse = '; ')
+      if (length(service$deferral_codes) && all(codes %in% service$deferral_codes)) {
+        record$fingerprint <- deferral_report[[id]]$fingerprint
+        record$reason <- substr(
+          gsub('[\r\n]+', ' ', paste0('Automatic (', paste(unique(codes), collapse = ', '), '): ', reason)),
+          1L,
+          500L
+        )
+        deferral_records[[id]] <<- record
+        deferral_report[[id]] <<- list(state = 'auto_enrolled', detail = reason)
+        withheld <<- c(withheld, id)
+        diagnostics <<- Filter(function(x) !identical(x$id, id), diagnostics)
+      } else {
+        deferral_report[[id]] <<- list(state = 'retry_blocked', detail = reason)
+      }
+      deferral_pending <<- setdiff(deferral_pending, id)
+    }
+  }
+  absorb_retries()
   operation_names <- vapply(operations, `[[`, character(1), 'name')
   if (anyDuplicated(tolower(operation_names))) {
     stop('Operation names collide across services (including case)')
@@ -2171,6 +2358,30 @@ generate_client <- function(
       }
     }
   }
+  absorb_retries()
+  for (id in deferral_pending) {
+    selected <- any(vapply(
+      configured_operations,
+      function(x) identical(x$id, id),
+      logical(1)
+    ))
+    deferral_report[[id]] <- if (selected) {
+      list(state = 'retry_recovered', detail = 'generated from the changed contract; apply to commit')
+    } else {
+      list(
+        state = 'uncertain',
+        detail = 'the retried operation is no longer selected for generation'
+      )
+    }
+  }
+  inventory <- lapply(inventory, function(x) {
+    if (x$id %in% withheld) {
+      x$status <- 'deferred'
+      x$classification <- 'deferred'
+      x$reason <- paste('Deferred:', deferral_records[[x$id]]$reason)
+    }
+    x
+  })
   # Compare effective security across services after applying reviewed corrections.
   if (!is.null(authentication)) {
     warn_unsecured_operations(configured_operations)
@@ -2183,6 +2394,29 @@ generate_client <- function(
     jsonlite::read_json(manifest_path)$files
   } else {
     list()
+  }
+  # A deferred function keeps its place in a file that a healthy sibling rewrites.
+  for (id in intersect(withheld, names(deferral_records))) {
+    holders <- names(previous)[vapply(
+      previous,
+      function(x) id %in% unlist(x$operations),
+      logical(1)
+    )]
+    for (file in intersect(holders, names(desired))) {
+      if (!startsWith(file, 'R/')) {
+        next
+      }
+      for (name in deferral_records[[id]]$functions) {
+        text <- if (!name %in% source_names[[file]]) {
+          deferral_member_text(project_path(root, file), name)
+        }
+        if (!is.null(text)) {
+          desired[[file]] <- paste(c(desired[[file]], text), collapse = '\n\n')
+          source_names[[file]] <- c(source_names[[file]], name)
+        }
+      }
+      owners[[file]] <- union(owners[[file]], id)
+    }
   }
   named_ids <- unlist(
     lapply(seq_along(services), function(i) {
@@ -2451,6 +2685,38 @@ generate_client <- function(
       )))
     }
   }
+  for (id in intersect(withheld, names(deferral_records))) {
+    record <- deferral_records[[id]]
+    if (
+      length(record$functions) && !is.null(schema_inventory[[record$source]])
+    ) {
+      schema_inventory[[record$source]]$functions[[record$key]] <- as.list(
+        unique(c(
+          unlist(schema_inventory[[record$source]]$functions[[record$key]]),
+          record$functions
+        ))
+      )
+    }
+  }
+  final_deferrals <- deferral_records
+  for (id in names(deferral_report)) {
+    state <- deferral_report[[id]]$state
+    if (state %in% c('retry_recovered', 'cleared')) {
+      final_deferrals[[id]] <- NULL
+    }
+    # State advances only with the wrapper output it describes.
+    if (
+      !'wrappers' %in% artifacts &&
+        state %in% c('retry_recovered', 'cleared', 'auto_enrolled')
+    ) {
+      final_deferrals[[id]] <- stored_deferrals[[id]]
+    }
+  }
+  final_deferrals[names(deferral_opaque)] <- deferral_opaque
+  attr(desired, 'deferrals') <- final_deferrals[sort(
+    as.character(names(final_deferrals)),
+    method = 'radix'
+  )]
   attr(desired, 'schema_inventory') <- schema_inventory
   attr(desired, 'callbacks') <- callbacks_before
   unused_hooks <- list()
@@ -2552,6 +2818,17 @@ generate_client <- function(
     }
   }
   validate_inputs()
+  deferral_lines <- format_deferrals(deferral_report)
+  if (length(deferral_lines)) {
+    message(paste(c('Contract-change deferrals:', deferral_lines), collapse = '\n'))
+  }
+  uncertain <- names(Filter(function(x) x$state == 'uncertain', deferral_report))
+  if (mode == 'check' && length(uncertain)) {
+    stop(
+      'Deferral cannot be verified; the enrollment is kept. Review, then clear or re-enroll: ',
+      paste(uncertain, collapse = ', ')
+    )
+  }
   if (mode != 'plan' && length(diagnostics)) {
     stop('Invalid selected operation defaults; inspect plan diagnostics before generation')
   }
@@ -2593,6 +2870,7 @@ generate_client <- function(
     list(
       files = result,
       schema_changes = schema_changes,
+      deferrals = deferral_report,
       excluded = Filter(
         function(x) {
           x$status == 'excluded' && x$reason != 'Not in service include'

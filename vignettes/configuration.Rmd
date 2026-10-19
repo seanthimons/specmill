@@ -279,6 +279,20 @@ follow helper renames, preventing multi-service helper collisions. EPA settings,
 observer registries, PubChem Fault handling, and image conversion remain client
 code. This capability does not migrate any downstream client.
 
+### Automatic contract-change deferral
+
+Strict validation is the default. A service may opt in to enrolling failures of
+named diagnostic codes during apply:
+
+```yaml
+deferral:
+  automatic: [schema_validation_invalid]
+```
+
+Only operation-scoped findings with a listed code are enrolled. Everything else
+still blocks. See [Routine maintenance](maintenance.html) for the lifecycle,
+manual enrollment, and recovery.
+
 ### Per-service base URLs
 
 By default every wrapper uses the server URL recorded at generation, and the
