@@ -20,8 +20,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   for (flag in base::list(verbose = verbose, dry_run = dry)) {
     if (!base::is.logical(flag) || base::length(flag) != 1L || base::is.na(flag)) call_error('run_verbose and dry_run options must be TRUE or FALSE')
   }
-  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy, preserve_errors')
-  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors')) {
+  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy, preserve_errors, throttle')
+  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle')) {
     if (base::is.null(controls[[name]])) controls[[name]] <- request_controls[[name]]
   }
   timeout <- if (base::is.null(controls$timeout)) 30 else controls$timeout
@@ -30,6 +30,15 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (!base::is.numeric(timeout) || base::length(timeout) != 1L || base::is.na(timeout) || timeout <= 0) call_error('timeout must be a positive number of seconds, or Inf for no limit')
   if (!base::is.numeric(retries) || base::length(retries) != 1L || !base::is.finite(retries) || retries < 0 || retries != base::trunc(retries) || retries >= base::.Machine$integer.max) call_error('max_retries must be a nonnegative integer below .Machine$integer.max')
   if (!base::is.logical(writes) || base::length(writes) != 1L || base::is.na(writes)) call_error('retry_writes must be TRUE or FALSE')
+  throttle <- controls$throttle
+  if (!base::is.null(throttle)) {
+    if (!base::is.list(throttle) || base::is.null(base::names(throttle)) || base::anyNA(base::names(throttle)) || base::anyDuplicated(base::names(throttle)) || base::length(base::setdiff(base::names(throttle), base::c('capacity', 'fill_time_s', 'realm')))) call_error('throttle must be a named list of capacity, fill_time_s and optional realm')
+    for (field in base::c('capacity', 'fill_time_s')) {
+      value <- throttle[[field]]
+      if (!base::is.numeric(value) || base::length(value) != 1L || !base::is.finite(value) || value <= 0 || (field == 'capacity' && value != base::trunc(value))) call_error('throttle.', field, ' must be one positive finite ', if (field == 'capacity') 'integer' else 'number')
+    }
+    if (!base::is.null(throttle$realm) && (!base::is.character(throttle$realm) || base::length(throttle$realm) != 1L || base::is.na(throttle$realm) || !base::nzchar(throttle$realm))) call_error('throttle.realm must be one nonempty string')
+  }
   preserve_errors <- if (base::is.null(controls$preserve_errors)) FALSE else controls$preserve_errors
   if (!base::is.logical(preserve_errors) || base::length(preserve_errors) != 1L || base::is.na(preserve_errors)) call_error('preserve_errors must be TRUE or FALSE')
   retry_policy <- controls$retry_policy
@@ -199,8 +208,10 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     for (name in base::names(body)) {
       field <- form_schema$properties[[name]]
       if (base::is.null(field) && base::is.list(form_schema$additionalProperties)) field <- form_schema$additionalProperties
-      if (base::is.null(field$type)) base::stop('Form field needs a declared schema: ', name)
+      free <- base::is.null(field) && base::isTRUE(form_schema$additionalProperties)
+      if (base::is.null(field$type) && !free) base::stop('Form field needs a declared schema: ', name)
       value <- body[[name]]
+      if (free && (base::is.object(value) || !base::is.null(base::dim(value)) || !base::is.null(base::names(value)) || base::length(value) != 1L || base::anyNA(value) || !base::typeof(value) %in% base::c('character', 'logical', 'integer', 'double') || (base::is.numeric(value) && !base::is.finite(value)))) base::stop('Free-form form fields must be finite scalar strings, numbers or booleans: ', name)
       if (base::is.null(value)) base::stop('Null form fields cannot be encoded')
       enc <- body_encoding[[name]]
       if (base::is.null(enc)) enc <- base::list()
@@ -275,6 +286,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     request <- httr2::req_retry(request, max_tries = retries + 1,
       is_transient = is_transient)
   }
+  if (!base::is.null(throttle)) request <- httr2::req_throttle(request, capacity = throttle$capacity, fill_time_s = throttle$fill_time_s, realm = throttle$realm)
   if (verbose) base::message(base::toupper(method), if (dry) ' request (dry run)' else ' request')
   if (dry) base::return(request)
   request <- httr2::req_error(request, is_error = function(response) FALSE)
@@ -466,8 +478,8 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL,
 # list and returns that page's result; <helper>_paginated() decides when to stop. The pages are combined like a
 # batched wrapper's, so tables are typed once. Every control the pagination option could change is fixed here,
 # so the shape of a wrapper's result never depends on it. A dry run returns its first prepared request.
-api_request_pages <- function(send, parameter, start, max_pages, completed = NULL, mode = 'page', next_cursor = NULL, items = NULL, error_policy = 'stop', warn_limits = TRUE, warn_errors = TRUE, stop_on_empty = TRUE, on_limit = NULL) {
-  for (callback in base::list(completed, next_cursor, items, on_limit)) if (!base::is.null(callback) && !base::is.function(callback)) base::stop('Pagination callbacks must be functions', call. = FALSE)
+api_request_pages <- function(send, parameter, start, max_pages, completed = NULL, mode = 'page', next_cursor = NULL, items = NULL, error_policy = 'stop', warn_limits = TRUE, warn_errors = TRUE, stop_on_empty = TRUE, on_limit = NULL, size_parameter = NULL, page_size = NULL, advance = NULL) {
+  for (callback in base::list(completed, next_cursor, items, on_limit, advance)) if (!base::is.null(callback) && !base::is.function(callback)) base::stop('Pagination callbacks must be functions', call. = FALSE)
   pages <- base::list()
   prepared <- NULL
   fetch <- function(...) {
@@ -485,7 +497,7 @@ api_request_pages <- function(send, parameter, start, max_pages, completed = NUL
   }
   paginate <- base::get0('api_request_paginated', mode = 'function')
   if (base::is.null(paginate)) base::stop('Paging needs the pagination companion (api_request_paginated) in the client helper', call. = FALSE)
-  paged <- paginate(fetch, mode = mode, parameter = parameter, start = start, size_parameter = NULL, page_size = NULL, items = function(x) if (base::is.null(x$items)) base::list() else x$items, completed = if (base::is.null(completed)) NULL else function(x, state) completed(x$response, state), next_cursor = if (base::is.null(next_cursor)) NULL else function(x) next_cursor(x$response), max_pages = max_pages, max_items = NULL, advance = NULL, format = NULL, stop_on_short = FALSE, error_policy = error_policy, warn_limits = warn_limits && base::is.null(on_limit), warn_errors = warn_errors, stop_on_empty = stop_on_empty, policy = base::list())
+  paged <- paginate(fetch, mode = mode, parameter = parameter, start = start, size_parameter = size_parameter, page_size = page_size, items = function(x) if (base::is.null(x$items)) base::list() else x$items, completed = function(x, state) if (!base::is.null(prepared)) TRUE else if (base::is.null(completed)) FALSE else completed(x$response, state), next_cursor = if (base::is.null(next_cursor)) NULL else function(x) next_cursor(x$response), max_pages = max_pages, max_items = NULL, advance = if (base::is.null(advance)) NULL else function(x, position, page_size) advance(x$response, position, page_size), format = NULL, stop_on_short = FALSE, error_policy = error_policy, warn_limits = warn_limits && base::is.null(on_limit), warn_errors = warn_errors, stop_on_empty = stop_on_empty, policy = base::list())
   if (!base::is.null(prepared)) base::return(prepared)
   if (paged$stop_reason == 'request_error' && error_policy == 'empty') pages <- base::list()
   if (warn_limits && !base::is.null(on_limit) && base::length(pages) >= max_pages) on_limit(paged, max_pages)

@@ -124,7 +124,7 @@ public_input_validation_acceptance <- function() {
           enum = '1',
           bounds = '0',
           string = 'abc',
-          boolean = if (location %in% c('query', 'path', 'header')) {
+          boolean = if (location %in% c('path', 'header')) {
             'FALSE'
           } else {
             'false'

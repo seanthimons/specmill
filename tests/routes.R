@@ -304,6 +304,56 @@ routes_acceptance <- function() {
     'schemas/rdkit.json'
   )
   fails('server')
+  # Relative OAS/Swagger routes share the explicitly configured resolver.
+  write_schema(
+    schema('/api/descriptors', 'descriptors', server = '/'),
+    'schema.json'
+  )
+  write_schema(
+    list(
+      swagger = '2.0',
+      info = list(title = 'RDKit', version = '1'),
+      basePath = '/',
+      paths = list(
+        '/api/rdkit' = list(
+          get = list(
+            operationId = 'rdkit',
+            responses = list('200' = list(description = 'OK'))
+          )
+        )
+      )
+    ),
+    'schemas/rdkit.json'
+  )
+  service(extra = 'defaults: {server: {resolver: service_url, key: shared}}')
+  resolved <- specmill::load_project(root)$services$s$policy$routes_overrides[[
+    1L
+  ]]
+  stopifnot(
+    length(resolved) == 2L,
+    identical(
+      resolved[[1L]]$server_resolver,
+      list(name = 'service_url', key = 'shared', relative = '/')
+    ),
+    identical(resolved[[1L]]$server_resolver, resolved[[2L]]$server_resolver)
+  )
+  service(
+    extra = c(
+      '  GET /api/rdkit:',
+      '    server: {resolver: other_url, key: shared}',
+      'defaults: {server: {resolver: service_url, key: shared}}'
+    )
+  )
+  fails('server')
+  service(
+    extra = c(
+      '  GET /api/rdkit:',
+      '    server: {resolver: service_url, key: other}',
+      'defaults: {server: {resolver: service_url, key: shared}}'
+    )
+  )
+  fails('server')
+  write_schema(schema('/api/descriptors', 'descriptors'), 'schema.json')
   service("      - 'rdkit.json POST /api/rdkit'")
   write_schema(
     schema('/api/rdkit', 'rdkit', media = 'application/json', method = 'post'),

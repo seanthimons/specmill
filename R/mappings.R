@@ -52,6 +52,9 @@ validate_settings <- function(
       'result_formatter',
       'post_state',
       'private_params',
+      'post_result_null',
+      'cache',
+      'pre_params',
       'post_params',
       'post_response_scope',
       'post_params_source',
@@ -66,6 +69,7 @@ validate_settings <- function(
       'security_correction',
       'body_media_correction',
       'response_correction',
+      'duplicate_response',
       'request_body_correction',
       'path_parameters_correction',
       'text_encoding',
@@ -102,6 +106,21 @@ validate_settings <- function(
     if (identical(settings$implementation, 'existing')) {
       stop('defer_inputs requires a generated implementation')
     }
+  }
+  if (!is.null(settings$duplicate_response)) {
+    config_fields(
+      settings$duplicate_response,
+      c('source', 'reason'),
+      paste(label, 'duplicate_response')
+    )
+    config_string(
+      settings$duplicate_response$source,
+      'duplicate_response.source'
+    )
+    config_string(
+      settings$duplicate_response$reason,
+      'duplicate_response.reason'
+    )
   }
   if (!is.null(settings$result_formatter)) {
     config_string(settings$result_formatter, paste(label, 'result_formatter'))
@@ -155,8 +174,8 @@ validate_settings <- function(
       stop('private_params requires a generated implementation')
     }
   }
-  if ('post_params' %in% names(settings)) {
-    selected <- settings$post_params
+  for (field in intersect(c('pre_params', 'post_params'), names(settings))) {
+    selected <- settings[[field]]
     if (
       (!is.list(selected) && !is.character(selected)) ||
         !is.null(names(selected)) ||
@@ -174,10 +193,10 @@ validate_settings <- function(
         ) ||
         anyDuplicated(unlist(selected))
     ) {
-      stop('post_params must be an unnamed sequence of unique parameter names')
+      stop(field, ' must be an unnamed sequence of unique parameter names')
     }
     if (identical(settings$implementation, 'existing')) {
-      stop('post_params requires a generated implementation')
+      stop(field, ' requires a generated implementation')
     }
   }
   if ('preserve_visibility' %in% names(settings)) {
@@ -273,6 +292,16 @@ validate_settings <- function(
   )) {
     config_string(settings[[name]], paste(label, name))
   }
+  if (
+    !is.null(settings$post_result_null) &&
+      !config_string(
+        settings$post_result_null,
+        paste(label, 'post_result_null')
+      ) %in%
+        c('keep', 'remove')
+  ) {
+    stop('post_result_null must be keep or remove')
+  }
   if (!is.null(settings$response_policy)) {
     name <- config_string(
       settings$response_policy,
@@ -295,6 +324,9 @@ validate_settings <- function(
       config_string(settings$server$key, paste(label, 'server key'))
     }
   }
+  if (!is.null(settings$cache)) {
+    validate_cache(settings$cache, callbacks)
+  }
   if ('request_controls' %in% names(settings)) {
     controls <- settings$request_controls
     config_fields(
@@ -304,10 +336,39 @@ validate_settings <- function(
         'max_retries',
         'retry_writes',
         'retry_policy',
-        'preserve_errors'
+        'preserve_errors',
+        'throttle'
       ),
       paste(label, 'request_controls')
     )
+    if (!is.null(controls$throttle)) {
+      throttle <- controls$throttle
+      config_fields(
+        throttle,
+        c('capacity', 'fill_time_s', 'realm'),
+        'request_controls.throttle'
+      )
+      for (field in c('capacity', 'fill_time_s')) {
+        value <- throttle[[field]]
+        if (
+          !is.numeric(value) ||
+            length(value) != 1L ||
+            !is.finite(value) ||
+            value <= 0 ||
+            (field == 'capacity' && value != trunc(value))
+        ) {
+          stop(
+            'request_controls.throttle.',
+            field,
+            ' must be one positive finite ',
+            if (field == 'capacity') 'integer' else 'number'
+          )
+        }
+      }
+      if (!is.null(throttle$realm)) {
+        config_string(throttle$realm, 'request_controls.throttle.realm')
+      }
+    }
     if (
       'preserve_errors' %in%
         names(controls) &&
@@ -711,7 +772,11 @@ validate_settings <- function(
     validate_documentation(settings$docs)
   }
   if ('request' %in% names(settings)) {
-    config_fields(settings[['request']], c('arguments'), 'request')
+    config_fields(
+      settings[['request']],
+      c('arguments', 'pagination'),
+      'request'
+    )
     config_fields(
       settings[['request']]$arguments,
       names(settings[['request']]$arguments),
@@ -719,6 +784,9 @@ validate_settings <- function(
     )
     for (binding in settings[['request']]$arguments) {
       validate_binding(binding, callbacks)
+    }
+    if (!is.null(settings$request$pagination)) {
+      validate_request_pagination(settings$request$pagination, callbacks)
     }
   }
   invisible(settings)
