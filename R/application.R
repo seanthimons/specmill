@@ -286,6 +286,9 @@ apply_files <- function(
   if (!is.null(attr(desired, 'inputs'))) {
     manifest$inputs <- attr(desired, 'inputs')
   }
+  if (!is.null(attr(desired, 'schema_inventory'))) {
+    manifest$schema_inventory <- attr(desired, 'schema_inventory')
+  }
   if (!is.null(attr(desired, 'callbacks'))) {
     manifest$callbacks <- attr(desired, 'callbacks')
   }

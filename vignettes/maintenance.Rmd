@@ -81,6 +81,21 @@ input hashes have no comparison baseline. Check writes no client files; use
 plan mode to review file changes, then apply reviewed output to record the new
 baseline. A hash change alone does not mean a function needs rebuilding.
 
+When the manifest has an endpoint inventory, the warning also lists added and
+removed method/path pairs, identifies additions outside current selection policy,
+and names previously configured functions affected by removals. It appears even
+when a removed endpoint makes a function mapping invalid. For a parseable plan,
+the same information is in `plan$schema_changes` and its printed summary.
+This compares endpoint presence; it does not classify parameter or response
+changes as compatible or breaking. Removed endpoints never authorize deleting
+client functions automatically.
+
+An upgrade from a manifest containing only hashes needs one reviewed apply to
+record the endpoint inventory. Plan/check report that comparison is unavailable
+until the inventory exists. Schema files removed from configuration or renamed
+are not automatically matched to their previous versions. Commit the updated
+manifest with the reviewed policy and generated output.
+
 This warning runs only when the generation check is called. It does not download
 schemas or automatically attach to `devtools::build()` or `devtools::check()`.
 Include the generation check in your project's development command or CI as

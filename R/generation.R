@@ -1472,31 +1472,31 @@ generate_client <- function(
   } else {
     list()
   }
-  if (mode == 'check' && length(baseline$inputs)) {
-    for (file in schema_files) {
-      input <- inputs[match(
-        file,
-        normalizePath(inputs, winslash = '/', mustWork = TRUE)
-      )]
-      label <- if (startsWith(input, paste0(root, '/'))) {
-        substring(input, nchar(root) + 2L)
-      } else {
-        basename(input)
-      }
-      previous_hash <- baseline$inputs[[label]]
-      current_hash <- input_hash(file)
-      if (!identical(previous_hash, current_hash)) {
-        warning(
-          'Schema changed since last apply: ',
-          label,
-          '\n  Previous SHA-256: ',
-          previous_hash %or% 'not recorded',
-          '\n  Current SHA-256: ',
-          current_hash,
-          '\nCheck does not rebuild functions. Run mode = "plan" to review file changes before applying.',
-          call. = FALSE
-        )
-      }
+  schema_inputs <- inputs[match(
+    schema_files,
+    normalizePath(inputs, winslash = '/', mustWork = TRUE)
+  )]
+  schema_labels <- ifelse(
+    startsWith(schema_inputs, paste0(root, '/')),
+    substring(schema_inputs, nchar(root) + 2L),
+    basename(schema_inputs)
+  )
+  schema_inventory <- generation_schema_inventory(schema_files, schema_labels)
+  schema_changes <- if (length(baseline$inputs)) {
+    generation_schema_changes(
+      schema_files,
+      schema_labels,
+      vapply(schema_files, input_hash, character(1)),
+      baseline,
+      schema_inventory,
+      services
+    )
+  } else {
+    list()
+  }
+  if (mode == 'check') {
+    for (change in schema_changes) {
+      warning(format_schema_change(change), call. = FALSE)
     }
   }
   callback_hash <- function() {
@@ -2422,6 +2422,36 @@ generate_client <- function(
     ),
     method = 'radix'
   )]
+  for (operation in configured_operations) {
+    routes <- c(
+      list(list(source = operation$source, key = operation$key)),
+      operation$routes
+    )
+    for (route in routes) {
+      source <- if (fs::is_absolute_path(route$source)) {
+        route$source
+      } else {
+        project_path(root, route$source)
+      }
+      index <- match(
+        normalizePath(source, winslash = '/', mustWork = TRUE),
+        schema_files
+      )
+      if (is.na(index)) {
+        next
+      }
+      label <- schema_labels[[index]]
+      if (is.null(schema_inventory[[label]])) {
+        next
+      }
+      functions <- schema_inventory[[label]]$functions[[route$key]]
+      schema_inventory[[label]]$functions[[route$key]] <- as.list(unique(c(
+        unlist(functions),
+        operation$name
+      )))
+    }
+  }
+  attr(desired, 'schema_inventory') <- schema_inventory
   attr(desired, 'callbacks') <- callbacks_before
   unused_hooks <- list()
   if (any(vapply(services, function(x) length(x$hooks) > 0L, logical(1)))) {
@@ -2562,6 +2592,7 @@ generate_client <- function(
   structure(
     list(
       files = result,
+      schema_changes = schema_changes,
       excluded = Filter(
         function(x) {
           x$status == 'excluded' && x$reason != 'Not in service include'
@@ -2602,6 +2633,9 @@ generate_client <- function(
 }
 
 print.specmill_generation <- function(x, ...) {
+  for (change in x$schema_changes) {
+    cat(format_schema_change(change), '\n\n')
+  }
   if (length(x$validation)) {
     cat('Schema validation\n')
     for (report in x$validation) {
