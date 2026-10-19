@@ -30,16 +30,7 @@ schema_report_operations <- function(path, policy) {
   document <- read_schema_document(path)
   # Diff identities are method/path pairs. Pending facade overrides must not
   # hide new operations or prevent reporting a removed operation.
-  keys <- unlist(
-    lapply(names(document$paths), function(route) {
-      methods <- intersect(
-        names(document$paths[[route]]),
-        c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace')
-      )
-      if (length(methods)) paste(toupper(methods), route) else character()
-    }),
-    use.names = FALSE
-  )
+  keys <- schema_operation_keys(document)
   policy$names <- stats::setNames(
     as.list(paste0('operation_', seq_along(keys))),
     keys
