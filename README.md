@@ -42,6 +42,11 @@ specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
 specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 ```
 
+When an upstream revision breaks one operation, `deferrals = list(enroll = ...)`
+can withhold that single contract revision until its schema changes, instead of
+blocking the whole client. Default behavior stays strict; see
+[Maintenance and CI](https://seanthimons.github.io/specmill/articles/maintenance.html).
+
 ## Generated client request controls
 
 New clients include exported session controls prefixed with their package name:
@@ -338,6 +343,7 @@ example above for the full form of `generate_client()`.
 | `generate_client(mode = 'plan')` | Loop | Reports files, validation, and diagnostics without writing |
 | `generate_client(mode = 'apply')` | Loop | Writes wrappers, declared contract tests, enabled docs, and the manifest |
 | `generate_client(mode = 'check')` | Loop | Fails if generated output is stale, protected, or blocked by diagnostics |
+| `generate_client(mode = 'apply', deferrals = ...)` | Loop | Enrolls or clears a deferred contract revision; recorded on apply only |
 | `schema_diff()` | Update | Reports what changed between two schema directories |
 
 ### Recovery and diagnostics
