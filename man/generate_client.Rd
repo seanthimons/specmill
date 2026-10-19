@@ -7,7 +7,8 @@
 generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
     config = NULL, callbacks = new.env(parent = emptyenv()),
     adopt = list(), artifacts = c("wrappers", "tests", "documentation"),
-    validation = NULL)
+    validation = NULL,
+    deferrals = NULL)
 \method{print}{specmill_generation}(x, ...)
 }
 \arguments{
@@ -20,6 +21,8 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
 \item{callbacks}{Explicit environment containing named development callbacks.}
 \item{adopt}{Reviewed legacy files as a named list of relative paths and SHA-256 hashes of UTF-8/LF text without a final newline. Changed hashes fail; lifecycle and mixed-file protection still apply.}
 \item{artifacts}{Output kinds to reconcile. Defaults to all; thin wrapper/test commands can select their own artifacts while retaining one generation contract.}
+\item{deferrals}{Optional list with \code{enroll} (a named character vector of one-line reasons keyed by operation identity, \verb{<service id> <METHOD> <path>}) and \code{clear} (operation identities to retry). Enrollment is recorded on apply only; plan and check never write it. See the maintenance vignette.}
+
 \item{validation}{\code{TRUE} or \code{FALSE}. By default, use project YAML or legacy specification \code{validation}, falling back to required validation. \code{FALSE} explicitly skips validation and is recorded in the result.}
 }
 \value{A list of class \code{specmill_generation} with files (file/path/action records), schema_changes (changed source hashes, added endpoints, unselected additions, removed endpoints and their previous configured functions), configured operations, excluded operations with reasons, drift, diagnostics, server_diagnostics, mapping_diagnostics, retained_diagnostics, unused_hooks, inventory, retained_sources, and manifest (toolkit version, input hashes, policy versions). Printing separates selected and excluded operations and reports removals and protections. Operations outside a service's include list remain in inventory but are omitted from the excluded summary to avoid repeating other services' endpoints. File actions include write, unchanged, protected, remove, and retained. Check errors on actions other than unchanged or retained.}

@@ -23,21 +23,8 @@ schema_report_files <- function(
   files
 }
 
-schema_report_operations <- function(path, policy) {
-  if (!file.exists(path)) {
-    return(list())
-  }
-  document <- read_schema_document(path)
-  # Diff identities are method/path pairs. Pending facade overrides must not
-  # hide new operations or prevent reporting a removed operation.
-  keys <- schema_operation_keys(document)
-  policy$names <- stats::setNames(
-    as.list(paste0('operation_', seq_along(keys))),
-    keys
-  )
-  policy$override_keys <- NULL
-  policy$exclude_parameters_overrides <- NULL
-  parsed <- read_operations(path, policy)
+# Canonical referenced contract of one operation. Unresolvable references stop.
+operation_contract <- function(document, path, method) {
   canonical <- function(node, references) {
     if (!is.list(node)) {
       return(node)
@@ -59,32 +46,48 @@ schema_report_operations <- function(path, policy) {
     }
     node
   }
+  item <- local_ref(document$paths[[path]], document)
+  operation <- item[[tolower(method)]]
+  references <- new.env(parent = emptyenv())
+  contract <- canonical(
+    list(
+      operation = operation,
+      parameters = item$parameters,
+      servers = item$servers %or% document$servers,
+      security = operation[['security']] %or% document[['security']],
+      host = document$host,
+      basePath = document$basePath,
+      schemes = document$schemes
+    ),
+    references
+  )
+  list(root = contract, references = as.list(references, sorted = TRUE))
+}
+
+schema_report_operations <- function(path, policy) {
+  if (!file.exists(path)) {
+    return(list())
+  }
+  document <- read_schema_document(path)
+  # Diff identities are method/path pairs. Pending facade overrides must not
+  # hide new operations or prevent reporting a removed operation.
+  keys <- schema_operation_keys(document)
+  policy$names <- stats::setNames(
+    as.list(paste0('operation_', seq_along(keys))),
+    keys
+  )
+  policy$override_keys <- NULL
+  policy$exclude_parameters_overrides <- NULL
+  parsed <- read_operations(path, policy)
   selected <- Filter(function(x) x$status != 'excluded', parsed$inventory)
   stats::setNames(
     lapply(selected, function(record) {
       item <- document$paths[[record$path]]
-      operation <- item[[tolower(record$method)]]
-      references <- new.env(parent = emptyenv())
-      contract <- canonical(
-        list(
-          operation = operation,
-          parameters = item$parameters,
-          servers = item$servers %or% document$servers,
-          security = operation[['security']] %or% document[['security']],
-          host = document$host,
-          basePath = document$basePath,
-          schemes = document$schemes
-        ),
-        references
-      )
       list(
         route = record$path,
         method = record$method,
-        summary = operation$summary %or% '',
-        contract = list(
-          root = contract,
-          references = as.list(references, sorted = TRUE)
-        )
+        summary = item[[tolower(record$method)]]$summary %or% '',
+        contract = operation_contract(document, record$path, record$method)
       )
     }),
     vapply(selected, `[[`, character(1), 'key')
