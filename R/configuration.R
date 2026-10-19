@@ -424,6 +424,7 @@ load_project <- function(
         'post_params_source',
         'result_formatter',
         'response_correction',
+        'duplicate_response',
         'request_body_correction',
         'path_parameters_correction',
         'normalize_inputs',
@@ -567,6 +568,9 @@ load_project <- function(
         body_media_corrections = lapply(overrides, function(x) {
           x$body_media_correction
         }),
+        duplicate_response_overrides = lapply(overrides, function(x) {
+          x$duplicate_response
+        }),
         response_corrections = lapply(overrides, function(x) {
           x$response_correction
         }),
@@ -707,6 +711,13 @@ load_project <- function(
           key = record$key,
           helper = target_settings$helper %or% service$helper,
           server = record$server,
+          server_resolver = if (!is.null(target_settings$server)) {
+            list(
+              name = target_settings$server$resolver,
+              key = target_settings$server$key %or% service$id,
+              relative = record$server_relative
+            )
+          },
           body_media = if (is.null(record$body)) NULL else record$body_media,
           text_encoding = record$text_encoding
         )
@@ -737,9 +748,23 @@ load_project <- function(
         }
         route <- read_route(files[[1L]], route_key)
         for (field in c('helper', 'server', 'body_media', 'text_encoding')) {
+          actual <- route[[field]]
+          expected <- routes[[1L]][[field]]
+          if (field == 'server' && !is.null(route$server_resolver)) {
+            actual <- list(
+              resolver = route$server_resolver,
+              url = route$server$url
+            )
+            expected <- list(
+              resolver = routes[[1L]]$server_resolver,
+              url = routes[[1L]]$server$url
+            )
+          }
           if (
-            (field == 'server' && is.null(route$server$url)) ||
-              !identical(route[[field]], routes[[1L]][[field]])
+            (field == 'server' &&
+              is.null(route$server_resolver) &&
+              is.null(route$server$url)) ||
+              !identical(actual, expected)
           ) {
             stop(
               service$id,
