@@ -1,6 +1,26 @@
 
 
 
+## specmill 0.1.47 (2026-10-19)
+
+#### Other changes
+
+- release v0.1.47 \[skip ci\]
+  ([59277f8](https://github.com/seanthimons/specmill/tree/59277f86cfca0355a3c7c37cfe1aae37fe54938d))
+
+Full set of changes:
+[`v0.1.46...v0.1.47`](https://github.com/seanthimons/specmill/compare/v0.1.46...v0.1.47)
+
+## specmill 0.1.46 (2026-10-19)
+
+#### Other changes
+
+- release v0.1.46 \[skip ci\]
+  ([6335148](https://github.com/seanthimons/specmill/tree/6335148f452811b0edf51900c32004b4c3ed318c))
+
+Full set of changes:
+[`v0.1.45...v0.1.46`](https://github.com/seanthimons/specmill/compare/v0.1.45...v0.1.46)
+
 ## specmill 0.1.45 (2026-10-18)
 
 #### Tests
@@ -13,12 +33,17 @@
 #### Other changes
 
 - release v0.1.45 \[skip ci\]
-  ([53ad56f](https://github.com/seanthimons/specmill/tree/53ad56fc7a2f76d1d8a083eccb83645baeada2e1))
+  ([f686717](https://github.com/seanthimons/specmill/tree/f686717052b7636775ce1ccca2080056c32f69f0))
 
 Full set of changes:
 [`v0.1.44...v0.1.45`](https://github.com/seanthimons/specmill/compare/v0.1.44...v0.1.45)
 
 ## specmill 0.1.44 (2026-10-18)
+
+#### Bug fixes
+
+- preserve hook controls and dynamic page limits (#173)
+  ([1c3e8a3](https://github.com/seanthimons/specmill/tree/1c3e8a34c41eba5d2a20cc46f8bc2e39abb6d18c))
 
 #### Other changes
 
@@ -29,6 +54,16 @@ Full set of changes:
 [`v0.1.43...v0.1.44`](https://github.com/seanthimons/specmill/compare/v0.1.43...v0.1.44)
 
 ## specmill 0.1.43 (2026-10-18)
+
+#### New features
+
+- preserve facade hooks around native body offsets (#173)
+  ([4d8aa6d](https://github.com/seanthimons/specmill/tree/4d8aa6d6fb193986aae3a2f5ab87044824586069))
+
+#### Bug fixes
+
+- encode declared free-form scalar fields (#178)
+  ([15a82b2](https://github.com/seanthimons/specmill/tree/15a82b262bf07258c901812462af5cf615b0b37a))
 
 #### Tests
 
@@ -47,6 +82,8 @@ Full set of changes:
 
 #### New features
 
+- select initial hook params independently (#173)
+  ([2280dc9](https://github.com/seanthimons/specmill/tree/2280dc9ec346ee61dec8e3d23f6efb521708b1e4))
 - configure shared native request throttling (#175)
   ([1079ba7](https://github.com/seanthimons/specmill/tree/1079ba7f1e701ebe3293ee1eead57334f1010dd5))
 - format unbatched results with client callbacks (#157)
