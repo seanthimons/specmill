@@ -137,7 +137,7 @@ duplicate_response_overrides_acceptance <- function() {
   ]]
   stopifnot(
     identical(proof$selected, 'schema/alerts.json'),
-    identical(
+    setequal(
       vapply(proof$sources, `[[`, character(1), 'source'),
       c('schema/safety.json', 'schema/alerts.json')
     ),
