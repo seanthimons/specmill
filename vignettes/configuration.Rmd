@@ -563,6 +563,66 @@ operations:
         body: {from: [params, chemicals]}
 ~~~
 
+`pre_params` selects parameter names and order for the initial `pre_request`
+state. It requires a pre-request hook and belongs under `operations`. Other
+inputs remain available to request bindings. Combine it with `defer_inputs`
+when a transport-only input must remain lazy on a skipped call; a deferred
+input remains a thunk in internal request parameters and can be forced by a
+pure request projection after the hook. Selection alone does not defer input
+evaluation. Only selected parameter names are applied as pre-hook updates to
+request parameters. Other fields in the returned hook state remain available
+to the post hook. With `post_state: hook_state`, the post hook still receives the
+complete state returned by the pre hook, including partial params and extra
+fields. By default a NULL result remains a named NULL in that state. Select
+operation-only `post_result_null: remove` to reproduce a client that assigns
+`state$result <- result` and removes the result key when NULL. This requires
+a post-response hook with `post_state: hook_state`.
+
+For a facade that already has an `all_pages` input, operation-only
+`request.pagination` selects native offset pagination without adding public
+arguments. `max_pages` accepts a positive integer or a request binding, such as
+`{from: [params, max_pages]}`. A binding is evaluated after pre-hook updates,
+only when paging is selected; the pagination engine validates its value before
+HTTP. It requires complete native request bindings and the current
+pagination companions. The `when` binding runs after the pre hook and request
+construction; it can force a deferred transport input. False sends one request.
+True uses the existing pagination engine with explicit nested body paths:
+
+~~~yaml
+request:
+  arguments: # complete native method/path/path_params/query/body bindings
+    # ...
+  pagination:
+    mode: offset
+    when: {callback: paging_enabled}
+    parameter: [body, offset]
+    size_parameter: [body, options, limit]
+    page_size: {from: [hook_state, request, body, options, limit]}
+    start: {value: 0}
+    max_pages: 100
+    items: collect_response
+    completed: search_complete
+    advance: search_next_offset
+    metadata: false
+    error_policy: partial
+    warn_errors: false
+    warn_limits: false
+    stop_on_empty: false
+~~~
+
+`items(response)` selects each page's collection. `completed(response, state)`
+and `advance(response, position, page_size)` are pure client projections of
+response metadata. Their errors propagate, even under partial request recovery.
+A raw-response collector can defer record parsing to `result_formatter` after
+collection. Single-request formatting receives one response; paged formatting
+receives the combined collection. `post_response_scope: combined` runs the
+existing post hook once after this formatting and supports `post_state:
+hook_state` for this request-level pagination. A skipped call bypasses request
+construction and final formatting; `post_on_skip` still runs the post hook.
+Dry runs return the prepared request before page callbacks or formatting.
+This mode cannot combine with operation pagination, batch iteration,
+`route_guard` or `preserve_visibility`.
+
 `post_params` selects parameter names and order for the `post_response` state.
 This selection applies after pre-request updates and only to that hook; request
 bindings retain the complete state. Unknown or duplicate selections and private
