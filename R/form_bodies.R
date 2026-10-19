@@ -188,8 +188,26 @@ form_value <- function(value, schema, validate, allow_empty = TRUE) {
     if (is.null(field) && is.list(schema$additionalProperties)) {
       field <- schema$additionalProperties
     }
-    if (is.null(field$type)) {
+    free <- is.null(field) && isTRUE(schema$additionalProperties)
+    if (is.null(field$type) && !free) {
       stop('Form field needs a declared schema: ', name)
+    }
+    if (free) {
+      x <- value[[name]]
+      if (
+        is.object(x) ||
+          !is.null(dim(x)) ||
+          !is.null(names(x)) ||
+          length(x) != 1L ||
+          anyNA(x) ||
+          !typeof(x) %in% c('character', 'logical', 'integer', 'double') ||
+          (is.numeric(x) && !is.finite(x))
+      ) {
+        stop(
+          'Free-form form fields must be finite scalar strings, numbers or booleans: ',
+          name
+        )
+      }
     }
     if (is.null(value[[name]])) {
       stop('Null form fields have no unambiguous encoding: ', name)

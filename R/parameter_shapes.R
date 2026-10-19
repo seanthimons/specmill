@@ -395,12 +395,13 @@ parameter_checks <- function(params, formal_names) {
   )
 }
 
-# Preserve existing helper calls for the previously supported subset.
+# Use schema serialization where the helper's default wire lowering differs.
 extended_parameter <- function(p) {
   if (!p$location %in% c('query', 'path', 'header', 'cookie')) {
     return(FALSE)
   }
   p$location == 'cookie' ||
+    (p$location == 'query' && identical(p$schema$type, 'boolean')) ||
     identical(p$schema$type, 'object') ||
     !is.null(p$collection_format) ||
     (!is.null(p$style) && !p$style %in% c('simple', 'form')) ||
