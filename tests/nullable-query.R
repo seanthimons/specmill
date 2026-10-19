@@ -133,7 +133,7 @@ nullable_query_acceptance <- function() {
         schema = union(list(type = 'boolean')),
         good = TRUE,
         bad = 'true',
-        wire = '?q=TRUE'
+        wire = '?q=true'
       ),
       list(
         schema = union(list(type = 'string', enum = list('abc'))),

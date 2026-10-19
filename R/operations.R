@@ -1030,9 +1030,36 @@ read_operations <- function(files, policy = list()) {
   }
   ids <- vapply(operations, `[[`, character(1), 'id')
   duplicate_ids <- unique(ids[duplicated(ids)])
+  reviewed_duplicates <- Filter(
+    Negate(is.null),
+    policy$duplicate_response_overrides %or% list()
+  )
+  for (key in names(reviewed_duplicates)) {
+    review <- reviewed_duplicates[[key]]
+    config_fields(review, c('source', 'reason'), 'duplicate_response')
+    config_string(review$source, 'duplicate_response.source')
+    config_string(review$reason, 'duplicate_response.reason')
+    if (
+      !key %in%
+        vapply(operations[ids %in% duplicate_ids], `[[`, character(1), 'key')
+    ) {
+      stop('duplicate_response requires a loaded duplicate operation: ', key)
+    }
+  }
   for (id in duplicate_ids) {
     group <- operations[ids == id]
-    contract <- function(x) x[setdiff(names(x), c('source', 'source_hash'))]
+    reviewed <- policy$duplicate_response_overrides[[group[[1L]]$key]]
+    contract <- function(x) {
+      x <- x[setdiff(names(x), c('source', 'source_hash'))]
+      if (!is.null(reviewed)) {
+        x <- x[setdiff(
+          names(x),
+          c('response', 'content_type', 'response_schema_type')
+        )]
+        x$source_operation$responses <- NULL
+      }
+      x
+    }
     if (
       !all(vapply(
         group[-1L],
@@ -1046,6 +1073,44 @@ read_operations <- function(files, policy = list()) {
         ' in ',
         paste(vapply(group, `[[`, character(1), 'source'), collapse = ', ')
       )
+    }
+    if (!is.null(reviewed)) {
+      selected <- which(vapply(
+        group,
+        function(x) {
+          identical(basename(x$source), reviewed$source) ||
+            identical(x$source, reviewed$source)
+        },
+        logical(1)
+      ))
+      if (length(selected) != 1L) {
+        stop(
+          'duplicate_response.source must identify one loaded duplicate: ',
+          reviewed$source
+        )
+      }
+      record <- group[[selected]]
+      record$response_sources <- list(
+        selected = record$source,
+        reason = reviewed$reason,
+        sources = lapply(group, function(x) {
+          x[c(
+            'source',
+            'source_hash',
+            'content_type',
+            'response_schema_type',
+            'response'
+          )]
+        })
+      )
+      operations[[which(ids == id)[[1L]]]] <- record
+      for (i in which(vapply(
+        inventory,
+        function(x) identical(x$id, id),
+        logical(1)
+      ))) {
+        inventory[[i]]$response_sources <- record$response_sources
+      }
     }
   }
   operations <- operations[!duplicated(ids)]

@@ -253,6 +253,14 @@ apply_files <- function(
       if (length(routes)) {
         manifest$files[[entry$file]]$routes <- routes
       }
+      response_sources <- attr(desired, 'response_sources')
+      response_sources <- response_sources[intersect(
+        names(response_sources),
+        attr(desired, 'operations')[[entry$file]]
+      )]
+      if (length(response_sources)) {
+        manifest$files[[entry$file]]$response_sources <- response_sources
+      }
     }
   }
   manifest$files <- manifest$files[sort(
