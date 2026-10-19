@@ -421,6 +421,7 @@ validate_settings <- function(
         'max_items',
         'max_bytes',
         'fan_out',
+        'input',
         'split',
         'on_error',
         'empty',
@@ -435,6 +436,12 @@ validate_settings <- function(
         !isFALSE(settings$batch$metadata)
     ) {
       stop('batch.metadata must be true or false')
+    }
+    if (!is.null(settings$batch$input)) {
+      config_string(settings$batch$input, 'batch.input')
+      if (!isTRUE(settings$batch$split)) {
+        stop('batch.input requires batch.split: true')
+      }
     }
     if (!is.null(settings$batch$fan_out)) {
       config_string(settings$batch$fan_out, 'batch.fan_out')

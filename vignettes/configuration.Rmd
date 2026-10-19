@@ -2460,6 +2460,31 @@ generated wrapper without hooks or `post_on_skip`. Pipelines that combine or
 replace results have separate return behavior and are rejected by this setting.
 The policy does not add file-upload support or change request construction.
 
+### Chunking an explicit client input
+
+For an operation with explicit `inputs`, select the input to split separately
+from the schema body:
+
+```yaml
+inputs:
+  query: {type: any, required: true}
+batch:
+  input: query
+  split: true
+  max_items: {env: batch_limit, default: 100}
+```
+
+`batch.input` belongs under one operation, requires `split: true`, and must
+name an eager explicit client input. Existing body-array splitting is unchanged.
+Each send receives the chunk in `params$query`; a pure request body projection
+can wrap that chunk in the schema's object shape. Final formatters and combined
+hooks receive the complete normalized input. Native credential/configuration
+errors and the existing single/multiple request error policy remain unchanged.
+
+As with existing body-array splitting, an empty input sends one empty chunk.
+Use the existing `validate_inputs` preflight when a facade must reject empty
+input before HTTP.
+
 ### Reviewed duplicate response declarations
 
 When two loaded schemas describe the same request but disagree about its

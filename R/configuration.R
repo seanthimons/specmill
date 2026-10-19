@@ -435,6 +435,9 @@ load_project <- function(
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
     }
+    if (!is.null(defaults$batch$input)) {
+      stop(id, ': batch.input belongs under operations, not defaults')
+    }
     if (!is.null(defaults$batch$metadata)) {
       stop(id, ': batch.metadata belongs under operations, not defaults')
     }
