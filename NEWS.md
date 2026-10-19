@@ -1,12 +1,22 @@
 
 
 
+## specmill 0.1.47 (2026-10-19)
+
+#### Other changes
+
+- release v0.1.47 \[skip ci\]
+  ([59277f8](https://github.com/seanthimons/specmill/tree/59277f86cfca0355a3c7c37cfe1aae37fe54938d))
+
+Full set of changes:
+[`v0.1.46...v0.1.47`](https://github.com/seanthimons/specmill/compare/v0.1.46...v0.1.47)
+
 ## specmill 0.1.46 (2026-10-19)
 
 #### Other changes
 
 - release v0.1.46 \[skip ci\]
-  ([e00ac90](https://github.com/seanthimons/specmill/tree/e00ac907772d752ad804f06a7c0acaf6f6f687c2))
+  ([6335148](https://github.com/seanthimons/specmill/tree/6335148f452811b0edf51900c32004b4c3ed318c))
 
 Full set of changes:
 [`v0.1.45...v0.1.46`](https://github.com/seanthimons/specmill/compare/v0.1.45...v0.1.46)
@@ -49,6 +59,11 @@ Full set of changes:
 
 - preserve facade hooks around native body offsets (#173)
   ([4d8aa6d](https://github.com/seanthimons/specmill/tree/4d8aa6d6fb193986aae3a2f5ab87044824586069))
+
+#### Bug fixes
+
+- encode declared free-form scalar fields (#178)
+  ([15a82b2](https://github.com/seanthimons/specmill/tree/15a82b262bf07258c901812462af5cf615b0b37a))
 
 #### Tests
 
