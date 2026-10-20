@@ -27,10 +27,30 @@ config_sequence <- function(x, label) {
   vapply(x, config_string, character(1), label = label)
 }
 
-config_regexes <- function(x, label) {
+# Path exclusions may be method-qualified: 'POST ^/api/thing/?$'.
+exclusion_parts <- function(entry) {
+  m <- stringr::str_match(
+    entry,
+    '^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)\\s+(.+)$'
+  )
+  if (is.na(m[1L])) {
+    list(method = NA_character_, pattern = entry)
+  } else {
+    list(method = m[2L], pattern = m[3L])
+  }
+}
+
+exclusion_matches <- function(entry, path, method) {
+  parts <- exclusion_parts(entry)
+  (is.na(parts$method) || identical(parts$method, method)) &&
+    stringr::str_detect(path, parts$pattern)
+}
+
+config_regexes <- function(x, label, qualified = FALSE) {
   patterns <- config_sequence(x, label)
   for (pattern in patterns) {
-    tryCatch(stringr::str_detect('', pattern), error = function(e) {
+    check <- if (qualified) exclusion_parts(pattern)$pattern else pattern
+    tryCatch(stringr::str_detect('', check), error = function(e) {
       stop(label, ': invalid regex ', pattern)
     })
   }
@@ -188,7 +208,11 @@ load_project <- function(
     stop('Invalid project HTTP method')
   }
   project_exclude <- if ('exclude' %in% names(project_selection)) {
-    config_regexes(project_selection$exclude, 'project path exclusions')
+    config_regexes(
+      project_selection$exclude,
+      'project path exclusions',
+      qualified = TRUE
+    )
   } else {
     character()
   }
@@ -368,13 +392,26 @@ load_project <- function(
     selection <- service$selection %or% list()
     config_fields(
       selection,
-      c('methods', 'exclude', 'include'),
+      c('methods', 'exclude', 'include', 'unclaimed'),
       paste(id, 'selection')
     )
     include <- if ('include' %in% names(selection)) {
       config_sequence(selection$include, 'operation allowlist')
     } else {
       NULL
+    }
+    unclaimed <- isTRUE(selection$unclaimed)
+    if ('unclaimed' %in% names(selection)) {
+      if (
+        !is.logical(selection$unclaimed) ||
+          length(selection$unclaimed) != 1L ||
+          is.na(selection$unclaimed)
+      ) {
+        stop(id, ': selection.unclaimed must be true or false')
+      }
+      if (unclaimed && !is.null(include)) {
+        stop(id, ': selection.unclaimed cannot be combined with include')
+      }
     }
     methods <- if ('methods' %in% names(selection)) {
       config_sequence(selection$methods, 'methods')
@@ -390,7 +427,7 @@ load_project <- function(
       stop(id, ': invalid HTTP method')
     }
     exclude <- if ('exclude' %in% names(selection)) {
-      config_regexes(selection$exclude, 'path exclusions')
+      config_regexes(selection$exclude, 'path exclusions', qualified = TRUE)
     } else {
       character()
     }
@@ -576,6 +613,7 @@ load_project <- function(
         api_methods = entry$methods,
         api_exclude = entry$exclude,
         include = include,
+        unclaimed = unclaimed,
         names = names,
         override_keys = names(overrides),
         body_media = defaults[['body_media']],
@@ -625,6 +663,23 @@ load_project <- function(
   ids <- vapply(services, `[[`, character(1), 'id')
   if (anyDuplicated(ids)) {
     stop('Duplicate service ID')
+  }
+  # An include-free `unclaimed` service skips operations that another service
+  # on a shared schema selects through include or operations.
+  for (i in seq_along(services)) {
+    if (!isTRUE(services[[i]]$policy$unclaimed)) {
+      next
+    }
+    claims <- character()
+    for (other in services[-i]) {
+      if (!length(intersect(services[[i]]$files, other$files))) {
+        next
+      }
+      keys <- union(other$policy$include, names(other$operations))
+      keys <- setdiff(keys, names(claims))
+      claims[keys] <- other$id
+    }
+    services[[i]]$policy$claimed <- claims
   }
   for (i in seq_along(services)) {
     service <- services[[i]]
@@ -679,6 +734,7 @@ load_project <- function(
       read_route <- function(file, route_key) {
         policy <- service[['policy']]
         policy$include <- route_key
+        policy$claimed <- NULL
         policy$methods <- strsplit(route_key, ' ', fixed = TRUE)[[1L]][1L]
         policy[['exclude']] <- character()
         policy$names <- list()
