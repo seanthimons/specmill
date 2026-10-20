@@ -72,10 +72,85 @@ Schema before translating operations. Invalid documents and unsupported coverage
 block apply and check; inspect `plan$validation` for the full findings.
 References outside the document must be bundled first.
 
+Check mode warns when a current schema's hash differs from the last applied
+manifest, showing its path and previous/current SHA-256 hashes. The warning
+appears before schema translation, including when the changed schema cannot be
+translated. A schema newly referenced by existing configuration reports its
+previous hash as `not recorded`. Initial generation and legacy manifests without
+input hashes have no comparison baseline. Check writes no client files; use
+plan mode to review file changes, then apply reviewed output to record the new
+baseline. A hash change alone does not mean a function needs rebuilding.
+
+When the manifest has an endpoint inventory, the warning also lists added and
+removed method/path pairs, identifies additions outside current selection policy,
+and names previously configured functions affected by removals. It appears even
+when a removed endpoint makes a function mapping invalid. For a parseable plan,
+the same information is in `plan$schema_changes` and its printed summary.
+This compares endpoint presence; it does not classify parameter or response
+changes as compatible or breaking. Removed endpoints never authorize deleting
+client functions automatically.
+
+An upgrade from a manifest containing only hashes needs one reviewed apply to
+record the endpoint inventory. Plan/check report that comparison is unavailable
+until the inventory exists. Schema files removed from configuration or renamed
+are not automatically matched to their previous versions. Commit the updated
+manifest with the reviewed policy and generated output.
+
+This warning runs only when the generation check is called. It does not download
+schemas or automatically attach to `devtools::build()` or `devtools::check()`.
+Include the generation check in your project's development command or CI as
+shown below.
+
 Supply the same explicit `callbacks` environment on each call when your policy
 uses callbacks. Run the relevant manual/helper tests too. Reapplying unchanged
 inputs should produce only unchanged/retained file actions. Review output diffs
 before committing; do not hand-edit generated files to fix a policy error.
+
+### Defer a changed contract that does not validate yet
+
+By default every selected operation must validate, and one failing operation
+blocks apply and check. When an upstream revision breaks one operation, you can
+defer that single contract revision instead of excluding the operation or
+forgetting its inventory. Enrollment is explicit and is recorded on apply only:
+
+```{r defer, eval=FALSE}
+enroll <- list(enroll = c('demo GET /bad' = 'Response lacks a description'))
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan', deferrals = enroll)
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply', deferrals = enroll)
+```
+
+The key is `<service id> <METHOD> <path>`; the reason is one line. The manifest
+stores the reason, source, operation key, and a `v1:` SHA-256 fingerprint of the
+operation, its path-level parameters and servers, security, host/base path, and
+every transitively referenced local definition (sorted keys, normalized line
+endings). Healthy operations generate normally.
+
+| State | Meaning |
+|---|---|
+| `deferred` | Fingerprint unchanged. Skipped; apply and check are no-ops. |
+| `retry_blocked` | Contract changed but still fails. Needs a fix, a new enrollment, or an opt-in policy. |
+| `retry_recovered` | Contract changed and now passes. Plan shows the wrapper; apply writes it through the normal gates and drops the enrollment. |
+| `uncertain` | Enrollment metadata, source, or operation cannot be read or matched. The record is kept untouched and the operation stays withheld; check fails until you clear or re-enroll it. A record that is not an object cannot be matched, so apply stays strict for it. |
+
+Clearing is an explicit retry: `deferrals = list(clear = 'demo GET /bad')`. A
+toolkit update alone, key order, whitespace, and edits to unrelated operations or
+definitions do not wake an enrollment; prose changes inside the contract do.
+Fingerprints are scoped per source, so equal paths in other APIs are unaffected.
+
+To enroll failures of listed diagnostic codes without a manual step, add
+`deferral: {automatic: [schema_validation_invalid]}` to the service. Other codes,
+document-level findings, and shared blockers (an unreadable schema, a bad
+policy) still stop the run. Validation is never disabled.
+
+Plan and check are read-only. Deferral never deletes code: an existing wrapper,
+its documentation, tests and ownership are preserved, including a function inside
+a grouped file that a healthy sibling rewrites. A never-generated deferred
+operation gets no placeholder. A project whose operations are all deferred still
+persists the enrollment, and repeating an empty apply is a no-op.
+
+Limitations: a contract that stays broken needs a human decision; fingerprints
+cover local references only; a renamed source or removed operation is reported as
+`uncertain` rather than matched.
 
 ## 3. Add a thin sourceable command
 

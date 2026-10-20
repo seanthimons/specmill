@@ -294,7 +294,8 @@ load_project <- function(
         'documentation',
         'defaults',
         'operations',
-        'hook_config'
+        'hook_config',
+        'deferral'
       ),
       file
     )
@@ -520,6 +521,21 @@ load_project <- function(
       }
       prepare <- get(name, envir = callbacks, inherits = FALSE)
     }
+    deferral_codes <- character()
+    if ('deferral' %in% names(service)) {
+      config_fields(service$deferral, 'automatic', paste(id, 'deferral'))
+      deferral_codes <- config_sequence(
+        service$deferral$automatic,
+        'automatic deferral codes'
+      )
+      if (
+        !length(deferral_codes) ||
+          any(!grepl('^[a-z][a-z0-9_]*$', deferral_codes)) ||
+          'unclassified_error' %in% deferral_codes
+      ) {
+        stop(id, ': automatic deferral needs specific diagnostic codes')
+      }
+    }
     contracts <- config_data(service[['contracts']]) %or% list()
     config_fields(contracts, names(contracts), 'contracts')
     if (!is.null(service$contracts_file)) {
@@ -594,6 +610,7 @@ load_project <- function(
         )
       ),
       policy_version = service$policy_version %or% '1',
+      deferral_codes = deferral_codes,
       package = package,
       prepare = prepare,
       callbacks = callbacks,
