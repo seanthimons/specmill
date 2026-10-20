@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.53 (2026-10-20)
+
+#### New features
+
+- method-qualified exclusions and unclaimed services (#189, #190)
+  ([a005ddf](https://github.com/seanthimons/specmill/tree/a005ddf1440e865f232e2234d1afb013f8c408e8))
+
+#### Other changes
+
+- release v0.1.53 \[skip ci\]
+  ([b949256](https://github.com/seanthimons/specmill/tree/b9492568e051143ca5a8dac21b34a5bf7b9e294f))
+
+Full set of changes:
+[`v0.1.52...v0.1.53`](https://github.com/seanthimons/specmill/compare/v0.1.52...v0.1.53)
+
 ## specmill 0.1.52 (2026-10-20)
 
 #### New features
@@ -22,7 +37,7 @@
 #### Other changes
 
 - release v0.1.52 \[skip ci\]
-  ([2c9fd89](https://github.com/seanthimons/specmill/tree/2c9fd894039151994a8d3501f1050777656714bc))
+  ([b32a9c1](https://github.com/seanthimons/specmill/tree/b32a9c1bfc15e33585e4c78d7b63a0a577c452a9))
 
 Full set of changes:
 [`v0.1.51...v0.1.52`](https://github.com/seanthimons/specmill/compare/v0.1.51...v0.1.52)
