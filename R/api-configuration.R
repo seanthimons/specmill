@@ -60,7 +60,7 @@ expand_api_configuration <- function(config, file, callbacks) {
     stop('Invalid API HTTP method: ', api)
   }
   exclude <- if ('exclude' %in% names(selection)) {
-    config_regexes(selection$exclude, 'API path exclusions')
+    config_regexes(selection$exclude, 'API path exclusions', qualified = TRUE)
   } else {
     character()
   }
