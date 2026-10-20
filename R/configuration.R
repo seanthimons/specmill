@@ -74,6 +74,23 @@ read_config_yaml <- function(path) {
   )
 }
 
+# Declared server URLs of a schema, compared as written (no resolution).
+schema_servers <- function(file) {
+  document <- read_schema_document(file, resolve_references = FALSE)
+  urls <- if (identical(document$swagger, '2.0')) {
+    paste0(document$host %or% '', document$basePath %or% '/')
+  } else {
+    vapply(
+      document$servers %or% list(),
+      function(server) as.character(server$url %or% ''),
+      character(1)
+    )
+  }
+  urls <- sub('(?<=.)/+$', '', urls, perl = TRUE)
+  urls[!nzchar(urls)] <- '/'
+  if (!length(urls)) '/' else urls
+}
+
 config_data <- function(x) if (is.list(x)) lapply(x, config_data) else x
 
 read_service_operations <- function(service) {
@@ -665,14 +682,22 @@ load_project <- function(
     stop('Duplicate service ID')
   }
   # An include-free `unclaimed` service skips operations that another service
-  # on a shared schema selects through include or operations.
+  # on the same server selects through include or operations.
+  servers <- if (
+    any(vapply(services, function(x) isTRUE(x$policy$unclaimed), logical(1)))
+  ) {
+    lapply(services, function(x) {
+      unique(unlist(lapply(x$files, schema_servers), use.names = FALSE))
+    })
+  }
   for (i in seq_along(services)) {
     if (!isTRUE(services[[i]]$policy$unclaimed)) {
       next
     }
     claims <- character()
-    for (other in services[-i]) {
-      if (!length(intersect(services[[i]]$files, other$files))) {
+    for (j in setdiff(seq_along(services), i)) {
+      other <- services[[j]]
+      if (!length(intersect(servers[[i]], servers[[j]]))) {
         next
       }
       keys <- union(other$policy$include, names(other$operations))
