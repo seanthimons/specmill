@@ -286,6 +286,14 @@ apply_files <- function(
   if (!is.null(attr(desired, 'inputs'))) {
     manifest$inputs <- attr(desired, 'inputs')
   }
+  if (!is.null(attr(desired, 'deferrals'))) {
+    manifest$deferrals <- if (length(attr(desired, 'deferrals'))) {
+      attr(desired, 'deferrals')
+    }
+  }
+  if (!is.null(attr(desired, 'schema_inventory'))) {
+    manifest$schema_inventory <- attr(desired, 'schema_inventory')
+  }
   if (!is.null(attr(desired, 'callbacks'))) {
     manifest$callbacks <- attr(desired, 'callbacks')
   }
@@ -299,6 +307,7 @@ apply_files <- function(
     null = 'null'
   ))
   manifest_changed <- (length(manifest$files) > 0L ||
+    length(manifest$deferrals) > 0L ||
     !is.null(manifest_before)) &&
     !identical(manifest_before, text_hash(desired[['.specmill/manifest.json']]))
   if (manifest_changed) {
