@@ -1696,7 +1696,8 @@ policy_version: reviewed-1
 | `helper` | Required client runtime function name, defined in `R/` |
 | `selection.methods` | Uppercase methods to include; omitted means all standard HTTP methods |
 | `selection.include` | Exact `METHOD /path` allowlist; omitted means all operations, empty selects none, unknown keys fail |
-| `selection.exclude` | Case-sensitive stringr regexes; exclude an original path if any matches |
+| `selection.exclude` | Case-sensitive stringr regexes; exclude an original path if any matches. Prefix an entry with a method (`POST ^/api/thing/?$`) to exclude only that method at matching paths |
+| `selection.unclaimed` | Service level, without `include`: `true` selects only operations that no other service sharing a schema file claims through `include` or `operations`; the plan reports the claiming service. Claims are by `METHOD /path` key, so a sibling's key counts even if its own methods or exclusions drop it. Method prefixes are uppercase |
 | `names` | Map from `METHOD /path` to public wrapper name |
 | `documentation` | Boolean; `true` generates roxygen, help pages, and exports; initialization sets it to true |
 | `policy_version` | Your review/version label, recorded in generation metadata |

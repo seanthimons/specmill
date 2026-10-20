@@ -39,12 +39,29 @@ validate_path_parameters_correction <- function(correction) {
 }
 
 operation_selection_reason <- function(key, path, method, policy) {
-  if (key %in% policy$validation_blocked_keys) return('Blocked by schema validation')
+  if (key %in% policy$validation_blocked_keys) {
+    return('Blocked by schema validation')
+  }
   reason <- character()
-  if (!is.null(policy$include) && !key %in% policy$include) {
+  if (key %in% names(policy$claimed)) {
+    reason <- paste('Claimed by service', policy$claimed[[key]])
+  } else if (!is.null(policy$include) && !key %in% policy$include) {
     reason <- 'Not in service include'
   } else {
-    if (!method %in% (policy$methods %or% c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE'))) {
+    if (
+      !method %in%
+        (policy$methods %or%
+          c(
+            'GET',
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+            'HEAD',
+            'OPTIONS',
+            'TRACE'
+          ))
+    ) {
       reason <- if (
         !is.null(policy$project_methods) &&
           !method %in% policy$project_methods
@@ -60,7 +77,7 @@ operation_selection_reason <- function(key, path, method, policy) {
       }
     }
     for (pattern in policy[['exclude']] %or% character()) {
-      if (stringr::str_detect(path, pattern)) {
+      if (exclusion_matches(pattern, path, method)) {
         level <- if (pattern %in% policy$project_exclude) {
           'project'
         } else if (pattern %in% policy$api_exclude) {
@@ -149,7 +166,7 @@ read_operations <- function(files, policy = list()) {
   patterns <- policy[['exclude']] %or% character()
   include <- policy$include
   for (pattern in patterns) {
-    stringr::str_detect('', pattern)
+    stringr::str_detect('', exclusion_parts(pattern)$pattern)
   }
   for (file in files) {
     first_operation <- length(operations) + 1L
