@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.54 (2026-10-20)
+
+#### Bug fixes
+
+- count unclaimed claims from services on the same server (#192)
+  ([a9298c8](https://github.com/seanthimons/specmill/tree/a9298c89a95ec1f6f8f6b5cbb9ffee5bb48a1e9c))
+
+#### Other changes
+
+- release v0.1.54 \[skip ci\]
+  ([d233796](https://github.com/seanthimons/specmill/tree/d233796d548c7d1bf20f9dbf847931b83d7cbf55))
+
+Full set of changes:
+[`v0.1.53...v0.1.54`](https://github.com/seanthimons/specmill/compare/v0.1.53...v0.1.54)
+
 ## specmill 0.1.53 (2026-10-20)
 
 #### New features
@@ -11,7 +26,7 @@
 #### Other changes
 
 - release v0.1.53 \[skip ci\]
-  ([b949256](https://github.com/seanthimons/specmill/tree/b9492568e051143ca5a8dac21b34a5bf7b9e294f))
+  ([5f6bc50](https://github.com/seanthimons/specmill/tree/5f6bc50de5d15f6bd320a0c60bacd7888c32b3c4))
 
 Full set of changes:
 [`v0.1.52...v0.1.53`](https://github.com/seanthimons/specmill/compare/v0.1.52...v0.1.53)
