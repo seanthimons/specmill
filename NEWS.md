@@ -1,6 +1,32 @@
 
 
 
+## specmill 0.1.52 (2026-10-20)
+
+#### New features
+
+- defer one enrolled contract revision until its schema changes
+  ([5656ae5](https://github.com/seanthimons/specmill/tree/5656ae5732afb83f2d06a3e246801d885c8134ac))
+- report added and removed endpoints with affected functions
+  ([764060b](https://github.com/seanthimons/specmill/tree/764060b167fd749129a5db383f61cd964f5361ca))
+- warn when checked schemas differ from last apply
+  ([ba30566](https://github.com/seanthimons/specmill/tree/ba30566dc10cc8beaaebdf1a61c4fa7bd0d7c36b))
+
+#### Docs
+
+- explain contract deferrals and schema drift
+  ([0218621](https://github.com/seanthimons/specmill/tree/02186218f85e3d28fc7cd69ee0db77c897086bd2))
+- document contract-change deferral in README and troubleshooting
+  ([9b8372e](https://github.com/seanthimons/specmill/tree/9b8372eee50fc80511de7577c22e2d7d741d3591))
+
+#### Other changes
+
+- release v0.1.52 \[skip ci\]
+  ([2c9fd89](https://github.com/seanthimons/specmill/tree/2c9fd894039151994a8d3501f1050777656714bc))
+
+Full set of changes:
+[`v0.1.51...v0.1.52`](https://github.com/seanthimons/specmill/compare/v0.1.51...v0.1.52)
+
 ## specmill 0.1.51 (2026-10-19)
 
 #### Bug fixes
@@ -16,7 +42,7 @@
 #### Other changes
 
 - release v0.1.51 \[skip ci\]
-  ([6b94a24](https://github.com/seanthimons/specmill/tree/6b94a241537d66c8632e56da7631158107c8bbc5))
+  ([5a112d8](https://github.com/seanthimons/specmill/tree/5a112d8966dfae7624f7e72fa617ccda85c808b4))
 
 Full set of changes:
 [`v0.1.50...v0.1.51`](https://github.com/seanthimons/specmill/compare/v0.1.50...v0.1.51)
