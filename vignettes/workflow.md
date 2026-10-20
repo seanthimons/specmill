@@ -23,9 +23,12 @@ flowchart TD
     Tailor["Tailor YAML names, selection, inputs, mappings,<br/>media, request controls and response policy;<br/>keep hooks and iteration policy in client R"]
     Plan["generate_client: plan<br/>Review inventory, diagnostics, drift and file actions"]
     Review{"Plan ready to apply?"}
+    Defer["Defer one failing operation: plan, then apply with<br/>deferrals = list(enroll = ...). It stays withheld until<br/>its contract fingerprint changes or you clear it"]
+    Retry["Plan retries a deferral when its contract changed<br/>or you clear it: recovered, still blocked or uncertain"]
     Remediate["Correct source defects or YAML/helper mismatches;<br/>review a complete mapping or retain implementation;<br/>resolve file ownership without bypassing protection"]
     Apply["generate_client: apply<br/>Write eligible output and ownership manifest"]
     Check["generate_client: check<br/>Then run fixed contract, transport and existing tests"]
+    Warn["Check warns when a schema differs from the last apply:<br/>hashes, added and removed endpoints, affected functions.<br/>Review in plan; apply records the new baseline"]
     Pass{"Fresh output and tests pass?<br/>Selected limitations reviewed?"}
     Use["Install or reload the client<br/>Use dry run before approved live calls;<br/>inspect verbose status when needed"]
     Save["Commit toolkit pin, schemas, YAML, helper/hooks,<br/>fixtures, generated output and provenance together"]
@@ -37,7 +40,10 @@ flowchart TD
     Kind -->|Existing, configured| Update --> Plan
     Tailor --> Plan --> Review
     Review -->|Needs remediation| Remediate --> Plan
+    Review -->|One operation fails validation| Defer --> Plan
+    Plan -.->|Deferred operation changed| Retry -.-> Review
     Review -->|Reviewed| Apply --> Check --> Pass
+    Check -.->|Schema differs from last apply| Warn -.-> Plan
     Pass -->|No| Remediate
     Pass -->|Yes| Use --> Save --> Change
     Change -->|Yes| Update

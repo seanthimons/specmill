@@ -274,6 +274,8 @@ flowchart TD
   IC --> PL(["generate_client(mode = 'plan')"])
   PL --> RV([Review plan$files and plan$diagnostics])
   RV --> AP(["generate_client(mode = 'apply')"])
+  RV -->|"one operation fails validation"| DF(["deferrals = list(enroll = ...)"])
+  DF --> PL
   AP --> WR["Writes wrappers, declared contract tests, enabled docs and .specmill/manifest.json"]
   WR --> CK(["generate_client(mode = 'check')"])
   CK --> TS([Run the package tests])
@@ -283,6 +285,8 @@ flowchart TD
   SD --> BP
   CH -->|"policy only"| BP
   CK -.->|"stale or protected output"| BP
+  CK -.->|"schema differs from last apply"| SW["Warning lists hashes, added and removed endpoints and affected functions"]
+  SW --> BP
 
   CC -->|"existing package"| PM(["propose_mappings()"])
   PM --> VA(["verify_adoption()"])
@@ -302,8 +306,8 @@ flowchart TD
   classDef packageAction fill:#f6f8fa,stroke:#6e7781,color:#24292f;
   classDef recovery fill:#fff4e5,stroke:#bf8700,color:#3b2300;
   classDef loop fill:#ffffff,stroke:#6e7781,color:#24292f,stroke-dasharray:3 3;
-  class S,CC,IC,PM,VA,PL,RV,AP,CK,TS,CM,CH,SD userAction;
-  class WR packageAction;
+  class S,CC,IC,PM,VA,PL,RV,AP,CK,TS,CM,CH,SD,DF userAction;
+  class WR,SW packageAction;
   class RC,IN recovery;
   class BP loop;
   style Recovery fill:#fffaf0,stroke:#bf8700,stroke-dasharray:4 3
@@ -323,7 +327,10 @@ diagnostics, `generate_client(mode = 'apply')`, which writes the generated files
 and the manifest on its own, then `generate_client(mode = 'check')` and your
 package tests, then commit everything together. When a schema revision arrives,
 `schema_diff()` shows what moved and you plan again; a policy-only change goes
-straight back to the plan.
+straight back to the plan. If one operation fails validation, enroll it with
+`deferrals` instead of blocking the client; plan retries it once its contract
+changes or you clear it. Check warns when a schema differs from the last apply,
+listing added and removed endpoints and the functions they affect.
 
 This flow covers generation and its recovery. It does not cover live API
 compatibility, runtime hooks, or CI; the guides below cover those. Do not rerun
