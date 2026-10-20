@@ -37,7 +37,7 @@ selection_policy_acceptance <- function() {
             id = id,
             schemas = list(files = list('schema/demo.json')),
             helper = 'catalogue_request'
-          ),
+          )[setdiff(c('id', 'schemas', 'helper'), names(services[[id]]))],
           services[[id]]
         ),
         file.path(root, 'apis', paste0(id, '.yml'))
@@ -129,6 +129,43 @@ selection_policy_acceptance <- function() {
   )
   printed <- paste(capture.output(print(plan())), collapse = '\n')
   stopifnot(grepl('Claimed by service owner', printed, fixed = TRUE))
+  # A claim made through a different schema file on the same server still counts.
+  document <- jsonlite::read_json(file.path(root, 'schema/demo.json'))
+  document$host <- 'example.org'
+  jsonlite::write_json(
+    document,
+    file.path(root, 'schema/demo.json'),
+    auto_unbox = TRUE
+  )
+  document$paths <- document$paths['/api/a']
+  jsonlite::write_json(
+    document,
+    file.path(root, 'schema/overlay.json'),
+    auto_unbox = TRUE
+  )
+  write_config(
+    list(services = list('apis/owner.yml', 'apis/rest.yml')),
+    owner = list(
+      schemas = list(files = list('schema/overlay.json')),
+      selection = list(include = list('GET /api/a')),
+      names = list(`GET /api/a` = 'demo_a')
+    ),
+    rest = list(selection = list(unclaimed = TRUE))
+  )
+  selected <- keys(plan())
+  stopifnot(
+    'owner GET /api/a' %in% selected,
+    !'rest GET /api/a' %in% selected,
+    'rest GET /api/b' %in% selected
+  )
+  # A different server does not claim.
+  document$host <- 'other.example.org'
+  jsonlite::write_json(
+    document,
+    file.path(root, 'schema/overlay.json'),
+    auto_unbox = TRUE
+  )
+  stopifnot('rest GET /api/a' %in% keys(plan()))
   # Without the flag the duplicate selection remains.
   write_config(
     list(services = list('apis/owner.yml', 'apis/rest.yml')),
