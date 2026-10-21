@@ -672,6 +672,10 @@ validate_settings <- function(
             'required',
             'description',
             'type',
+            'minimum',
+            'maximum',
+            'format',
+            'items',
             if (field == 'inputs') 'missing_as_null'
           )
         },
@@ -679,7 +683,7 @@ validate_settings <- function(
       )
       for (name in intersect(
         names(parameter),
-        c('name', 'description', 'type')
+        c('name', 'description', 'type', 'format')
       )) {
         config_string(parameter[[name]], paste('parameter', name))
       }
@@ -694,6 +698,14 @@ validate_settings <- function(
         ) {
           stop(flag, ' must be true or false')
         }
+      }
+      for (bound in intersect(c('minimum', 'maximum'), names(parameter))) {
+        if (!is.numeric(parameter[[bound]]) || length(parameter[[bound]]) != 1L) {
+          stop(bound, ' must be a single number')
+        }
+      }
+      if ('items' %in% names(parameter) && !is.list(parameter$items)) {
+        stop('items must be a schema mapping')
       }
       if (isTRUE(parameter$missing_as_null) && !isTRUE(parameter$required)) {
         stop('missing_as_null requires an explicitly required public input')
@@ -907,6 +919,8 @@ configure_operation <- function(operation, service) {
         ('inputs' %in% names(settings) && !'default' %in% names(extra)),
       public_default = default,
       missing_as_null = isTRUE(extra$missing_as_null),
+      # format is an annotation; only minimum, maximum and items are enforced.
+      constrained = any(c('minimum', 'maximum', 'items') %in% names(extra)),
       required = FALSE,
       schema = list(
         type = switch(
@@ -917,7 +931,11 @@ configure_operation <- function(operation, service) {
           extra$type %or% 'string'
         ),
         description = extra$description %or% name
-      )
+      ) |>
+        utils::modifyList(config_data(extra[intersect(
+          names(extra),
+          c('minimum', 'maximum', 'format', 'items')
+        )]))
     )
   }
   public_names <- parameter_names(parameters)

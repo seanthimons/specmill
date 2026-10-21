@@ -361,7 +361,10 @@ parameter_checks <- function(params, formal_names) {
   selected <- which(vapply(
     params,
     function(p) {
-      p$location %in% c('query', 'path', 'header', 'cookie')
+      p$location %in%
+        c('query', 'path', 'header', 'cookie') ||
+        # Client inputs are checked only where a constraint was declared.
+        (p$location == 'client' && isTRUE(p$constrained))
     },
     logical(1)
   ))
