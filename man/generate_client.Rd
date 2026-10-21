@@ -8,7 +8,7 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
     config = NULL, callbacks = new.env(parent = emptyenv()),
     adopt = list(), artifacts = c("wrappers", "tests", "documentation"),
     validation = NULL,
-    deferrals = NULL)
+    deferrals = NULL, prune = NULL, confirm = NULL)
 \method{print}{specmill_generation}(x, ...)
 }
 \arguments{
@@ -22,6 +22,8 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
 \item{adopt}{Reviewed legacy files as a named list of relative paths and SHA-256 hashes of UTF-8/LF text without a final newline. Changed hashes fail; lifecycle and mixed-file protection still apply.}
 \item{artifacts}{Output kinds to reconcile. Defaults to all; thin wrapper/test commands can select their own artifacts while retaining one generation contract.}
 \item{deferrals}{Optional list with \code{enroll} (a named character vector of one-line reasons keyed by operation identity, \verb{<service id> <METHOD> <path>}) and \code{clear} (operation identities to retry). Enrollment is recorded on apply only; plan and check never write it. See the maintenance vignette.}
+\item{prune}{Optional, opt-in removal of owned output; the default preserves it. Operation identities (\verb{<service id> <METHOD> <path>}) remove that operation's R file, tests and help page (within the selected \code{artifacts}), regenerate \code{NAMESPACE} when documentation is generated, and drop its ownership records; the identity may name a service since removed from the configuration, and an enrolled deferral identity also matches the retired owner of the same route. An operation that is still generated, owns no output, or shares a file with other operations is refused. \code{"all"} removes every manifest-owned, unmodified output after an \verb{Are you sure? [y/N]} prompt. Edited and unowned files are never deleted. Plan and check never write. See the maintenance vignette.}
+\item{confirm}{Only for \code{prune = "all"}: \code{TRUE} skips the prompt (needed in non-interactive sessions), \code{FALSE} cancels, \code{NULL} (default) asks interactively and aborts when not interactive.}
 
 \item{validation}{\code{TRUE} or \code{FALSE}. By default, use project YAML or legacy specification \code{validation}, falling back to required validation. \code{FALSE} explicitly skips validation and is recorded in the result.}
 }
