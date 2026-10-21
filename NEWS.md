@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.55 (2026-10-21)
+
+#### New features
+
+- validate minimum, maximum and items on extra_parameters (#194)
+  ([81b97c7](https://github.com/seanthimons/specmill/tree/81b97c73136f3c958e5f992380aae7c85d5e2cb0))
+
+#### Other changes
+
+- release v0.1.55 \[skip ci\]
+  ([0953042](https://github.com/seanthimons/specmill/tree/0953042cd377d56a5a0bc0e60f0682f2d0501a7a))
+
+Full set of changes:
+[`v0.1.54...v0.1.55`](https://github.com/seanthimons/specmill/compare/v0.1.54...v0.1.55)
+
 ## specmill 0.1.54 (2026-10-20)
 
 #### Bug fixes
@@ -11,7 +26,7 @@
 #### Other changes
 
 - release v0.1.54 \[skip ci\]
-  ([d233796](https://github.com/seanthimons/specmill/tree/d233796d548c7d1bf20f9dbf847931b83d7cbf55))
+  ([ab4aaf2](https://github.com/seanthimons/specmill/tree/ab4aaf24a9017aa9f6adfd9fde1b9b8359e53471))
 
 Full set of changes:
 [`v0.1.53...v0.1.54`](https://github.com/seanthimons/specmill/compare/v0.1.53...v0.1.54)
