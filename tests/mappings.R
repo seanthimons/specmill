@@ -147,6 +147,30 @@ mappings_acceptance <- function() {
     guarded_with('importFrom(shadowpkg, c)'),
     guarded_with('import(uninstalledshadowpkg)')
   )
+  # extra_parameters constraints are generated into client-side validation (#194).
+  constrained <- tempfile('constraint-')
+  dir.create(constrained)
+  fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
+  stopifnot(all(file.copy(list.files(fixture, full.names = TRUE), constrained, recursive = TRUE)))
+  writeLines(c('config_version: 1', 'validation: false', 'services: [service.yml]'), file.path(constrained, 'specmill.yml'))
+  writeLines(c(
+    'id: s', 'schemas: {files: [schema.json]}', 'helper: catalogue_request', 'operations:',
+    '  GET /items/{item_id}:', '    extra_parameters:',
+    '      page: {type: integer, minimum: 0}',
+    '      sort: {type: array, items: {type: string}}'
+  ), file.path(constrained, 'service.yml'))
+  specmill::generate_client(validation = FALSE, constrained, config = 'specmill.yml', mode = 'apply', artifacts = 'wrappers')
+  code <- unlist(lapply(list.files(file.path(constrained, 'R'), full.names = TRUE), readLines))
+  stopifnot(
+    any(grepl('page = list(type = "integer", description = "page", minimum = 0L)', code, fixed = TRUE)),
+    any(grepl('items = list(type = "string")', code, fixed = TRUE)),
+    any(grepl('page = "client"', code, fixed = TRUE))
+  )
+  constrained_env <- new.env()
+  for (path in list.files(file.path(constrained, 'R'), full.names = TRUE)) sys.source(path, constrained_env)
+  constrained_env$catalogue_request <- function(...) list()
+  stopifnot(inherits(try(constrained_env$get_item('a', page = -1L), silent = TRUE), 'try-error'))
+  constrained_env$get_item('a', page = 1, sort = list('x'))
   stopifnot(identical(fn(' sample '), 'complete'))
   stopifnot(identical(
     calls,
