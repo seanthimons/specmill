@@ -1861,7 +1861,7 @@ demonstrates native generation, explicit mappings, and retained client code.
 | `implementation` | `generated` (default) or `existing`, which retains a declared implementation |
 | `parameters` | Schema parameter overrides: `name`, `default`, `required`, `exclude`, `description` |
 | `body` | Request-body argument override: `name`, `description` |
-| `extra_parameters` | Additional public inputs: `default`, `required`, `type`, `description` |
+| `extra_parameters` | Additional public inputs: `default`, `required`, `type`, `description`, plus schema constraints `minimum`, `maximum`, `items` (validated) and `format` (annotation only) |
 | `inputs` | Complete public input map, replacing schema-derived inputs; same fields plus `missing_as_null` |
 | `parameter_order` | Sequence of public names, including the request-body argument, to place first; remaining parameters follow |
 | `request.arguments` | Named helper arguments built from typed bindings |
