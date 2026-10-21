@@ -111,7 +111,9 @@ before committing; do not hand-edit generated files to fix a policy error.
 By default every selected operation must validate, and one failing operation
 blocks apply and check. When an upstream revision breaks one operation, you can
 defer that single contract revision instead of excluding the operation or
-forgetting its inventory. Enrollment is explicit and is recorded on apply only:
+forgetting its inventory. Enrollment is explicit and is recorded on apply only.
+For a worked example with real output, see
+[Defer or skip an operation](deferral.html):
 
 ```{r defer, eval=FALSE}
 enroll <- list(enroll = c('demo GET /bad' = 'Response lacks a description'))
