@@ -168,8 +168,11 @@ operations. A hand-edited file is retained, as with any removal. Without
 `prune`, outputs of a removed service stay in place with their old ownership
 record.
 
-`prune = 'all'` ignores `artifacts`, `adopt` and `deferrals`. It plans removal of every manifest-owned, unmodified output so a
+Named prune covers the selected `artifacts`.
+
+`prune = 'all'` plans removal of every manifest-owned, unmodified output so a
 project can be regenerated from scratch; unowned and edited files are untouched.
+It ignores `spec`, `config`, `validation`, `artifacts`, `adopt` and `deferrals`.
 Apply asks `Are you sure? [y/N]` (default no). Non-interactive sessions never
 prompt: pass `confirm = TRUE`, or the call aborts without writing.
 

@@ -192,7 +192,63 @@ prune_documentation_acceptance <- function() {
   cat('prune documentation ok\n')
 }
 
+prune_services <- function(root, ids) {
+  writeLines(
+    c('config_version: 1', paste0('services: [', paste0(ids, '.yml', collapse = ', '), ']')),
+    file.path(root, 'specmill.yml')
+  )
+  for (id in ids) {
+    route <- if (id == 'old' || id == 'new') '/other' else '/good'
+    writeLines(
+      c(
+        paste0('id: ', id),
+        'schemas: {files: [api.yml]}',
+        'helper: request_helper',
+        paste0('selection: {include: [GET ', route, ']}'),
+        'names:',
+        paste0('  GET ', route, ': demo_', substring(route, 2L))
+      ),
+      file.path(root, paste0(id, '.yml'))
+    )
+  }
+}
+
+prune_retired_service_acceptance <- function() {
+  root <- prune_fixture()
+  on.exit(unlink(root, recursive = TRUE), add = TRUE)
+  other <- file.path(root, 'R/demo_other.R')
+  prune_services(root, c('keep', 'old'))
+  stopifnot(!inherits(prune_run(root, 'apply'), 'error'))
+  # The owning service is replaced by one that defers the same route.
+  prune_services(root, c('keep', 'new'))
+  defer <- list(enroll = c('new GET /other' = 'retired'))
+  stopifnot(!inherits(prune_run(root, 'apply', deferrals = defer), 'error'))
+  stopifnot(file.exists(other), 'R/demo_other.R' %in% prune_owned(root))
+  # The deferral ID resolves to the single retired owner of the route.
+  stopifnot(!inherits(
+    prune_run(root, 'apply', prune = 'new GET /other'),
+    'error'
+  ))
+  stopifnot(
+    !file.exists(other),
+    !'R/demo_other.R' %in% prune_owned(root),
+    file.exists(file.path(root, 'R/demo_good.R'))
+  )
+  # An ID from a service that is no longer configured prunes by ownership.
+  prune_services(root, c('keep', 'old'))
+  stopifnot(!inherits(prune_run(root, 'apply'), 'error'))
+  prune_services(root, 'keep')
+  stopifnot(file.exists(other))
+  stopifnot(!inherits(
+    prune_run(root, 'apply', prune = 'old GET /other'),
+    'error'
+  ))
+  stopifnot(!file.exists(other), file.exists(file.path(root, 'R/demo_good.R')))
+  cat('prune retired service ok\n')
+}
+
 if (sys.nframe() == 0L) {
   prune_acceptance()
+  prune_retired_service_acceptance()
   prune_documentation_acceptance()
 }
