@@ -1,6 +1,35 @@
 
 
 
+## specmill 0.1.56 (2026-10-21)
+
+#### New features
+
+- opt-in removal of retired operation outputs and purge of owned output
+  (#196)
+  ([89fade3](https://github.com/seanthimons/specmill/tree/89fade3bdb33c06c70b3237ceac8bc08ea180e24))
+
+#### Tests
+
+- cover retired-service and deferral-ID prune; clarify prune scope in
+  docs (#196)
+  ([b071f2c](https://github.com/seanthimons/specmill/tree/b071f2c1280d4bfd665415b2e06fd14fcc3d09a8))
+
+#### Docs
+
+- add worked deferral and exclusion vignette
+  ([77e3075](https://github.com/seanthimons/specmill/tree/77e30750575e992bd959e3e8fd6c32c4d6ab2f56))
+
+#### Other changes
+
+- release v0.1.56 \[skip ci\]
+  ([b4585f4](https://github.com/seanthimons/specmill/tree/b4585f440c0571c14acc4a3e435ef9a7cf0c9f2a))
+- merge deferral vignette (#199) into prune branch
+  ([fb89b00](https://github.com/seanthimons/specmill/tree/fb89b00f039156913f3a14d0fd7a7655af4c4155))
+
+Full set of changes:
+[`v0.1.55...v0.1.56`](https://github.com/seanthimons/specmill/compare/v0.1.55...v0.1.56)
+
 ## specmill 0.1.55 (2026-10-21)
 
 #### New features
@@ -11,7 +40,7 @@
 #### Other changes
 
 - release v0.1.55 \[skip ci\]
-  ([0953042](https://github.com/seanthimons/specmill/tree/0953042cd377d56a5a0bc0e60f0682f2d0501a7a))
+  ([7662261](https://github.com/seanthimons/specmill/tree/7662261e47a1d4680502ffcaaa76d64ccc556902))
 
 Full set of changes:
 [`v0.1.54...v0.1.55`](https://github.com/seanthimons/specmill/compare/v0.1.54...v0.1.55)
