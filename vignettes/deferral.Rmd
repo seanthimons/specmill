@@ -1,0 +1,265 @@
+---
+title: "Defer or skip an operation"
+description: "See what specmill reads from an API YAML, then defer, exclude, or fix an operation that does not validate."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Defer or skip an operation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', message = FALSE)
+```
+
+An upstream API revision can break one operation while the rest stay healthy.
+specmill gives you three ways to handle it. This guide runs each one against a
+small schema so you can see what specmill reads and decides at every step. Every
+evaluated example runs when this guide is built and contacts no service.
+
+| You want to | Use | What happens to existing code |
+|---|---|---|
+| Wait for upstream to fix the contract | **Defer** (`deferrals = list(enroll = ...)`) | Kept. Never deleted. |
+| Stop wrapping the operation on purpose | **Skip** (`selection: exclude`) | An eligible wrapper is removed. |
+| Wrap it now | **Fix** the schema or a copy of it | Generated normally. |
+
+The reference for the deferral lifecycle is in
+[Routine maintenance and CI](maintenance.html#defer-a-changed-contract-that-does-not-validate-yet).
+This guide is the worked example.
+
+## 1. The project and the schema
+
+The project has one service and one schema. `GET /bad` has a `200` response with
+no `description`, which Swagger 2.0 requires.
+
+```{r project}
+root <- tempfile('deferral-demo-')
+dir.create(file.path(root, 'R'), recursive = TRUE)
+writeLines('request_helper <- function(...) list(...)', file.path(root, 'R/helper.R'))
+writeLines(c('config_version: 1', 'services: [service.yml]'), file.path(root, 'specmill.yml'))
+writeLines(c(
+  'id: demo',
+  'schemas: {files: [api.yml]}',
+  'helper: request_helper',
+  'names:',
+  '  GET /good: demo_good',
+  '  GET /bad: demo_bad',
+  '  GET /health: demo_health'
+), file.path(root, 'service.yml'))
+
+write_schema <- function(bad_description = NULL) {
+  response <- if (is.null(bad_description)) {
+    '        "200": {schema: {type: object}}'
+  } else {
+    paste0('        "200": {description: ', bad_description, ', schema: {type: object}}')
+  }
+  writeLines(c(
+    'swagger: "2.0"',
+    'info: {title: Demo, version: "1"}',
+    'host: api.example.org',
+    'schemes: [https]',
+    'paths:',
+    '  /good:',
+    '    get:',
+    '      operationId: good',
+    '      responses:',
+    '        "200": {description: OK}',
+    '  /bad:',
+    '    get:',
+    '      operationId: bad',
+    '      responses:',
+    response,
+    '  /health:',
+    '    get:',
+    '      operationId: health',
+    '      responses:',
+    '        "200": {description: OK}'
+  ), file.path(root, 'api.yml'))
+}
+write_schema()
+cat(readLines(file.path(root, 'api.yml')), sep = '\n')
+```
+
+## 2. What specmill sees
+
+specmill reads the file twice, with different jobs. The parser translates
+operations. The validator checks the whole document against the official
+OpenAPI JSON Schema.
+
+```{r parse}
+parsed <- specmill::read_operations(file.path(root, 'api.yml'))
+names(parsed$operations)
+length(parsed$diagnostics)
+```
+
+The parser accepts all three operations. The validator does not:
+
+```{r validate}
+validation <- specmill::validate_schema(file.path(root, 'api.yml'))
+validation$status
+validation$reason
+data.frame(
+  level = vapply(validation$findings, `[[`, character(1), 'level'),
+  scope = vapply(validation$findings, `[[`, character(1), 'scope'),
+  operation = vapply(validation$findings, function(x) x$keys[[1]], character(1)),
+  message = vapply(validation$findings, `[[`, character(1), 'message')
+)
+```
+
+The finding is `scope: operation` and names exactly one operation. That is what
+makes it deferrable. A document-level finding, or an unreadable file, blocks the
+whole run and cannot be deferred.
+
+## 3. The blocked plan
+
+Plan is read-only. With default strict validation, the failing operation is
+reported as `unsupported` and the run cannot be applied:
+
+```{r blocked}
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+blocked <- plan$diagnostics[[1]]
+unlist(blocked[c('id', 'status', 'classification', 'code', 'reason', 'guidance')])
+```
+
+`apply` refuses to continue until you choose one of the three paths below:
+
+```{r blocked-apply}
+tryCatch(
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'),
+  error = function(e) cat(conditionMessage(e), '\n')
+)
+```
+
+## 4. Defer
+
+Enrollment is explicit. The key is `<service id> <METHOD> <path>` and the reason
+is one line.
+
+```{r enroll-plan}
+enroll <- list(enroll = c('demo GET /bad' = 'Response lacks a description'))
+plan <- specmill::generate_client(
+  root, config = 'specmill.yml', mode = 'plan', deferrals = enroll
+)
+data.frame(
+  operation = names(plan$deferrals),
+  state = vapply(plan$deferrals, `[[`, character(1), 'state'),
+  detail = vapply(plan$deferrals, `[[`, character(1), 'detail'),
+  row.names = NULL
+)
+```
+
+The plan only proposes the enrollment. `apply` records it and writes the healthy
+operations:
+
+```{r enroll-apply}
+invisible(specmill::generate_client(
+  root, config = 'specmill.yml', mode = 'apply', deferrals = enroll
+))
+list.files(file.path(root, 'R'))
+```
+
+`demo_good.R` and `demo_health.R` exist. There is no `demo_bad.R`, and no
+placeholder for it either. The manifest now holds the enrollment:
+
+```{r manifest}
+manifest <- jsonlite::read_json(file.path(root, '.specmill/manifest.json'))
+str(manifest$deferrals)
+```
+
+The `fingerprint` is a SHA-256 of the operation and every local definition it
+references. It is what lets specmill tell a real contract change from noise. From
+now on `check` passes and reports the operation as deferred:
+
+```{r deferred-check}
+checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+vapply(checked$deferrals, `[[`, character(1), 'state')
+```
+
+### The contract changes but is still broken
+
+An edit to the operation changes its fingerprint, so specmill retries it. Here
+upstream adds prose to `GET /bad` but still omits the response description:
+
+```{r still-blocked}
+lines <- readLines(file.path(root, 'api.yml'))
+lines <- sub(
+  'operationId: bad', 'operationId: bad\n      description: Now with prose', lines
+)
+writeLines(lines, file.path(root, 'api.yml'))
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan$deferrals[[1]]
+```
+
+`retry_blocked` still needs a decision: fix it, enroll it again with a new
+reason, or exclude it. Edits to *unrelated* operations do not wake the
+enrollment.
+
+### The contract is fixed
+
+Now upstream supplies the description:
+
+```{r recovered}
+write_schema(bad_description = 'OK')
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan$deferrals[[1]]
+vapply(plan$operations, `[[`, character(1), 'id')
+```
+
+`retry_recovered` means the operation now passes. The plan already shows the new
+wrapper. `apply` writes it through the normal gates and drops the enrollment:
+
+```{r recovered-apply}
+invisible(specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'))
+list.files(file.path(root, 'R'))
+manifest <- jsonlite::read_json(file.path(root, '.specmill/manifest.json'))
+length(manifest$deferrals)
+```
+
+To retry an operation without waiting for a contract change, clear it
+explicitly with `deferrals = list(clear = 'demo GET /bad')`. A toolkit update
+alone never wakes an enrollment.
+
+To enroll failures automatically, add
+`deferral: {automatic: [schema_validation_invalid]}` to the service. See
+[Automatic contract-change deferral](configuration.html#automatic-contract-change-deferral).
+
+## 5. Skip
+
+Skipping is a different decision. You are saying you do not want this operation
+wrapped, whatever its contract looks like. Add an `exclude` regex to the service:
+
+```{r exclude}
+writeLines(
+  c(readLines(file.path(root, 'service.yml')), 'selection:', "  exclude: ['^/health']"),
+  file.path(root, 'service.yml')
+)
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+excluded <- plan$excluded[[1]]
+unlist(excluded[c('id', 'status', 'classification', 'reason', 'guidance')])
+```
+
+An excluded operation is listed in the inventory but its schema is never
+validated. Unlike a deferral, exclusion plans to remove an existing wrapper:
+
+```{r exclude-files}
+data.frame(
+  file = vapply(plan$files, function(x) basename(x$file), character(1)),
+  action = vapply(plan$files, `[[`, character(1), 'action')
+)
+```
+
+The `remove` row is `demo_health.R`. Removal needs verified ownership, so a file
+you edited by hand is protected instead. Review it in plan before you apply.
+
+## 6. Which one to use
+
+| Situation | Choose |
+|---|---|
+| Upstream is expected to fix a single operation, and you have a working wrapper you must keep | Defer |
+| You never want the operation wrapped, for example a health check | Skip |
+| You control the schema copy and can correct it | Fix, then plan again |
+| The whole document fails validation, or a file is unreadable | None of these. Fix the document first. |
+
+For the full state table and its limits, return to
+[Routine maintenance and CI](maintenance.html#defer-a-changed-contract-that-does-not-validate-yet).
+For selection policy, see [Configuration](configuration.html#exclude-methods-without-editing-endpoint-lists).

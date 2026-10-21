@@ -261,7 +261,8 @@ cannot establish whether a helper behaves correctly.
 If the upgrade or a schema refresh leaves one operation failing validation, you
 can [defer that contract revision](maintenance.html#defer-a-changed-contract-that-does-not-validate-yet)
 without excluding the operation. Existing wrappers, docs, and tests stay as they
-are, and a toolkit update alone never wakes a deferral.
+are, and a toolkit update alone never wakes a deferral. To delete a retired operation's
+outputs, opt in with [`prune`](maintenance.html#prune-retired-output).
 
 3. Manually merge the transport changes needed by your selected operations.
    Preserve authentication, hooks, response classes, and service-specific behavior.
