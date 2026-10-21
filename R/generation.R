@@ -1378,10 +1378,14 @@ generate_client <- function(
   adopt = list(),
   artifacts = c('wrappers', 'tests', 'documentation'),
   validation = NULL,
-  deferrals = NULL
+  deferrals = NULL,
+  prune = NULL,
+  confirm = NULL
 ) {
   mode <- match.arg(mode)
   deferral_request <- deferral_arguments(deferrals)
+  prune <- prune_request(prune)
+  prune_confirm(confirm)
   authentication <- NULL
   if (
     !is.character(artifacts) ||
@@ -1392,6 +1396,9 @@ generate_client <- function(
     stop('Unknown or empty generation artifacts')
   }
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
+  if (identical(prune, 'all')) {
+    return(purge_client(root, mode, confirm))
+  }
   config_fields(adopt, names(adopt), 'adoption hashes')
   for (name in names(adopt)) {
     config_string(adopt[[name]], 'adoption hash')
@@ -2588,6 +2595,17 @@ generate_client <- function(
       }
     }
     removals <- union(removals, renamed)
+  }
+  if (length(prune)) {
+    removals <- union(
+      removals,
+      prune_removals(
+        prune,
+        previous,
+        stored_deferrals,
+        unlist(attr(desired, 'operations'), use.names = FALSE)
+      )
+    )
   }
   if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) {
     desired <- document_output(root, desired, removals)

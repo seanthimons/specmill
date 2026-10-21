@@ -148,6 +148,31 @@ a grouped file that a healthy sibling rewrites. A never-generated deferred
 operation gets no placeholder. A project whose operations are all deferred still
 persists the enrollment, and repeating an empty apply is a no-op.
 
+### Prune retired output
+
+Preserving output is the default; removal is opt-in. To retire an operation,
+defer or exclude it so it is no longer generated, then name it:
+
+```{r prune, eval=FALSE}
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan', prune = 'demo GET /bad')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply', prune = 'demo GET /bad')
+```
+
+Apply removes the operation's R file, tests and help page, regenerates
+`NAMESPACE` (when documentation is generated) and drops the ownership records.
+The ID is matched against manifest ownership, so it may name a service that was
+since removed from `specmill.yml`; an enrolled deferral ID also matches the
+retired owner of the same `METHOD /path`. Pruning refuses an operation that is
+still generated, an ID that owns nothing, and a file shared with other
+operations. A hand-edited file is retained, as with any removal. Without
+`prune`, outputs of a removed service stay in place with their old ownership
+record.
+
+`prune = 'all'` ignores `artifacts`, `adopt` and `deferrals`. It plans removal of every manifest-owned, unmodified output so a
+project can be regenerated from scratch; unowned and edited files are untouched.
+Apply asks `Are you sure? [y/N]` (default no). Non-interactive sessions never
+prompt: pass `confirm = TRUE`, or the call aborts without writing.
+
 Limitations: a contract that stays broken needs a human decision; fingerprints
 cover local references only; a renamed source or removed operation is reported as
 `uncertain` rather than matched.
