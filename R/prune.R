@@ -11,14 +11,36 @@ prune_request <- function(prune) {
       !all(nzchar(prune)) ||
       ('all' %in% prune && length(prune) > 1L)
   ) {
-    stop("prune must be 'all' or operation IDs like '<service> <METHOD> <path>'")
+    stop(
+      "prune must be 'all', operation IDs like '<service> <METHOD> <path>', or manifest file paths"
+    )
   }
   unique(prune)
 }
 
 # Match IDs against manifest ownership; an enrolled deferral ID also matches
 # the retired owner of the same METHOD /path.
-prune_removals <- function(prune, previous, stored_deferrals, generated_ids) {
+# An ID that is a manifest file path prunes that file whole, which reaches
+# stale entries owning no operations.
+prune_removals <- function(
+  prune,
+  previous,
+  stored_deferrals,
+  generated_ids,
+  desired_paths = character()
+) {
+  paths <- intersect(prune, names(previous))
+  if ('NAMESPACE' %in% paths) {
+    stop('Cannot prune NAMESPACE; it is regenerated from the remaining sources')
+  }
+  still_desired <- intersect(paths, desired_paths)
+  if (length(still_desired)) {
+    stop(
+      'Cannot prune a file that is still generated; defer or exclude its operations first: ',
+      paste(still_desired, collapse = ', ')
+    )
+  }
+  prune <- setdiff(prune, paths)
   owned_ids <- unique(unlist(lapply(previous, function(x) x$operations)))
   matched <- character()
   for (id in prune) {
@@ -65,7 +87,7 @@ prune_removals <- function(prune, previous, stored_deferrals, generated_ids) {
       paste(shared, collapse = ', ')
     )
   }
-  owned
+  union(paths, owned)
 }
 
 prune_confirm <- function(confirm) {
