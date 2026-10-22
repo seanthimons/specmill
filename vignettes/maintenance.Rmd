@@ -172,6 +172,11 @@ record.
 
 Named prune covers the selected `artifacts`.
 
+A manifest file path also works, e.g. `prune = 'R/helper_preflight.R'`. It drops
+that file and its ownership record whole, which is the way to clear a stale
+entry that owns no operations (a helper whose file is already gone). It refuses
+a still-generated `R/` or `tests/` file and `NAMESPACE`; an edited file is retained.
+
 `prune = 'all'` plans removal of every manifest-owned, unmodified output so a
 project can be regenerated from scratch; unowned and edited files are untouched.
 It ignores `spec`, `config`, `validation`, `artifacts`, `adopt` and `deferrals`.
