@@ -180,6 +180,25 @@ that file and its ownership record whole, which is the way to clear a stale
 entry that owns no operations (a helper whose file is already gone). It refuses
 a still-generated `R/` or `tests/` file and `NAMESPACE`; an edited file is retained.
 
+### Review a clean regeneration
+
+Before pruning, `regeneration_report()` shows what a full rebuild would add,
+change or remove, and what Specmill leaves alone. It writes nothing:
+
+```{r report, eval=FALSE}
+specmill::regeneration_report(root, config = 'specmill.yml')
+```
+
+Each file gets a category: `added`, `changed`, `unchanged`, `edited_conflict`
+and `unowned_collision` (a hand-written file at a generated path), `kept`
+(lifecycle badge, existing implementation, deferral or `NAMESPACE`),
+`would_remove` (owned but no longer generated; `prune_eligible` is `FALSE` when
+an edit makes `prune` refuse it, and `reason` notes a removed service),
+`unowned_generated` (generated-looking, no ownership record) and `hand_written`
+(left alone, so the remainder is your hand-built inventory). It compares the
+in-memory plan with the current tree rather than purging and rebuilding:
+deferrals, existing implementations and lifecycle badges keep their placement.
+
 `prune = 'all'` plans removal of every manifest-owned, unmodified output so a
 project can be regenerated from scratch; unowned and edited files are untouched.
 It ignores `spec`, `config`, `validation`, `artifacts`, `adopt` and `deferrals`.

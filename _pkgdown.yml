@@ -35,6 +35,7 @@ reference:
 - title: Inspect and verify
   contents:
   - inspect_client
+  - regeneration_report
   - verify_adoption
   - propose_mappings
   - read_operations
