@@ -164,13 +164,40 @@ Apply removes the operation's R file, tests and help page, regenerates
 `NAMESPACE` (when documentation is generated) and drops the ownership records.
 The ID is matched against manifest ownership, so it may name a service that was
 since removed from `specmill.yml`; an enrolled deferral ID also matches the
-retired owner of the same `METHOD /path`. Pruning refuses an operation that is
+retired owner of the same `METHOD /path`. Otherwise the service in the ID must
+be the owner the manifest records, which can differ from the service you
+remember generating the file from: copy the ID from `files[<path>].operations` in
+`.specmill/manifest.json`. Pruning refuses an operation that is
 still generated, an ID that owns nothing, and a file shared with other
 operations. A hand-edited file is retained, as with any removal. Without
 `prune`, outputs of a removed service stay in place with their old ownership
 record.
 
 Named prune covers the selected `artifacts`.
+
+A manifest file path also works, e.g. `prune = 'R/helper_preflight.R'`. It drops
+that file and its ownership record whole, which is the way to clear a stale
+entry that owns no operations (a helper whose file is already gone). It refuses
+a still-generated `R/` or `tests/` file and `NAMESPACE`; an edited file is retained.
+
+### Review a clean regeneration
+
+Before pruning, `regeneration_report()` shows what a full rebuild would add,
+change or remove, and what Specmill leaves alone. It writes nothing:
+
+```{r report, eval=FALSE}
+specmill::regeneration_report(root, config = 'specmill.yml')
+```
+
+Each file gets a category: `added`, `changed`, `unchanged`, `edited_conflict`
+and `unowned_collision` (a hand-written file at a generated path), `kept`
+(lifecycle badge, existing implementation, deferral or `NAMESPACE`),
+`would_remove` (owned but no longer generated; `prune_eligible` is `FALSE` when
+an edit makes `prune` refuse it, and `reason` notes a removed service),
+`unowned_generated` (generated-looking, no ownership record) and `hand_written`
+(left alone, so the remainder is your hand-built inventory). It compares the
+in-memory plan with the current tree rather than purging and rebuilding:
+deferrals, existing implementations and lifecycle badges keep their placement.
 
 `prune = 'all'` plans removal of every manifest-owned, unmodified output so a
 project can be regenerated from scratch; unowned and edited files are untouched.
