@@ -355,6 +355,7 @@ example above for the full form of `generate_client()`.
 | `generate_client(mode = 'check')` | Loop | Fails if generated output is stale, protected, or blocked by diagnostics |
 | `generate_client(mode = 'apply', deferrals = ...)` | Loop | Enrolls or clears a deferred contract revision; recorded on apply only |
 | `generate_client(mode = 'apply', prune = ...)` | Loop | Opt-in removal of a retired operation's owned outputs, or of all owned output with `'all'` (asks first); plan shows it without writing |
+| `regeneration_report(root)` | Loop | Read-only report of what a clean regeneration would add, change or remove, plus unowned and hand-written files |
 | `schema_diff()` | Update | Reports what changed between two schema directories |
 
 ### Recovery and diagnostics

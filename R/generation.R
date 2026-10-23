@@ -2603,7 +2603,8 @@ generate_client <- function(
         prune,
         previous,
         stored_deferrals,
-        unlist(attr(desired, 'operations'), use.names = FALSE)
+        unlist(attr(desired, 'operations'), use.names = FALSE),
+        names(desired)
       )
     )
   }

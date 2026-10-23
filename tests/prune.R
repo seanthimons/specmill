@@ -247,8 +247,40 @@ prune_retired_service_acceptance <- function() {
   cat('prune retired service ok\n')
 }
 
+prune_path_acceptance <- function() {
+  root <- prune_fixture()
+  on.exit(unlink(root, recursive = TRUE), add = TRUE)
+  stopifnot(!inherits(prune_run(root, 'apply'), 'error'))
+  # Stale entries that own no operations: two files gone, one hand-edited.
+  edited <- file.path(root, 'R/edited.R')
+  specmill::apply_files(
+    root,
+    list('R/ghost.R' = 'a <- 1', 'R/other_ghost.R' = 'a <- 1', 'R/edited.R' = 'a <- 1'),
+    mode = 'apply'
+  )
+  unlink(file.path(root, c('R/ghost.R', 'R/other_ghost.R')))
+  writeLines('a <- 2', edited)
+  stopifnot(inherits(prune_run(root, 'apply', prune = 'R/demo_good.R'), 'error'))
+  stopifnot(!inherits(prune_run(root, 'plan', prune = 'R/ghost.R'), 'error'))
+  stopifnot('R/ghost.R' %in% prune_owned(root))
+  stopifnot(!inherits(prune_run(root, 'apply', prune = c('R/ghost.R', 'R/edited.R')), 'error'))
+  owned <- prune_owned(root)
+  stopifnot(
+    !'R/ghost.R' %in% owned,
+    'R/other_ghost.R' %in% owned,
+    file.exists(edited),
+    identical(readLines(edited), 'a <- 2'),
+    file.exists(file.path(root, 'R/demo_good.R'))
+  )
+  # Re-running without prune is a no-op.
+  stopifnot(!inherits(prune_run(root, 'apply'), 'error'))
+  stopifnot(identical(prune_owned(root), owned))
+  cat('prune path ok\n')
+}
+
 if (sys.nframe() == 0L) {
   prune_acceptance()
   prune_retired_service_acceptance()
   prune_documentation_acceptance()
+  prune_path_acceptance()
 }
