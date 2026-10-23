@@ -164,7 +164,10 @@ Apply removes the operation's R file, tests and help page, regenerates
 `NAMESPACE` (when documentation is generated) and drops the ownership records.
 The ID is matched against manifest ownership, so it may name a service that was
 since removed from `specmill.yml`; an enrolled deferral ID also matches the
-retired owner of the same `METHOD /path`. Pruning refuses an operation that is
+retired owner of the same `METHOD /path`. Otherwise the service in the ID must
+be the owner the manifest records, which can differ from the service you
+remember generating the file from: copy the ID from `files[<path>].operations` in
+`.specmill/manifest.json`. Pruning refuses an operation that is
 still generated, an ID that owns nothing, and a file shared with other
 operations. A hand-edited file is retained, as with any removal. Without
 `prune`, outputs of a removed service stay in place with their old ownership
