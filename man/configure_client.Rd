@@ -4,19 +4,21 @@
 \description{Discover every operation, group by its first tag, and propose project and service YAML without generating endpoint functions.}
 \usage{
 configure_client(root, schema, package = NULL,
-    naming = c("operation_id", "tag_prefix"),
+    naming = c("operation_id", "tag_prefix", "path"),
     group_by = c("tag", "none"),
     mode = c("plan", "apply"),
     name_case = c("asis", "snake_case", "camel_case", "pascal_case",
-        "screaming_snake_case", "dot_case"))
+        "screaming_snake_case", "dot_case"),
+    naming_options = NULL)
 }
 \arguments{
 \item{root}{Client directory. Planning does not create it.}
 \item{schema}{Local OpenAPI 3.0/3.1 or Swagger 2.0 JSON, YAML, or YML file, or a reviewed configure_apis data frame for multiple APIs.}
 \item{package}{R package name; read from DESCRIPTION when present. A supplied name must agree with existing metadata.}
-\item{naming}{Preserve valid operationId names, or use tag-prefixed snake_case. Missing or invalid IDs get method/path names. Prefixing removes exact tag tokens and their simple plural, not synonyms.}
+\item{naming}{Preserve valid operationId names, use tag-prefixed snake_case, or derive names from the route (path): path segments joined, without brace parameters, then name_case. Missing or invalid IDs get method/path names. Prefixing removes exact tag tokens and their simple plural, not synonyms.}
 \item{group_by}{Group by first operation tag, or keep one default service. Missing tags use default. Untagged/default services keep per-function source files; other groups configure a shared R file and help family.}
 \item{name_case}{Case convention applied to proposed names: preserve them as-is, or use snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, or dot.case. Exact names already reviewed in service YAML are preserved.}
+\item{naming_options}{Only with \code{naming = 'path'}; a named list, all fields optional. \code{prefix}: a string, or a named list matched by exact API id, then by the API's family token (the part before the first underscore, which it replaces), then \code{default}, else the API id. A list rather than one string because a catalogue mixes families (for example ctx_*, chemi_*, epi_*) that need different heads. \code{drop_segments}: route segments left out of names (default 'api'). \code{strip_stem}: drop a leading segment equal to the service id or its remainder after the family (default TRUE); the id is used, not the schema file name, which is arbitrary. \code{collision_suffix}: upper-case HTTP method to name fragment, e.g. \code{list(POST = 'bulk')}. \code{by_param}: qualify same-method collisions with path parameters, e.g. reports_by_id (default TRUE). Names still equal afterwards stay a name_collision diagnostic; each rename is reported as name_collision_resolved.}
 \item{mode}{Preview by default. Apply creates absent files only; differing existing files or colliding tag filenames stop the entire write.}
 }
 \value{A list with named YAML/schema text in files, operation assignments in operations, diagnostics, and changes. Each change contains file, action (create, unchanged, conflict), before, and after. Schemas with security declarations get an authentication map from scheme names to proposed environment-variable names. It contains no tokens; names can be edited before generation. API keys and HTTP bearer tokens are supported; OAuth login and refresh are deferred.}

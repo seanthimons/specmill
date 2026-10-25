@@ -57,9 +57,12 @@ configuration_proposal <- function(
   naming,
   group_by,
   name_case = 'asis',
-  reviewed_names = list()
+  reviewed_names = list(),
+  naming_options = NULL,
+  api = NULL
 ) {
-  naming <- match.arg(naming, c('operation_id', 'tag_prefix'))
+  naming <- match.arg(naming, c('operation_id', 'tag_prefix', 'path'))
+  naming_options <- validate_naming_options(naming, naming_options)
   group_by <- match.arg(group_by, c('tag', 'none'))
   name_case <- match.arg(
     name_case,
@@ -165,7 +168,15 @@ configuration_proposal <- function(
         group <- 'default'
       }
       name <- operation$operationId
-      if (
+      if (naming == 'path') {
+        # The route alone decides the name, so operationId is not consulted.
+        name <- path_operation_name(
+          toupper(method),
+          path,
+          naming_options,
+          api
+        )
+      } else if (
         is.null(name) ||
           !is.character(name) ||
           length(name) != 1L ||
@@ -183,18 +194,35 @@ configuration_proposal <- function(
         words <- words[!words %in% c(prefix, paste0(prefix, 's'))]
         name <- paste(c(prefix, words), collapse = '_')
       }
-      name <- configuration_case(name, name_case)
-      name <- make.names(name)
+      raw <- name
+      name <- make.names(configuration_case(name, name_case))
       records[[length(records) + 1L]] <- list(
         key = key,
         tag = tag,
         group = group,
-        name = name
+        name = name,
+        raw = raw,
+        method = toupper(method),
+        path = path
       )
     }
   }
   if (!length(records)) {
     stop('Schema contains no operations')
+  }
+  if (naming == 'path') {
+    resolved <- resolve_path_name_collisions(
+      records,
+      naming_options,
+      function(raw) make.names(configuration_case(raw, name_case))
+    )
+    records <- lapply(resolved$records, function(record) {
+      record$name <- make.names(configuration_case(record$raw, name_case))
+      record
+    })
+    for (diagnostic in resolved$diagnostics) {
+      report(diagnostic$key, diagnostic$code, diagnostic$message)
+    }
   }
   keys <- vapply(records, `[[`, character(1), 'key')
   groups <- vapply(records, `[[`, character(1), 'group')
@@ -446,6 +474,9 @@ configuration_proposal <- function(
       sep = '\n'
     )
   }
+  records <- lapply(records, function(record) {
+    record[c('key', 'tag', 'group', 'name')]
+  })
   list(files = files, operations = records, diagnostics = diagnostics)
 }
 
@@ -491,7 +522,7 @@ configure_client <- function(
   root,
   schema,
   package = NULL,
-  naming = c('operation_id', 'tag_prefix'),
+  naming = c('operation_id', 'tag_prefix', 'path'),
   group_by = c('tag', 'none'),
   mode = c('plan', 'apply'),
   name_case = c(
@@ -501,10 +532,12 @@ configure_client <- function(
     'pascal_case',
     'screaming_snake_case',
     'dot_case'
-  )
+  ),
+  naming_options = NULL
 ) {
   mode <- match.arg(mode)
   naming <- match.arg(naming)
+  naming_options <- validate_naming_options(naming, naming_options)
   name_case <- match.arg(name_case)
   group_by <- match.arg(group_by)
   description <- file.path(root, 'DESCRIPTION')
@@ -516,9 +549,24 @@ configure_client <- function(
     package <- existing
   }
   proposal <- if (is.data.frame(schema)) {
-    multi_api_proposal(root, schema, package, naming, group_by, name_case)
+    multi_api_proposal(
+      root,
+      schema,
+      package,
+      naming,
+      group_by,
+      name_case,
+      naming_options = naming_options
+    )
   } else {
-    configuration_proposal(schema, package, naming, group_by, name_case)
+    configuration_proposal(
+      schema,
+      package,
+      naming,
+      group_by,
+      name_case,
+      naming_options = naming_options
+    )
   }
   reviewed <- reviewed_configuration_names(root, proposal)
   if (length(reviewed)) {
@@ -530,7 +578,8 @@ configure_client <- function(
         naming,
         group_by,
         name_case,
-        reviewed
+        reviewed,
+        naming_options = naming_options
       )
     } else {
       configuration_proposal(
@@ -539,7 +588,8 @@ configure_client <- function(
         naming,
         group_by,
         name_case,
-        reviewed
+        reviewed,
+        naming_options = naming_options
       )
     }
   }
