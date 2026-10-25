@@ -93,6 +93,17 @@ schema_servers <- function(file) {
 
 config_data <- function(x) if (is.list(x)) lapply(x, config_data) else x
 
+# Fixed contracts are keyed by wrapper name (RDS, legacy) or by `METHOD /path`,
+# which survives renaming the wrapper (#207). A key naming both is ambiguous.
+fixed_contract <- function(service, operation) {
+  by_name <- service$contracts[[operation$name]]
+  by_route <- service$contracts[[operation$key]]
+  if (!is.null(by_name) && !is.null(by_route)) {
+    stop('Duplicate fixed contract for ', operation$key, ' and ', operation$name)
+  }
+  by_name %or% by_route
+}
+
 read_service_operations <- function(service) {
   parsed <- read_operations(service$files, service[['policy']] %or% list())
   mapped <- character()
@@ -595,10 +606,19 @@ load_project <- function(
     if (!is.null(service$contracts_file)) {
       relative <- config_string(service$contracts_file, 'contracts_file')
       fixture_path <- project_path(root, relative)
-      if (!grepl('^tests/testthat/.+\\.rds$', relative)) {
-        stop('contracts_file must be an RDS fixture inside tests/testthat/')
+      if (!grepl('^tests/testthat/.+\\.(rds|ya?ml|json)$', relative)) {
+        stop('contracts_file must be an RDS, YAML or JSON fixture inside tests/testthat/')
       }
-      fixed <- readRDS(fixture_path)
+      fixed <- if (grepl('\\.rds$', relative)) {
+        readRDS(fixture_path)
+      } else {
+        # JSON is a YAML subset, so one reader serves both text formats.
+        yaml::yaml.load_file(
+          fixture_path,
+          eval.expr = FALSE,
+          handlers = list(expr = function(...) stop('Executable YAML tags are forbidden'))
+        )
+      }
       config_fields(fixed, names(fixed), 'fixed contracts')
       if (length(intersect(names(fixed), names(contracts)))) {
         stop('Duplicate fixed contract')

@@ -2340,8 +2340,8 @@ generate_client <- function(
           )
         }
       }
-      if (op$name %in% names(service$contracts)) {
-        contract <- service$contracts[[op$name]]
+      contract <- fixed_contract(service, op)
+      if (!is.null(contract)) {
         if (
           !is.null(config) &&
             'calls' %in% names(contract) &&

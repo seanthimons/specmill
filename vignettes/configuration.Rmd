@@ -1730,7 +1730,7 @@ policy_version: reviewed-1
 | `hook_callback` | Client hook executor name; default `run_hook` |
 | `prepare` | Development callback name; receives and returns an operation, preserving identity |
 | `contracts` | Inline fixed request expectations; see [Testing](testing.html) |
-| `contracts_file` | RDS fixed call sequences under `tests/testthat/`, preserving R classes |
+| `contracts_file` | Fixed call sequences under `tests/testthat/`: RDS (preserves R classes) or readable YAML/JSON keyed by wrapper name or `METHOD /path` |
 | `response_fixture` | Default mock response for inline single-call contracts |
 
 `files` and `patterns` can be combined; paths are deduplicated and sorted.
