@@ -6,7 +6,8 @@ multi_api_proposal <- function(
   group_by,
   name_case = 'asis',
   reviewed_names = list(),
-  companions = character()
+  companions = character(),
+  naming_options = NULL
 ) {
   required <- c('schema', 'api', 'base_url', 'include')
   if (
@@ -54,7 +55,9 @@ multi_api_proposal <- function(
       naming,
       group_by,
       name_case,
-      api_reviewed
+      api_reviewed,
+      naming_options = naming_options,
+      api = api
     )
     project <- yaml::yaml.load(proposal$files[['specmill.yml']])
     local_auth <- project$authentication
@@ -106,11 +109,14 @@ multi_api_proposal <- function(
       for (key in names(config$names)) {
         old <- config$names[[key]]
         reviewed <- api_reviewed[[key]]
+        # Path naming already builds the API head into the name (see
+        # path_naming_head()), so it must not be prefixed a second time.
         new <- reviewed %or%
-          configuration_case(
-            paste(api, old, sep = '_'),
-            name_case
-          )
+          if (identical(naming, 'path')) {
+            old
+          } else {
+            configuration_case(paste(api, old, sep = '_'), name_case)
+          }
         if (!identical(make.names(new), new) || new == '...') {
           stop('Invalid reviewed operation name: ', paste(api, key))
         }
@@ -152,10 +158,11 @@ multi_api_proposal <- function(
     services <- c(services, destination)
     for (op in proposal$operations) {
       op$name <- api_reviewed[[op$key]] %or%
-        configuration_case(
-          paste(api, op$name, sep = '_'),
-          name_case
-        )
+        if (identical(naming, 'path')) {
+          op$name
+        } else {
+          configuration_case(paste(api, op$name, sep = '_'), name_case)
+        }
       op$api <- api
       operations[[length(operations) + 1L]] <- op
     }
@@ -202,7 +209,8 @@ initialize_apis <- function(
   naming,
   group_by,
   name_case,
-  companions = character()
+  companions = character(),
+  naming_options = NULL
 ) {
   if (file.exists(file.path(root, 'DESCRIPTION'))) {
     stop('Multi-API initialization requires a new package directory')
@@ -214,7 +222,8 @@ initialize_apis <- function(
     naming,
     group_by,
     name_case,
-    companions = companions
+    companions = companions,
+    naming_options = naming_options
   )
   first <- apis[apis$include, , drop = FALSE][1L, ]
   stage <- tempfile('multi-api-initialization-')

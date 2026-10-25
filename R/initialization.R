@@ -6,7 +6,7 @@ initialize_client <- function(
   author = NULL,
   license = NULL,
   base_url = NULL,
-  naming = c('operation_id', 'tag_prefix'),
+  naming = c('operation_id', 'tag_prefix', 'path'),
   group_by = c('tag', 'none'),
   name_case = c(
     'asis',
@@ -16,7 +16,8 @@ initialize_client <- function(
     'screaming_snake_case',
     'dot_case'
   ),
-  companions = character()
+  companions = character(),
+  naming_options = NULL
 ) {
   companions <- validate_companions(companions)
   if (is.data.frame(schema)) {
@@ -30,11 +31,13 @@ initialize_client <- function(
       match.arg(naming),
       match.arg(group_by),
       match.arg(name_case),
-      companions
+      companions,
+      validate_naming_options(match.arg(naming), naming_options)
     ))
   }
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
   naming <- match.arg(naming)
+  naming_options <- validate_naming_options(naming, naming_options)
   name_case <- match.arg(name_case)
   group_by <- match.arg(group_by)
   document <- read_schema_document(schema)
@@ -133,7 +136,8 @@ initialize_client <- function(
     package,
     naming,
     group_by,
-    name_case
+    name_case,
+    naming_options = naming_options
   )
   if (
     any(vapply(
