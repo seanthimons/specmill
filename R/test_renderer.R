@@ -171,6 +171,13 @@ render_fixed_contract <- function(operation, spec, contract) {
   if (!spec$helper %in% helpers) {
     stop('Fixed contract must exercise its request helper')
   }
+  text_fixture <- !grepl('\\.rds$', spec$contracts_file)
+  # YAML and JSON cannot tell 1L from 1, so they compare with tolerance.
+  expect <- if (text_fixture) {
+    'testthat::expect_equal'
+  } else {
+    'testthat::expect_identical'
+  }
   paste(
     c(
       '# Generated with specmill; do not edit by hand.',
@@ -179,13 +186,35 @@ render_fixed_contract <- function(operation, spec, contract) {
         r_literal(paste(operation$name, 'completes the fixed call sequence')),
         ', {'
       ),
-      paste0(
-        '  contract <- readRDS(testthat::test_path(',
-        r_literal(sub('^tests/testthat/', '', spec$contracts_file)),
-        '))[[',
-        r_literal(operation$name),
-        ']]'
-      ),
+      if (text_fixture) {
+        c(
+          paste0(
+            '  fixtures <- yaml::yaml.load_file(testthat::test_path(',
+            r_literal(sub('^tests/testthat/', '', spec$contracts_file)),
+            '))'
+          ),
+          paste0('  contract <- fixtures[[', r_literal(operation$name), ']]'),
+          paste0(
+            '  if (is.null(contract)) contract <- fixtures[[',
+            r_literal(operation$key),
+            ']]'
+          )
+        )
+      } else {
+        c(
+          paste0(
+            '  fixtures <- readRDS(testthat::test_path(',
+            r_literal(sub('^tests/testthat/', '', spec$contracts_file)),
+            '))'
+          ),
+          paste0('  contract <- fixtures[[', r_literal(operation$name), ']]'),
+          paste0(
+            '  if (is.null(contract)) contract <- fixtures[[',
+            r_literal(operation$key),
+            ']]'
+          )
+        )
+      },
       if (length(contract$environment)) {
         '  withr::local_envvar(unlist(contract$environment, use.names = TRUE))'
       },
@@ -226,8 +255,12 @@ render_fixed_contract <- function(operation, spec, contract) {
         operation$name,
         ', contract$inputs)'
       ),
-      "  testthat::expect_identical(captured, lapply(contract$calls, function(x) x[c('helper', 'arguments')]))",
-      '  testthat::expect_identical(result, contract$result)',
+      paste0(
+        '  ',
+        expect,
+        "(captured, lapply(contract$calls, function(x) x[c('helper', 'arguments')]))"
+      ),
+      paste0('  ', expect, '(result, contract$result)'),
       '})'
     ),
     collapse = '\n'

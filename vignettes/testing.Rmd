@@ -71,7 +71,15 @@ cat('\ncontracts_file: tests/testthat/fixtures/contracts.rds\n',
     file = file.path(root, 'apis/default.yml'), append = TRUE)
 ```
 
-Keys such as `get_item` are public wrapper names. Inputs use their public R names.
+Keys such as `get_item` are public wrapper names.
+
+`contracts_file` may instead be a readable `.yml`, `.yaml` or `.json` file under
+`tests/testthat/`, keyed by `METHOD /path` (for example `GET /items/{item_id}`).
+Route keys survive renaming a wrapper and give reviewable diffs. Text fixtures
+cannot tell `1L` from `1`, so their generated tests compare with
+`expect_equal()`; use RDS when exact types matter. Add `yaml` to the client's
+`Suggests`, as the generated tests read the file with it. A key naming both a
+wrapper and its route is an error. Inputs use their public R names.
 Specify types intentionally: `1L` is an integer, `1` is a double, and exact
 expectations distinguish them. Use actual response classes (for example tibbles)
 when preserving an existing client. Never put credentials in fixtures.

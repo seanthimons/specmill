@@ -228,6 +228,7 @@ read_operations <- function(files, policy = list()) {
         )
         source_location <- operation_location
         diagnostic_context <- NULL
+        path_problems <- NULL
         reason <- operation_selection_reason(key, path, toupper(method), policy)
         selected <- !length(reason)
         record <- list(
@@ -802,29 +803,32 @@ read_operations <- function(files, policy = list()) {
               'name'
             )
             unmatched <- setdiff(path_names, templates)
-            if (length(unmatched)) {
+            for (name in unmatched) {
               i <- which(vapply(
                 params,
                 function(p) {
-                  p$location == 'path' && p$name == unmatched[[1L]]
+                  p$location == 'path' && p$name == name
                 },
                 logical(1)
               ))[[1L]]
-              schema_problem(
-                'unmatched_path_parameter',
-                'schema_defect',
-                paste('Unmatched path parameter:', unmatched[[1L]]),
-                parameter_locations[[i]]
+              path_problems[[length(path_problems) + 1L]] <- list(
+                code = 'unmatched_path_parameter',
+                classification = 'schema_defect',
+                message = paste('Unmatched path parameter:', name),
+                source_location = parameter_locations[[i]]
               )
             }
             missing <- setdiff(templates, path_names)
-            if (length(missing)) {
-              schema_problem(
-                'missing_path_parameter',
-                'schema_defect',
-                paste('Missing path parameter:', missing[[1L]]),
-                schema_location('#/paths', path)
+            for (name in missing) {
+              path_problems[[length(path_problems) + 1L]] <- list(
+                code = 'missing_path_parameter',
+                classification = 'schema_defect',
+                message = paste('Missing path parameter:', name),
+                source_location = schema_location('#/paths', path)
               )
+            }
+            if (length(path_problems)) {
+              do.call(schema_problem, path_problems[[1L]])
             }
             if (body_present) {
               source_location <- body_location
@@ -974,17 +978,23 @@ read_operations <- function(files, policy = list()) {
             )
           },
           error = function(e) {
-            diagnostics[[length(diagnostics) + 1L]] <<- c(
-              list(
-                id = id,
-                service = policy$service %or% 'default',
-                key = key,
-                source = file,
-                status = 'unsupported',
-                reason = conditionMessage(e)
-              ),
-              diagnostic_fields(e, source_location)
-            )
+            for (problem in path_problems %or% list(e)) {
+              diagnostics[[length(diagnostics) + 1L]] <<- c(
+                list(
+                  id = id,
+                  service = policy$service %or% 'default',
+                  key = key,
+                  source = file,
+                  status = 'unsupported',
+                  reason = if (inherits(problem, 'condition')) {
+                    conditionMessage(problem)
+                  } else {
+                    problem$message
+                  }
+                ),
+                diagnostic_fields(problem, source_location)
+              )
+            }
             NULL
           }
         )
