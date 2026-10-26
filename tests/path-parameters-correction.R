@@ -32,7 +32,11 @@ path_parameters_correction_acceptance <- function() {
     document[[if (version == '2.0') 'swagger' else 'openapi']] <- version
     jsonlite::write_json(document, schema, auto_unbox = TRUE)
     uncorrected <- specmill::read_operations(schema)
-    stopifnot(length(uncorrected$diagnostics) == 2L)
+    # Every contradiction is reported: three on the first route, one on the second.
+    stopifnot(
+      length(uncorrected$diagnostics) == 4L,
+      length(unique(vapply(uncorrected$diagnostics, `[[`, '', 'key'))) == 2L
+    )
     before <- tools::md5sum(schema)
     root <- file.path(workspace, version)
     specmill::initialize_client(
