@@ -1,6 +1,52 @@
 
 
 
+## specmill 0.1.57 (2026-10-26)
+
+#### New features
+
+- accept readable YAML or JSON contracts_file keyed by METHOD /path
+  (#207)
+  ([f863ae2](https://github.com/seanthimons/specmill/tree/f863ae2a14bceac7326d05314fa4d72ce779707b))
+- add route-derived names with naming = ‘path’ and reported collision
+  resolution (#206)
+  ([7580693](https://github.com/seanthimons/specmill/tree/7580693d711dccef5ba0ab5e6bdce1cfd648c03f))
+- add regeneration_report for a read-only clean-regeneration and
+  hand-built inventory (#201, #197)
+  ([4353445](https://github.com/seanthimons/specmill/tree/43534451adf67519b0454c564d7b1c68784af9f3))
+- accept a manifest file path to prune stale entries that own no
+  operations (#203)
+  ([3c0c9cd](https://github.com/seanthimons/specmill/tree/3c0c9cd5ed787f1926e4776716dda89fd833f09b))
+
+#### Bug fixes
+
+- find prune fixtures when run from tests/ under R CMD check
+  ([0e88e0b](https://github.com/seanthimons/specmill/tree/0e88e0b29a814193974c82d734f7f0832e9c2abe))
+- expect every path-parameter contradiction in the correction test
+  ([6e8a460](https://github.com/seanthimons/specmill/tree/6e8a4604240dbe24b7e227cf385b00d95e37d045))
+- expect every path-parameter contradiction in the capability audit
+  ([22b2626](https://github.com/seanthimons/specmill/tree/22b2626f73471a3eff39f73e7b39d47477a913ed))
+- report all path parameter name contradictions
+  ([2955571](https://github.com/seanthimons/specmill/tree/29555713c29cc461664211ea7b30eaab4c143ad4))
+
+#### Docs
+
+- refresh audit header, print per-finding output, assert plan diagnostic
+  codes (#208)
+  ([fed2064](https://github.com/seanthimons/specmill/tree/fed2064a32bcde355f03de47eb2f9c264e8e2933))
+- document upstream schema publication gate and AMOS findings
+  ([1043ff8](https://github.com/seanthimons/specmill/tree/1043ff8191223a139bfa512b0aff89e5e4f2ee09))
+- name the manifest-recorded owner service in prune IDs
+  ([bb70c50](https://github.com/seanthimons/specmill/tree/bb70c501ca9de257d7822ae9a6332c3ea50a752e))
+
+#### Other changes
+
+- release v0.1.57 \[skip ci\]
+  ([ee8d8b4](https://github.com/seanthimons/specmill/tree/ee8d8b464b9aa44afc9e41982bee0d06dd65bbac))
+
+Full set of changes:
+[`v0.1.56...v0.1.57`](https://github.com/seanthimons/specmill/compare/v0.1.56...v0.1.57)
+
 ## specmill 0.1.56 (2026-10-21)
 
 #### New features
@@ -23,7 +69,7 @@
 #### Other changes
 
 - release v0.1.56 \[skip ci\]
-  ([b4585f4](https://github.com/seanthimons/specmill/tree/b4585f440c0571c14acc4a3e435ef9a7cf0c9f2a))
+  ([d0ae3f2](https://github.com/seanthimons/specmill/tree/d0ae3f22900f4399f121f42c969bb7427d4f63bb))
 - merge deferral vignette (#199) into prune branch
   ([fb89b00](https://github.com/seanthimons/specmill/tree/fb89b00f039156913f3a14d0fd7a7655af4c4155))
 
