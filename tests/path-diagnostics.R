@@ -150,6 +150,14 @@ path_diagnostics_acceptance <- function() {
   )
   stopifnot(
     length(plan$diagnostics) == 3L,
+    identical(
+      vapply(plan$diagnostics, `[[`, '', 'code'),
+      c(
+        'unmatched_path_parameter',
+        'missing_path_parameter',
+        'missing_path_parameter'
+      )
+    ),
     length(plan$operations) == 1L,
     identical(before, snapshot())
   )

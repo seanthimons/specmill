@@ -372,7 +372,7 @@ files <- commandArgs(trailingOnly = TRUE)
 stopifnot(length(files) > 0L)
 for (file in files) {
   parsed <- specmill::read_operations(file)
-  print(parsed$diagnostics)
+  for (d in parsed$diagnostics) cat(file, d$code, d$key, '\n')
   stopifnot(length(parsed$diagnostics) == 0L)
 }
 ```
