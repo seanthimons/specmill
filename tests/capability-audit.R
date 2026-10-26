@@ -45,7 +45,7 @@ capability_audit_acceptance <- function() {
   override <- operation(parameters, 'override_path_parameter')
   stopifnot(
     length(parameters$operations) == 5L,
-    length(parameters$diagnostics) == 3L,
+    length(parameters$diagnostics) == 4L,
     diagnostics[['GET /missing/{id}']]$code == 'missing_path_parameter',
     diagnostics[['GET /missing/{id}']]$source_location ==
       '#/paths/~1missing~1{id}',
@@ -53,6 +53,11 @@ capability_audit_acceptance <- function() {
       'unmatched_path_parameter',
     diagnostics[['GET /mismatched/{id}']]$source_location ==
       '#/paths/~1mismatched~1{id}/get/parameters/0',
+    # Every contradiction on a route is reported, not only the first.
+    identical(
+      vapply(parameters$diagnostics, `[[`, '', 'reason')[2:3],
+      c('Unmatched path parameter: other', 'Missing path parameter: id')
+    ),
     diagnostics[['GET /duplicate']]$code == 'duplicate_parameter',
     diagnostics[['GET /duplicate']]$source_location ==
       '#/paths/~1duplicate/get/parameters/1',
