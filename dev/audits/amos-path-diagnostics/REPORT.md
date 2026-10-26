@@ -1,8 +1,7 @@
 # AMOS path-schema diagnostics
 
-Reviewed 2026-09-23 on `dev/amos-path-diagnostics`, based on specmill main
-`13b14b8`. Work is isolated in a separate worktree. The original specmill
-checkout's uncommitted audit files were left in place. ComptoxR remains clean
+Reviewed 2026-09-23 and landed on `fix/amos-path-diagnostics`, based on
+specmill main `2a083eb`. ComptoxR remains clean
 on `feat/specmill-migration-pilot` at `6e7b02a3`, following `1444ca5f`.
 No merge, schema rewrite, client edit, or production request was performed.
 
