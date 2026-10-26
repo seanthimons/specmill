@@ -218,7 +218,7 @@ inspect_client <- function(
       configured <- configure_operation(operation, service)
       name <- operation$name
       definition <- definitions[[name]]
-      contract <- service$contracts[[name]]
+      contract <- fixed_contract(service, operation)
       test_file <- paste0(
         'tests/testthat/test-',
         if ('calls' %in% names(contract)) 'contract-',

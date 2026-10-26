@@ -140,6 +140,49 @@ configuration_acceptance <- function() {
     normalizePath(fixture_path, winslash = '/') %in% loaded$inputs
   )
   specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
+  # A readable fixture keyed by route survives renaming the wrapper (#207).
+  yaml_fixture <- file.path(root, 'tests/testthat/fixtures/fixed.yml')
+  writeLines(
+    c(
+      "GET /items:",
+      "  inputs: {page: 2}",
+      "  calls:",
+      "    - helper: catalogue_request",
+      "      arguments:",
+      "        method: GET",
+      "        path: /items",
+      "        query: {page: 2}",
+      "      response: {count: 0}",
+      "  result: {count: 0}"
+    ),
+    yaml_fixture
+  )
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.yml'))
+  loaded <- specmill::load_project(root)
+  stopifnot(identical(names(loaded$services$catalogue$contracts), 'GET /items'))
+  inspected <- specmill::inspect_client(root)
+  stopifnot(inspected$operations[['catalogue GET /items']]$contract_declared)
+  planned <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
+  stopifnot(
+    'tests/testthat/test-contract-list_items.R' %in%
+      vapply(planned$files, function(x) x$file, '')
+  )
+  rendered <- specmill:::render_fixed_contract(
+    list(name = 'list_items', key = 'GET /items'),
+    list(
+      package = 'yamlclient',
+      helper = 'catalogue_request',
+      contracts_file = 'tests/testthat/fixtures/fixed.yml'
+    ),
+    loaded$services$catalogue$contracts[['GET /items']]
+  )
+  stopifnot(
+    grepl('fixtures[["GET /items"]]', rendered, fixed = TRUE),
+    grepl('expect_equal', rendered, fixed = TRUE)
+  )
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.txt'))
+  fails(specmill::load_project(root), 'RDS, YAML or JSON')
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.rds'))
   fixed$list_items$result <- function() NULL
   saveRDS(fixed, fixture_path)
   fails(specmill::load_project(root), 'only R data')

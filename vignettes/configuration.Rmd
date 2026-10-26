@@ -879,6 +879,28 @@ method/path names. Every proposed name is explicit in the YAML for editing.
 Multiple tags use the first, with a diagnostic; missing tags use `default`.
 `group_by = 'none'` creates a single default service instead.
 
+`naming = 'path'` derives names from the route instead: segments are joined, `{param}`
+and `api` segments are dropped, and a leading segment equal to the service id is
+stripped. `naming_options` tunes it, and every result is still written to the
+YAML `names:` map for review:
+
+```r
+specmill::configure_client(
+  root, schema, naming = 'path',
+  naming_options = list(
+    prefix = list(ctx = 'ct', chemi = 'chemi'), # by API id, then family
+    collision_suffix = list(POST = 'bulk')
+  )
+)
+```
+
+With `GET /api/rdkit` and `POST /api/rdkit` this proposes `chemi_rdkit` and
+`chemi_rdkit_bulk`. `GET /reports` and `GET /reports/{id}` share a method, so the
+second becomes `reports_by_id` (`by_param = FALSE` turns that off). `prefix` is a
+named list because a catalogue mixes families that need different heads. Every
+rename is reported as `name_collision_resolved`; names the rule cannot separate
+remain `name_collision` and block generation until edited.
+
 Use `name_case` independently of that naming strategy. Its choices are `asis`
 (the default), `snake_case`, `camel_case`, `pascal_case`,
 `screaming_snake_case`, and `dot_case`. Thus `naming = 'tag_prefix'` with
@@ -1708,7 +1730,7 @@ policy_version: reviewed-1
 | `hook_callback` | Client hook executor name; default `run_hook` |
 | `prepare` | Development callback name; receives and returns an operation, preserving identity |
 | `contracts` | Inline fixed request expectations; see [Testing](testing.html) |
-| `contracts_file` | RDS fixed call sequences under `tests/testthat/`, preserving R classes |
+| `contracts_file` | Fixed call sequences under `tests/testthat/`: RDS (preserves R classes) or readable YAML/JSON keyed by wrapper name or `METHOD /path` |
 | `response_fixture` | Default mock response for inline single-call contracts |
 
 `files` and `patterns` can be combined; paths are deduplicated and sorted.
