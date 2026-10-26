@@ -1,6 +1,9 @@
-# Reuses the prune fixtures; run from the repository root.
+# Reuses the prune fixtures; run from the repository root or from tests/ (R CMD check).
 fixtures <- new.env()
-sys.source('tests/prune.R', envir = fixtures)
+sys.source(
+  if (file.exists('prune.R')) 'prune.R' else 'tests/prune.R',
+  envir = fixtures
+)
 
 tree_state <- function(root) {
   files <- list.files(root, recursive = TRUE, all.files = TRUE, full.names = TRUE)
