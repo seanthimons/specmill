@@ -1,6 +1,22 @@
 
 
 
+## specmill 0.1.58 (2026-10-28)
+
+#### Bug fixes
+
+- resolve path-name doubling, owned-file splits and coverage service
+  exclusion (#212, #213, #214)
+  ([745941f](https://github.com/seanthimons/specmill/tree/745941fa5af2707c4881a2557e0aded3abeaf5d3))
+
+#### Other changes
+
+- release v0.1.58 \[skip ci\]
+  ([718bdc6](https://github.com/seanthimons/specmill/tree/718bdc6bcb1d176cd7369f514f48e7e063e2dda9))
+
+Full set of changes:
+[`v0.1.57...v0.1.58`](https://github.com/seanthimons/specmill/compare/v0.1.57...v0.1.58)
+
 ## specmill 0.1.57 (2026-10-26)
 
 #### New features
@@ -42,7 +58,7 @@
 #### Other changes
 
 - release v0.1.57 \[skip ci\]
-  ([ee8d8b4](https://github.com/seanthimons/specmill/tree/ee8d8b464b9aa44afc9e41982bee0d06dd65bbac))
+  ([ebcf7e1](https://github.com/seanthimons/specmill/tree/ebcf7e103e35f47100d786a44c81278a9c74fd4f))
 
 Full set of changes:
 [`v0.1.56...v0.1.57`](https://github.com/seanthimons/specmill/compare/v0.1.56...v0.1.57)
