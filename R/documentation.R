@@ -189,7 +189,8 @@ operation_documentation <- function(op, policy = list()) {
     )
   }
   text <- c(
-    prose(policy$title %or% op$summary),
+    # checkRd notes Rd titles that end in a period.
+    prose(sub('[.]\\s*$', '', policy$title %or% op$summary)),
     '',
     if (is.null(policy$lifecycle)) '@noMd' else '@md',
     if (!is.null(policy$lifecycle) || !is.null(policy$description)) {

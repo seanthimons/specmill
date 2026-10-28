@@ -196,9 +196,16 @@ tg_scaffold_generated_tests <- function(
     dry_run = TRUE,
     force = force
   )
+  # Manual tests are skipped, so they are not apply_files targets.
+  generated <- Filter(
+    function(spec) {
+      !identical(write_results[[spec$function_name]]$action, 'skipped_manual')
+    },
+    desired
+  )
   output <- stats::setNames(
-    lapply(desired, `[[`, 'text'),
-    vapply(desired, `[[`, character(1), 'file')
+    lapply(generated, `[[`, 'text'),
+    vapply(generated, `[[`, character(1), 'file')
   )
   removals <- vapply(
     c(removed_legacy, removed_obsolete),
@@ -206,7 +213,7 @@ tg_scaffold_generated_tests <- function(
     character(1),
     root = root
   )
-  specmill::apply_files(
+  plan <- specmill::apply_files(
     root,
     output,
     remove = setdiff(removals, names(output)),
@@ -224,6 +231,7 @@ tg_scaffold_generated_tests <- function(
     removed = c(removed_legacy, removed_obsolete),
     removed_legacy = removed_legacy,
     removed_obsolete = removed_obsolete,
-    writes = write_results
+    writes = write_results,
+    plan = plan
   )
 }
