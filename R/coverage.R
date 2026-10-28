@@ -10,7 +10,11 @@ coverage_report <- function(
   if (is.character(policy)) {
     policy <- config_data(read_config_yaml(policy))
   }
-  config_fields(policy, c('baseline', 'groups'), 'coverage policy')
+  config_fields(
+    policy,
+    c('baseline', 'groups', 'exclude_services'),
+    'coverage policy'
+  )
   config_fields(policy$groups, names(policy$groups), 'coverage groups')
   baseline_path <- project_path(
     root,
@@ -22,6 +26,19 @@ coverage_report <- function(
     list()
   }
   inspection <- inspect_client(root, config, callbacks)
+  # Services left out on purpose, e.g. a reviewed overlay with no production source.
+  left_out <- character()
+  for (pattern in vapply(
+    as.list(policy$exclude_services),
+    config_string,
+    character(1),
+    label = 'coverage exclude_services'
+  )) {
+    left_out <- union(
+      left_out,
+      grep(pattern, names(inspection$coverage), value = TRUE)
+    )
+  }
   selected <- character()
   values <- list()
   outputs <- list()
@@ -78,7 +95,10 @@ coverage_report <- function(
       stop('Invalid coverage output prefix')
     }
     members <- grep(group$services, names(inspection$coverage), value = TRUE)
-    if (!length(members) || length(intersect(selected, members))) {
+    if (
+      !length(members) ||
+        length(intersect(c(selected, left_out), members))
+    ) {
       stop('Coverage groups are empty or overlap')
     }
     selected <- c(selected, members)
@@ -150,8 +170,11 @@ coverage_report <- function(
       ))
     }
   }
-  if (!setequal(selected, names(inspection$coverage))) {
+  if (!setequal(c(selected, left_out), names(inspection$coverage))) {
     stop('Coverage policy omits configured services')
+  }
+  if (length(left_out)) {
+    cat('Excluded from coverage:', paste(left_out, collapse = ', '), '\n')
   }
   values$timestamp <- format(Sys.time(), '%Y-%m-%dT%H:%M:%SZ', tz = 'UTC')
   if (mode == 'apply') {
