@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.59 (2026-10-28)
+
+#### Bug fixes
+
+- handle titles and manual test scaffolding
+  ([4153703](https://github.com/seanthimons/specmill/tree/41537031c51c8730ffe86cdc438f05df010d3910))
+
+#### Other changes
+
+- release v0.1.59 \[skip ci\]
+  ([428f47d](https://github.com/seanthimons/specmill/tree/428f47dc85073db4d9a09e48e436893766c67fa3))
+
+Full set of changes:
+[`v0.1.58...v0.1.59`](https://github.com/seanthimons/specmill/compare/v0.1.58...v0.1.59)
+
 ## specmill 0.1.58 (2026-10-28)
 
 #### Bug fixes
@@ -12,7 +27,7 @@
 #### Other changes
 
 - release v0.1.58 \[skip ci\]
-  ([718bdc6](https://github.com/seanthimons/specmill/tree/718bdc6bcb1d176cd7369f514f48e7e063e2dda9))
+  ([2cc61a7](https://github.com/seanthimons/specmill/tree/2cc61a7d1690069d69d721898e6a96ccdb713339))
 
 Full set of changes:
 [`v0.1.57...v0.1.58`](https://github.com/seanthimons/specmill/compare/v0.1.57...v0.1.58)
