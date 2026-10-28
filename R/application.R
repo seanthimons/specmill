@@ -323,8 +323,12 @@ apply_files <- function(
   if (mode != 'apply') {
     return(entries)
   }
-  if (any(vapply(entries, function(e) e$action == 'protected', logical(1)))) {
-    stop('Protected output conflicts; no files applied')
+  protected <- Filter(function(e) e$action == 'protected', entries)
+  if (length(protected)) {
+    stop(
+      'Protected output conflicts; no files applied: ',
+      paste(vapply(protected, `[[`, character(1), 'file'), collapse = ', ')
+    )
   }
   pending <- Filter(function(e) e$action %in% c('write', 'remove'), entries)
   if (!length(pending)) {
