@@ -232,13 +232,23 @@ resolve_path_name_collisions <- function(records, options, final) {
         next
       }
       for (i in set[nzchar(signatures)]) {
-        parameters <- path_parameter_names(records[[i]]$path)
+        parameters <- paste(
+          path_parameter_names(records[[i]]$path),
+          collapse = '_and_'
+        )
+        # `/by-aeid/{aeid}` already reads `..._by_aeid`; a second qualifier
+        # would double it, and the method suffix below separates the pair.
+        qualifier <- paste0('by_', parameters)
+        raw <- tolower(records[[i]]$raw)
+        if (
+          raw == tolower(qualifier) ||
+            endsWith(raw, paste0('_', tolower(qualifier)))
+        ) {
+          next
+        }
         rename(
           i,
-          paste(
-            c(records[[i]]$raw, 'by', paste(parameters, collapse = '_and_')),
-            collapse = '_'
-          ),
+          paste(c(records[[i]]$raw, 'by', parameters), collapse = '_'),
           'qualified by path parameter'
         )
       }

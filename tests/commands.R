@@ -109,6 +109,23 @@ commands_acceptance <- function() {
   before <- hashes()
   fails(specmill::coverage_report(root, policy, mode = 'apply'), 'overlap')
   stopifnot(identical(before, hashes()))
+  # A service can be left out of coverage, but not also be counted by a group.
+  policy$groups$duplicate <- NULL
+  policy$exclude_services <- '^catalogue$'
+  fails(specmill::coverage_report(root, policy), 'overlap')
+  policy$groups <- stats::setNames(list(), character())
+  log <- tempfile()
+  sink(log)
+  left_out <- tryCatch(
+    specmill::coverage_report(root, policy),
+    finally = sink()
+  )
+  stopifnot(
+    !length(left_out$badges),
+    'Excluded from coverage: catalogue ' %in% readLines(log, warn = FALSE)
+  )
+  policy$exclude_services <- NULL
+  fails(specmill::coverage_report(root, policy), 'omits configured services')
   fails(
     specmill::generation_command(root, c('--check', '--dry-run'), 'tests'),
     'one generation mode'
