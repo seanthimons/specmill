@@ -109,6 +109,46 @@ path_naming_acceptance <- function() {
     'GET /api/hazard/reports/{id}' %in% codes(plain, 'name_collision')
   )
 
+  # A route that already ends in its path parameter is not qualified twice; the
+  # method suffix separates the GET/POST pair instead (#212).
+  aeid_schema <- tempfile(fileext = '.json')
+  on.exit(unlink(aeid_schema), add = TRUE)
+  aeid <- list(list(
+    name = 'aeid',
+    `in` = 'path',
+    required = TRUE,
+    schema = list(type = 'integer')
+  ))
+  jsonlite::write_json(
+    list(
+      openapi = '3.0.3',
+      info = list(title = 'Bioactivity', version = '1'),
+      paths = list(
+        '/search/by-aeid/{aeid}' = list(get = c(ok, list(parameters = aeid))),
+        '/search/by-aeid' = list(post = ok)
+      )
+    ),
+    aeid_schema,
+    auto_unbox = TRUE
+  )
+  aeid_names <- names_of(specmill::configure_client(
+    tempfile('path-naming-aeid-'),
+    aeid_schema,
+    package = 'pathnames',
+    naming = 'path',
+    naming_options = list(collision_suffix = list(POST = 'bulk'))
+  ))
+  stopifnot(
+    identical(
+      unname(aeid_names[['GET /search/by-aeid/{aeid}']]),
+      'search_by_aeid'
+    ),
+    identical(
+      unname(aeid_names[['POST /search/by-aeid']]),
+      'search_by_aeid_bulk'
+    )
+  )
+
   # name_case still applies on top of the route words.
   snake <- names_of(plan(
     name_case = 'snake_case',
