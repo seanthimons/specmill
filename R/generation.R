@@ -1422,6 +1422,8 @@ generate_client <- function(
     if (!is.list(spec)) {
       stop('spec must be a list')
     }
+    # `$policy` would partial-match `policy_version` when policy is absent.
+    spec[['policy']] <- spec[['policy']] %or% list()
     services <- list(spec)
     inputs <- spec$files
     formatter <- spec$formatter
