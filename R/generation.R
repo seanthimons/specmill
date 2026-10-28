@@ -1805,6 +1805,7 @@ generate_client <- function(
   retained_sources <- character()
   source_names <- list()
   portable_rename_ids <- character()
+  split_sources <- character()
   portable_sources <- list()
   previous <- baseline$files %or% list()
   for (i in seq_along(services)) {
@@ -2201,10 +2202,15 @@ generate_client <- function(
       definition <- runtime_definitions[[op$name]]
       if (!is.null(definition) && !identical(definition$file_path, path)) {
         old_file <- substring(definition$file_path, nchar(root) + 2L)
+        # An unedited owned file may hand a definition to any generated file, so
+        # a service id or grouping change can split it.
         owned_move <- !is.null(previous[[old_file]]) &&
-          identical(portable_output_path(root, old_file), file) &&
+          !identical(operation_spec$implementation, 'existing') &&
           identical(output_hash(definition$file_path), previous[[old_file]]$hash)
-        if (owned_move) portable_rename_ids <- union(portable_rename_ids, op$id)
+        if (owned_move) {
+          portable_rename_ids <- union(portable_rename_ids, op$id)
+          split_sources <- union(split_sources, old_file)
+        }
         if (!owned_move) stop(
           'Wrapper collides with an existing definition in ',
           definition$file_path
@@ -2475,7 +2481,9 @@ generate_client <- function(
       unmapped_names <- vapply(unmapped, `[[`, character(1), 'name')
       if (
         length(intersect(ids, union(named_ids, excluded))) &&
-          setequal(setdiff(ids, excluded), owners[[file]]) &&
+          # Every operation the old file held is still written to some file.
+          all(setdiff(ids, excluded) %in% unlist(
+            owners[startsWith(names(owners), 'R/')], use.names = FALSE)) &&
           length(definitions) == length(ids) &&
           all(unmapped_names %in% names(definitions)) &&
           identical(output_hash(path), previous[[file]]$hash)
@@ -2643,6 +2651,15 @@ generate_client <- function(
   }
   # Documentation can recreate NAMESPACE after all its previous owners are excluded.
   removals <- setdiff(removals, names(desired))
+  # A moved definition would otherwise exist twice: in the new file and in an
+  # old owned file that is neither rewritten nor removed.
+  orphaned <- setdiff(split_sources, c(names(desired), removals))
+  if (length(orphaned)) {
+    stop(
+      'Owned file still holds definitions moved to other files: ',
+      paste(orphaned, collapse = ', ')
+    )
+  }
   selected_artifact <- function(paths) {
     paths <- paths %or% character()
     kind <- ifelse(

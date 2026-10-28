@@ -277,6 +277,15 @@ groups:
     badge: man/figures/catalogue-coverage.json
 ```
 
+Every configured service must belong to a group. To leave one out, such as a
+reviewed overlay with no production source, list a regex for it under
+`exclude_services`. Matching services get no badge, and the plan names them. A
+service cannot be both excluded and in a group.
+
+```yaml
+exclude_services: ['^pubchem$']
+```
+
 By default a group counts only the operations your policy selected, so a client
 that wraps everything it selected reads 100% however much of the API that is. To
 measure coverage of the API itself, opt a group in to the schema as its
