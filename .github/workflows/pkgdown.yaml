@@ -1,9 +1,12 @@
-# Build and deploy the pkgdown site after publication or on manual dispatch.
-# Keep site builds outside the PR and main-push path.
+# Build documentation on pull requests; deploy main, releases, and manual builds.
 # One-time setup: Settings > Pages > Build and deployment > Source must be "GitHub Actions".
 name: pkgdown
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:

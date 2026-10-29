@@ -11,14 +11,16 @@ Shared checks use caller stubs from [baseline v1.0.0](https://github.com/seanthi
 - `lint-workflows.yaml`: actionlint and zizmor on workflow changes.
 - `r-cmd-check.yaml`: manual Windows/Linux package checks.
 - `pkgdown.yaml`: site build on pull requests, Pages deployment on main and release events.
-- `release-r-package.yaml`: manual release build, check, and publication.
+- `release-r-package.yaml`: automatic patch releases on main changes outside
+  `.github/`, plus manual release build, check, and publication.
 - `.github/dependabot.yml`: weekly grouped action updates after a seven-day cooldown.
 
-Before the pkgdown caller can deploy, set Settings > Pages > Source to GitHub
-Actions. The repository still uses the legacy `gh-pages` source until the
-caller is merged. The release caller requires a `RELEASE_PAT` repository secret
+Pages uses Settings > Pages > Source = GitHub Actions. The legacy `gh-pages`
+branch is no longer the publishing source. The pkgdown caller builds documentation
+on pull requests and deploys main pushes, published releases, and manual runs.
+The release caller requires a `RELEASE_PAT` repository secret
 with Contents read/write permission on specmill. Its account must be able to
-push to main. No release run can succeed until that secret is added.
+push to main. Release checkout and publication require that secret.
 
 The shared release job builds one archive from a Git snapshot, checks that
 archive, and verifies `SHA256SUMS` before publication. The old local

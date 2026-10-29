@@ -169,6 +169,35 @@ Prefer the latter when a manual test already uses the simple name, multiple
 helper calls matter, or results have R classes. Do not declare the same operation
 in both inline and RDS contracts.
 
+## Readable contract files
+
+For reviewable call sequences, save the same structure as YAML or JSON and point
+service `contracts_file` at it. For example,
+`tests/testthat/fixtures/contracts.yml` can contain:
+
+```yaml
+GET /items/{item_id}:
+  inputs: {item_id: item-1, language: en}
+  calls:
+    - helper: api_request
+      arguments:
+        method: GET
+        path: /items/{item_id}
+        path_params: {item_id: item-1}
+        query: {language: en}
+        body: null
+        request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+        server:
+          diagnostic: Relative server URL requires a recorded origin or explicit base URL override
+      response: {id: item-1}
+  result: {id: item-1}
+```
+
+Set `contracts_file: tests/testthat/fixtures/contracts.yml` in `apis/default.yml`
+in place of the RDS setting. The route key stays fixed if you rename `get_item`.
+Generate, then run the client's tests as above; these expectations still need
+independent review against the service contract.
+
 ## Candidate input fixtures are not independent expectations
 
 `operation_fixtures()` chooses candidate inputs in the order **override ->
