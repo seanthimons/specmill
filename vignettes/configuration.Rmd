@@ -1162,6 +1162,70 @@ Existing helpers need optional `headers`, `query_serialization`, `body_media`, `
 arguments when an operation uses these features. Generation validates helper
 compatibility and does not overwrite client-owned helpers.
 
+### Adapt inconsistent authentication metadata
+
+Some APIs declare the same query key both as a required parameter and as a
+security scheme, then omit that scheme's requirement on some routes. Combine
+existing settings to adapt the generated client while keeping the downloaded
+schema unchanged. Verify the endpoint's actual contract before applying a
+correction; a parameter named `key` alone does not establish authentication.
+
+First, map the declared scheme directly to the environment variable users already
+set. For example, in `specmill.yml`:
+
+```yaml
+authentication:
+  aqs_api_auth: AQS_KEY
+```
+
+`aqs_api_auth` must be a declared query API-key scheme whose wire name is `key`.
+The generated helper reads `AQS_KEY` on each call. Users do not need to copy its
+value into a second variable with `set_api_token()`. R normally loads `.Renviron`
+at startup; restart R after editing it, or explicitly call
+`readRenviron('/chosen/path/.Renviron')`. The client looks up the process
+environment; it does not discover or read `.env` files on load.
+
+Next, under the exact operation key in service YAML, remove the duplicate wrapper
+argument and correct the missing security requirement:
+
+```yaml
+operations:
+  GET /reviewed-data-route:
+    exclude_parameters: [key]
+    security_correction:
+      requirements:
+      - aqs_api_auth: []
+      reason: Reviewed endpoint requires the declared query API key.
+```
+
+Replace the illustrative path with the original schema path. On routes already
+declaring the correct requirement, only `exclude_parameters: [key]` is needed.
+Both settings are per operation. Inspect public and registration routes
+individually; do not apply the correction to every operation in a service.
+Exclusions match names across query, header, and cookie parameters, so check for
+same-name parameters in other locations. Keep independent inputs such as `email`
+as ordinary arguments unless their contract requires a separate adaptation.
+
+Plan, review, apply, and check generation. Excluding `key` removes it from the
+public wrapper signature, so update callers, examples, and fixed contracts.
+Existing client-owned helpers must support generated authentication; regeneration
+does not replace them. See [update an existing client](existing-clients.html#update-an-already-configured-client).
+With fake credentials, verify exactly one serialized key, preserved business
+inputs, changed environment values on the next call, and failure before HTTP
+when the required credential is unset or blank. Use a localhost server to verify
+wire encoding and confirm a second generation makes no changes.
+
+This combination was checked against an archived EPA AQS schema with 76 data
+wrappers and corrections on 12 routes. Offline wrapper checks, localhost requests,
+generation consistency, and the generated package check passed. It does not
+establish live EPA behavior or validate unrelated schema declarations.
+
+Environment-backed authentication does not redact query values. Prepared dry-run
+requests contain the credential; httr2 request printing and verbose HTTP output
+can expose it. Raw errors, hooks, recordings, and server logs need their own
+handling. Use fake values for request inspection and never save real credentials
+in YAML, fixtures, or documentation.
+
 ### Dry run and verbose messages
 
 New clients export package-prefixed session controls. For `catalogueclient`:

@@ -172,6 +172,36 @@ changes require the package check under repository rules.
 
 ## Validation performed
 
+### AQS follow-up
+
+The AQS client follow-up on branch `feature/issue-264-aqs-query-auth` reported
+successful verification against its archived schema on 2026-10-29. All 76 data
+wrappers use the existing mapping/exclusion path; 12 routes needed reviewed
+security corrections. Email stayed an ordinary argument. The source schema and
+client-owned request helper remained byte-for-byte unchanged. Fake-secret checks,
+localhost encoding checks, environment-file startup and explicit reading,
+runtime independence, repeat generation, setup, and the generated package check
+passed. No new specmill setting or live EPA request was needed. Evidence source:
+[Update Specmill and Rebuild Client](t3-thread://v1/78de0469-dc82-4bd3-8998-b409df133c6f).
+
+This satisfies the duplicate-key workflow and supports documenting the existing
+recipe. It does not satisfy the stronger protection criteria of #264. Keep these
+follow-ups in planning:
+
+- Query diagnostic protection needs an explicit decision about sanitized dry-run
+  summaries, raw errors, recordings, and migration for existing helpers. Apply
+  any eventual guarantee to declared query authentication too. Ordinary bindings
+  remain deferred unless another real case cannot use existing auth policy.
+- The intentionally public status route still triggers the missing-security
+  warning. Investigate whether an existing explicit empty security correction
+  records the reviewed public contract and removes the warning before proposing
+  another suppression option. Preserve warnings for genuinely unreviewed gaps.
+- Registration retains a questionable upstream authentication requirement.
+  Establish the authoritative contract before correcting it; do not infer that
+  registration is public merely from its purpose. Keep this client-specific.
+
+### Initial synthetic probe
+
 The source research inspected primary documentation and installed httr2 code and
 ran fake-secret local echo and mocked-error probes. A separate synthetic OpenAPI
 3.0.3 client was generated with installed specmill 0.1.60. It had required key and

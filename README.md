@@ -71,6 +71,16 @@ for an executable example. Keep independent fixed contracts in RDS or readable
 YAML/JSON; route keys such as `GET /items/{item_id}` survive wrapper renames.
 See [testing](https://seanthimons.github.io/specmill/articles/testing.html).
 
+## Adapt incomplete API schemas
+
+Keep the upstream schema intact and record reviewed exceptions in service YAML.
+For example, when an API declares its key both as authentication and as a required
+query argument, map the security scheme directly to an existing environment
+variable, exclude the redundant argument, and correct missing security requirements
+on verified routes. Regeneration preserves that policy without hand-editing wrappers.
+See [adapt inconsistent authentication metadata](https://seanthimons.github.io/specmill/articles/configuration.html#adapt-inconsistent-authentication-metadata)
+for the combined recipe, compatibility checks, and query-secret limits.
+
 ## Generated client request controls
 
 New clients include exported session controls prefixed with their package name:
