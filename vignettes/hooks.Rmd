@@ -17,7 +17,7 @@ after it returns. Use them to normalize identifiers, construct service-specific
 payloads, skip requests, or shape results. Your client owns the executor and the
 hook functions. Installing the client does not require specmill.
 
-This guide uses the development version of specmill with `configure_hooks()`.
+This guide uses `configure_hooks()` from the current package.
 Follow [installation and package setup](specmill.html) first. An older installed
 version may support hook configuration without providing this setup command.
 The examples below run offline when this article is built.

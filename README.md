@@ -7,13 +7,16 @@ Your package's users do not need specmill installed.
 
 ## Install
 
-These guides describe the current development version on `main`. The `v0.1.4`
-release predates YAML schema support, multi-API setup, and session controls.
+These guides describe the current package. Install the latest published release
+from GitHub, or pin a reviewed release tag or commit for reproducible generation.
 
 ```r
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@main')
+remotes::install_github('seanthimons/specmill@*release')
 ```
+
+For unreleased changes, install `seanthimons/specmill@main` instead.
+Check `packageVersion('specmill')` after starting a fresh R session.
 
 For an existing project with a toolkit lock, use its own installer to get the
 reviewed version.
@@ -25,10 +28,12 @@ reviewed version.
 - **Existing package:** [Adopt an existing client](https://seanthimons.github.io/specmill/articles/existing-clients.html)
   explains preserving public functions, helpers, hooks, and generated-file ownership.
 
-In the development version, `initialize_client()` writes service YAML from schema
+`initialize_client()` writes service YAML from schema
 tags, including editable function names and exact operation selections.
 `configure_client()` previews the configuration for a new or existing package.
-Use `naming = 'tag_prefix'` for names such as `pet_get_by_id`.
+Use `naming = 'tag_prefix'` for names such as `pet_get_by_id`, or
+`naming = 'path'` for route-derived names when operation IDs are unreliable.
+Review the proposed `names` map and collision diagnostics before applying.
 
 Once a project has `specmill.yml`, the maintenance loop is:
 
@@ -49,6 +54,22 @@ blocking the whole client. Default behavior stays strict; see
 Deferral preserves existing output; to remove a retired operation's files, help
 page, export and ownership record, opt in with `prune = '<service> METHOD /path'`
 (or `prune = 'all'`, which asks for confirmation).
+
+## Review schema and toolkit updates
+
+When a schema changes, `plan$schema_changes` reports endpoint additions and
+removals, and check mode warns when schemas differ from the last apply.
+Use [maintenance](https://seanthimons.github.io/specmill/articles/maintenance.html)
+for the review loop, `regeneration_report()` for a read-only clean-regeneration
+and manual-code inventory, and explicit `prune` requests for reviewed removals.
+
+A failing operation can be deferred for its current contract revision while
+other operations continue. Deferral retries when that contract changes;
+selection exclusions deliberately stop generating an operation instead. Follow
+[Defer or skip an operation](https://seanthimons.github.io/specmill/articles/deferral.html)
+for an executable example. Keep independent fixed contracts in RDS or readable
+YAML/JSON; route keys such as `GET /items/{item_id}` survive wrapper renames.
+See [testing](https://seanthimons.github.io/specmill/articles/testing.html).
 
 ## Generated client request controls
 
