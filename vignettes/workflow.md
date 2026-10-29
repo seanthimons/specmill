@@ -1,6 +1,6 @@
 # Workflow flowcharts
 
-These charts describe [specmill v0.1.9](https://github.com/seanthimons/specmill/releases/tag/v0.1.9).
+These charts describe the current package workflow.
 Use the first chart to create, adopt, tailor, or update a client. Use the second
 to trace a wrapper from schema discovery through generation and runtime behavior.
 The [site article](https://seanthimons.github.io/specmill/articles/workflow.html)
@@ -153,6 +153,11 @@ flowchart TD
     Apply -.->|Install or reload eligible output| Call
 ```
 
+The runtime chart shows one request. YAML batching and pagination repeat that
+request flow and combine results; `post_combine` runs once after final formatting.
+See [batched wrappers](batched-wrappers.html), [paging wrappers](paged-wrappers.html),
+and [combined-result hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper).
+
 The chart shows the main flow, not every error exit. Invalid configuration,
 unreadable documents, broken document structure, collisions, incompatible
 definitions, or changing inputs can stop generation before it returns a plan.
@@ -206,7 +211,7 @@ retained operation can keep its original limitation classification.
 | Request goes to another server | Check runtime `<package>.request$base_url`, initialization/catalogue override, then operation/path/root schema servers and `server_diagnostics`. A method/path guard does not control the server. |
 | Timeout or retry behavior differs | Runtime request options override YAML defaults per field. Inspect `max_retries`, `retry_writes` and the selected client `retry_policy`; a predicate does not grant write replay permission. |
 | Result type or HTTP-error handling differs | Inspect actual response Content-Type, generated `response_policy` selection, helper option/default, and post hooks. A policy runs after retries, may replace decoding/status handling, and is separate from post-response hooks. |
-| One page or one oversized body is returned/rejected | Wrappers do not infer iteration. Body `batch` limits validate size without splitting. Select explicit client-owned batching/pagination companions and bounded policies for repeated requests. |
+| One page or one oversized body is returned/rejected | Wrappers do not infer iteration. Select `batch.fan_out`, `batch.split`, or `pagination` in YAML for repeated requests, or use client-owned companions. Plain body `batch` limits only validate size. |
 | Plan reports protected or retained files | Compare local content and manifest ownership; use reviewed adoption or keep a manual implementation. Protected replacement/removal and retained implementation are separate concepts. |
 | Fresh output still behaves like the old client | Install/reload the generated client, then inspect its actual helper/hooks/options. `inspect_client(root)$helpers` compares helper baselines when known; generation never silently updates those files. |
 

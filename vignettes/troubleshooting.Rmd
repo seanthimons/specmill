@@ -12,7 +12,7 @@ vignette: >
 
 specmill reads local JSON, YAML, and YML documents in OpenAPI 3.0/3.1 or
 Swagger 2.0 format. It supports a subset of each standard; parsing is not full
-OpenAPI validation. These guides follow the current development version, so
+OpenAPI validation. These guides follow the current package, so
 check your toolkit pin if an older release rejects a documented feature.
 
 Generation additionally requires each schema to pass local validation against

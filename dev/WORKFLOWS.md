@@ -1,8 +1,9 @@
 # Build and release workflows
 
 The R CMD check caller runs only on manual dispatch.
-It checks Windows and Linux with Air installed; automatic releases retain their own package check. The pkgdown caller builds the
-site on pull requests and deploys after main pushes or published releases.
+It checks Windows and Linux with Air installed; automatic releases retain their
+own package check. The pkgdown caller builds and deploys the site after package
+publication or on manual dispatch.
 
 Shared checks use caller stubs from [baseline v1.0.0](https://github.com/seanthimons/baseline/tree/0a2a80a6d045ffbdacedd59e35dce1497e2acfc1), pinned to that full commit except for the R CMD check caller, which pins the [TESTTHAT_PARALLEL fix](https://github.com/seanthimons/baseline/pull/1):
 
@@ -10,15 +11,22 @@ Shared checks use caller stubs from [baseline v1.0.0](https://github.com/seanthi
 - `commit-lint.yaml`: commit subjects, PR titles, and branch names on all pull requests.
 - `lint-workflows.yaml`: actionlint and zizmor on workflow changes.
 - `r-cmd-check.yaml`: manual Windows/Linux package checks.
-- `pkgdown.yaml`: site build on pull requests, Pages deployment on main and release events.
-- `release-r-package.yaml`: manual release build, check, and publication.
+- `pkgdown.yaml`: site build and Pages deployment after publication or manual dispatch.
+- `release-r-package.yaml`: automatic patch releases on main changes outside
+  `.github/`, plus manual release build, check, and publication.
 - `.github/dependabot.yml`: weekly grouped action updates after a seven-day cooldown.
 
-Before the pkgdown caller can deploy, set Settings > Pages > Source to GitHub
-Actions. The repository still uses the legacy `gh-pages` source until the
-caller is merged. The release caller requires a `RELEASE_PAT` repository secret
+Pages uses Settings > Pages > Source = GitHub Actions. The legacy `gh-pages`
+branch is no longer the publishing source. The release caller explicitly
+dispatches pkgdown at the published release tag
+after a successful non-dry-run release. Failed releases and dry runs do not dispatch
+a site build. Ordinary main pushes and pull requests do not build the site.
+The `release: published` trigger also handles releases published outside automation.
+The `github-pages` environment allows `v*` tags as well as `main` so release-tag
+builds can deploy.
+The release caller requires a `RELEASE_PAT` repository secret
 with Contents read/write permission on specmill. Its account must be able to
-push to main. No release run can succeed until that secret is added.
+push to main. Release checkout and publication require that secret.
 
 The shared release job builds one archive from a Git snapshot, checks that
 archive, and verifies `SHA256SUMS` before publication. The old local
@@ -86,8 +94,10 @@ to fail; no force push is used. Branch protection still applies.
 All assets are attached to a draft before publication because releases become
 [immutable](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
 A failed upload leaves a draft for inspection. Do not retag or replace a published
-archive; use a new version for corrections. The `RELEASE_PAT` push triggers the
-automatic documentation workflow.
+archive; use a new version for corrections. Publication uses `GITHUB_TOKEN`,
+whose release events cannot start another
+workflow. The caller therefore uses `workflow_dispatch`, which GitHub permits
+with that token, to start the automatic documentation build.
 
 Specmill has manually maintained help pages. Automatic roxygen regeneration,
 rolling releases, and ComptoxR's database/schema schedules remain excluded.
