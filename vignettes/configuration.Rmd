@@ -1827,9 +1827,12 @@ body]`, `state$params$body`) must use the new name, and renaming a wrapper that
 is already generated shows up as a signature change in `mode = 'plan'`.
 
 `docs` supports `title`, `description`, `parameters`, `return`, `examples`, `tags`,
-and `lifecycle`. Without overrides, titles/parameter text come from schema
-metadata and the return text describes the helper response. Improve these for
-your users: document units, valid IDs, result classes, and service-specific errors.
+and `lifecycle`. `docs.parameters` can also document the body argument under
+its public name (`body`, `body.1`, or the `body.name` override); that text takes
+precedence over `body.description`. Without overrides, titles/parameter text
+come from schema metadata and the return text describes the helper response.
+Improve these for your users: document units, valid IDs, result classes, and
+service-specific errors.
 
 `lifecycle` accepts `experimental`, `stable`, `maturing`, `superseded`,
 `deprecated`, `defunct`, `questioning`, or `soft-deprecated`. Install `lifecycle`
