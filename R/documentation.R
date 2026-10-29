@@ -79,7 +79,13 @@ validate_documentation <- function(docs) {
 operation_documentation <- function(op, policy = list()) {
   validate_documentation(policy)
   parameters <- parameter_names(op$parameters)
-  if (length(setdiff(names(policy$parameters), parameters))) {
+  body_argument <- body_argument_name(op)
+  if (
+    length(setdiff(
+      names(policy$parameters),
+      c(parameters, if (!is.null(op$body)) body_argument)
+    ))
+  ) {
     stop('Documentation references missing public parameter')
   }
   prose <- function(text) {
@@ -115,9 +121,10 @@ operation_documentation <- function(op, policy = list()) {
     },
     character(1)
   )
-  body_argument <- body_argument_name(op)
   if (!is.null(op$body)) {
-    body_text <- if (!is.null(op$body_description)) {
+    body_text <- if (!is.null(policy$parameters[[body_argument]])) {
+      prose(policy$parameters[[body_argument]])
+    } else if (!is.null(op$body_description)) {
       prose(op$body_description)
     } else if (identical(op$body_media, 'application/octet-stream')) {
       'Raw vector of bytes to upload as application/octet-stream.'
