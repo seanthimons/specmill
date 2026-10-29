@@ -37,3 +37,23 @@ jobs:
       # Fine-grained PAT with Contents read/write on specmill, from an account
       # allowed to push to main. Add before using this workflow.
       RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
+
+  documentation:
+    name: Queue published package documentation
+    needs: release
+    if: ${{ github.event_name == 'push' || !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # GITHUB_TOKEN publication does not trigger release-event workflows.
+      # workflow_dispatch is an explicit exception to that recursion guard.
+      - name: Build site from the published release tag
+        run: |
+          tag=$(gh release view --json tagName --jq .tagName)
+          gh workflow run pkgdown.yaml --ref "$tag"

@@ -24,14 +24,16 @@ For an existing package, use
 
 ## 1. Install the development tools
 
-This guide follows the current development version on `main`. Install it once
-in R; the older `v0.1.4` release does not include all the features shown here:
+Install the latest published release once in R. Use a reviewed release tag or
+commit in your project installer when reproducible generation matters:
 
 ```{r install, eval=FALSE}
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@main')
+remotes::install_github('seanthimons/specmill@*release')
 install.packages(c('httr2', 'curl', 'testthat', 'devtools'))
 ```
+
+For unreleased changes, install `seanthimons/specmill@main` instead.
 
 If a project supplies an installer and toolkit lock, use those instead: they
 select the version reviewed for that project. In a local specmill source checkout,
