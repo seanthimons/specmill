@@ -1,12 +1,8 @@
-# Build documentation on pull requests; deploy main, releases, and manual builds.
+# Build and deploy after package publication or on manual dispatch.
 # One-time setup: Settings > Pages > Build and deployment > Source must be "GitHub Actions".
 name: pkgdown
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
