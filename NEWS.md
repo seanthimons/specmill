@@ -1,6 +1,23 @@
 
 
 
+## specmill 0.1.61.9000 (2026-10-29)
+
+#### Docs
+
+- explain adapting inconsistent API authentication (#264)
+  ([f90bd28](https://github.com/seanthimons/specmill/tree/f90bd28df9fb36609e17b8efbdf51f8d6105ca72))
+- research query credential policy and maintenance tradeoffs (#264)
+  ([a489487](https://github.com/seanthimons/specmill/tree/a489487eb76196decc630f981c0b0a3ae1b2bb7b))
+
+#### Other changes
+
+- release v0.1.61.9000 \[skip ci\]
+  ([1ee2042](https://github.com/seanthimons/specmill/tree/1ee204230da82f80e13e36b9cfdbbba5e76da758))
+
+Full set of changes:
+[`v0.1.61...v0.1.61.9000`](https://github.com/seanthimons/specmill/compare/v0.1.61...v0.1.61.9000)
+
 ## specmill 0.1.61 (2026-10-29)
 
 #### Bug fixes
@@ -16,7 +33,7 @@
 #### Other changes
 
 - release v0.1.61 \[skip ci\]
-  ([313102a](https://github.com/seanthimons/specmill/tree/313102af4a882166e8b9a7846264c10c933384f0))
+  ([0b6bf34](https://github.com/seanthimons/specmill/tree/0b6bf34f646e518805fc63fae251a7a8ad1baf59))
 
 Full set of changes:
 [`v0.1.60...v0.1.61`](https://github.com/seanthimons/specmill/compare/v0.1.60...v0.1.61)
