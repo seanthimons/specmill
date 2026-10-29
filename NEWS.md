@@ -1,6 +1,21 @@
 
 
 
+## specmill 0.1.60 (2026-10-29)
+
+#### New features
+
+- allow docs.parameters to document the request body argument (#221)
+  ([6ad5c12](https://github.com/seanthimons/specmill/tree/6ad5c12c8c716ae1d60864834c797e7306a9431e))
+
+#### Other changes
+
+- release v0.1.60 \[skip ci\]
+  ([1564976](https://github.com/seanthimons/specmill/tree/156497667efb99347ac9aa249954263d6eba3e73))
+
+Full set of changes:
+[`v0.1.59...v0.1.60`](https://github.com/seanthimons/specmill/compare/v0.1.59...v0.1.60)
+
 ## specmill 0.1.59 (2026-10-28)
 
 #### Bug fixes
@@ -11,7 +26,7 @@
 #### Other changes
 
 - release v0.1.59 \[skip ci\]
-  ([428f47d](https://github.com/seanthimons/specmill/tree/428f47dc85073db4d9a09e48e436893766c67fa3))
+  ([142f5e2](https://github.com/seanthimons/specmill/tree/142f5e2bbc8fee38211522828d21cf6667d51a5a))
 
 Full set of changes:
 [`v0.1.58...v0.1.59`](https://github.com/seanthimons/specmill/compare/v0.1.58...v0.1.59)
