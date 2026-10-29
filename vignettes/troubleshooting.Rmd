@@ -101,6 +101,7 @@ full schema validity or live-service correctness.
 | Missing schema / pattern matched nothing | Resolve paths against `root`, check case, and use sequences such as `files: [schema.json]` |
 | Unknown YAML field / invalid regex | Compare with [Configuration](configuration.html); use case-sensitive stringr syntax |
 | Unknown operation override | Match the original method/path, including path parameter spelling and trailing slash |
+| Duplicate key argument or inconsistent security declarations | Review the [combined authentication correction recipe](configuration.html#adapt-inconsistent-authentication-metadata). Map the declared scheme to an environment variable, exclude only the redundant parameter, and correct verified requirements per operation |
 | Name collision | Supply distinct public names across all services, including case; avoid helper/callback names |
 | Unresolved callback | Source your development callbacks into the explicitly supplied environment |
 | Missing helper definition / helper argument | Define it in client `R/` and map the actual helper signature |
