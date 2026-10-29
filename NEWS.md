@@ -1,6 +1,26 @@
 
 
 
+## specmill 0.1.61 (2026-10-29)
+
+#### Bug fixes
+
+- dispatch site builds after package publication
+  ([64c5c01](https://github.com/seanthimons/specmill/tree/64c5c0129f961ec09cce8db5fd7686aedeb85248))
+
+#### Docs
+
+- refresh installation and current client workflows
+  ([37ebc39](https://github.com/seanthimons/specmill/tree/37ebc39a43f23e5746a9b61b70f60c8535f6fb2f))
+
+#### Other changes
+
+- release v0.1.61 \[skip ci\]
+  ([313102a](https://github.com/seanthimons/specmill/tree/313102af4a882166e8b9a7846264c10c933384f0))
+
+Full set of changes:
+[`v0.1.60...v0.1.61`](https://github.com/seanthimons/specmill/compare/v0.1.60...v0.1.61)
+
 ## specmill 0.1.60 (2026-10-29)
 
 #### New features
@@ -11,7 +31,7 @@
 #### Other changes
 
 - release v0.1.60 \[skip ci\]
-  ([1564976](https://github.com/seanthimons/specmill/tree/156497667efb99347ac9aa249954263d6eba3e73))
+  ([1c1553b](https://github.com/seanthimons/specmill/tree/1c1553b9233d874876f0f13c98ef09b191dc00e9))
 
 Full set of changes:
 [`v0.1.59...v0.1.60`](https://github.com/seanthimons/specmill/compare/v0.1.59...v0.1.60)
