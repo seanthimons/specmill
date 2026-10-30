@@ -180,6 +180,23 @@ that file and its ownership record whole, which is the way to clear a stale
 entry that owns no operations (a helper whose file is already gone). It refuses
 a still-generated `R/` or `tests/` file and `NAMESPACE`; an edited file is retained.
 
+### Run the configuration against an older or staging schema
+
+`names`, `operations`, `selection.include` and `routes` keys must name operations
+the schema contains, so a configuration written for one schema revision stops on
+another that dropped routes (`Unknown operation override`). For a one-off or
+preview build, pass `absent_overrides = 'warn'`:
+
+```{r absent-overrides, eval=FALSE}
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan', absent_overrides = 'warn')
+```
+
+Keys for absent operations then raise a warning that lists them and are
+otherwise ignored, while the YAML itself stays strict. If every
+`selection.include` key of a service is absent, that service selects nothing.
+Wrappers already generated for dropped operations stay in place until you prune
+them.
+
 ### Review a clean regeneration
 
 Before pruning, `regeneration_report()` shows what a full rebuild would add,

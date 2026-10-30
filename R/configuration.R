@@ -195,8 +195,10 @@ read_service_operations <- function(service) {
 load_project <- function(
   root,
   config = 'specmill.yml',
-  callbacks = new.env(parent = emptyenv())
+  callbacks = new.env(parent = emptyenv()),
+  absent_overrides = c('error', 'warn')
 ) {
+  absent_overrides <- match.arg(absent_overrides)
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
   if (!is.environment(callbacks)) {
     stop('callbacks must be an explicit environment')
@@ -653,6 +655,7 @@ load_project <- function(
         unclaimed = unclaimed,
         names = names,
         override_keys = names(overrides),
+        absent_override_mode = absent_overrides,
         body_media = defaults[['body_media']],
         text_encoding = defaults$text_encoding,
         text_encoding_overrides = lapply(overrides, function(x) {
@@ -770,6 +773,10 @@ load_project <- function(
     for (key in names(declared)) {
       keyed <- Filter(function(x) x$key == key, parsed$inventory)
       if (!length(keyed)) {
+        # read_operations() already warned about the absent operation.
+        if (identical(absent_overrides, 'warn')) {
+          next
+        }
         stop(
           service$id,
           ': routes require a known operation: ',
