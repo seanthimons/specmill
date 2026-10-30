@@ -1380,9 +1380,11 @@ generate_client <- function(
   validation = NULL,
   deferrals = NULL,
   prune = NULL,
-  confirm = NULL
+  confirm = NULL,
+  absent_overrides = c('error', 'warn')
 ) {
   mode <- match.arg(mode)
+  absent_overrides <- match.arg(absent_overrides)
   deferral_request <- deferral_arguments(deferrals)
   prune <- prune_request(prune)
   prune_confirm(confirm)
@@ -1413,7 +1415,7 @@ generate_client <- function(
     stop('Supply exactly one of spec or config')
   }
   if (!is.null(config)) {
-    project <- load_project(root, config, callbacks)
+    project <- load_project(root, config, callbacks, absent_overrides)
     authentication <- project$authentication
     services <- project$services
     inputs <- project$inputs
@@ -1424,6 +1426,7 @@ generate_client <- function(
     }
     # `$policy` would partial-match `policy_version` when policy is absent.
     spec[['policy']] <- spec[['policy']] %or% list()
+    spec[['policy']]$absent_override_mode <- absent_overrides
     services <- list(spec)
     inputs <- spec$files
     formatter <- spec$formatter
@@ -2839,7 +2842,7 @@ generate_client <- function(
         (!is.null(config) &&
           !identical(
             project$inputs,
-            load_project(root, config, callbacks)$inputs
+            load_project(root, config, callbacks, absent_overrides)$inputs
           ))
     ) {
       stop('Stale input plan; generation input files changed')

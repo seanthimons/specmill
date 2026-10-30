@@ -8,7 +8,8 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
     config = NULL, callbacks = new.env(parent = emptyenv()),
     adopt = list(), artifacts = c("wrappers", "tests", "documentation"),
     validation = NULL,
-    deferrals = NULL, prune = NULL, confirm = NULL)
+    deferrals = NULL, prune = NULL, confirm = NULL,
+    absent_overrides = c("error", "warn"))
 \method{print}{specmill_generation}(x, ...)
 }
 \arguments{
@@ -24,6 +25,8 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
 \item{deferrals}{Optional list with \code{enroll} (a named character vector of one-line reasons keyed by operation identity, \verb{<service id> <METHOD> <path>}) and \code{clear} (operation identities to retry). Enrollment is recorded on apply only; plan and check never write it. See the maintenance vignette.}
 \item{prune}{Optional, opt-in removal of owned output; the default preserves it. Operation identities (\verb{<service id> <METHOD> <path>}) remove that operation's R file, tests and help page (within the selected \code{artifacts}), regenerate \code{NAMESPACE} when documentation is generated, and drop its ownership records; the identity may name a service since removed from the configuration, and an enrolled deferral identity also matches the retired owner of the same route. An operation that is still generated, owns no output, or shares a file with other operations is refused. \code{"all"} removes every manifest-owned, unmodified output after an \verb{Are you sure? [y/N]} prompt. Edited and unowned files are never deleted. Plan and check never write. See the maintenance vignette.}
 \item{confirm}{Only for \code{prune = "all"}: \code{TRUE} skips the prompt (needed in non-interactive sessions), \code{FALSE} cancels, \code{NULL} (default) asks interactively and aborts when not interactive.}
+
+\item{absent_overrides}{\code{"error"} (default) stops when \code{names}, \code{operations}, \code{selection.include} or \code{routes} keys name an operation missing from the schema. \code{"warn"} lists those keys in a warning and skips them, for running a configuration against an older or staging schema without editing its YAML. See the maintenance vignette.}
 
 \item{validation}{\code{TRUE} or \code{FALSE}. By default, use project YAML or legacy specification \code{validation}, falling back to required validation. \code{FALSE} explicitly skips validation and is recorded in the result.}
 }
