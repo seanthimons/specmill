@@ -1066,6 +1066,13 @@ read_operations <- function(files, policy = list()) {
     config_fields(review, c('source', 'reason'), 'duplicate_response')
     config_string(review$source, 'duplicate_response.source')
     config_string(review$reason, 'duplicate_response.reason')
+    # Absent operations are reported with the other unknown overrides below.
+    if (
+      identical(policy$absent_override_mode, 'warn') &&
+        !key %in% vapply(inventory, `[[`, character(1), 'key')
+    ) {
+      next
+    }
     if (
       !key %in%
         vapply(operations[ids %in% duplicate_ids], `[[`, character(1), 'key')
@@ -1147,7 +1154,15 @@ read_operations <- function(files, policy = list()) {
     indexed_keys
   )
   if (length(unknown)) {
-    stop('Unknown operation override: ', paste(unknown, collapse = ', '))
+    if (!identical(policy$absent_override_mode, 'warn')) {
+      stop('Unknown operation override: ', paste(unknown, collapse = ', '))
+    }
+    # Opt-in (#266): keys for operations missing from this schema match nothing.
+    warning(
+      'Skipping overrides for operations absent from the schema: ',
+      paste(unknown, collapse = ', '),
+      call. = FALSE
+    )
   }
   if (length(exclusion_errors)) {
     stop(
