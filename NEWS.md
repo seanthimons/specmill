@@ -1,6 +1,22 @@
 
 
 
+## specmill 0.1.63 (2026-11-02)
+
+#### Bug fixes
+
+- configure_client keeps the first reviewed name when groups wrap one
+  route twice (#270)
+  ([0ff8f8f](https://github.com/seanthimons/specmill/tree/0ff8f8f0e5c6dd4b799d4bad9945e69c36d0a3b4))
+
+#### Other changes
+
+- release v0.1.63 \[skip ci\]
+  ([1a83a06](https://github.com/seanthimons/specmill/tree/1a83a063ee5e43e3e1e544b1868ad994fe9221c2))
+
+Full set of changes:
+[`v0.1.62...v0.1.63`](https://github.com/seanthimons/specmill/compare/v0.1.62...v0.1.63)
+
 ## specmill 0.1.62 (2026-11-02)
 
 #### New features
@@ -12,7 +28,7 @@
 #### Other changes
 
 - release v0.1.62 \[skip ci\]
-  ([37c0213](https://github.com/seanthimons/specmill/tree/37c021338cedb1d3650dfa29c1ef3abd2f9c84bf))
+  ([d457fe0](https://github.com/seanthimons/specmill/tree/d457fe02da90b748272eb03d0914c68daf65ef3f))
 
 Full set of changes:
 [`v0.1.61.9000...v0.1.62`](https://github.com/seanthimons/specmill/compare/v0.1.61.9000...v0.1.62)
