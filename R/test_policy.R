@@ -174,14 +174,55 @@ testing_scenario <- function(x, label) {
   scenario
 }
 
-testing_hook_case <- function(x, label) {
-  config_fields(x, c('hook', 'stage', 'state', 'expect'), label)
-  if (!all(c('hook', 'stage', 'state', 'expect') %in% names(x))) {
-    stop(label, ' needs hook, stage, state and expect')
+# The YAML reader keeps every sequence a list, but R callers pass vectors: a
+# sequence of same-type scalars becomes a vector. Bodies are left as written,
+# because a one-item list and a scalar serialize to different JSON.
+testing_vectors <- function(x) {
+  if (!is.list(x)) {
+    return(x)
   }
-  hook <- config_string(x$hook, paste(label, 'hook'))
-  if (!identical(make.names(hook), hook)) {
-    stop(label, ': invalid hook function name')
+  x <- lapply(x, testing_vectors)
+  scalars <- length(x) &&
+    is.null(names(x)) &&
+    all(vapply(x, function(v) is.atomic(v) && length(v) == 1L, logical(1))) &&
+    length(unique(sub(
+      '^integer$',
+      'double',
+      vapply(x, typeof, character(1))
+    ))) ==
+      1L
+  if (scalars) unlist(x) else x
+}
+
+# Inputs or helper arguments, except the named body argument.
+testing_arguments <- function(x, body) {
+  names <- setdiff(names(x), body)
+  x[names] <- lapply(x[names], testing_vectors)
+  x
+}
+
+testing_function_name <- function(x, label) {
+  name <- config_string(x, label)
+  if (!identical(make.names(name), name)) {
+    stop(label, ': invalid function name')
+  }
+  name
+}
+
+# A direct case runs one hook function, or a wrapper's configured chain through
+# the client's hook callback.
+testing_hook_case <- function(x, label) {
+  config_fields(x, c('hook', 'chain', 'stage', 'state', 'expect'), label)
+  if (sum(c('hook', 'chain') %in% names(x)) != 1L) {
+    stop(label, ' needs exactly one of hook or chain')
+  }
+  if (!all(c('stage', 'state', 'expect') %in% names(x))) {
+    stop(label, ' needs stage, state and expect')
+  }
+  if (!is.null(x$hook)) {
+    testing_function_name(x$hook, paste(label, 'hook'))
+  } else {
+    testing_function_name(x$chain, paste(label, 'chain'))
   }
   if (!config_string(x$stage, paste(label, 'stage')) %in% testing_hook_stages) {
     stop(
@@ -191,14 +232,101 @@ testing_hook_case <- function(x, label) {
     )
   }
   config_fields(x$state, names(x$state), paste(label, 'state'))
-  config_fields(x$expect, c('state', 'error'), paste(label, 'expect'))
-  if (length(x$expect) != 1L) {
+  config_fields(x$expect, c('state', 'error', 'hook'), paste(label, 'expect'))
+  if (sum(c('state', 'error') %in% names(x$expect)) != 1L) {
     stop(label, ' expect needs exactly one of state or error')
   }
   if (!is.null(x$expect$error)) {
     config_string(x$expect$error, paste(label, 'expected error class'))
   }
+  if (!is.null(x$expect$hook)) {
+    if (is.null(x$chain) || is.null(x$expect$error)) {
+      stop(label, ' expect hook applies only to chain errors')
+    }
+    testing_function_name(x$expect$hook, paste(label, 'expected hook'))
+  }
   config_data(x)
+}
+
+# A wrapper integration runs the real wrapper and hooks around mocked helper
+# calls. Unlike fixed contracts it may expect no helper call at all.
+testing_hook_integration <- function(x, label) {
+  config_fields(
+    x,
+    c(
+      'operation',
+      'inputs',
+      'calls',
+      'result',
+      'error',
+      'sequence',
+      'environment'
+    ),
+    label
+  )
+  config_string(x$operation, paste(label, 'operation'))
+  if (!all(c('inputs', 'calls') %in% names(x))) {
+    stop(label, ' needs inputs and calls')
+  }
+  if (sum(c('result', 'error') %in% names(x)) != 1L) {
+    stop(label, ' needs exactly one of result or error')
+  }
+  config_fields(x$inputs, names(x$inputs), paste(label, 'inputs'))
+  if (!inherits(x$calls, 'specmill_sequence') && length(x$calls)) {
+    stop(label, ' calls must be a sequence')
+  }
+  for (call in x$calls) {
+    config_fields(
+      call,
+      c('helper', 'arguments', 'response'),
+      paste(label, 'call')
+    )
+    if (!all(c('helper', 'arguments', 'response') %in% names(call))) {
+      stop(label, ' calls need helper, arguments and response')
+    }
+    testing_function_name(call$helper, paste(label, 'call helper'))
+    config_fields(
+      call$arguments,
+      names(call$arguments),
+      paste(label, 'call arguments')
+    )
+  }
+  if (!is.null(x$error)) {
+    config_fields(x$error, c('class', 'hook', 'stage'), paste(label, 'error'))
+    config_string(x$error$class, paste(label, 'error class'))
+    if (!is.null(x$error$hook)) {
+      testing_function_name(x$error$hook, paste(label, 'error hook'))
+    }
+    if (
+      !is.null(x$error$stage) &&
+        !config_string(x$error$stage, paste(label, 'error stage')) %in%
+          testing_hook_stages
+    ) {
+      stop(label, ' error stage must be a hook stage')
+    }
+  }
+  if (!is.null(x$environment)) {
+    config_fields(
+      x$environment,
+      names(x$environment),
+      paste(label, 'environment')
+    )
+    for (value in x$environment) {
+      config_string(value, paste(label, 'environment value'))
+    }
+  }
+  case <- config_data(x)
+  case$calls <- config_data(unclass(x$calls)) %or% list()
+  if (!is.null(x$sequence)) {
+    case$sequence <- vapply(
+      config_sequence(x$sequence, paste(label, 'sequence')),
+      testing_function_name,
+      character(1),
+      label = paste(label, 'sequence'),
+      USE.NAMES = FALSE
+    )
+  }
+  case
 }
 
 # Recording-time redaction beyond credentials: response headers to drop and
@@ -285,6 +413,7 @@ read_testing_policy <- function(root, testing, id) {
     },
     scenarios = list(),
     hook_cases = list(),
+    hook_integrations = list(),
     filter = if (is.null(testing$filter)) {
       list()
     } else {
@@ -303,7 +432,11 @@ read_testing_policy <- function(root, testing, id) {
     stop(label, ' file does not exist: ', policy$file)
   }
   data <- read_config_yaml(path) %or% list()
-  config_fields(data, c('scenarios', 'hook_cases'), policy$file)
+  config_fields(
+    data,
+    c('scenarios', 'hook_cases', 'hook_integrations'),
+    policy$file
+  )
   policy$scenarios <- testing_entries(
     data$scenarios,
     'scenario',
@@ -313,6 +446,11 @@ read_testing_policy <- function(root, testing, id) {
     data$hook_cases,
     'hook case',
     testing_hook_case
+  )
+  policy$hook_integrations <- testing_entries(
+    data$hook_integrations,
+    'hook integration',
+    testing_hook_integration
   )
   policy
 }
@@ -373,11 +511,8 @@ testing_declarations <- function(
     )
   }
 
-  scenarios <- list()
-  for (scenario_id in names(policy$scenarios)) {
-    scenario <- policy$scenarios[[scenario_id]]
-    where <- paste(label, 'scenario', scenario_id)
-    target <- scenario$operation
+  # Scenarios and hook integrations name an operation by route key or wrapper.
+  resolve <- function(target, where) {
     entry <- if (grepl(testing_route_pattern, target)) {
       by_key[[target]]
     } else {
@@ -397,6 +532,49 @@ testing_declarations <- function(
         '; if the wrapper was renamed, use its METHOD /path route key'
       )
     }
+    entry
+  }
+  # Mapped and retained operations own their facade, so only the others are
+  # checked against public argument names.
+  check_inputs <- function(entry, case, where) {
+    op <- entry$configured$operation
+    spec <- entry$configured$spec
+    mapped <- !is.null(spec[['request']]) ||
+      identical(spec$implementation, 'existing')
+    if (mapped && !'inputs' %in% names(case)) {
+      stop(where, ': mapped or retained operations need explicit inputs')
+    }
+    public <- c(
+      parameter_names(op$parameters),
+      if (!is.null(op$body)) body_argument_name(op),
+      # Generation has already resolved paging; inspection resolves it the
+      # same way generation does.
+      if (
+        !is.null(op$paginate) ||
+          !is.null(pagination_settings(
+            op,
+            spec[['pagination']] %or% list(),
+            service$operations[[entry$key]][['pagination']] %or% list()
+          ))
+      ) {
+        c('all_pages', 'max_pages')
+      }
+    )
+    unknown <- setdiff(names(case$inputs), public)
+    if (!mapped && length(unknown)) {
+      stop(
+        where,
+        ': inputs name unknown arguments: ',
+        paste(unknown, collapse = ', ')
+      )
+    }
+  }
+
+  scenarios <- list()
+  for (scenario_id in names(policy$scenarios)) {
+    scenario <- policy$scenarios[[scenario_id]]
+    where <- paste(label, 'scenario', scenario_id)
+    entry <- resolve(scenario$operation, where)
     key <- entry$key
     represents <- scenario$represents %or% key
     if (!key %in% represents) {
@@ -413,32 +591,7 @@ testing_declarations <- function(
     }
     op <- entry$configured$operation
     spec <- entry$configured$spec
-    mapped <- !is.null(spec[['request']]) ||
-      identical(spec$implementation, 'existing')
-    if (mapped && !'inputs' %in% names(scenario)) {
-      stop(where, ': mapped or retained operations need explicit inputs')
-    }
-    public <- c(
-      parameter_names(op$parameters),
-      if (!is.null(op$body)) body_argument_name(op),
-      # Paging is resolved during generation, so resolve it the same way here.
-      if (
-        !is.null(pagination_settings(
-          op,
-          spec[['pagination']] %or% list(),
-          service$operations[[key]][['pagination']] %or% list()
-        ))
-      ) {
-        c('all_pages', 'max_pages')
-      }
-    )
-    if (!mapped && length(setdiff(names(scenario$inputs), public))) {
-      stop(
-        where,
-        ': inputs name unknown arguments: ',
-        paste(setdiff(names(scenario$inputs), public), collapse = ', ')
-      )
-    }
+    check_inputs(entry, scenario, where)
     if (!is.null(scenario$example)) {
       examples <- spec$docs$examples %or% list()
       if (scenario$example > length(examples)) {
@@ -500,12 +653,88 @@ testing_declarations <- function(
       paste(overlap, collapse = ', ')
     )
   }
-  for (case_id in names(policy$hook_cases)) {
-    hook <- policy$hook_cases[[case_id]]$hook
-    if (is.null(definitions[[hook]])) {
-      stop(label, ' hook case ', case_id, ': unknown hook function ', hook)
-    }
+  chain_of <- function(wrapper, stage) {
+    unlist(service$hooks[[wrapper]][[stage]], use.names = FALSE)
   }
+  covered <- character()
+  for (case_id in names(policy$hook_cases)) {
+    case <- policy$hook_cases[[case_id]]
+    where <- paste(label, 'hook case', case_id)
+    if (!is.null(case$hook)) {
+      if (is.null(definitions[[case$hook]])) {
+        stop(where, ': unknown hook function ', case$hook)
+      }
+      covered <- c(covered, case$hook)
+      next
+    }
+    if (is.null(operations[[case$chain]])) {
+      stop(where, ': unknown wrapper ', case$chain)
+    }
+    chain <- chain_of(case$chain, case$stage)
+    if (!length(chain)) {
+      stop(where, ': ', case$chain, ' has no ', case$stage, ' hooks')
+    }
+    if (!is.null(case$expect$hook) && !case$expect$hook %in% chain) {
+      stop(where, ': expected hook is not in the chain: ', case$expect$hook)
+    }
+    covered <- c(covered, chain)
+  }
+  callback <- service$hook_callback %or% 'run_hook'
+  integrations <- list()
+  for (case_id in names(policy$hook_integrations)) {
+    case <- policy$hook_integrations[[case_id]]
+    where <- paste(label, 'hook integration', case_id)
+    entry <- resolve(case$operation, where)
+    check_inputs(entry, case, where)
+    wrapper <- entry$record$name
+    helper <- entry$configured$spec$helper %or% service$helper
+    hooks <- unique(unlist(service$hooks[[wrapper]], use.names = FALSE))
+    if (!length(hooks)) {
+      stop(where, ': ', wrapper, ' has no configured hooks')
+    }
+    helpers <- vapply(case$calls, `[[`, character(1), 'helper')
+    # Companions and the callback run the hooks under test, so never mock them.
+    reserved <- helpers[
+      helpers == callback | startsWith(helpers, paste0(helper, '_'))
+    ]
+    if (length(reserved)) {
+      stop(
+        where,
+        ': calls must name request helpers, not ',
+        paste(unique(reserved), collapse = ', ')
+      )
+    }
+    unknown <- setdiff(helpers, names(definitions))
+    if (length(unknown)) {
+      stop(where, ': unknown helper ', paste(unknown, collapse = ', '))
+    }
+    unknown <- setdiff(hooks, names(definitions))
+    if (length(unknown)) {
+      stop(where, ': unknown hook function ', paste(unknown, collapse = ', '))
+    }
+    unknown <- setdiff(case$sequence, c(hooks, helpers, helper))
+    if (length(unknown)) {
+      stop(
+        where,
+        ': sequence names neither a configured hook nor a helper: ',
+        paste(unknown, collapse = ', ')
+      )
+    }
+    if (!is.null(case$error$hook) && !case$error$hook %in% hooks) {
+      stop(where, ': error hook is not configured for ', wrapper)
+    }
+    integrations[[case_id]] <- list(
+      operation = wrapper,
+      route = entry$key,
+      hooks = hooks,
+      helpers = unique(c(helper, helpers))
+    )
+  }
+  # Missing cases are reported, never invented from generated code.
+  configured <- unique(unlist(
+    service$hooks[intersect(names(service$hooks), names(operations))],
+    use.names = FALSE
+  ))
   directory <- file.path(root, 'tests/testthat/_vcr', id)
   cassettes <- sub(
     '\\.yml$',
@@ -538,6 +767,8 @@ testing_declarations <- function(
     gaps = policy$gaps,
     unrecorded = policy$unrecorded,
     hook_cases = names(policy$hook_cases),
+    hook_integrations = integrations,
+    hooks_without_cases = sort(setdiff(configured, covered)),
     routes = routes,
     unreferenced_cassettes = setdiff(cassettes, names(scenarios))
   )

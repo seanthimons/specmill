@@ -357,6 +357,7 @@ inspect_client <- function(
           declared$routes %in% c('scenario', 'represented')
         )
         counts$unrecorded <- sum(declared$routes == 'unrecorded')
+        counts$hook_cases_missing <- length(declared$hooks_without_cases)
       }
       counts
     }),

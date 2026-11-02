@@ -6,6 +6,17 @@ replay_runner_file <- 'tests/testthat.R'
 replay_test_marker <- '# Cassette scenario test; replays a reviewed recording.'
 replay_dependencies <- c('testthat', 'vcr', 'withr', 'yaml')
 
+declared_test_file <- function(root, prefix, service, id) {
+  portable_output_path(
+    root,
+    paste0('tests/testthat/test-', prefix, '-', service, '-', id, '.R')
+  )
+}
+
+declared_test_owner <- function(kind, service, id) {
+  paste0('specmill ', kind, ' ', service, '/', id)
+}
+
 replay_character_literal <- function(x) {
   if (!length(x)) {
     return('character()')
@@ -138,7 +149,10 @@ render_scenario_test <- function(
   ) {
     stop(where, ': environment must not set credential or record variables')
   }
-  inputs <- scenario_inputs(op, spec, scenario, where)
+  inputs <- testing_arguments(
+    scenario_inputs(op, spec, scenario, where),
+    if (!is.null(op$body)) body_argument_name(op)
+  )
   args <- paste(
     vapply(
       names(inputs),
@@ -242,7 +256,7 @@ render_scenario_test <- function(
 
 # Client DESCRIPTION is client-owned: report missing test dependencies instead
 # of editing it.
-replay_check_dependencies <- function(root) {
+replay_check_dependencies <- function(root, needs = replay_dependencies) {
   metadata <- read.dcf(project_path(root, 'DESCRIPTION'))[1L, ]
   declared <- unlist(lapply(
     intersect(c('Depends', 'Imports', 'Suggests'), names(metadata)),
@@ -250,10 +264,13 @@ replay_check_dependencies <- function(root) {
       trimws(sub('\\(.*$', '', strsplit(metadata[[field]], ',')[[1L]]))
     }
   ))
-  missing <- setdiff(c(replay_dependencies, 'httr2'), declared)
+  missing <- setdiff(
+    c(needs, if ('vcr' %in% needs) 'httr2'),
+    declared
+  )
   if (length(missing)) {
     stop(
-      'Cassette scenarios need these packages in the client DESCRIPTION ',
+      'Declared tests need these packages in the client DESCRIPTION ',
       '(Suggests is enough for test-only packages): ',
       paste(missing, collapse = ', ')
     )
@@ -284,6 +301,7 @@ replay_outputs <- function(
   }
   query <- character()
   filters <- list()
+  needs <- 'testthat'
   for (i in seq_along(services)) {
     service <- services[[i]]
     if (is.null(service$testing)) {
@@ -297,23 +315,40 @@ replay_outputs <- function(
       character(1),
       'key'
     )
-    held <- vapply(
-      service$testing$scenarios,
-      function(x) x$operation %in% c(deferred, deferred_names),
-      logical(1)
-    )
-    # A held scenario keeps its existing test, like the deferred wrapper.
-    for (id in names(service$testing$scenarios)[held]) {
-      file <- portable_output_path(
-        root,
-        paste0('tests/testthat/test-scenario-', service$id, '-', id, '.R')
+    # A held declaration keeps its existing test, like the deferred wrapper.
+    hold <- function(cases, target, kind, prefix) {
+      held <- vapply(
+        cases,
+        function(x) (x[[target]] %or% '') %in% c(deferred, deferred_names),
+        logical(1)
       )
-      if (file.exists(project_path(root, file))) {
-        files[[file]] <- file_text(project_path(root, file))
-        owners[[file]] <- paste0('specmill scenario ', service$id, '/', id)
+      for (id in names(cases)[held]) {
+        file <- declared_test_file(root, prefix, service$id, id)
+        if (file.exists(project_path(root, file))) {
+          files[[file]] <<- file_text(project_path(root, file))
+          owners[[file]] <<- declared_test_owner(kind, service$id, id)
+        }
       }
+      cases[!held]
     }
-    service$testing$scenarios <- service$testing$scenarios[!held]
+    service$testing$scenarios <- hold(
+      service$testing$scenarios,
+      'operation',
+      'scenario',
+      'scenario'
+    )
+    service$testing$hook_cases <- hold(
+      service$testing$hook_cases,
+      'chain',
+      'hook case',
+      'hook-case'
+    )
+    service$testing$hook_integrations <- hold(
+      service$testing$hook_integrations,
+      'operation',
+      'hook integration',
+      'hook-integration'
+    )
     service$testing$scenarios <- lapply(
       service$testing$scenarios,
       function(x) {
@@ -348,10 +383,7 @@ replay_outputs <- function(
     for (id in names(declared$scenarios)) {
       entry <- service_entries[[declared$scenarios[[id]]$operation]]
       op <- entry$configured$operation
-      file <- portable_output_path(
-        root,
-        paste0('tests/testthat/test-scenario-', service$id, '-', id, '.R')
-      )
+      file <- declared_test_file(root, 'scenario', service$id, id)
       if (file %in% names(files)) {
         stop('Portable test filenames collide: ', file)
       }
@@ -364,7 +396,7 @@ replay_outputs <- function(
         declared$scenarios[[id]]$match,
         unlist(authentication, use.names = FALSE)
       )
-      owners[[file]] <- paste0('specmill scenario ', service$id, '/', id)
+      owners[[file]] <- declared_test_owner('scenario', service$id, id)
       if (length(authentication)) {
         for (requirement in operation_authentication(op, authentication)) {
           for (scheme in requirement) {
@@ -373,6 +405,39 @@ replay_outputs <- function(
             }
           }
         }
+      }
+    }
+    callback <- service$hook_callback %or% 'run_hook'
+    for (id in names(service$testing$hook_cases)) {
+      file <- declared_test_file(root, 'hook-case', service$id, id)
+      if (file %in% names(files)) {
+        stop('Portable test filenames collide: ', file)
+      }
+      files[[file]] <- render_hook_case(
+        service$id,
+        id,
+        service$testing$hook_cases[[id]],
+        callback
+      )
+      owners[[file]] <- declared_test_owner('hook case', service$id, id)
+    }
+    for (id in names(declared$hook_integrations)) {
+      entry <- service_entries[[declared$hook_integrations[[id]]$operation]]
+      file <- declared_test_file(root, 'hook-integration', service$id, id)
+      if (file %in% names(files)) {
+        stop('Portable test filenames collide: ', file)
+      }
+      files[[file]] <- render_hook_integration(
+        entry$configured$operation,
+        entry$configured$spec,
+        service$id,
+        id,
+        service$testing$hook_integrations[[id]],
+        declared$hook_integrations[[id]]
+      )
+      owners[[file]] <- declared_test_owner('hook integration', service$id, id)
+      if (length(service$testing$hook_integrations[[id]]$environment)) {
+        needs <- union(needs, 'withr')
       }
     }
   }
@@ -386,13 +451,14 @@ replay_outputs <- function(
     files[[replay_runner_file]] <- replay_runner_text(package)
     owners[[replay_runner_file]] <- 'specmill test runner'
   }
-  if (
-    any(startsWith(
-      names(files) %or% character(),
-      'tests/testthat/test-scenario-'
-    ))
-  ) {
-    replay_check_dependencies(root)
+  tests <- names(files) %or% character()
+  if (any(startsWith(tests, 'tests/testthat/test-scenario-'))) {
+    needs <- union(needs, replay_dependencies)
+  }
+  if (any(startsWith(tests, 'tests/testthat/test-'))) {
+    replay_check_dependencies(root, needs)
+  }
+  if (any(startsWith(tests, 'tests/testthat/test-scenario-'))) {
     files[[replay_helper_file]] <- replay_helper_text(
       package,
       unlist(authentication, use.names = FALSE),

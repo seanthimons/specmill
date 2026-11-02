@@ -250,7 +250,7 @@ scenario_replay_acceptance <- function() {
   # Test dependencies are reported, never added to the client DESCRIPTION.
   missing <- tryCatch(generate(), error = conditionMessage)
   stopifnot(grepl(
-    'Cassette scenarios need these packages',
+    'Declared tests need these packages',
     missing,
     fixed = TRUE
   ))
@@ -637,6 +637,14 @@ scenario_replay_acceptance <- function() {
       file.path(held, 'tests/testthat', paste0('test-scenario-svc-', id, '.R'))
     )
   }
+  writeLines(
+    '# existing chain',
+    file.path(held, 'tests/testthat/test-hook-case-svc-chain.R')
+  )
+  writeLines(
+    '# existing wiring',
+    file.path(held, 'tests/testthat/test-hook-integration-svc-wiring.R')
+  )
   service <- list(
     id = 'svc',
     package = 'heldclient',
@@ -649,7 +657,22 @@ scenario_replay_acceptance <- function() {
         by_name = list(operation = 'get_x', inputs = list()),
         by_route = list(operation = 'GET /x', inputs = list())
       ),
-      hook_cases = list()
+      hook_cases = list(
+        chain = list(
+          chain = 'get_x',
+          stage = 'pre_request',
+          state = list(),
+          expect = list(state = list())
+        )
+      ),
+      hook_integrations = list(
+        wiring = list(
+          operation = 'GET /x',
+          inputs = list(),
+          calls = list(),
+          result = 1L
+        )
+      )
     )
   )
   outputs <- specmill:::replay_outputs(
@@ -678,7 +701,20 @@ scenario_replay_acceptance <- function() {
       )])),
       paste('# existing', old)
     ),
-    'tests/testthat/helper-scenario-replay.R' %in% names(outputs$files)
+    'tests/testthat/helper-scenario-replay.R' %in% names(outputs$files),
+    # Held hook declarations keep their tests too.
+    identical(
+      outputs$files[['tests/testthat/test-hook-case-svc-chain.R']],
+      '# existing chain'
+    ),
+    identical(
+      outputs$files[['tests/testthat/test-hook-integration-svc-wiring.R']],
+      '# existing wiring'
+    ),
+    identical(
+      outputs$owners[['tests/testthat/test-hook-case-svc-chain.R']],
+      'specmill hook case svc/chain'
+    )
   )
   # A client without credentials gets empty credential lists and can replay.
   helper <- outputs$files[['tests/testthat/helper-scenario-replay.R']]
