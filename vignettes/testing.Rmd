@@ -237,9 +237,9 @@ independent result; see its reference example.
 
 ## Declare cassette scenarios, gaps and unrecorded routes
 
-Recorded replay tests are being added in stages. Generated replay tests and
-recording controls are not available yet. You can already declare and check
-what each one will cover. Policy goes in the service YAML under `testing`:
+A cassette scenario records one real response, then replays it offline
+through the client's real wrapper, hooks and request helper. Declare what each
+scenario covers first. Policy goes in the service YAML under `testing`:
 
 ```yaml
 testing:
@@ -305,6 +305,42 @@ declared$routes
 declared$scenarios$get_item_basic$cassette
 ```
 
+### Generate, record and replay
+
+Generation writes one `tests/testthat/test-scenario-<service>-<scenario>.R`
+per scenario, a shared `tests/testthat/helper-scenario-replay.R`, and the
+standard `tests/testthat.R` runner when the client has none. The client must
+declare `httr2`, and `testthat`, `vcr`, `withr` and `yaml` (in `Suggests` is
+enough); generation reports any that are missing and never edits
+`DESCRIPTION`. A scenario needs `inputs`,
+an `example`, or a wrapper with no required inputs.
+
+Routine test runs only replay (`record = 'none'`). A missing or unmatched
+recording fails without contacting the service. To record, set the real
+credential and list the scenario as `<service>/<scenario>` in the client's
+record variable, `<PACKAGE>_RECORD`:
+
+```{r record, eval=FALSE}
+withr::with_envvar(
+  c(TESTEDCLIENT_KEY = 'your key', TESTEDCLIENT_RECORD = 'testedclient/get_item_basic'),
+  testthat::test_local(root, filter = 'scenario', stop_on_failure = TRUE)
+)
+```
+
+Recording writes the cassette and
+`tests/testthat/_signatures/<service>/<scenario>.yml`, the result's class,
+emptiness, column classes and nested element types. Review both before
+committing them. Listing a scenario that already has a cassette replays it and
+leaves its signature alone. The cassette stores credentials as `<<VARIABLE>>`
+placeholders, including URL-encoded query values, and
+`<scenario>.credentials` beside it lists the names (never the values) of the
+credentials the recording used. Replay gives each of those a dummy value and
+unsets the rest. Without a recording, replay stops and names the record
+variable. Recording never
+replaces an existing cassette: delete it to record again, and never re-record
+just to make a failing expectation pass. Recording state-changing operations is
+refused for now.
+
 ## Add the verification layer your change needs
 
 | Layer | What to verify |
@@ -312,6 +348,7 @@ declared$scenarios$get_item_basic$cassette
 | Generation check | Committed output matches schema, policy, callbacks, and fixtures |
 | Fixed helper contract | Successful wrapper result plus exact ordered helper calls |
 | Hook tests | Validation, parameter changes, skip behavior, and post-processing |
+| Cassette scenario | Real wrapper, hooks and helper replayed against a reviewed recording; result type and reviewed values |
 | Local transport test | Final method, encoded URL, query/body placement, headers, media, and error decoding |
 | Bounded live check | Current endpoint/authentication behavior using reviewed nonsecret input |
 
