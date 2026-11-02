@@ -1,6 +1,22 @@
 
 
 
+## specmill 0.1.62 (2026-11-02)
+
+#### New features
+
+- opt-in absent_overrides = ‘warn’ skips overrides for operations
+  missing from the schema (#266)
+  ([fe5381f](https://github.com/seanthimons/specmill/tree/fe5381fe2f0192efdac39efc33097bbd2c1fb224))
+
+#### Other changes
+
+- release v0.1.62 \[skip ci\]
+  ([37c0213](https://github.com/seanthimons/specmill/tree/37c021338cedb1d3650dfa29c1ef3abd2f9c84bf))
+
+Full set of changes:
+[`v0.1.61.9000...v0.1.62`](https://github.com/seanthimons/specmill/compare/v0.1.61.9000...v0.1.62)
+
 ## specmill 0.1.61.9000 (2026-10-29)
 
 #### Docs
@@ -13,7 +29,7 @@
 #### Other changes
 
 - release v0.1.61.9000 \[skip ci\]
-  ([1ee2042](https://github.com/seanthimons/specmill/tree/1ee204230da82f80e13e36b9cfdbbba5e76da758))
+  ([6adbbab](https://github.com/seanthimons/specmill/tree/6adbbab2e8ce2e9847cf491e0ba09453f7e7397e))
 
 Full set of changes:
 [`v0.1.61...v0.1.61.9000`](https://github.com/seanthimons/specmill/compare/v0.1.61...v0.1.61.9000)
