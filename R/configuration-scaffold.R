@@ -492,13 +492,21 @@ reviewed_configuration_names <- function(root, proposal) {
     }
     for (key in names(mappings)) {
       id <- if (nzchar(api)) paste(api, key) else key
-      if (
-        !is.null(reviewed[[id]]) &&
-          !identical(reviewed[[id]], mappings[[key]])
-      ) {
-        stop('Conflicting reviewed operation name: ', id)
+      if (is.null(reviewed[[id]])) {
+        reviewed[[id]] <<- mappings[[key]]
+      } else if (!identical(reviewed[[id]], mappings[[key]])) {
+        # Groups may wrap one route several times; a proposal has one slot.
+        warning(
+          'Reviewed operation ',
+          id,
+          ' has several names; the proposal keeps only ',
+          reviewed[[id]],
+          ' (also: ',
+          mappings[[key]],
+          ')',
+          call. = FALSE
+        )
       }
-      reviewed[[id]] <<- mappings[[key]]
     }
   }
   for (file in grep('^apis/', names(proposal$files), value = TRUE)) {
