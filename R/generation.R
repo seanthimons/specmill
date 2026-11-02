@@ -2644,7 +2644,9 @@ generate_client <- function(
   # Scenario tests and their replay helper belong to declarations, not to
   # operations; apply removes them only while their bytes are unchanged.
   declared_outputs <- names(Filter(
-    function(x) any(grepl('^specmill (scenario|replay)', unlist(x$operations))),
+    function(x) {
+      any(grepl('^specmill (scenario|replay|hook)', unlist(x$operations)))
+    },
     previous
   ))
   removals <- union(removals, setdiff(declared_outputs, names(desired)))

@@ -447,7 +447,7 @@ testing_policy_acceptance <- function() {
         'hook_cases:',
         "  a: {hook: 'bad name', stage: pre_request, state: {}, expect: {error: x}}"
       ),
-      'invalid hook function name'
+      'hook: invalid function name'
     )
   )) {
     data(case[[1L]])

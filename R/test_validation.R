@@ -23,7 +23,14 @@ tg_validate_generated_text <- function(text, file = "<memory>") {
   # Literal, not replay_test_marker: bind_tools() rebinds this function into
   # client contexts that cannot see package constants.
   scenario <- "# Cassette scenario test; replays a reviewed recording."
-  if (scenario %in% tg_text_header_lines(text)) {
+  hook_case <- "# Hook case test; checks a reviewed hook rule."
+  header <- tg_text_header_lines(text)
+  if (hook_case %in% header) {
+    # Direct hook cases call client hooks; they neither mock nor replay.
+    if (mocked || grepl("\\breplay_cassette\\s*\\(", text, perl = TRUE)) {
+      errors <- c(errors, "hook case mocks bindings or replays a cassette")
+    }
+  } else if (scenario %in% header) {
     # Cassette scenarios run the real wrapper and request helper.
     if (mocked) {
       errors <- c(errors, "cassette scenario mocks request helper bindings")

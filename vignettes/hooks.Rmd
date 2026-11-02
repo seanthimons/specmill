@@ -222,8 +222,11 @@ specmill::check_client_hooks(
 specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
 ```
 
-Keep an equivalent check in your client's tests. Test chain order, representative
-results, empty/invalid inputs, and any skip behavior you implement. Generated
+Keep an equivalent check in your client's tests: declare it as a hook case or
+wrapper integration so generation writes and maintains the test (see
+[hook cases](testing.html#declare-hook-cases-and-wrapper-integrations)). Test
+chain order, representative results, empty/invalid inputs, and any skip
+behavior you implement. Generated
 request contract tests cover helper calls; they do not establish that your
 response transformation is correct. A failed hook stops the chain and carries
 its original condition in `error$parent`, plus the function, stage, and hook name.

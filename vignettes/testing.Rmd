@@ -283,7 +283,9 @@ hook_cases:
 
 A scenario's default expectation is the reviewed type and shape of the result.
 Add `result` for an exact value, or `checks` (`class`, `rows`, `names`,
-`values` at a `path`) for the parts a reviewer verified. Routes in
+`values` at a `path`) for the parts a reviewer verified. In `inputs`, a YAML
+sequence of same-type scalars becomes an R vector, except in the body argument,
+which is sent exactly as written. Routes in
 `represents` are counted as represented, never as executed. Use the route key
 for `operation`, so renaming a wrapper does not break the scenario.
 
@@ -401,13 +403,89 @@ alone. To replace it on purpose, delete the cassette and record again. Never
 re-record just to make a failing expectation pass. Find out first whether the
 input, the client or the service changed.
 
+## Declare hook cases and wrapper integrations
+
+Hooks hold your client's own rules. OpenAPI says nothing about them, so their
+expected results must come from review. Declare them in the same testing file;
+generation writes one test per declaration.
+
+A **hook case** runs one hook function, or a wrapper's whole chain for a stage
+through your hook callback:
+
+```yaml
+hook_cases:
+  trims_item_id:
+    hook: normalize_item_id
+    stage: pre_request
+    state: {params: {item_id: ' abc '}}
+    expect: {state: {params: {item_id: abc}}}
+  rejects_blank_id:
+    chain: get_item                  # the configured pre_request chain, in order
+    stage: pre_request
+    state: {params: {item_id: ''}}
+    expect: {error: client_hook_error, hook: normalize_item_id}
+```
+
+A chain error is checked for its wrapper, stage and failing hook. Chain cases
+run your executor, so the chain comes from its runtime registry (for the
+scaffold, `inst/hooks.yml`).
+
+A **wrapper integration** calls the real wrapper with its real hooks while the
+request helper is replaced by a recorder. It lists the helper calls you expect,
+which may be none, and the public result or error:
+
+```yaml
+hook_integrations:
+  local_item_skips:
+    operation: GET /items/{item_id}
+    inputs: {item_id: local}
+    calls: []                                   # a skip makes no request
+    result: {id: local}
+    sequence: [normalize_item_id, extract_item] # hooks and helper calls, in order
+  pages_run_hooks_per_page:
+    operation: list_items
+    inputs: {}
+    calls:
+      - helper: api_request
+        arguments:
+          method: GET
+          path: /items
+          path_params: []
+          query: {page: 1}
+          body: null
+          request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+          server: {url: 'https://api.example.org'}
+        response: [{id: a}]
+      # one entry per further page, ending with the empty page
+    result: {rows: [{id: a}], count: 1}
+    sequence: [api_request, keep_rows, api_request, keep_rows, count_rows]
+```
+
+`calls` uses the fixed-contract shape and must name request helpers, not
+companions or the callback. `sequence` records hook runs and helper calls in
+one log, so it checks chain order, skip and `post_on_skip` behavior, rejection
+before any request, and how often `post_response` and `post_combine` run for
+paging, batching and `post_response_scope: combined`. Error results can name
+the `class`, the `hook` and the `stage`.
+
+In scenario and integration `inputs` and in helper `arguments`, a YAML sequence
+of same-type scalars becomes an R vector, as a caller would pass it. The body
+argument is the exception: it stays exactly as written, because a one-item list
+and a single value send different JSON. Responses, results and hook states also
+keep YAML sequences as lists.
+
+`inspect_client()` lists configured hooks that no hook case covers under
+`testing$<service>$hooks_without_cases`, and counts them in coverage. Write
+those cases from your reviewed rules; specmill never infers them from
+generated code.
+
 ## Add the verification layer your change needs
 
 | Layer | What to verify |
 |---|---|
 | Generation check | Committed output matches schema, policy, callbacks, and fixtures |
 | Fixed helper contract | Successful wrapper result plus exact ordered helper calls |
-| Hook tests | Validation, parameter changes, skip behavior, and post-processing |
+| Hook tests | Reviewed hook cases and wrapper integrations: validation, parameter changes, skips, ordering, and post-processing |
 | Cassette scenario | Real wrapper, hooks and helper replayed against a reviewed recording; result type and reviewed values |
 | Local transport test | Final method, encoded URL, query/body placement, headers, media, and error decoding |
 | Bounded live check | Current endpoint/authentication behavior using reviewed nonsecret input |
