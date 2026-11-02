@@ -915,6 +915,14 @@ ordering, while unrelated service settings and deliberate operation overrides
 remain untouched. Noninteractive runs return these diagnostics and never prompt
 or silently rename a public function.
 
+Reviewed names are read only from the service files the proposal would write.
+Pass the API catalogue as `schema` to reuse names from `apis/<api>.yml`. A
+single schema path proposes `apis/default.yml` or tag-named files instead, so
+names reviewed elsewhere are not carried forward. A proposal gives each route
+one name. When several groups wrap the same route under different names, it
+keeps the first group's name and warns. Its regenerated groups drop the other
+wrappers, so keep the reviewed file and copy over only the new entries.
+
 `mode = 'apply'` writes absent configuration files only. If existing YAML or the
 schema copy differs, nothing is written: review the before/after text and make
 the desired edits yourself. Filename collisions block writing; function-name
