@@ -21,7 +21,36 @@ replay_record_env <- function(package) {
   paste0(toupper(gsub('[^A-Za-z0-9]', '_', package)), '_RECORD')
 }
 
-replay_helper_text <- function(package, credentials, query_credentials) {
+# Per-service recording filters, keyed by service ID.
+replay_filters_literal <- function(filters) {
+  if (!length(filters)) {
+    return('list()')
+  }
+  entries <- vapply(
+    sort(names(filters)),
+    function(id) {
+      paste0(
+        encodeString(id, quote = "'"),
+        ' = list(response_headers = ',
+        replay_character_literal(
+          filters[[id]]$response_headers %or% character()
+        ),
+        ', patterns = ',
+        replay_character_literal(filters[[id]]$patterns %or% character()),
+        ')'
+      )
+    },
+    character(1)
+  )
+  paste0('list(', paste(entries, collapse = ', '), ')')
+}
+
+replay_helper_text <- function(
+  package,
+  credentials,
+  query_credentials,
+  filters = list()
+) {
   record_env <- replay_record_env(package)
   text <- file_text(system.file(
     'templates/replay.R',
@@ -39,7 +68,8 @@ replay_helper_text <- function(package, credentials, query_credentials) {
       replay_character_literal(
         query_credentials[order(names(query_credentials) %or% character())]
       )
-    )
+    ),
+    c('REPLAY_FILTERS', replay_filters_literal(filters))
   )) {
     text <- sub(
       paste0('<- ', field[[1L]], '\n'),
@@ -157,6 +187,7 @@ render_scenario_test <- function(
         ', ',
         replay_character_literal(match),
         if (!op$method %in% c('GET', 'HEAD')) ', writes = TRUE',
+        if (!is.null(scenario$record_write)) ', write_approved = TRUE',
         ')'
       ),
       if (length(environment)) {
@@ -252,6 +283,7 @@ replay_outputs <- function(
     return(list(files = files, owners = owners))
   }
   query <- character()
+  filters <- list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     if (is.null(service$testing)) {
@@ -299,6 +331,20 @@ replay_outputs <- function(
       inventory,
       definitions
     )
+    clash <- intersect(
+      names(declared$filter$patterns),
+      paste0('<<', unlist(authentication, use.names = FALSE), '>>')
+    )
+    if (length(clash)) {
+      stop(
+        service$id,
+        ' testing filter placeholders must differ from credential names: ',
+        paste(clash, collapse = ', ')
+      )
+    }
+    if (length(declared$filter)) {
+      filters[[service$id]] <- declared$filter
+    }
     for (id in names(declared$scenarios)) {
       entry <- service_entries[[declared$scenarios[[id]]$operation]]
       op <- entry$configured$operation
@@ -350,7 +396,8 @@ replay_outputs <- function(
     files[[replay_helper_file]] <- replay_helper_text(
       package,
       unlist(authentication, use.names = FALSE),
-      query
+      query,
+      filters
     )
     owners[[replay_helper_file]] <- 'specmill replay'
   }

@@ -119,11 +119,16 @@ testing_scenario <- function(x, label) {
       'result',
       'checks',
       'environment',
-      'match'
+      'match',
+      'record_write'
     ),
     label
   )
   config_string(x$operation, paste(label, 'operation'))
+  if (!is.null(x$record_write)) {
+    config_fields(x$record_write, 'reason', paste(label, 'record_write'))
+    config_string(x$record_write$reason, paste(label, 'record_write reason'))
+  }
   if (all(c('result', 'checks') %in% names(x))) {
     stop(label, ': declare result or checks, not both')
   }
@@ -196,6 +201,48 @@ testing_hook_case <- function(x, label) {
   config_data(x)
 }
 
+# Recording-time redaction beyond credentials: response headers to drop and
+# regex patterns replaced by a placeholder (vcr applies them with gsub()).
+testing_filter <- function(x, label) {
+  config_fields(x, c('response_headers', 'patterns'), label)
+  filter <- list()
+  if (!is.null(x$response_headers)) {
+    filter$response_headers <- config_sequence(
+      x$response_headers,
+      paste(label, 'response_headers')
+    )
+  }
+  if (!is.null(x$patterns)) {
+    config_fields(x$patterns, names(x$patterns), paste(label, 'patterns'))
+    for (placeholder in names(x$patterns)) {
+      pattern <- config_string(
+        x$patterns[[placeholder]],
+        paste(label, 'pattern', placeholder)
+      )
+      if (!grepl('^<<[A-Z0-9_]+>>$', placeholder)) {
+        stop(label, ' pattern placeholders look like <<NAME>>: ', placeholder)
+      }
+      fail <- function(e) {
+        stop(label, ' pattern does not compile: ', placeholder, call. = FALSE)
+      }
+      matches <- tryCatch(
+        grepl(pattern, c('', placeholder)),
+        warning = fail,
+        error = fail
+      )
+      if (any(matches)) {
+        stop(
+          label,
+          ' pattern must not match an empty string or its placeholder: ',
+          placeholder
+        )
+      }
+    }
+    filter$patterns <- unlist(config_data(x$patterns))
+  }
+  filter
+}
+
 testing_entries <- function(x, label, read) {
   if (is.null(x)) {
     return(list())
@@ -214,7 +261,11 @@ testing_entries <- function(x, label, read) {
 # Structure of a service `testing` field and the data file it names.
 read_testing_policy <- function(root, testing, id) {
   label <- paste(id, 'testing')
-  config_fields(testing, c('file', 'match', 'gaps', 'unrecorded'), label)
+  config_fields(
+    testing,
+    c('file', 'match', 'gaps', 'unrecorded', 'filter'),
+    label
+  )
   policy <- list(
     file = NULL,
     match = if (is.null(testing$match)) {
@@ -233,7 +284,12 @@ read_testing_policy <- function(root, testing, id) {
       testing_reasons(testing$unrecorded, paste(label, 'unrecorded'))
     },
     scenarios = list(),
-    hook_cases = list()
+    hook_cases = list(),
+    filter = if (is.null(testing$filter)) {
+      list()
+    } else {
+      testing_filter(testing$filter, paste(label, 'filter'))
+    }
   )
   if (is.null(testing$file)) {
     return(policy)
@@ -396,6 +452,9 @@ testing_declarations <- function(
         ': an operation with a request body must match body or body_json'
       )
     }
+    if (!is.null(scenario$record_write) && op$method %in% c('GET', 'HEAD')) {
+      stop(where, ': record_write applies only to state-changing operations')
+    }
     cassette <- testing_cassette(id, scenario_id)
     scenarios[[scenario_id]] <- list(
       operation = entry$record$name,
@@ -416,6 +475,7 @@ testing_declarations <- function(
         'signature'
       },
       match = match,
+      write_approval = scenario$record_write$reason,
       cassette = cassette,
       cassette_exists = file.exists(file.path(root, cassette))
     )
@@ -473,6 +533,7 @@ testing_declarations <- function(
   list(
     file = policy$file,
     match = policy$match,
+    filter = policy$filter,
     scenarios = scenarios,
     gaps = policy$gaps,
     unrecorded = policy$unrecorded,

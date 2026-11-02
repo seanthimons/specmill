@@ -327,19 +327,79 @@ withr::with_envvar(
 )
 ```
 
-Recording writes the cassette and
-`tests/testthat/_signatures/<service>/<scenario>.yml`, the result's class,
-emptiness, column classes and nested element types. Review both before
-committing them. Listing a scenario that already has a cassette replays it and
-leaves its signature alone. The cassette stores credentials as `<<VARIABLE>>`
-placeholders, including URL-encoded query values, and
-`<scenario>.credentials` beside it lists the names (never the values) of the
-credentials the recording used. Replay gives each of those a dummy value and
-unsets the rest. Without a recording, replay stops and names the record
-variable. Recording never
-replaces an existing cassette: delete it to record again, and never re-record
-just to make a failing expectation pass. Recording state-changing operations is
-refused for now.
+Recording refuses to run while `CI` is `true`, `1` or `yes`, so CI never
+records, and generation and checks never run tests.
+
+### Recording policy
+
+**Names.** Each scenario has three files, named only from the service and
+scenario IDs:
+
+- `tests/testthat/_vcr/<service>/<scenario>.yml`, the recording;
+- `tests/testthat/_vcr/<service>/<scenario>.credentials`, the names (never the
+  values) of the credentials the recording used;
+- `tests/testthat/_signatures/<service>/<scenario>.yml`, the result's class,
+  emptiness, column classes and nested element types.
+
+**Matching.** Replay matches the method and URI by default. A scenario whose
+operation sends a body must add `body` or `body_json` to `match`. Headers are
+never matched.
+
+**Credentials.** Credentials never reach a recording. Query credentials are
+replaced by parameter name, and every raw or URL-encoded form of each value is
+replaced by a `<<VARIABLE>>` placeholder. Request `Authorization` and `Cookie`
+headers and response `Set-Cookie` headers are dropped. Replay gives each
+credential named in the `.credentials` file a dummy value and unsets the rest,
+so authentication works offline without a real key.
+
+**Other sensitive data.** Declare anything else to keep out of recordings
+under `testing.filter`. This includes private hosts, emails, account
+identifiers, and secrets an approved write returns:
+
+```yaml
+testing:
+  file: tests/testthat/fixtures/testing.yml
+  filter:
+    response_headers: [X-Internal-Host]
+    patterns:
+      '<<EMAIL>>': '[a-z]+@corp[.]example'
+      '<<PRIVATE_URL>>': 'https://intranet[.]corp[.]example[^"]*'
+```
+
+Response headers listed there are dropped. Each pattern is an extended regular
+expression, and every match in the recording is replaced by its placeholder.
+Replay does not restore placeholders, so do not target filtered fields with
+`checks.values`. A pattern must not match its own placeholder or the request
+URI or body, because replay could not match a rewritten request. Patterns see
+the recording as stored, where URIs are URL-encoded (`@` is `%40`), and their
+placeholders must differ from credential placeholders.
+
+**Scan.** After a new recording is written, it is checked for every form of
+every credential value, for leftover pattern matches, for pattern
+placeholders in requests, and for dropped response headers in any letter case. A hit deletes the recording, its `.credentials`
+file and its signature, and fails the test.
+
+**Writes.** Recording an operation other than GET or HEAD changes the live
+service, so it needs approval in the scenario:
+
+```yaml
+scenarios:
+  create_basic:
+    operation: POST /items
+    inputs: {body: {title: Example}}
+    match: [method, uri, body_json]
+    record_write: {reason: Sandbox account accepts test items}
+```
+
+**Review.** Before committing a recording, read the cassette, the
+`.credentials` file and the signature diff. Confirm the inputs are the
+reviewed ones and that nothing private remains.
+
+**Replacing a recording.** Recording never replaces an existing cassette.
+Listing a scenario that already has one replays it and leaves its signature
+alone. To replace it on purpose, delete the cassette and record again. Never
+re-record just to make a failing expectation pass. Find out first whether the
+input, the client or the service changed.
 
 ## Add the verification layer your change needs
 

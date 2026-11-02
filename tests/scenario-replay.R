@@ -34,6 +34,13 @@ scenario_replay_acceptance <- function() {
             headers = list('Content-Type' = 'application/json'),
             body = '{}'
           )
+          if (request$REQUEST_METHOD == 'POST') {
+            return(list(
+              status = 201L,
+              headers = list('Content-Type' = 'application/json'),
+              body = '{"id":"new-1","owner":"bob@corp.example"}'
+            ))
+          }
           if (startsWith(request$PATH_INFO, '/header-items/')) {
             if (!identical(request$HTTP_X_API_KEY, header_secret)) {
               return(denied)
@@ -57,14 +64,21 @@ scenario_replay_acceptance <- function() {
               body = '{}'
             ))
           }
+          # Synthetic markers that recording filters must keep out of fixtures.
           list(
             status = 200L,
-            headers = list('Content-Type' = 'application/json'),
+            headers = list(
+              'Content-Type' = 'application/json',
+              'Set-Cookie' = 'session=COOKIE-MARKER-9; Path=/',
+              'X-Internal-Host' = 'db.internal.corp'
+            ),
             body = jsonlite::toJSON(
               list(
                 id = sub('^/items/', '', request$PATH_INFO),
                 title = paste('Item in', query$language),
-                tags = list('a', 'b')
+                tags = list('a', 'b'),
+                owner = 'alice@corp.example',
+                link = 'https://intranet.corp.example/items/1'
               ),
               auto_unbox = TRUE
             )
@@ -212,7 +226,15 @@ scenario_replay_acceptance <- function() {
   }
   scenarios()
   cat(
-    'testing: {file: tests/testthat/fixtures/testing.yml}\n',
+    paste0(
+      "testing:\n",
+      "  file: tests/testthat/fixtures/testing.yml\n",
+      "  filter:\n",
+      "    response_headers: [X-Internal-Host]\n",
+      "    patterns:\n",
+      "      '<<EMAIL>>': '[a-z]+@corp\\.example'\n",
+      "      '<<PRIVATE_URL>>': 'https://intranet\\.corp\\.example[^\"]*'\n"
+    ),
     file = file.path(root, 'apis/default.yml'),
     append = TRUE
   )
@@ -316,7 +338,15 @@ scenario_replay_acceptance <- function() {
       },
       list(root = root),
       libpath = c(library, .libPaths()),
-      env = c(callr::rcmd_safe_env(), env)
+      # CI is cleared unless a case sets it, so recording works under CI.
+      env = c(
+        callr::rcmd_safe_env(),
+        local({
+          vars <- c(CI = 'false')
+          vars[names(env)] <- env
+          vars
+        })
+      )
     )
   }
   cassette <- file.path(
@@ -336,6 +366,18 @@ scenario_replay_acceptance <- function() {
   ))
   stopifnot(
     startsWith(routine$result, 'failed'),
+    requests() == before,
+    !file.exists(cassette)
+  )
+
+  # CI never records, even when a scenario is listed.
+  ci <- run_tests(c(
+    CI = 'true',
+    REPLAYCLIENT_KEY = secret,
+    REPLAYCLIENT_RECORD = 'replayclient/get_item_basic'
+  ))
+  stopifnot(
+    startsWith(ci$result, 'failed'),
     requests() == before,
     !file.exists(cassette)
   )
@@ -360,12 +402,21 @@ scenario_replay_acceptance <- function() {
     'Key=1',
     '%2FKey',
     header_secret,
-    'H3ader'
+    'H3ader',
+    'COOKIE-MARKER',
+    'Set-Cookie',
+    'db.internal.corp',
+    'alice@corp.example',
+    'intranet.corp.example'
   )) {
     if (grepl(form, text, fixed = TRUE)) {
       stop('Secret reached a recording: ', form)
     }
   }
+  stopifnot(
+    grepl('<<EMAIL>>', text, fixed = TRUE),
+    grepl('<<PRIVATE_URL>>', text, fixed = TRUE)
+  )
   # Only credential names are kept, so header credentials can be replayed.
   stopifnot(identical(
     readLines(file.path(recordings, 'header_item_basic.credentials')),
@@ -474,6 +525,82 @@ scenario_replay_acceptance <- function() {
     ))
   )
 
+  # An approved write records once, keeps filtered values out, and replays.
+  writeLines(
+    c(
+      'scenarios:',
+      '  create_basic:',
+      '    operation: POST /items',
+      '    inputs: {body: {title: x}}',
+      '    match: [method, uri, body_json]',
+      '    record_write: {reason: Localhost fixture accepts writes}'
+    ),
+    file.path(fixtures, 'testing.yml')
+  )
+  generate()
+  approved <- run_tests(c(
+    REPLAYCLIENT_KEY = secret,
+    REPLAYCLIENT_RECORD = 'replayclient/create_basic'
+  ))
+  write_cassette <- file.path(
+    root,
+    'tests/testthat/_vcr/replayclient/create_basic.yml'
+  )
+  stopifnot(
+    identical(approved$result, 'passed'),
+    requests() == before + 1L,
+    file.exists(write_cassette)
+  )
+  written <- paste(readLines(write_cassette), collapse = '\n')
+  stopifnot(
+    grepl('{"title":"x"}', written, fixed = TRUE),
+    !grepl('bob@corp.example', written, fixed = TRUE)
+  )
+  before <- requests()
+  stopifnot(
+    identical(run_tests(c(REPLAYCLIENT_KEY = ''))$result, 'passed'),
+    requests() == before
+  )
+
+  # A recording the scan rejects is deleted with its credential list and
+  # signature, and the run fails: this pattern rewrites the request URI.
+  policy_file <- file.path(root, 'apis/default.yml')
+  policy <- readLines(policy_file)
+  writeLines(c(policy, "      '<<ITEM9>>': 'item-9'"), policy_file)
+  writeLines(
+    c(
+      'scenarios:',
+      '  scan_basic:',
+      "    operation: GET /items/{item_id}",
+      '    inputs: {item_id: item-9, language: en}'
+    ),
+    file.path(fixtures, 'testing.yml')
+  )
+  generate()
+  before <- requests()
+  scanned <- run_tests(c(
+    REPLAYCLIENT_KEY = secret,
+    REPLAYCLIENT_RECORD = 'replayclient/scan_basic'
+  ))
+  stopifnot(
+    startsWith(scanned$result, 'failed'),
+    requests() == before + 1L,
+    !file.exists(file.path(recordings, 'scan_basic.yml')),
+    !file.exists(file.path(recordings, 'scan_basic.credentials')),
+    !file.exists(file.path(
+      root,
+      'tests/testthat/_signatures/replayclient/scan_basic.yml'
+    ))
+  )
+  # Filter placeholders cannot reuse a credential placeholder.
+  writeLines(c(policy, "      '<<REPLAYCLIENT_KEY>>': 'zzz'"), policy_file)
+  stopifnot(grepl(
+    'testing filter placeholders must differ from credential names',
+    tryCatch(generate(), error = conditionMessage),
+    fixed = TRUE
+  ))
+  writeLines(policy, policy_file)
+
   # The record variable and credentials cannot be set through environment.
   writeLines(
     c(
@@ -581,6 +708,82 @@ scenario_replay_acceptance <- function() {
       'No recording for svc/by_route; list it in HELDCLIENT_RECORD to record it on purpose'
     ))
   })
+
+  # The post-recording scan deletes a recording that redaction missed.
+  scan <- function(uri, body, header = 'Content-Type: text/plain') {
+    files <- file.path(workspace, c('scan.yml', 'scan.credentials'))
+    writeLines(
+      c(
+        'http_interactions:',
+        '- request:',
+        '    method: GET',
+        paste0('    uri: ', uri),
+        '  response:',
+        '    status: 200',
+        '    headers:',
+        paste0('      ', header),
+        '    body:',
+        paste0("      string: '", body, "'")
+      ),
+      files[[1L]]
+    )
+    writeLines('HELD_KEY', files[[2L]])
+    message <- tryCatch(
+      {
+        helpers$replay_scan(
+          'svc',
+          'scan',
+          files,
+          'LEAK-123',
+          c('<<EMAIL>>' = '[a-z]+@corp[.]example'),
+          'Set-Cookie'
+        )
+        'clean'
+      },
+      error = conditionMessage
+    )
+    list(message = message, kept = file.exists(files))
+  }
+  clean <- scan('http://127.0.0.1/x', 'owner <<EMAIL>>')
+  stopifnot(identical(clean$message, 'clean'), all(clean$kept))
+  # A recording that never wrote a cassette leaves no credential list behind.
+  leftover <- file.path(workspace, c('none.yml', 'none.credentials'))
+  writeLines('HELD_KEY', leftover[[2L]])
+  helpers$replay_scan(
+    'svc',
+    'none',
+    leftover,
+    character(),
+    character(),
+    'Set-Cookie'
+  )
+  stopifnot(!any(file.exists(leftover)))
+  for (case in list(
+    list('http://127.0.0.1/x?k=LEAK-123', 'ok', 'a credential value'),
+    list(
+      'http://127.0.0.1/x',
+      'owner a@corp.example',
+      'a value matching a filter pattern'
+    ),
+    list(
+      'http://127.0.0.1/x?o=<<EMAIL>>',
+      'ok',
+      'a filter placeholder in its request'
+    ),
+    list(
+      'http://127.0.0.1/x',
+      'ok',
+      'a response header that should have been dropped',
+      'set-cookie: s=1'
+    )
+  )) {
+    hit <- scan(
+      case[[1L]],
+      case[[2L]],
+      if (length(case) > 3L) case[[4L]] else 'Content-Type: text/plain'
+    )
+    stopifnot(grepl(case[[3L]], hit$message, fixed = TRUE), !any(hit$kept))
+  }
 }
 
 if (sys.nframe() == 0L) {
