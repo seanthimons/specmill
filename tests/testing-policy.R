@@ -527,6 +527,61 @@ testing_policy_acceptance <- function() {
       'tests/testthat/_vcr/shop_items/basic.yml'
     )
   )
+
+  # Recording policy: write approval and redaction filters.
+  service(c(
+    'testing:',
+    '  file: tests/testthat/fixtures/testing.yml',
+    '  filter:',
+    '    response_headers: [X-Internal-Host]',
+    "    patterns: {'<<EMAIL>>': '[a-z]+@corp[.]example'}"
+  ))
+  data(c(
+    'scenarios:',
+    '  a:',
+    '    operation: create_item',
+    '    inputs: {body: {title: x}}',
+    '    match: [method, uri, body_json]',
+    '    record_write: {reason: Sandbox accepts writes}'
+  ))
+  declared <- inspect()$testing$catalogue
+  stopifnot(
+    identical(declared$scenarios$a$write_approval, 'Sandbox accepts writes'),
+    identical(declared$filter$response_headers, 'X-Internal-Host'),
+    identical(
+      declared$filter$patterns,
+      c('<<EMAIL>>' = '[a-z]+@corp[.]example')
+    )
+  )
+  data(c(
+    'scenarios:',
+    '  a: {operation: get_item, inputs: {item_id: x}, record_write: {reason: reviewed}}'
+  ))
+  fails('record_write applies only to state-changing operations')
+  data(c(
+    'scenarios:',
+    '  a: {operation: create_item, inputs: {body: {}}, match: [method, uri, body], record_write: {}}'
+  ))
+  fails('record_write reason must be a nonempty string')
+  data(c('scenarios: {}'))
+  for (case in list(
+    list("{'EMAIL': 'x'}", 'pattern placeholders look like <<NAME>>'),
+    list("{'<<A>>': '('}", 'pattern does not compile'),
+    list(
+      "{'<<A>>': '.*'}",
+      'must not match an empty string or its placeholder'
+    ),
+    list("{'<<A>>': '<<'}", 'must not match an empty string or its placeholder')
+  )) {
+    service(c(
+      'testing:',
+      '  file: tests/testthat/fixtures/testing.yml',
+      paste0('  filter: {patterns: ', case[[1L]], '}')
+    ))
+    fails(case[[2L]])
+  }
+  service(c('testing:', '  filter: {headers: [X]}'))
+  fails('unknown field headers')
 }
 
 if (sys.nframe() == 0L) {
