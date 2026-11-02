@@ -235,6 +235,76 @@ expected helper calls or correct upstream results. `check_requests()` is a small
 alternative for checking one zero-argument call against a capture function and
 independent result; see its reference example.
 
+## Declare cassette scenarios, gaps and unrecorded routes
+
+Recorded replay tests are being added in stages. Generated replay tests and
+recording controls are not available yet. You can already declare and check
+what each one will cover. Policy goes in the service YAML under `testing`:
+
+```yaml
+testing:
+  file: tests/testthat/fixtures/testing.yml
+  match: [method, uri]
+  gaps:
+    POST /items: {reason: 'Write endpoint; expectations pending', issue: '#300'}
+  unrecorded:
+    POST /refresh: {reason: Side effects on the live service}
+```
+
+- `file` holds scenarios and hook cases. It must sit under `tests/testthat/`,
+  differ from `contracts_file`, and belong to one service.
+- `match` lists the request parts a recording must match: `method`, `uri`,
+  `host`, `path`, `query`, `body` or `body_json`. The default is
+  `[method, uri]`. A scenario whose operation sends a body must add `body` or
+  `body_json`. Header matching is not offered, because recordings compare all
+  headers or none. Fixed contracts and local transport tests cover headers.
+- `gaps` names selected routes that have no reviewed contract yet. A gap stays
+  visible and never counts as a contract. It may name a route that specmill
+  cannot generate.
+- `unrecorded` names routes you have decided never to record. Routes without a
+  scenario and without an entry are reported as not covered.
+
+The data file declares scenarios. Each scenario will become one recording,
+stored at `tests/testthat/_vcr/<service>/<scenario>.yml`:
+
+```yaml
+scenarios:
+  get_item_basic:
+    operation: GET /items/{item_id}       # route key, or the wrapper name
+    represents: ['GET /items/{item_id}']  # routes with the same behavior
+    inputs: {item_id: item-1}             # or `example: 1` for a docs example
+hook_cases:
+  trims_item_id:
+    hook: normalize_item_id
+    stage: pre_request
+    state: {params: {item_id: ' abc '}}
+    expect: {state: {params: {item_id: abc}}}
+```
+
+A scenario's default expectation is the reviewed type and shape of the result.
+Add `result` for an exact value, or `checks` (`class`, `rows`, `names`,
+`values` at a `path`) for the parts a reviewer verified. Routes in
+`represents` are counted as represented, never as executed. Use the route key
+for `operation`, so renaming a wrapper does not break the scenario.
+
+`inspect_client()` checks the declarations against the selected operations.
+It returns them under `testing`, with each route's status: `scenario`,
+`represented`, `unrecorded` or `not_covered`:
+
+```{r testing-declarations}
+writeLines(c(
+  'scenarios:',
+  '  get_item_basic:',
+  "    operation: GET /items/{item_id}",
+  '    inputs: {item_id: item-1, language: en}'
+), file.path(root, 'tests/testthat/fixtures/testing.yml'))
+cat('testing: {file: tests/testthat/fixtures/testing.yml}\n',
+    file = file.path(root, 'apis/default.yml'), append = TRUE)
+declared <- specmill::inspect_client(root)$testing$testedclient
+declared$routes
+declared$scenarios$get_item_basic$cassette
+```
+
 ## Add the verification layer your change needs
 
 | Layer | What to verify |

@@ -470,6 +470,7 @@ configuration_proposal <- function(
       '# contracts: {} # Public wrapper name -> fixed request expectations.',
       '# contracts_file: tests/testthat/contracts.rds',
       '# response_fixture: {} # Mock response used by inline single-call contracts.',
+      '# testing: {file: tests/testthat/fixtures/testing.yml} # Cassette scenarios, gaps and unrecorded routes.',
       '# Full configuration examples: https://seanthimons.github.io/specmill/articles/configuration.html',
       sep = '\n'
     )
