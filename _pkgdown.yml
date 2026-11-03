@@ -40,6 +40,8 @@ reference:
   - propose_mappings
   - read_operations
   - operation_fixtures
+  - propose_testing
+  - review_recordings
   - check_requests
   - validate_hooks
   - validate_schema

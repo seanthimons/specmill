@@ -332,7 +332,8 @@ operation_fixture_inputs <- function(
   overrides = list(),
   mode = 'default',
   public = list(),
-  public_required = FALSE
+  public_required = FALSE,
+  defer_synthesis = FALSE
 ) {
   {
     omitted <- character()
@@ -412,6 +413,17 @@ operation_fixture_inputs <- function(
                 },
                 fixture_diagnostics(op)
               )
+              # Scenarios report an input no example could fill as a missing
+              # example (including invalid schema examples, which a docs
+              # example overrides). A type/enum contradiction still stops.
+              if (
+                defer_synthesis &&
+                  !length(problem) &&
+                  !name %in% names(public)
+              ) {
+                sources[[name]] <<- 'synthesized'
+                return(NULL)
+              }
               classification <- if (length(problem)) {
                 'schema_defect'
               } else {
@@ -567,6 +579,14 @@ operation_fixture_inputs <- function(
             function(d) identical(d$location, 'body'),
             fixture_diagnostics(op)
           )
+          if (
+            defer_synthesis &&
+              !length(problem) &&
+              !body_argument %in% names(public)
+          ) {
+            sources[[body_argument]] <<- 'synthesized'
+            return(invisible())
+          }
           if (length(problem)) {
             d <- problem[[1L]]
             schema_problem(
