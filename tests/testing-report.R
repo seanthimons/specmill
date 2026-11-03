@@ -119,11 +119,10 @@ testing_report_acceptance <- function() {
     'yaml',
     sep = ', '
   )
-  description[1L, 'Suggests'] <- paste(
-    description[1L, 'Suggests'],
-    'vcr, withr',
-    sep = ', '
-  )
+  stopifnot(identical(
+    unname(description[1L, 'Suggests']),
+    'testthat, vcr, withr, yaml'
+  ))
   write.dcf(description, file.path(root, 'DESCRIPTION'))
   specmill::configure_hooks(root, mode = 'apply')
   hook_file <- file.path(root, 'R/hooks_report.R')

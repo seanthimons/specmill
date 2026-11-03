@@ -77,20 +77,23 @@ Keys such as `get_item` are public wrapper names.
 `tests/testthat/`, keyed by `METHOD /path` (for example `GET /items/{item_id}`).
 Route keys survive renaming a wrapper and give reviewable diffs. Text fixtures
 cannot tell `1L` from `1`, so their generated tests compare with
-`expect_equal()`; use RDS when exact types matter. Add `yaml` to the client's
-`Suggests`, as the generated tests read the file with it. A key naming both a
-wrapper and its route is an error. Inputs use their public R names.
+`expect_equal()`; use RDS when exact types matter. The generated tests read the
+file with `yaml`; clients older than this release must add it to `Suggests`. A
+key naming both a wrapper and its route is an error. Inputs use their public R
+names.
 Specify types intentionally: `1L` is an integer, `1` is a double, and exact
 expectations distinguish them. Use actual response classes (for example tibbles)
 when preserving an existing client. Never put credentials in fixtures.
 
 Optional contract `environment` values are scoped environment variables for the
-test, implemented with `withr::local_envvar()`. Add `withr` to that client's test
-dependencies if using this field. Keep environment values nonsecret.
+test, implemented with `withr::local_envvar()`. New clients already declare
+`withr`; older ones must add it to `Suggests` to use this field. Keep environment
+values nonsecret.
 
 ## 3. Add the standard package test runner
 
-Initialization declares testthat in `Suggests` but does not create its runner.
+Initialization declares testthat, vcr, withr and yaml in `Suggests` but does not
+create its runner.
 For this new client, create `tests/testthat.R`:
 
 ```{r runner}
@@ -328,7 +331,8 @@ declared$scenarios$get_item_basic$cassette
 Generation writes one `tests/testthat/test-scenario-<service>-<scenario>.R`
 per scenario, a shared `tests/testthat/helper-scenario-replay.R`, and the
 standard `tests/testthat.R` runner when the client has none. The client must
-declare `httr2` and `jsonlite`, and `testthat`, `vcr`, `withr` and `yaml` (in `Suggests` is
+declare `httr2` and `jsonlite`, and `testthat`, `vcr`, `withr` and `yaml` (new
+clients from `initialize_client()` declare all of them; in `Suggests` is
 enough); generation reports any that are missing and never edits
 `DESCRIPTION`. A scenario needs `inputs`,
 an `example`, or a wrapper with no required inputs.

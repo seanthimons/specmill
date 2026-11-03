@@ -440,13 +440,6 @@ scenario_inputs_acceptance <- function() {
     license = 'MIT + file LICENSE',
     base_url = 'http://127.0.0.1:1'
   )
-  description <- read.dcf(file.path(root, 'DESCRIPTION'))
-  description[1L, 'Suggests'] <- paste(
-    description[1L, 'Suggests'],
-    'vcr, withr, yaml',
-    sep = ', '
-  )
-  write.dcf(description, file.path(root, 'DESCRIPTION'))
   service_path <- file.path(root, 'apis/default.yml')
   service <- yaml::read_yaml(service_path, handlers = list(seq = function(x) x))
   service$operations <- list(

@@ -482,6 +482,10 @@ hook_cases_acceptance <- function() {
   )
   writeLines(registry, hooks_file)
   # An integration that sets environment needs withr, which is reported.
+  declared <- read.dcf(file.path(root, 'DESCRIPTION'))
+  without <- declared
+  without[1L, 'Suggests'] <- 'testthat, vcr, yaml'
+  write.dcf(without, file.path(root, 'DESCRIPTION'))
   fails(
     c(
       'hook_integrations:',
@@ -489,6 +493,7 @@ hook_cases_acceptance <- function() {
     ),
     'Declared tests need these packages in the client DESCRIPTION (Suggests is enough for test-only packages): withr'
   )
+  write.dcf(declared, file.path(root, 'DESCRIPTION'))
 
   # Sequences become vectors in inputs and helper arguments, never in bodies.
   converted <- specmill:::testing_arguments(
