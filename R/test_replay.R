@@ -4,7 +4,7 @@
 replay_helper_file <- 'tests/testthat/helper-scenario-replay.R'
 replay_runner_file <- 'tests/testthat.R'
 replay_test_marker <- '# Cassette scenario test; replays a reviewed recording.'
-replay_dependencies <- c('testthat', 'vcr', 'withr', 'yaml')
+replay_dependencies <- c('testthat', 'vcr', 'withr', 'yaml', 'jsonlite')
 
 declared_test_file <- function(root, prefix, service, id) {
   portable_output_path(
@@ -376,6 +376,51 @@ replay_outputs <- function(
   filters <- list()
   documents <- provenance_documents()
   needs <- 'testthat'
+  # Values recordings must never hold: declared credentials, plus arguments
+  # bound to an environment variable (parameters.<name>.env), across services.
+  bound <- list()
+  for (service_entries in entries) {
+    for (entry in service_entries) {
+      for (p in entry$configured$operation$parameters) {
+        if (!is.null(p$public_env)) {
+          bound[[length(bound) + 1L]] <- p
+        }
+      }
+    }
+  }
+  for (p in bound) {
+    # Replay sends a dummy in place of the value; it must pass the schema.
+    accepted <- tryCatch(
+      {
+        parameter_values(
+          stats::setNames(list('replay-dummy'), p$name),
+          stats::setNames(list(p$schema), p$name),
+          body_value,
+          stats::setNames(list(p$location), p$name)
+        )
+        TRUE
+      },
+      error = function(e) FALSE
+    )
+    if (!accepted) {
+      stop(
+        'The replay dummy does not satisfy the schema of ',
+        p$location,
+        ' ',
+        p$name,
+        ' bound to ',
+        p$public_env,
+        '; a parameter with such constraints cannot use env'
+      )
+    }
+  }
+  sensitive <- sort(
+    unique(c(
+      unlist(authentication, use.names = FALSE),
+      vapply(bound, `[[`, character(1), 'public_env')
+    )),
+    method = 'radix'
+  )
   for (i in seq_along(services)) {
     service <- services[[i]]
     if (is.null(service$testing)) {
@@ -442,7 +487,7 @@ replay_outputs <- function(
     )
     clash <- intersect(
       names(declared$filter$patterns),
-      paste0('<<', unlist(authentication, use.names = FALSE), '>>')
+      paste0('<<', sensitive, '>>')
     )
     if (length(clash)) {
       stop(
@@ -480,7 +525,7 @@ replay_outputs <- function(
         id,
         service$testing$scenarios[[id]],
         declared$scenarios[[id]]$match,
-        unlist(authentication, use.names = FALSE),
+        sensitive,
         declared$scenarios[[id]]$input_values,
         scenario_provenance(
           service,
@@ -556,7 +601,7 @@ replay_outputs <- function(
   if (any(startsWith(tests, 'tests/testthat/test-scenario-'))) {
     files[[replay_helper_file]] <- replay_helper_text(
       package,
-      unlist(authentication, use.names = FALSE),
+      sensitive,
       query,
       filters
     )
