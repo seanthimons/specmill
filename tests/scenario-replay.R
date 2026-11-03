@@ -417,6 +417,15 @@ scenario_replay_acceptance <- function() {
     grepl('<<EMAIL>>', text, fixed = TRUE),
     grepl('<<PRIVATE_URL>>', text, fixed = TRUE)
   )
+  # A clean recording keeps digests of what it depends on, never values.
+  provenance <- readLines(file.path(recordings, 'get_item_basic.provenance'))
+  stopifnot(
+    identical(
+      sub(':.*', '', provenance),
+      c('schema', 'policy', 'helper', 'hooks', 'expectation')
+    ),
+    all(grepl('^[a-z]+: [0-9a-f]{16}$', provenance))
+  )
   # Only credential names are kept, so header credentials can be replayed.
   stopifnot(identical(
     readLines(file.path(recordings, 'header_item_basic.credentials')),

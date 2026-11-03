@@ -209,7 +209,8 @@ render_scenario_test <- function(
   scenario,
   match,
   credentials,
-  inputs
+  inputs,
+  provenance = NULL
 ) {
   where <- paste(service, 'scenario', id)
   environment <- scenario$environment %or% list()
@@ -270,6 +271,9 @@ render_scenario_test <- function(
         ', ',
         replay_character_literal(match),
         if (!op$method %in% c('GET', 'HEAD')) ', writes = TRUE',
+        if (length(provenance)) {
+          paste0(', provenance = ', replay_character_literal(provenance))
+        },
         if (!is.null(scenario$record_write)) ', write_approved = TRUE',
         ')'
       ),
@@ -370,6 +374,7 @@ replay_outputs <- function(
   }
   query <- character()
   filters <- list()
+  documents <- provenance_documents()
   needs <- 'testthat'
   for (i in seq_along(services)) {
     service <- services[[i]]
@@ -476,7 +481,15 @@ replay_outputs <- function(
         service$testing$scenarios[[id]],
         declared$scenarios[[id]]$match,
         unlist(authentication, use.names = FALSE),
-        declared$scenarios[[id]]$input_values
+        declared$scenarios[[id]]$input_values,
+        scenario_provenance(
+          service,
+          service$testing$scenarios[[id]],
+          declared$scenarios[[id]],
+          parsed[[i]]$operations,
+          definitions,
+          documents
+        )
       )
       owners[[file]] <- declared_test_owner('scenario', service$id, id)
       if (length(authentication)) {
