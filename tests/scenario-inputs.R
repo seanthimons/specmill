@@ -200,6 +200,15 @@ scenario_inputs_acceptance <- function() {
     identical(resolve('synthesized')$blocked, 'missing example for id'),
     identical(resolve('placeholder')$blocked, 'missing example for id'),
     identical(resolve('plain_body')$blocked, 'missing example for body'),
+    # A constrained input no example fills is a missing example too.
+    identical(
+      specmill:::scenario_resolution(
+        operations$form_body,
+        list(),
+        list(operation = 'x')
+      )$blocked,
+      'missing example for body'
+    ),
     identical(resolve('synthesized')$source, 'blocked')
   )
   # A reviewed docs example supplies what the schema does not.

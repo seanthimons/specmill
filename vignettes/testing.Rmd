@@ -416,6 +416,39 @@ alone. To replace it on purpose, delete the cassette and record again. Never
 re-record just to make a failing expectation pass. Find out first whether the
 input, the client or the service changed.
 
+### Propose scenarios and review recordings
+
+`propose_testing()` drafts declarations for you to review. It does not write
+them into the project.
+
+- **Grouping.** Selected read operations are grouped by behavior: source schema,
+  success response media and schema, body media, paging, batching, result
+  formatting and hooks. Each group gets one proposed scenario that represents
+  the rest of the group. Routes a declared scenario already covers, and
+  unrecorded routes, are skipped.
+- **Writes.** State-changing operations are listed but never proposed.
+- **Stubs.** When no group member's inputs resolve, the proposal adds a
+  `docs.examples` stub with `null` for each missing input and points the
+  scenario at it. Fill those values in once, and they both document the
+  wrapper and feed the scenario. A scenario using an unfilled stub stays
+  blocked.
+
+```{r propose, eval=FALSE}
+proposal <- specmill::propose_testing(root, file = 'review/testing-proposal.yml')
+cat(proposal$yaml)
+```
+
+After recording, `review_recordings()` checks each declared scenario's
+recorded responses against the response schema its operation declares. Each
+scenario is reported as `agrees`, `disagrees` (with error paths and messages,
+never recorded values) or `unchecked` (with the reason). A disagreement means a
+person should review the recording or the schema. The check never marks either
+as correct and never re-records.
+
+```{r review, eval=FALSE}
+specmill::review_recordings(root)
+```
+
 ## Declare hook cases and wrapper integrations
 
 Hooks hold your client's own rules. OpenAPI says nothing about them, so their

@@ -140,12 +140,32 @@ scenario_resolution <- function(op, spec, scenario) {
       paste(unknown, collapse = ', ')
     )))
   }
+  # An unfilled proposal stub leaves required inputs empty; never send NULL.
+  required <- c(
+    parameter_names(op$parameters)[vapply(
+      op$parameters,
+      function(p) isTRUE(p$public_required %or% p$required),
+      logical(1)
+    )],
+    if (isTRUE(op$body_required)) body
+  )
+  empty <- intersect(
+    names(example)[vapply(example, is.null, logical(1))],
+    required
+  )
+  if (length(empty)) {
+    return(blocked(paste(
+      'docs example leaves required inputs empty:',
+      paste(empty, collapse = ', ')
+    )))
+  }
   resolved <- tryCatch(
     operation_fixture_inputs(
       op,
       mode = 'minimal',
       public = example,
-      public_required = TRUE
+      public_required = TRUE,
+      defer_synthesis = TRUE
     ),
     error = identity
   )
