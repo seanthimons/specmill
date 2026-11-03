@@ -39,12 +39,14 @@ replay_scan <- function(
   files,
   secrets,
   patterns,
-  dropped
+  dropped,
+  provenance = NULL,
+  provenance_file = NULL
 ) {
   if (!file.exists(files[[1L]])) {
-    # Nothing was recorded: drop its credential list, but keep any reviewed
-    # signature from an earlier recording.
-    unlink(files[[2L]])
+    # Nothing was recorded: drop its credential list and provenance, but keep
+    # any reviewed signature from an earlier recording.
+    unlink(c(files[[2L]], provenance_file))
     return(invisible())
   }
   text <- paste(
@@ -80,7 +82,7 @@ replay_scan <- function(
     'a filter placeholder in its request, which replay cannot match'
   }
   if (!is.null(problem)) {
-    unlink(files)
+    unlink(c(files, provenance_file))
     testthat::fail(paste0(
       'Recording of ',
       service,
@@ -90,6 +92,14 @@ replay_scan <- function(
       problem,
       ' and was deleted; adjust the testing filter and record again'
     ))
+    return(invisible())
+  }
+  # What this recording depends on (digests only), for later change review.
+  if (length(provenance)) {
+    writeLines(paste0(names(provenance), ': ', provenance), provenance_file)
+  } else {
+    # A test generated before provenance must not inherit an older file.
+    unlink(provenance_file)
   }
   invisible()
 }
@@ -106,6 +116,7 @@ replay_cassette <- function(
   match,
   writes = FALSE,
   write_approved = FALSE,
+  provenance = NULL,
   frame = parent.frame()
 ) {
   dir <- testthat::test_path('_vcr', service)
@@ -192,7 +203,9 @@ replay_cassette <- function(
           c(cassette, used_file, signature),
           secrets,
           extra$patterns,
-          c('Set-Cookie', extra$response_headers)
+          c('Set-Cookie', extra$response_headers),
+          provenance,
+          file.path(dir, paste0(scenario, '.provenance'))
         ),
         envir = frame
       )

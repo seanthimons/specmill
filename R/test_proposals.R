@@ -21,7 +21,12 @@ testing_project <- function(root, config, callbacks) {
         configured = configured
       )
     }
-    list(service = service, entries = entries, inventory = parsed$inventory)
+    list(
+      service = service,
+      entries = entries,
+      inventory = parsed$inventory,
+      operations = parsed$operations
+    )
   })
   list(
     root = project$root,

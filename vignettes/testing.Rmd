@@ -449,6 +449,55 @@ as correct and never re-records.
 specmill::review_recordings(root)
 ```
 
+### Report what is verified
+
+`testing_report()` reports each verification layer separately, per service:
+
+- reviewed helper contracts and their test files;
+- cassette scenarios, their tests, recordings and signatures;
+- routes replayed from their own recording versus routes represented by
+  another scenario;
+- hook cases and wrapper integrations;
+- explicit gaps, unrecorded routes, excluded routes and selected routes
+  specmill cannot generate.
+
+`routes` has one row per route. Its `no_cassette` column explains each route
+without its own recording, for example `represented by get_item`,
+`unrecorded: <reason>`, `blocked: <reason>`, `not recorded yet` or
+`no scenario`.
+
+The report never infers that tests ran from files existing. Execution is
+`not run` unless you pass testthat results:
+
+```{r report, eval=FALSE}
+results <- testthat::test_local(root, reporter = 'silent', stop_on_failure = FALSE)
+report <- specmill::testing_report(root, results = results)
+report$services$testedclient$summary
+```
+
+When a scenario is recorded, a `<scenario>.provenance` file beside the cassette
+keeps digests (never values) of what the recording depends on:
+
+- the operation's schema, including the components it references, for its own
+  route and the routes it represents;
+- the operation policy;
+- the request helper, its companions and the hook callback;
+- the hook chains and their functions;
+- the scenario declaration and resolved inputs.
+
+The report compares those digests with the current ones. It lists the
+`changed` components and sets `review` to `review changes`. `record`, `resolve
+inputs` and `review response` (with `check_responses = TRUE`) flag the other
+review needs. Nothing is re-recorded, and a recording is never treated as
+proof that the live service still behaves that way. A recording without a provenance file,
+such as one made before this check existed, reports `unknown` and also asks for
+review; to clear it, delete the cassette and record again. `test_current =
+FALSE` means the generated test is older than its inputs: regenerate before
+recording. While a represented route is deferred, its scenario can show as
+changed until the deferral ends. Digests come from deparsed function sources, so an R upgrade can
+change them without a code change. An invalid testing declaration stops the
+report, as it stops `inspect_client()`.
+
 ## Declare hook cases and wrapper integrations
 
 Hooks hold your client's own rules. OpenAPI says nothing about them, so their

@@ -42,6 +42,7 @@ reference:
   - operation_fixtures
   - propose_testing
   - review_recordings
+  - testing_report
   - check_requests
   - validate_hooks
   - validate_schema

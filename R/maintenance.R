@@ -221,11 +221,15 @@ inspect_client <- function(
       name <- operation$name
       definition <- definitions[[name]]
       contract <- fixed_contract(service, operation)
-      test_file <- paste0(
-        'tests/testthat/test-',
-        if ('calls' %in% names(contract)) 'contract-',
-        name,
-        '.R'
+      # Generation writes portable names; look for the same file.
+      test_file <- portable_output_path(
+        root,
+        paste0(
+          'tests/testthat/test-',
+          if ('calls' %in% names(contract)) 'contract-',
+          name,
+          '.R'
+        )
       )
       operations[[operation$id]] <- list(
         id = operation$id,
