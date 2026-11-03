@@ -92,8 +92,8 @@ values nonsecret.
 
 ## 3. Add the standard package test runner
 
-Initialization declares testthat, vcr, withr and yaml in `Suggests` but does not
-create its runner.
+Initialization declares testthat, vcr (2.0.0 or later), withr and yaml in
+`Suggests` but does not create its runner.
 For this new client, create `tests/testthat.R`:
 
 ```{r runner}
