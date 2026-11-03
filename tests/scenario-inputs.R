@@ -61,7 +61,8 @@ scenario_inputs_acceptance <- function() {
         ),
         '/synthesized/{id}' = get(
           'synthesized',
-          list(param('id', 'path', string))
+          # OpenAPI 3 has a real example field, so x-example is not read.
+          list(param('id', 'path', string, `x-example` = 'not-used'))
         ),
         '/placeholder/{id}' = get(
           'placeholder',
@@ -353,7 +354,8 @@ scenario_inputs_acceptance <- function() {
                 `in` = 'path',
                 required = TRUE,
                 type = 'string',
-                example = 's-1'
+                example = 's-1',
+                `x-example` = 'ignored'
               ),
               list(
                 name = 'limit',
@@ -361,6 +363,14 @@ scenario_inputs_acceptance <- function() {
                 required = TRUE,
                 type = 'integer',
                 default = 10L
+              ),
+              # Swagger UI's x-example fills Swagger 2's missing parameter example.
+              list(
+                name = 'region',
+                `in` = 'query',
+                required = TRUE,
+                type = 'string',
+                `x-example` = 'west'
               )
             ),
             responses = list('200' = list(description = 'OK'))
@@ -389,8 +399,15 @@ scenario_inputs_acceptance <- function() {
     list(operation = 'x')
   )
   stopifnot(
-    identical(r$inputs, list(id = 's-1', limit = 10L)),
-    identical(r$sources, c(id = 'parameter_example', limit = 'schema_default'))
+    identical(r$inputs, list(id = 's-1', limit = 10L, region = 'west')),
+    identical(
+      r$sources,
+      c(
+        id = 'parameter_example',
+        limit = 'schema_default',
+        region = 'parameter_example'
+      )
+    )
   )
   r <- specmill:::scenario_resolution(
     swagger_ops$add_thing,

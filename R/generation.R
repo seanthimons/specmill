@@ -291,7 +291,15 @@ render_operation <- function(operation, spec) {
     function(i) {
       paste0(
         formal_names[[i]],
-        if (!isTRUE(params[[i]]$public_required %or% params[[i]]$required)) {
+        if (!is.null(params[[i]]$public_env)) {
+          paste0(
+            ' = base::Sys.getenv(',
+            r_literal(params[[i]]$public_env),
+            ', unset = "")'
+          )
+        } else if (
+          !isTRUE(params[[i]]$public_required %or% params[[i]]$required)
+        ) {
           paste0(' = ', r_literal(parameter_default(params[[i]])))
         } else {
           ''
@@ -561,6 +569,43 @@ render_operation <- function(operation, spec) {
           formal_names[[i]],
           ' <- NULL'
         )
+      )
+    }
+    env <- params[[i]]$public_env
+    if (!is.null(env)) {
+      value <- formal_names[[i]]
+      lines <- c(
+        lines,
+        if (isTRUE(params[[i]]$required)) {
+          # An explicit value wins; otherwise the variable must be set.
+          paste0(
+            '  if (base::is.null(',
+            value,
+            ') || base::length(',
+            value,
+            ') != 1L || base::is.na(',
+            value,
+            ') || !base::nzchar(',
+            value,
+            ')) base::stop(',
+            r_literal(paste0('Supply ', input_names[[i]], ' or set ', env)),
+            ')'
+          )
+        } else {
+          paste0(
+            '  if (base::is.character(',
+            value,
+            ') && base::length(',
+            value,
+            ') == 1L && !base::is.na(',
+            value,
+            ') && !base::nzchar(',
+            value,
+            ')) ',
+            value,
+            ' <- NULL'
+          )
+        }
       )
     }
     if (

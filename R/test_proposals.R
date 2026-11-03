@@ -79,7 +79,19 @@ testing_behavior <- function(entry, service) {
     batch = spec$batch,
     scope = spec$post_response_scope,
     formatter = spec$result_formatter,
-    hooks = lapply(service$hooks[[op$name]], unlist, use.names = FALSE)
+    hooks = lapply(service$hooks[[op$name]], unlist, use.names = FALSE),
+    # Different required inputs make a different request, so a separate group.
+    # Public requiredness: env-bound and defaulted inputs do not split groups.
+    required = sort(
+      unlist(lapply(op$parameters, function(p) {
+        if (isTRUE(p$public_required %or% p$required)) {
+          paste(p$location, p$public_name %or% p$name)
+        }
+      })) %or%
+        character(),
+      method = 'radix'
+    ),
+    body_required = isTRUE(op$body_required)
   ))
 }
 
@@ -378,6 +390,37 @@ testing_path_matches <- function(uri, template) {
   grepl(paste0(pattern, '$'), path)
 }
 
+# A recorded body as text: vcr keeps unreadable bodies as base64.
+recorded_body <- function(body) {
+  if (is.character(body$string) && length(body$string) == 1L) {
+    return(body$string)
+  }
+  encoded <- body$raw_gzip %or% body$base64_string
+  if (!is.character(encoded)) {
+    return(NULL)
+  }
+  tryCatch(
+    {
+      bytes <- jsonlite::base64_dec(gsub('\\s', '', encoded))
+      if (!is.null(body$raw_gzip)) {
+        bytes <- memDecompress(bytes, type = 'gzip')
+      }
+      rawToChar(bytes)
+    },
+    error = function(e) NULL
+  )
+}
+
+# Follows a local `$ref` such as Swagger 2 `#/responses/Name`.
+json_pointer <- function(document, ref) {
+  target <- document
+  for (part in strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1L]]) {
+    part <- gsub('~0', '~', gsub('~1', '/', part, fixed = TRUE), fixed = TRUE)
+    target <- if (is.list(target)) target[[part]] else NULL
+  }
+  target
+}
+
 review_interaction <- function(interaction, op, documents) {
   request <- interaction$request
   response <- interaction$response
@@ -389,19 +432,26 @@ review_interaction <- function(interaction, op, documents) {
   }
   status <- response$status
   status <- as.character(if (is.list(status)) status$status_code else status)
-  body <- response$body$string
+  body <- recorded_body(response$body)
   if (!is.character(body) || length(body) != 1L) {
     return(list(status = 'unchecked', reason = 'response body is not text'))
   }
+  document <- documents(op$source)
   candidates <- c(status, paste0(substr(status, 1L, 1L), 'XX'), 'default')
   found <- intersect(candidates, names(op$response %or% list()))
-  schema <- if (length(found)) {
-    testing_response_schema(op$response[[found[[1L]]]])$schema
+  declared <- if (length(found)) op$response[[found[[1L]]]]
+  # Shared responses are references into the document.
+  for (i in seq_len(5L)) {
+    ref <- declared[['$ref']]
+    if (!is.character(ref) || !startsWith(ref, '#/')) {
+      break
+    }
+    declared <- json_pointer(document, ref)
   }
+  schema <- testing_response_schema(declared)$schema
   if (is.null(schema)) {
     return(list(status = 'unchecked', reason = 'no JSON response schema'))
   }
-  document <- documents(op$source)
   dialect <- if (grepl('^3[.]1', document$openapi %or% '')) '2020' else '04'
   root <- list(allOf = list(schema))
   if (!is.null(document$components$schemas)) {

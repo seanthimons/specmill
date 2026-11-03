@@ -665,7 +665,7 @@ validate_settings <- function(
       config_fields(
         parameter,
         if (field == 'parameters') {
-          c('name', 'default', 'required', 'exclude', 'description')
+          c('name', 'default', 'required', 'exclude', 'description', 'env')
         } else {
           c(
             'default',
@@ -683,9 +683,17 @@ validate_settings <- function(
       )
       for (name in intersect(
         names(parameter),
-        c('name', 'description', 'type', 'format')
+        c('name', 'description', 'type', 'format', 'env')
       )) {
         config_string(parameter[[name]], paste('parameter', name))
+      }
+      if (!is.null(parameter$env)) {
+        if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', parameter$env)) {
+          stop('parameter env must name an environment variable')
+        }
+        if (any(c('default', 'exclude', 'required') %in% names(parameter))) {
+          stop('parameter env replaces default, exclude and required')
+        }
       }
       for (flag in intersect(
         c('required', 'exclude', 'missing_as_null'),
@@ -872,6 +880,32 @@ configure_operation <- function(operation, service) {
     }
     if ('default' %in% names(override)) {
       parameters[[i]]['public_default'] <- list(config_data(override$default))
+    }
+    if ('env' %in% names(override)) {
+      p <- parameters[[i]]
+      public <- p$public_name %or% p$name
+      bound <- c(
+        settings$pagination$parameter,
+        settings$batch$fan_out,
+        settings$batch$input
+      )
+      if (
+        !p$location %in% c('path', 'query', 'header', 'cookie') ||
+          !identical(p$schema$type, 'string') ||
+          !is.null(p$validation_schema) ||
+          any(c(p$name, public) %in% bound)
+      ) {
+        stop(
+          'parameter env needs a scalar string path, query, header or cookie ',
+          'parameter that is not paged or batched: ',
+          operation$id,
+          ' ',
+          ids[[i]]
+        )
+      }
+      # The value comes from the environment at call time and is never stored.
+      parameters[[i]]$public_env <- override$env
+      parameters[[i]]$public_required <- FALSE
     }
     if ('description' %in% names(override)) {
       parameters[[i]]$schema$description <- config_string(

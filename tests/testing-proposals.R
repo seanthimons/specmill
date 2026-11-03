@@ -38,6 +38,19 @@ testing_proposals_acceptance <- function() {
       paths = list(
         '/items/{id}' = get('get_item', list(path_id(example = 'i-1'))),
         '/things/{id}' = get('get_thing', list(path_id())),
+        # Same response, different required input: a different request.
+        '/parts/{id}' = get(
+          'get_part',
+          list(
+            path_id(example = 'p-1'),
+            list(
+              name = 'kind',
+              `in` = 'query',
+              required = TRUE,
+              schema = list(type = 'string', example = 'bolt')
+            )
+          )
+        ),
         '/other' = get('get_other', responses = json(ref('Other'))),
         '/hooked/{id}' = get('get_hooked', list(path_id(example = 'h-1'))),
         '/paged' = get(
@@ -167,6 +180,7 @@ testing_proposals_acceptance <- function() {
     is.null(proposed$scenarios$get_item$example),
     # Hooks, paging and a different schema each form their own group.
     identical(proposed$scenarios$get_hooked$represents, 'GET /hooked/{id}'),
+    identical(proposed$scenarios$get_part$represents, 'GET /parts/{id}'),
     identical(proposed$scenarios$get_paged$represents, 'GET /paged'),
     identical(proposed$scenarios$get_other$represents, 'GET /other'),
     identical(proposed$scenarios$get_text$represents, 'GET /text'),
@@ -374,15 +388,17 @@ testing_proposals_acceptance <- function() {
           get = list(
             operationId = 'list_pets',
             produces = list('application/json'),
-            responses = list(
-              '200' = list(
-                description = 'OK',
-                schema = list(
-                  type = 'array',
-                  items = list(`$ref` = '#/definitions/Pet')
-                )
-              )
-            )
+            # A shared response, as AQS declares them.
+            responses = list('200' = list(`$ref` = '#/responses/OK'))
+          )
+        )
+      ),
+      responses = list(
+        OK = list(
+          description = 'OK',
+          schema = list(
+            type = 'array',
+            items = list(`$ref` = '#/definitions/Pet')
           )
         )
       ),
@@ -404,6 +420,26 @@ testing_proposals_acceptance <- function() {
   stopifnot(
     identical(check(pets, '[{"name":"a"}]'), 'agrees'),
     identical(check(pets, '[{"other":1}]'), 'disagrees'),
+    # Bodies vcr kept as base64 gzip are decoded before validation.
+    identical(
+      specmill:::review_interaction(
+        list(
+          request = list(method = 'get', uri = 'http://example.org/api/pets'),
+          response = list(
+            status = 200L,
+            body = list(
+              raw_gzip = jsonlite::base64_enc(memCompress(
+                charToRaw('[{"name":"a"}]'),
+                type = 'gzip'
+              ))
+            )
+          )
+        ),
+        pets,
+        documents
+      )$status,
+      'agrees'
+    ),
     # Interactions for other routes are not judged by this schema.
     is.null(specmill:::review_interaction(
       interaction('/token', '{}'),

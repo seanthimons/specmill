@@ -11,10 +11,13 @@ scenario_replay_acceptance <- function() {
   }
   secret <- 'S3cr+t/Key=1 x'
   header_secret <- 'H3ader/Key+=2'
+  # An ordinary argument bound to an environment variable, echoed back by the
+  # API like AQS does, must stay out of recordings too.
+  email_secret <- 'reviewer.person+aqs@example.org'
   port_file <- tempfile('http-port-')
   count_file <- tempfile('http-count-')
   server <- callr::r_bg(
-    function(port_file, count_file, secret, header_secret) {
+    function(port_file, count_file, secret, header_secret, email_secret) {
       decode <- function(x) utils::URLdecode(gsub('+', ' ', x, fixed = TRUE))
       port <- httpuv::randomPort()
       server <- httpuv::startServer(
@@ -57,7 +60,11 @@ scenario_replay_acceptance <- function() {
             lapply(pairs, function(x) decode(paste(x[-1L], collapse = '='))),
             vapply(pairs, `[[`, character(1), 1L)
           )
-          if (!identical(query$access_key, secret)) {
+          if (
+            !identical(query$access_key, secret) ||
+              (startsWith(request$PATH_INFO, '/items/') &&
+                !identical(query$email, email_secret))
+          ) {
             return(list(
               status = 401L,
               headers = list('Content-Type' = 'application/json'),
@@ -78,6 +85,7 @@ scenario_replay_acceptance <- function() {
                 title = paste('Item in', query$language),
                 tags = list('a', 'b'),
                 owner = 'alice@corp.example',
+                echo = paste0('/items?email=', query$email),
                 link = 'https://intranet.corp.example/items/1'
               ),
               auto_unbox = TRUE
@@ -95,7 +103,8 @@ scenario_replay_acceptance <- function() {
       port_file = port_file,
       count_file = count_file,
       secret = secret,
-      header_secret = header_secret
+      header_secret = header_secret,
+      email_secret = email_secret
     ),
     supervise = TRUE
   )
@@ -175,6 +184,12 @@ scenario_replay_acceptance <- function() {
                 name = 'language',
                 'in' = 'query',
                 schema = list(type = 'string', enum = list('en', 'fr'))
+              ),
+              list(
+                name = 'email',
+                'in' = 'query',
+                required = TRUE,
+                schema = list(type = 'string')
               )
             ),
             responses = list('200' = list(description = 'Item'))
@@ -225,6 +240,16 @@ scenario_replay_acceptance <- function() {
     )
   }
   scenarios()
+  # The email comes from REPLAYCLIENT_EMAIL; no scenario or example names it.
+  policy_lines <- readLines(file.path(root, 'apis/default.yml'))
+  writeLines(
+    sub(
+      '^operations: \\{\\}$',
+      "operations:\n  'GET /items/{item_id}':\n    parameters: {query email: {env: REPLAYCLIENT_EMAIL}}",
+      policy_lines
+    ),
+    file.path(root, 'apis/default.yml')
+  )
   cat(
     paste0(
       "testing:\n",
@@ -386,6 +411,7 @@ scenario_replay_acceptance <- function() {
   recorded <- run_tests(c(
     REPLAYCLIENT_KEY = secret,
     REPLAYCLIENT_HKEY = header_secret,
+    REPLAYCLIENT_EMAIL = email_secret,
     REPLAYCLIENT_RECORD = 'replayclient/get_item_basic, replayclient/header_item_basic'
   ))
   stopifnot(identical(recorded$result, 'passed'), requests() == before + 2L)
@@ -404,6 +430,8 @@ scenario_replay_acceptance <- function() {
     header_secret,
     'H3ader',
     'COOKIE-MARKER',
+    email_secret,
+    'reviewer.person',
     'Set-Cookie',
     'db.internal.corp',
     'alice@corp.example',
@@ -429,7 +457,7 @@ scenario_replay_acceptance <- function() {
   # Only credential names are kept, so header credentials can be replayed.
   stopifnot(identical(
     readLines(file.path(recordings, 'header_item_basic.credentials')),
-    c('REPLAYCLIENT_HKEY', 'REPLAYCLIENT_KEY')
+    c('REPLAYCLIENT_EMAIL', 'REPLAYCLIENT_HKEY', 'REPLAYCLIENT_KEY')
   ))
   # Query filtering writes the placeholder URL-encoded.
   stopifnot(grepl('%3C%3CREPLAYCLIENT_KEY%3E%3E', text, fixed = TRUE))
@@ -456,6 +484,7 @@ scenario_replay_acceptance <- function() {
   signature_hash <- tools::md5sum(signature)
   relisted <- run_tests(c(
     REPLAYCLIENT_KEY = secret,
+    REPLAYCLIENT_EMAIL = email_secret,
     REPLAYCLIENT_RECORD = 'replayclient/get_item_basic'
   ))
   stopifnot(
@@ -589,6 +618,7 @@ scenario_replay_acceptance <- function() {
   before <- requests()
   scanned <- run_tests(c(
     REPLAYCLIENT_KEY = secret,
+    REPLAYCLIENT_EMAIL = email_secret,
     REPLAYCLIENT_RECORD = 'replayclient/scan_basic'
   ))
   stopifnot(
@@ -609,6 +639,32 @@ scenario_replay_acceptance <- function() {
     fixed = TRUE
   ))
   writeLines(policy, policy_file)
+
+  # A recording whose test fails (here on a 401) keeps nothing.
+  writeLines(
+    c(
+      'scenarios:',
+      '  denied:',
+      "    operation: GET /items/{item_id}",
+      '    inputs: {item_id: item-7, language: en}'
+    ),
+    file.path(fixtures, 'testing.yml')
+  )
+  generate()
+  before <- requests()
+  denied <- run_tests(c(
+    REPLAYCLIENT_KEY = 'wrong-key',
+    REPLAYCLIENT_EMAIL = email_secret,
+    REPLAYCLIENT_RECORD = 'replayclient/denied'
+  ))
+  stopifnot(
+    startsWith(denied$result, 'failed'),
+    requests() == before + 1L,
+    !any(file.exists(file.path(
+      recordings,
+      c('denied.yml', 'denied.credentials', 'denied.provenance')
+    )))
+  )
 
   # The record variable and credentials cannot be set through environment.
   writeLines(
@@ -634,7 +690,7 @@ scenario_replay_acceptance <- function() {
   writeLines(
     c(
       'Package: heldclient',
-      'Imports: httr2',
+      'Imports: httr2, jsonlite',
       'Suggests: testthat, vcr, withr, yaml'
     ),
     file.path(held, 'DESCRIPTION')
@@ -789,6 +845,103 @@ scenario_replay_acceptance <- function() {
     )
     list(message = message, kept = file.exists(files))
   }
+  # A recording counts only once its signature was written.
+  unsigned <- scan('http://127.0.0.1/x', 'owner <<EMAIL>>')
+  stopifnot(
+    grepl('did not complete and was deleted', unsigned$message, fixed = TRUE),
+    !any(unsigned$kept)
+  )
+  helpers$replay_signed[['svc/scan']] <- TRUE
+  raw_scan <- function(body) {
+    writeLines(
+      c(
+        'http_interactions:',
+        '- request:',
+        '    method: POST',
+        '    uri: http://127.0.0.1/x',
+        '    body:',
+        paste0(
+          '      base64_string: ',
+          jsonlite::base64_enc(as.raw(c(0xff, 0xfe)))
+        ),
+        '  response:',
+        '    status: 200',
+        '    body:',
+        paste0('      ', body)
+      ),
+      raw_files[[1L]]
+    )
+    writeLines('HELD_KEY', raw_files[[2L]])
+    message <- tryCatch(
+      {
+        helpers$replay_scan(
+          'svc',
+          'scan',
+          raw_files,
+          'LEAK-123',
+          character(),
+          'Set-Cookie'
+        )
+        'clean'
+      },
+      error = conditionMessage
+    )
+    list(message = message, kept = file.exists(raw_files))
+  }
+  raw_files <- file.path(workspace, c('scan.yml', 'scan.credentials'))
+  # Both sides are decoded; a non-UTF-8 body cannot hide a credential.
+  latin1 <- raw_scan(paste0(
+    'base64_string: ',
+    jsonlite::base64_enc(c(as.raw(c(0xe9, 0x00)), charToRaw(' key=LEAK-123')))
+  ))
+  stopifnot(
+    grepl('a credential value', latin1$message, fixed = TRUE),
+    !any(latin1$kept)
+  )
+  garbled <- raw_scan('raw_gzip: bm90IGd6aXA=')
+  stopifnot(
+    grepl('a body that could not be decoded', garbled$message, fixed = TRUE),
+    !any(garbled$kept)
+  )
+  # A body vcr kept as base64 (no content type, binary or gzip) is not filtered
+  # by vcr, so the scan decodes it.
+  raw_files <- file.path(workspace, c('scan.yml', 'scan.credentials'))
+  gz <- jsonlite::base64_enc(memCompress(
+    charToRaw('echo key=LEAK-123'),
+    type = 'gzip'
+  ))
+  writeLines(
+    c(
+      'http_interactions:',
+      '- request:',
+      '    method: GET',
+      '    uri: http://127.0.0.1/x',
+      '  response:',
+      '    status: 200',
+      '    body:',
+      paste0('      raw_gzip: ', gz)
+    ),
+    raw_files[[1L]]
+  )
+  writeLines('HELD_KEY', raw_files[[2L]])
+  raw_hit <- tryCatch(
+    {
+      helpers$replay_scan(
+        'svc',
+        'scan',
+        raw_files,
+        'LEAK-123',
+        character(),
+        'Set-Cookie'
+      )
+      'clean'
+    },
+    error = conditionMessage
+  )
+  stopifnot(
+    grepl('a credential value', raw_hit, fixed = TRUE),
+    !any(file.exists(raw_files))
+  )
   clean <- scan('http://127.0.0.1/x', 'owner <<EMAIL>>')
   stopifnot(identical(clean$message, 'clean'), all(clean$kept))
   # A recording that never wrote a cassette leaves no credential list behind.

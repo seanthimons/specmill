@@ -292,7 +292,10 @@ placeholder, is a missing example; a docs example that breaks a schema
 constraint is invalid. Either blocks the scenario: `inspect_client()` reports
 `inputs: blocked` with the reason, generation warns, writes no new test, and
 keeps an existing one. Add a reviewed `docs.examples` entry to unblock it, and
-the same values document the wrapper. Swagger 2 `x-example` is not read.
+the same values document the wrapper. In Swagger 2 schemas, a parameter's
+`x-example` counts as its example, because Swagger 2 has no example field.
+Reading it changes the recorded schema provenance of scenarios whose
+parameters use `x-example` once, without a schema edit.
 
 A scenario's default expectation is the reviewed type and shape of the result.
 Add `result` for an exact value, or `checks` (`class`, `rows`, `names`,
@@ -325,7 +328,7 @@ declared$scenarios$get_item_basic$cassette
 Generation writes one `tests/testthat/test-scenario-<service>-<scenario>.R`
 per scenario, a shared `tests/testthat/helper-scenario-replay.R`, and the
 standard `tests/testthat.R` runner when the client has none. The client must
-declare `httr2`, and `testthat`, `vcr`, `withr` and `yaml` (in `Suggests` is
+declare `httr2` and `jsonlite`, and `testthat`, `vcr`, `withr` and `yaml` (in `Suggests` is
 enough); generation reports any that are missing and never edits
 `DESCRIPTION`. A scenario needs `inputs`,
 an `example`, or a wrapper with no required inputs.
@@ -360,7 +363,12 @@ scenario IDs:
 operation sends a body must add `body` or `body_json` to `match`. Headers are
 never matched.
 
-**Credentials.** Credentials never reach a recording. Query credentials are
+**Credentials.** Credentials never reach a recording, and neither do arguments
+bound to an environment variable with `parameters.<name>.env` (such as an email
+address the API requires): they get the same treatment as credentials. Values
+are found by matching their text, so a very short credential, such as AQS's
+public `test` key, also matches unrelated text like `test@aqs.api` and breaks
+replay; record with real, long credentials. Query credentials are
 replaced by parameter name, and every raw or URL-encoded form of each value is
 replaced by a `<<VARIABLE>>` placeholder. Request `Authorization` and `Cookie`
 headers and response `Set-Cookie` headers are dropped. Replay gives each
@@ -389,9 +397,15 @@ URI or body, because replay could not match a rewritten request. Patterns see
 the recording as stored, where URIs are URL-encoded (`@` is `%40`), and their
 placeholders must differ from credential placeholders.
 
-**Scan.** After a new recording is written, it is checked for every form of
+**Scan.** vcr keeps bodies it cannot read as text (no content type, binary or
+compressed) as base64, and its filters do not apply to them, so the scan
+decodes them too. After a new recording is written, it is checked for every form of
 every credential value, for leftover pattern matches, for pattern
-placeholders in requests, and for dropped response headers in any letter case. A hit deletes the recording, its `.credentials`
+placeholders in requests, and for dropped response headers in any letter case.
+A recording whose test failed before its signature was written, for example on
+an error response, is deleted with its `.credentials` and `.provenance` files;
+an earlier reviewed signature is kept. A body the scan cannot decode, or any
+scan error, also deletes the recording. A hit deletes the recording, its `.credentials`
 file and its signature, and fails the test.
 
 **Writes.** Recording an operation other than GET or HEAD changes the live
@@ -422,11 +436,13 @@ input, the client or the service changed.
 them into the project.
 
 - **Grouping.** Selected read operations are grouped by behavior: source schema,
-  success response media and schema, body media, paging, batching, result
-  formatting and hooks. Each group gets one proposed scenario that represents
+  success response media and schema, required inputs, body media, paging,
+  batching, result formatting and hooks. Each group gets one proposed scenario that represents
   the rest of the group. Routes a declared scenario already covers, and
   unrecorded routes, are skipped.
-- **Writes.** State-changing operations are listed but never proposed.
+- **Writes.** State-changing operations are listed but never proposed. Writes
+  are recognized by HTTP method only, so review proposed GET routes that change
+  state, such as an account sign-up, and do not copy them.
 - **Stubs.** When no group member's inputs resolve, the proposal adds a
   `docs.examples` stub with `null` for each missing input and points the
   scenario at it. Fill those values in once, and they both document the

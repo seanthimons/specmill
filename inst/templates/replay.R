@@ -9,6 +9,7 @@ replay_query_credentials <- REPLAY_QUERY_CREDENTIALS
 replay_filters <- REPLAY_FILTERS
 
 replay_fresh <- new.env(parent = emptyenv())
+replay_signed <- new.env(parent = emptyenv())
 
 replay_recording <- function(service, scenario) {
   listed <- trimws(strsplit(Sys.getenv(replay_record_env), ',', fixed = TRUE)[[
@@ -31,6 +32,34 @@ replay_secret_forms <- function(value) {
   unique(c(forms, gsub('%20', '+', forms, fixed = TRUE)))
 }
 
+# vcr keeps bodies it cannot read as text (no content type, binary, gzip) as
+# base64, where its filters do not apply; decode them so the scan sees them.
+replay_raw_bodies <- function(interactions) {
+  decode <- function(text, gzip) {
+    tryCatch(
+      {
+        bytes <- jsonlite::base64_dec(gsub('\\s', '', text))
+        if (gzip) {
+          bytes <- memDecompress(bytes, type = 'gzip')
+        }
+        rawToChar(bytes[bytes != as.raw(0L)])
+      },
+      # Undecodable is not clean: the scan treats NA as a problem.
+      error = function(e) NA_character_
+    )
+  }
+  side <- function(body) {
+    if (!is.null(body$raw_gzip)) {
+      decode(body$raw_gzip, TRUE)
+    } else if (!is.null(body$base64_string)) {
+      decode(body$base64_string, FALSE)
+    }
+  }
+  unlist(lapply(interactions, function(x) {
+    c(side(x$request$body), side(x$response$body))
+  }))
+}
+
 # Checks a new recording for anything redaction missed, so vcr's filters are
 # not the only safeguard. A hit deletes the recording and fails the test.
 replay_scan <- function(
@@ -49,38 +78,71 @@ replay_scan <- function(
     unlink(c(files[[2L]], provenance_file))
     return(invisible())
   }
-  text <- paste(
-    unlist(lapply(files[file.exists(files)], readLines, warn = FALSE)),
-    collapse = '\n'
-  )
-  # Patterns apply to the recording only; the helper writes the other files.
-  clean <- paste(readLines(files[[1L]], warn = FALSE), collapse = '\n')
-  for (placeholder in names(patterns)) {
-    clean <- gsub(placeholder, '', clean, fixed = TRUE)
-  }
-  interactions <- yaml::read_yaml(files[[1L]])$http_interactions
-  requests <- unlist(lapply(
-    interactions,
-    function(x) c(x$request$uri, x$request$body$string)
-  ))
-  headers <- unlist(lapply(interactions, function(x) names(x$response$headers)))
-  problem <- if (
-    any(vapply(secrets, grepl, logical(1), x = text, fixed = TRUE))
-  ) {
-    'a credential value'
-  } else if (any(tolower(headers) %in% tolower(dropped))) {
-    'a response header that should have been dropped'
-  } else if (any(vapply(patterns, grepl, logical(1), x = clean))) {
-    'a value matching a filter pattern'
-  } else if (
-    any(vapply(
-      as.character(names(patterns)),
-      function(x) any(grepl(x, requests, fixed = TRUE)),
-      logical(1)
+  if (!isTRUE(replay_signed[[paste0(service, '/', scenario)]])) {
+    # The test failed before the result's signature was written, for example on
+    # an error response: keep nothing from an incomplete recording.
+    unlink(c(files[[1L]], files[[2L]], provenance_file))
+    testthat::fail(paste0(
+      'Recording of ',
+      service,
+      '/',
+      scenario,
+      ' did not complete and was deleted; fix the failure and record again'
     ))
-  ) {
-    'a filter placeholder in its request, which replay cannot match'
+    return(invisible())
   }
+  # Any scan error keeps nothing: an unscanned recording is never trusted.
+  problem <- tryCatch(
+    {
+      text <- paste(
+        unlist(lapply(files[file.exists(files)], readLines, warn = FALSE)),
+        collapse = '\n'
+      )
+      interactions <- yaml::read_yaml(files[[1L]])$http_interactions
+      raw <- replay_raw_bodies(interactions)
+      text <- paste(c(text, raw[!is.na(raw)]), collapse = '\n')
+      # Patterns apply to the recording only; the helper writes the other files.
+      clean <- paste(
+        c(readLines(files[[1L]], warn = FALSE), raw[!is.na(raw)]),
+        collapse = '\n'
+      )
+      for (placeholder in names(patterns)) {
+        clean <- gsub(placeholder, '', clean, fixed = TRUE, useBytes = TRUE)
+      }
+      requests <- unlist(lapply(
+        interactions,
+        function(x) c(x$request$uri, x$request$body$string)
+      ))
+      headers <- unlist(lapply(
+        interactions,
+        function(x) names(x$response$headers)
+      ))
+      # Bodies may be binary or another encoding; match bytes, not characters.
+      found <- function(pattern, x, fixed = FALSE) {
+        any(grepl(pattern, x, fixed = fixed, useBytes = TRUE))
+      }
+      if (anyNA(raw)) {
+        'a body that could not be decoded for checking'
+      } else if (any(vapply(secrets, found, logical(1), x = text, fixed = TRUE))) {
+        'a credential value'
+      } else if (any(tolower(headers) %in% tolower(dropped))) {
+        'a response header that should have been dropped'
+      } else if (any(vapply(patterns, found, logical(1), x = clean))) {
+        'a value matching a filter pattern'
+      } else if (
+        any(vapply(
+          as.character(names(patterns)),
+          found,
+          logical(1),
+          x = requests,
+          fixed = TRUE
+        ))
+      ) {
+        'a filter placeholder in its request, which replay cannot match'
+      }
+    },
+    error = function(e) paste('content the scan could not check:', conditionMessage(e))
+  )
   if (!is.null(problem)) {
     unlink(c(files, provenance_file))
     testthat::fail(paste0(
@@ -136,6 +198,7 @@ replay_cassette <- function(
   # Only a new recording may rewrite the reviewed signature.
   fresh <- recording && !file.exists(cassette)
   replay_fresh[[paste0(service, '/', scenario)]] <- fresh
+  replay_signed[[paste0(service, '/', scenario)]] <- FALSE
   settings <- list(
     dir = dir,
     filter_request_headers = list('Authorization', 'Cookie'),
@@ -300,6 +363,7 @@ replay_expect_signature <- function(result, service, scenario) {
       ),
       path
     )
+    replay_signed[[paste0(service, '/', scenario)]] <- TRUE
     testthat::succeed()
   } else if (!file.exists(path)) {
     testthat::fail(paste0(
