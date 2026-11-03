@@ -105,29 +105,80 @@ replay_runner_text <- function(package) {
   )
 }
 
-# Inputs come from the scenario, from a reviewed docs example, or are empty when
-# the wrapper has no required inputs. Schema examples are resolved by #272.
-scenario_inputs <- function(op, spec, scenario, where) {
+# Scenario inputs, in order: the scenario's own inputs, then the docs example it
+# names, then schema-provided values for required inputs. A synthesized or
+# placeholder value, an unknown name or a failed constraint blocks the scenario
+# with a reason instead of stopping generation.
+scenario_resolution <- function(op, spec, scenario) {
+  body <- if (!is.null(op$body)) body_argument_name(op)
+  kept <- testing_kept_body(op)
   if ('inputs' %in% names(scenario)) {
-    return(scenario$inputs %or% list())
+    return(list(
+      inputs = testing_arguments(scenario$inputs %or% list(), kept),
+      source = 'scenario',
+      sources = NULL,
+      blocked = NULL
+    ))
   }
-  if (!is.null(scenario$example)) {
-    return(spec$docs$examples[[scenario$example]])
+  blocked <- function(reason) {
+    list(inputs = NULL, source = 'blocked', sources = NULL, blocked = reason)
   }
-  required <- any(vapply(
-    op$parameters,
-    function(p) isTRUE(p$required),
-    logical(1)
-  )) ||
-    (!is.null(op$body) && isTRUE(op$body_required))
-  if (required) {
-    stop(
-      where,
-      ' needs inputs: declare inputs or a docs example ',
-      '(schema examples are not used yet)'
-    )
+  example <- if (!is.null(scenario$example)) {
+    spec$docs$examples[[scenario$example]] %or% list()
+  } else {
+    list()
   }
-  list()
+  paging <- example[intersect(names(example), c('all_pages', 'max_pages'))]
+  example <- testing_arguments(
+    example[setdiff(names(example), names(paging))],
+    kept
+  )
+  unknown <- setdiff(names(example), c(parameter_names(op$parameters), body))
+  if (length(unknown)) {
+    return(blocked(paste(
+      'docs example names unknown arguments:',
+      paste(unknown, collapse = ', ')
+    )))
+  }
+  resolved <- tryCatch(
+    operation_fixture_inputs(
+      op,
+      mode = 'minimal',
+      public = example,
+      public_required = TRUE
+    ),
+    error = identity
+  )
+  if (inherits(resolved, 'error')) {
+    return(blocked(conditionMessage(resolved)))
+  }
+  sources <- attr(resolved, 'input_sources')
+  missing <- names(sources)[sources %in% c('synthesized', 'schema_placeholder')]
+  if (length(missing)) {
+    return(blocked(paste(
+      'missing example for',
+      paste(missing, collapse = ', ')
+    )))
+  }
+  inputs <- c(
+    stats::setNames(
+      lapply(names(resolved), function(name) resolved[[name]]),
+      names(resolved)
+    ),
+    paging
+  )
+  list(
+    inputs = inputs,
+    source = if (length(example)) {
+      'docs_example'
+    } else if (length(resolved)) {
+      'schema'
+    } else {
+      'none'
+    },
+    sources = sources,
+    blocked = NULL
+  )
 }
 
 render_scenario_test <- function(
@@ -137,7 +188,8 @@ render_scenario_test <- function(
   id,
   scenario,
   match,
-  credentials
+  credentials,
+  inputs
 ) {
   where <- paste(service, 'scenario', id)
   environment <- scenario$environment %or% list()
@@ -149,10 +201,7 @@ render_scenario_test <- function(
   ) {
     stop(where, ': environment must not set credential or record variables')
   }
-  inputs <- testing_arguments(
-    scenario_inputs(op, spec, scenario, where),
-    if (!is.null(op$body)) body_argument_name(op)
-  )
+
   args <- paste(
     vapply(
       names(inputs),
@@ -387,6 +436,18 @@ replay_outputs <- function(
       if (file %in% names(files)) {
         stop('Portable test filenames collide: ', file)
       }
+      if (!is.null(declared$scenarios[[id]]$blocked)) {
+        # A blocked scenario keeps any reviewed test until its inputs resolve.
+        # Values are substituted, never parsed: routes contain braces.
+        scenario <- paste0(service$id, '/', id)
+        reason <- declared$scenarios[[id]]$blocked
+        cli::cli_alert_warning('Scenario {scenario} is blocked: {reason}')
+        if (file.exists(project_path(root, file))) {
+          files[[file]] <- file_text(project_path(root, file))
+          owners[[file]] <- declared_test_owner('scenario', service$id, id)
+        }
+        next
+      }
       files[[file]] <- render_scenario_test(
         op,
         entry$configured$spec,
@@ -394,7 +455,8 @@ replay_outputs <- function(
         id,
         service$testing$scenarios[[id]],
         declared$scenarios[[id]]$match,
-        unlist(authentication, use.names = FALSE)
+        unlist(authentication, use.names = FALSE),
+        declared$scenarios[[id]]$input_values
       )
       owners[[file]] <- declared_test_owner('scenario', service$id, id)
       if (length(authentication)) {
