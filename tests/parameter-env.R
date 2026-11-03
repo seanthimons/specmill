@@ -206,13 +206,6 @@ parameter_env_acceptance <- function() {
   )
 
   # Replay sends a dummy in place of the value, so it must pass the schema.
-  description <- read.dcf(file.path(root, 'DESCRIPTION'))
-  description[1L, 'Suggests'] <- paste(
-    description[1L, 'Suggests'],
-    'vcr, withr, yaml',
-    sep = ', '
-  )
-  write.dcf(description, file.path(root, 'DESCRIPTION'))
   dir.create(file.path(root, 'tests/testthat/fixtures'), recursive = TRUE)
   writeLines(
     'scenarios: {}',

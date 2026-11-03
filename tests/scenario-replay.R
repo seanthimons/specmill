@@ -273,12 +273,18 @@ scenario_replay_acceptance <- function() {
   }
 
   # Test dependencies are reported, never added to the client DESCRIPTION.
-  missing <- tryCatch(generate(), error = conditionMessage)
-  stopifnot(grepl(
-    'Declared tests need these packages',
-    missing,
-    fixed = TRUE
+  stopifnot(identical(
+    unname(read.dcf(file.path(root, 'DESCRIPTION'))[1L, 'Suggests']),
+    'testthat, vcr, withr, yaml'
   ))
+  description <- read.dcf(file.path(root, 'DESCRIPTION'))
+  description[1L, 'Suggests'] <- 'testthat'
+  write.dcf(description, file.path(root, 'DESCRIPTION'))
+  missing <- tryCatch(generate(), error = conditionMessage)
+  stopifnot(
+    grepl('Declared tests need these packages', missing, fixed = TRUE),
+    endsWith(missing, ': vcr, withr, yaml')
+  )
   description <- read.dcf(file.path(root, 'DESCRIPTION'))
   description[1L, 'Suggests'] <- paste(
     description[1L, 'Suggests'],
