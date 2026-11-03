@@ -8,7 +8,7 @@
 \item{mode}{Preview by default; apply creates absent files only.}
 }
 \value{A list containing proposed text in files, changes with file/action/before/after, missing_imports, and collisions with existing executor definitions.}
-\details{Creates R/hook_registry.R and inst/hooks.yml. Add yaml to the client's DESCRIPTION Imports before applying. This function does not modify metadata or service configuration. Set hook_config: inst/hooks.yml in each participating service or API group, and define the referenced functions in client R source. The empty registry enables no hooks.
+\details{Creates R/hook_registry.R and inst/hooks.yml. Move yaml to the client's DESCRIPTION Imports before applying; new clients list it in Suggests for their tests, and a package belongs in only one field. This function does not modify metadata or service configuration. Set hook_config: inst/hooks.yml in each participating service or API group, and define the referenced functions in client R source. The empty registry enables no hooks.
 
 Existing differing files and executor definitions in other R files block application. Matching files are left alone. Ordinary generate_client regeneration preserves these client-owned files. Rerunning this setup command is not a runtime upgrade mechanism.
 
@@ -19,7 +19,7 @@ The executor reads the installed hooks.yml on each stage, resolves functions onl
 proposal <- configure_hooks('path/to/client')
 proposal$changes
 proposal$missing_imports
-# Add yaml to DESCRIPTION Imports, then:
+# Move yaml from DESCRIPTION Suggests to Imports, then:
 configure_hooks('path/to/client', mode = 'apply')
 }
 }
