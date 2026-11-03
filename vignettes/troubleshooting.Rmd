@@ -97,6 +97,7 @@ full schema validity or live-service correctness.
 
 | Symptom | Next step |
 |---|---|
+| A generated scenario test fails, or a recording was deleted | See [diagnose replay failures](testing.html#diagnose-replay-failures) |
 | Package/function not found | Install the reviewed toolkit, restart R, and inspect `packageVersion('specmill')` and `find.package('specmill')` |
 | Missing schema / pattern matched nothing | Resolve paths against `root`, check case, and use sequences such as `files: [schema.json]` |
 | Unknown YAML field / invalid regex | Compare with [Configuration](configuration.html); use case-sensitive stringr syntax |

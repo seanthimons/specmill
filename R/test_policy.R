@@ -601,6 +601,14 @@ testing_declarations <- function(
     op <- entry$configured$operation
     spec <- entry$configured$spec
     check_inputs(entry, scenario, where)
+    # vcr cannot store multipart parts, so such a recording would fail.
+    if (startsWith(op$body_media %or% '', 'multipart/')) {
+      stop(
+        where,
+        ': multipart request bodies cannot be recorded; declare the route ',
+        'under unrecorded and cover it with a contract'
+      )
+    }
     if (!is.null(scenario$example)) {
       examples <- spec$docs$examples %or% list()
       if (scenario$example > length(examples)) {

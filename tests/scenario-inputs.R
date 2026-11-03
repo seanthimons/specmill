@@ -156,6 +156,17 @@ scenario_inputs_acceptance <- function() {
               schema = list(type = 'string', format = 'binary')
             )
           )
+        ),
+        '/upload' = post(
+          'upload_body',
+          list(
+            'multipart/form-data' = list(
+              schema = list(
+                type = 'object',
+                properties = list(note = list(type = 'string'))
+              )
+            )
+          )
         )
       )
     )
@@ -529,6 +540,22 @@ scenario_inputs_acceptance <- function() {
   stopifnot(identical(
     tryCatch(specmill::inspect_client(root), error = conditionMessage),
     'inputsclient testing scenario renamed_body: docs example 2 does not exist'
+  ))
+  # vcr cannot store multipart parts, so such a scenario is refused.
+  writeLines(
+    c(
+      'scenarios:',
+      '  upload: {operation: POST /upload, inputs: {body: {note: x}}, match: [method, uri, body]}'
+    ),
+    testing
+  )
+  stopifnot(identical(
+    tryCatch(specmill::inspect_client(root), error = conditionMessage),
+    paste0(
+      'inputsclient testing scenario upload: multipart request bodies cannot ',
+      'be recorded; declare the route under unrecorded and cover it with a ',
+      'contract'
+    )
   ))
   # A scenario that becomes blocked keeps its reviewed test.
   writeLines(

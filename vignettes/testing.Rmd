@@ -365,7 +365,9 @@ scenario IDs:
 
 **Matching.** Replay matches the method and URI by default. A scenario whose
 operation sends a body must add `body` or `body_json` to `match`. Headers are
-never matched.
+never matched. Multipart bodies cannot be recorded, because vcr cannot store
+their parts: a scenario for a multipart operation is a declaration error. List
+the route under `unrecorded` and cover it with a contract instead.
 
 **Credentials.** Credentials never reach a recording, and neither do arguments
 bound to an environment variable with `parameters.<name>.env` (such as an email
@@ -433,6 +435,25 @@ Listing a scenario that already has one replays it and leaves its signature
 alone. To replace it on purpose, delete the cassette and record again. Never
 re-record just to make a failing expectation pass. Find out first whether the
 input, the client or the service changed.
+
+### Diagnose replay failures
+
+| Message | Cause | Next step |
+|---|---|---|
+| `No recording for <service>/<scenario>` | The cassette does not exist. | Record it on purpose with `<PACKAGE>_RECORD`. |
+| `HTTP request failed before a response was received` during replay | Usually a request the recording does not match: changed inputs, wrapper, hooks or helper. The helper reports vcr's refusal as a transport failure. | Run the test with `options(<package>.request = list(preserve_errors = TRUE))` to see vcr's message, then compare the request with the cassette. Re-record only if the change is intended. |
+| A signature comparison fails | The result's class, columns or nested types differ from the reviewed signature. | Find out whether the client or a response policy changed. If the new shape is right, delete the cassette and record again, then review the signature diff. |
+| `No reviewed signature for <service>/<scenario>` | The cassette exists but its signature was deleted. | Delete the cassette, then record the scenario again. |
+| `Recording of ... did not complete and was deleted` | The test failed while recording, for example on an error response or a failed check. | Fix the inputs or expectation, then record again. |
+| `Recording of ... contained ... and was deleted` | The scan found a credential, a pattern match, a dropped header, a placeholder in a request, or a body it could not decode. | Adjust `testing.filter` (or use longer credentials), then record again. |
+| `Recording is refused while CI is set` | A scenario was listed for recording under CI. | Record locally. |
+| `would change the live service` | A write operation has no approval. | Add `record_write` with a reason, or leave the route `unrecorded`. |
+| `Scenario ... is blocked` (generation) | An input has no reviewed example or breaks the schema. | Add a `docs.examples` entry or explicit `inputs`. |
+| `The replay dummy does not satisfy the schema` (generation) | An argument bound with `env` has a pattern or format the dummy value breaks. | Such a parameter cannot use `env`; remove the binding. |
+| `multipart request bodies cannot be recorded` | A scenario names a multipart operation. | Declare the route under `unrecorded` and cover it with a contract. |
+
+`testing_report()` shows which recordings are stale before you run anything:
+see *Report what is verified* below.
 
 ### Propose scenarios and review recordings
 

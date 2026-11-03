@@ -41,12 +41,16 @@ proposal$missing_imports
 ```
 
 Planning does not write files. The proposed executor reads YAML using `yaml`, so
-add that package to the client's `DESCRIPTION` under `Imports`. Keep all existing
-imports. In this disposable example we make the metadata edit programmatically:
+move that package to the client's `DESCRIPTION` `Imports`. New clients list it in
+`Suggests` for their tests, and `R CMD check` notes a package listed in both.
+Keep all other imports. In this disposable example we make the metadata edit
+programmatically:
 
 ```{r dependency}
 metadata <- read.dcf(file.path(root, 'DESCRIPTION'))
 metadata[1, 'Imports'] <- paste(metadata[1, 'Imports'], 'yaml', sep = ', ')
+suggests <- trimws(strsplit(metadata[1, 'Suggests'], ',')[[1]])
+metadata[1, 'Suggests'] <- paste(setdiff(suggests, 'yaml'), collapse = ', ')
 write.dcf(metadata, file.path(root, 'DESCRIPTION'))
 specmill::configure_hooks(root, mode = 'apply')
 ```

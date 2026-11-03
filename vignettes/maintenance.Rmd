@@ -360,6 +360,23 @@ gap-report apply writes a dated JSON report. Gap reasons distinguish missing
 contracts, absent/empty test files, and unsupported operations. `readiness_report`
 is a pointer to your canonical audit, not an audit created by this call.
 
+### Maintain recorded tests
+
+Clients with cassette scenarios need one extra pass after a schema, policy,
+helper or hook change. See the [testing guide](testing.html) for the details.
+
+1. Run `specmill::testing_report(root)` and read `review` and `changed` for each
+   scenario. Regenerate first if `test_current` is `FALSE`.
+2. For each recording that needs review, decide whether its behavior should
+   change. Re-record only intended changes: delete the cassette and list the
+   scenario in `<PACKAGE>_RECORD`, locally, with real credentials.
+3. Run `specmill::review_recordings(root)` to compare the new responses with the
+   response schema, and read the cassette, `.credentials` and signature diffs
+   before committing.
+4. Run the tests with credentials unset. Replay must pass offline.
+
+Never re-record to make a failing expectation pass, and never record in CI.
+
 ## 5. Add client-specific checks to CI
 
 CI should install the project's reviewed toolkit and formatter, then run
