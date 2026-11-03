@@ -244,33 +244,58 @@ supported_body <- function(
 }
 
 body_fixture <- function(schema, override = NULL) {
+  if (missing(override)) {
+    body_fixture_sourced(schema)$value
+  } else {
+    body_fixture_sourced(schema, override)$value
+  }
+}
+
+body_fixture_sourced <- function(schema, override = NULL) {
   if (!missing(override)) {
-    return(body_value(override, schema))
+    return(list(value = body_value(override, schema), source = 'override'))
   }
   selected <- intersect(c('example', 'default'), names(schema))
   if (length(selected)) {
-    return(body_value(schema[[selected[[1L]]]], schema))
+    return(list(
+      value = body_value(schema[[selected[[1L]]]], schema),
+      source = paste0('schema_', selected[[1L]])
+    ))
   }
   candidates <- if ('enum' %in% names(schema)) {
-    as.list(schema$enum)
+    structure(
+      as.list(schema$enum),
+      sources = rep('schema_enum', length(schema$enum))
+    )
   } else {
     body_fixture_candidates(schema)
   }
-  for (candidate in candidates) {
+  sources <- attr(candidates, 'sources')
+  for (i in seq_along(candidates)) {
     result <- tryCatch(
-      list(ok = TRUE, value = body_value(candidate, schema)),
+      list(ok = TRUE, value = body_value(candidates[[i]], schema)),
       error = function(e) list(ok = FALSE)
     )
-    if (result$ok) return(result$value)
+    if (result$ok) {
+      return(list(value = result$value, source = sources[[i]]))
+    }
   }
   stop('No valid body fixture: supply a reviewed override', call. = FALSE)
 }
 
+# Candidate values carry a parallel `sources` attribute: schema-provided values
+# keep their field, and type-built values are `synthesized`.
 body_fixture_candidates <- function(schema) {
+  sourced <- function(values, sources) {
+    structure(values, sources = rep_len(sources, length(values)))
+  }
   selected <- intersect(c('example', 'default', 'enum'), names(schema))
   if (length(selected)) {
     value <- schema[[selected[[1L]]]]
-    return(if (selected[[1L]] == 'enum') as.list(value) else list(value))
+    return(sourced(
+      if (selected[[1L]] == 'enum') as.list(value) else list(value),
+      paste0('schema_', selected[[1L]])
+    ))
   }
   direct <- c(
     if ('const' %in% names(schema)) list(schema$const),
@@ -278,54 +303,100 @@ body_fixture_candidates <- function(schema) {
     if ('default' %in% names(schema)) list(schema$default),
     if (length(schema$enum)) as.list(schema$enum)
   )
+  direct_sources <- c(
+    if ('const' %in% names(schema)) 'schema_const',
+    if ('example' %in% names(schema)) 'schema_example',
+    if ('default' %in% names(schema)) 'schema_default',
+    rep('schema_enum', length(schema$enum))
+  )
+  plain <- tryCatch(body_fixture_plain(schema), error = function(e) list())
   fields <- intersect(names(schema), c('oneOf', 'anyOf', 'allOf'))
-  if (length(fields)) {
-    by_field <- lapply(schema[fields], function(branches) {
-      lapply(branches, body_fixture_candidates)
+  if (!length(fields)) {
+    return(sourced(
+      c(direct, plain),
+      c(direct_sources, attr(plain, 'sources') %or% character())
+    ))
+  }
+  by_field <- lapply(schema[fields], function(branches) {
+    lapply(branches, body_fixture_candidates)
+  })
+  branches <- unlist(by_field, recursive = FALSE)
+  candidates <- unlist(branches, recursive = FALSE)
+  candidate_sources <- unlist(
+    lapply(branches, attr, 'sources'),
+    use.names = FALSE
+  )
+  if ('allOf' %in% fields) {
+    first <- lapply(by_field$allOf, function(values) {
+      if (length(values)) values[[1L]] else NULL
     })
-    candidates <- unlist(
-      unlist(by_field, recursive = FALSE),
-      recursive = FALSE
-    )
-    if ('allOf' %in% fields) {
-      first <- lapply(by_field$allOf, function(values) {
-        if (length(values)) values[[1L]] else NULL
-      })
-      if (
+    if (
+      all(vapply(
+        first,
+        function(x) is.list(x) && !is.null(names(x)),
+        logical(1)
+      ))
+    ) {
+      merged <- stats::setNames(list(), character())
+      for (value in first) {
+        merged <- utils::modifyList(merged, value, keep.null = TRUE)
+      }
+      # A merge is schema-provided only when every branch's value is.
+      merged_source <- if (
         all(vapply(
-          first,
-          function(x) is.list(x) && !is.null(names(x)),
+          by_field$allOf,
+          function(values) {
+            length(values) > 0L &&
+              startsWith(attr(values, 'sources')[[1L]], 'schema_')
+          },
           logical(1)
         ))
       ) {
-        merged <- stats::setNames(list(), character())
-        for (value in first) {
-          merged <- utils::modifyList(merged, value, keep.null = TRUE)
-        }
-        candidates <- c(list(merged), candidates)
+        'schema_example'
+      } else {
+        'synthesized'
       }
+      candidates <- c(list(merged), candidates)
+      candidate_sources <- c(merged_source, candidate_sources)
     }
-    plain <- tryCatch(body_fixture_plain(schema), error = function(e) list())
-    return(c(direct, candidates, plain))
   }
-  c(direct, tryCatch(body_fixture_plain(schema), error = function(e) list()))
+  sourced(
+    c(direct, candidates, plain),
+    c(
+      direct_sources,
+      candidate_sources,
+      attr(plain, 'sources') %or% character()
+    )
+  )
 }
 
+# A value built from the schema's structure. Its `sources` attribute is
+# schema-provided when every item or property value is, otherwise synthesized.
 body_fixture_plain <- function(schema) {
   if (!is.null(attr(schema, 'specmill_ref'))) {
     stop('Recursive fixture requires a finite value')
   }
+  built <- function(children) {
+    sources <- vapply(children, `[[`, character(1), 'source')
+    source <- if (length(sources) && all(startsWith(sources, 'schema_'))) {
+      sources[[1L]]
+    } else {
+      'synthesized'
+    }
+    list(value = lapply(children, `[[`, 'value'), source = source)
+  }
   type <- unlist(schema$type, use.names = FALSE)
   if (!length(type)) {
-    return(list(list()))
+    return(structure(list(list()), sources = 'synthesized'))
   }
   if ('null' %in% type) {
-    return(list(NULL))
+    return(structure(list(NULL), sources = 'synthesized'))
   }
   if ('array' %in% type) {
-    return(list(lapply(seq_len(schema$minItems %or% 1L), function(i) {
-      body_fixture_value(schema$items)
-    })))
+    items <- built(lapply(seq_len(schema$minItems %or% 1L), function(i) {
+      body_fixture_sourced(schema$items)
+    }))
+    return(structure(list(items$value), sources = items$source))
   }
   if ('object' %in% type) {
     properties <- names(schema$properties)
@@ -340,21 +411,23 @@ body_fixture_plain <- function(schema) {
       )
     ]
     keys <- union(properties, unlist(schema$required)) %or% character()
-    return(list(stats::setNames(
-      lapply(keys, function(name) {
-        body_fixture_value(
-          schema$properties[[name]] %or%
-            if (is.list(schema$additionalProperties)) {
-              schema$additionalProperties
-            } else {
-              list()
-            }
-        )
-      }),
-      keys
-    )))
+    fields <- built(lapply(keys, function(name) {
+      body_fixture_sourced(
+        schema$properties[[name]] %or%
+          if (is.list(schema$additionalProperties)) {
+            schema$additionalProperties
+          } else {
+            list()
+          }
+      )
+    }))
+    return(structure(
+      list(stats::setNames(fields$value, keys)),
+      sources = fields$source
+    ))
   }
-  list(fixture_value(schema))
+  fixture <- fixture_value_sourced(schema)
+  structure(list(fixture$value), sources = fixture$source)
 }
 
 body_fixture_value <- function(schema, override = NULL) {

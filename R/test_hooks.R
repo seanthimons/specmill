@@ -93,7 +93,7 @@ render_hook_integration <- function(op, spec, service, id, case, declared) {
   package <- spec$package
   inputs <- testing_arguments(
     case$inputs %or% list(),
-    if (!is.null(op$body)) body_argument_name(op)
+    testing_kept_body(op)
   )
   calls <- lapply(case$calls, function(call) {
     call$arguments <- testing_arguments(call$arguments, 'body')

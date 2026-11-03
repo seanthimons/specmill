@@ -194,6 +194,15 @@ testing_vectors <- function(x) {
   if (scalars) unlist(x) else x
 }
 
+# The body argument whose YAML sequences must stay lists: JSON and form bodies
+# serialize a one-item list differently from a scalar. Line bodies take a
+# vector of lines, so they convert like any other input.
+testing_kept_body <- function(op) {
+  lines <- identical(op$text_encoding, 'lines') &&
+    grepl('^text/', op$body_media %or% '')
+  if (!is.null(op$body) && !lines) body_argument_name(op)
+}
+
 # Inputs or helper arguments, except the named body argument.
 testing_arguments <- function(x, body) {
   names <- setdiff(names(x), body)
@@ -598,6 +607,7 @@ testing_declarations <- function(
         stop(where, ': docs example ', scenario$example, ' does not exist')
       }
     }
+    resolution <- scenario_resolution(op, spec, scenario)
     match <- scenario$match %or% policy$match
     if (!is.null(op$body) && !any(c('body', 'body_json') %in% match)) {
       stop(
@@ -613,13 +623,10 @@ testing_declarations <- function(
       operation = entry$record$name,
       route = key,
       represents = represents,
-      inputs = if ('inputs' %in% names(scenario)) {
-        'scenario'
-      } else if (!is.null(scenario$example)) {
-        'docs_example'
-      } else {
-        'unresolved'
-      },
+      inputs = resolution$source,
+      input_sources = resolution$sources,
+      input_values = resolution$inputs,
+      blocked = resolution$blocked,
       expectation = if ('result' %in% names(scenario)) {
         'result'
       } else if ('checks' %in% names(scenario)) {

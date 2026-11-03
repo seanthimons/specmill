@@ -230,6 +230,8 @@ candidate_inputs <- specmill::operation_fixtures(operations)
 candidate_inputs$get_item
 ```
 
+Each input list's `input_sources` attribute says where every value came from,
+for example `parameter_example`, `schema_default` or `synthesized`.
 Review these values before using them against a service. They do not establish
 expected helper calls or correct upstream results. `check_requests()` is a small
 alternative for checking one zero-argument call against a capture function and
@@ -280,6 +282,17 @@ hook_cases:
     state: {params: {item_id: ' abc '}}
     expect: {state: {params: {item_id: abc}}}
 ```
+
+When a scenario gives no `inputs`, they are resolved in this order: the docs
+example it names with `example:`, then the parameter example, the media-type
+body example, and the schema's example, default, enum or const for each
+required input. Optional inputs are only sent when the docs example names them.
+A value that would have to be built from its type, or Swagger UI's `'string'`
+placeholder, is a missing example; a docs example that breaks a schema
+constraint is invalid. Either blocks the scenario: `inspect_client()` reports
+`inputs: blocked` with the reason, generation warns, writes no new test, and
+keeps an existing one. Add a reviewed `docs.examples` entry to unblock it, and
+the same values document the wrapper. Swagger 2 `x-example` is not read.
 
 A scenario's default expectation is the reviewed type and shape of the result.
 Add `result` for an exact value, or `checks` (`class`, `rows`, `names`,
