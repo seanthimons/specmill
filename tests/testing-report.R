@@ -121,7 +121,7 @@ testing_report_acceptance <- function() {
   )
   stopifnot(identical(
     unname(description[1L, 'Suggests']),
-    'testthat, vcr, withr, yaml'
+    'testthat, vcr (>= 2.0.0), withr, yaml'
   ))
   write.dcf(description, file.path(root, 'DESCRIPTION'))
   specmill::configure_hooks(root, mode = 'apply')

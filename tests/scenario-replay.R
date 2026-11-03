@@ -275,7 +275,7 @@ scenario_replay_acceptance <- function() {
   # Test dependencies are reported, never added to the client DESCRIPTION.
   stopifnot(identical(
     unname(read.dcf(file.path(root, 'DESCRIPTION'))[1L, 'Suggests']),
-    'testthat, vcr, withr, yaml'
+    'testthat, vcr (>= 2.0.0), withr, yaml'
   ))
   description <- read.dcf(file.path(root, 'DESCRIPTION'))
   description[1L, 'Suggests'] <- 'testthat'
