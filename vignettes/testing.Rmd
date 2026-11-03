@@ -334,8 +334,10 @@ standard `tests/testthat.R` runner when the client has none. The client must
 declare `httr2` and `jsonlite`, and `testthat`, `vcr`, `withr` and `yaml` (new
 clients from `initialize_client()` declare all of them; in `Suggests` is
 enough); generation reports any that are missing and never edits
-`DESCRIPTION`. A scenario needs `inputs`,
-an `example`, or a wrapper with no required inputs.
+`DESCRIPTION`. The generated helper needs `vcr` 2.0.0 or later; generation
+checks package names only, so a client created before this requirement should
+declare `vcr (>= 2.0.0)`. A scenario needs `inputs`, an `example`, or a
+wrapper with no required inputs.
 
 Routine test runs only replay (`record = 'none'`). A missing or unmatched
 recording fails without contacting the service. To record, set the real
