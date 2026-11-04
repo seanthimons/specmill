@@ -1,6 +1,25 @@
 
 
 
+## specmill 0.2.2 (2026-11-04)
+
+#### Docs
+
+- document legacy debug and verbose integration (#285) (#288)
+  ([b65457e](https://github.com/seanthimons/specmill/tree/b65457e2cff67ab9de4dd2bf1c1b7aa1b8fc0454))
+
+#### Other changes
+
+- release v0.2.2 \[skip ci\]
+  ([d992229](https://github.com/seanthimons/specmill/tree/d992229ba614bb2821323a18cb0d8093d425baba))
+- restore published patch version 0.2.1
+  ([c6f4731](https://github.com/seanthimons/specmill/tree/c6f47312287cdf05b48edb18b30c0d522416b4e7))
+- retain development version after v0.2.1 release
+  ([f6b7f9b](https://github.com/seanthimons/specmill/tree/f6b7f9b433afbfecf2f8f0891d17cd8d11e6988d))
+
+Full set of changes:
+[`v0.2.1...v0.2.2`](https://github.com/seanthimons/specmill/compare/v0.2.1...v0.2.2)
+
 ## specmill 0.2.1 (2026-11-04)
 
 #### New features
@@ -11,7 +30,9 @@
 #### Other changes
 
 - release v0.2.1 \[skip ci\]
-  ([2e395da](https://github.com/seanthimons/specmill/tree/2e395da9314e35711270b2cc0ca4b35ce224dc2f))
+  ([942a2de](https://github.com/seanthimons/specmill/tree/942a2de73e29c753acb894d358f86bf0aedd02a9))
+- begin development version 0.2.1.9000
+  ([a43796e](https://github.com/seanthimons/specmill/tree/a43796e36a673157b07f3be6ac5fb2a8e99036ef))
 - remove proving-ground schema copies now kept in specmill-schemas
   ([0e52ca9](https://github.com/seanthimons/specmill/tree/0e52ca90b34ea3ffd3c3feb9d8bc1ca9edf31208))
 
