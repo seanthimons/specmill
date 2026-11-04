@@ -20,8 +20,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   for (flag in base::list(verbose = verbose, dry_run = dry)) {
     if (!base::is.logical(flag) || base::length(flag) != 1L || base::is.na(flag)) call_error('run_verbose and dry_run options must be TRUE or FALSE')
   }
-  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy, preserve_errors, throttle')
-  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle')) {
+  if (!base::is.list(controls) || (base::length(controls) && (base::is.null(base::names(controls)) || base::anyNA(base::names(controls)) || base::anyDuplicated(base::names(controls)))) || base::length(base::setdiff(base::names(controls), base::c('base_url', 'timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle', 'error_hint')))) call_error('Request controls must be a named list of base_url, timeout, max_retries, retry_writes, retry_policy, preserve_errors, throttle, error_hint')
+  for (name in base::c('timeout', 'max_retries', 'retry_writes', 'retry_policy', 'preserve_errors', 'throttle', 'error_hint')) {
     if (base::is.null(controls[[name]])) controls[[name]] <- request_controls[[name]]
   }
   timeout <- if (base::is.null(controls$timeout)) 30 else controls$timeout
@@ -41,6 +41,10 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   }
   preserve_errors <- if (base::is.null(controls$preserve_errors)) FALSE else controls$preserve_errors
   if (!base::is.logical(preserve_errors) || base::length(preserve_errors) != 1L || base::is.na(preserve_errors)) call_error('preserve_errors must be TRUE or FALSE')
+  # Client text appended to 5xx and transport failure messages.
+  error_hint <- controls$error_hint
+  if (!base::is.null(error_hint) && (!base::is.character(error_hint) || base::length(error_hint) != 1L || base::is.na(error_hint) || !base::nzchar(error_hint))) call_error('error_hint must be one nonempty string')
+  hint <- if (base::is.null(error_hint)) '' else base::paste0(' ', error_hint)
   retry_policy <- controls$retry_policy
   if (base::is.character(retry_policy) && base::length(retry_policy) == 1L && !base::is.na(retry_policy) && base::identical(base::make.names(retry_policy), retry_policy)) {
     retry_policy <- base::get0(retry_policy, envir = base::parent.env(base::environment()), mode = 'function', inherits = FALSE)
@@ -293,15 +297,15 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   # Only transport failures are rewritten; mock, replay and other errors pass through unchanged.
   response <- base::tryCatch(httr2::req_perform(request), httr2_failure = function(e) {
     if (preserve_errors) base::stop(e)
-    if (base::is.finite(timeout) && base::inherits(e$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', call. = FALSE)
-    base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', call. = FALSE)
+    if (base::is.finite(timeout) && base::inherits(e$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', hint, call. = FALSE)
+    base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', hint, call. = FALSE)
   })
   if (verbose) base::message('HTTP ', httr2::resp_status(response))
-  api_request_decode(response, method, response_policy, policy_query, preserve_errors)
+  api_request_decode(response, method, response_policy, policy_query, preserve_errors, error_hint = error_hint)
 }
 
 # Decode an already-received response without performing transport or changing hook execution.
-api_request_decode <- function(response, method = 'GET', response_policy = NULL, policy_query = NULL, preserve_errors = FALSE) {
+api_request_decode <- function(response, method = 'GET', response_policy = NULL, policy_query = NULL, preserve_errors = FALSE, error_hint = NULL) {
   if (!base::is.logical(preserve_errors) || base::length(preserve_errors) != 1L || base::is.na(preserve_errors)) base::stop(base::errorCondition('preserve_errors must be TRUE or FALSE', class = 'specmill_call_error', call = NULL))
   status <- httr2::resp_status(response)
   media <- httr2::resp_header(response, 'content-type')
@@ -315,7 +319,7 @@ api_request_decode <- function(response, method = 'GET', response_policy = NULL,
     if (check_status && status >= 400L) {
       if (preserve_errors && status != 401L) httr2::resp_check_status(response)
       # A rejected credential applies to every item of a batch, so it stops the call rather than being dropped per item.
-      base::stop(if (status == 401L) base::errorCondition(base::paste0(diagnostic, ' response'), class = 'specmill_call_error', call = NULL) else base::simpleError(base::paste0(diagnostic, ' response')))
+      base::stop(if (status == 401L) base::errorCondition(base::paste0(diagnostic, ' response'), class = 'specmill_call_error', call = NULL) else base::simpleError(base::paste0(diagnostic, ' response', if (status >= 500L && !base::is.null(error_hint)) base::paste0(' ', error_hint))))
     }
     delimited <- format == 'delimited' && media %in% base::c('text/csv', 'application/csv', 'text/tab-separated-values', 'text/tsv')
     if (!httr2::resp_has_body(response) || !base::length(httr2::resp_body_raw(response))) {
