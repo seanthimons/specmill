@@ -282,6 +282,60 @@ outputs, opt in with [`prune`](maintenance.html#prune-retired-output).
    Compare public names, arguments, exports, and results with the baseline.
    Commit the toolkit pin, policy, helper edits, output, and manifest together.
 
+### Connect existing public debug and verbose setters
+
+Generated helpers do not discover legacy option names or package session
+environments. Keep existing public setters and make them write the helper's
+canonical R options as well as their legacy state. This is the supported
+integration contract; it requires no edits to emitted helpers or wrappers and
+no new exported controls.
+
+Determine the prefix from the **actual helper**, not the package name. Find its
+substituted `DRY_RUN_ENV` string, remove the trailing `_DRY_RUN`, and lowercase
+the result. For example, `COMPTOXR_NATIVE_DRY_RUN` means `comptoxr_native`,
+even in a package named `ComptoxR`. All helpers using that string share controls.
+The helper reads `<prefix>.dry_run` and `<prefix>.run_verbose` on every call.
+Both must be one nonmissing logical value. Explicit `dry_run = FALSE` overrides
+a truthy environment flag; removing the option restores the environment fallback.
+Verbose defaults to FALSE. Option names are case-sensitive.
+
+For the ComptoxR helper using `COMPTOXR_NATIVE_DRY_RUN`, incorporate these writes
+into the existing setters in client-owned source, retaining their existing
+signatures, getter behavior, return values, and documentation. The minimal
+setter-only example below assumes `.ComptoxREnv` already exists:
+
+```{r legacy-runtime-setters, eval=FALSE}
+run_debug <- function(enabled = FALSE) {
+  if (!is.logical(enabled) || length(enabled) != 1L || is.na(enabled)) {
+    stop('enabled must be TRUE or FALSE', call. = FALSE)
+  }
+  options(comptoxr_native.dry_run = enabled)
+  .ComptoxREnv$run_debug <- enabled
+  invisible(NULL)
+}
+
+run_verbose <- function(enabled = FALSE) {
+  if (!is.logical(enabled) || length(enabled) != 1L || is.na(enabled)) {
+    stop('enabled must be TRUE or FALSE', call. = FALSE)
+  }
+  options(ComptoxR.run_verbose = enabled, comptoxr_native.run_verbose = enabled)
+  invisible(NULL)
+}
+```
+
+Apply the same synchronization wherever legacy controls are changed. Direct
+writes to the old option or session environment do not synchronize automatically.
+Call the setters explicitly for the current session before using wrappers; do
+not set global options during package loading. This contract applies to helpers
+that already implement the canonical controls, including the helper described
+above. Older helpers need reviewed adoption first.
+
+Verify with mocked transport: `run_debug(TRUE)` must return an `httr2_request`
+without invoking transport, and `run_verbose(TRUE)` must emit the method and
+`(dry run)`. Turning both off must resume transport without messages. Include a
+truthy environment flag when testing FALSE precedence. Dry runs still validate
+authentication and inputs; returned requests may contain credentials.
+
 You can keep an existing helper when no newly selected feature requires changes.
 Generated wrappers and emitted companions need no specmill runtime dependency.
 Select `companions = c('batching', 'pagination')` during new-client initialization.
