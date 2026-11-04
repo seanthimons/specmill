@@ -351,8 +351,28 @@ explicitly using `decode(check_status = FALSE)`; this control does not
 move parsing earlier or bypass policies. Batch single/multiple stop/drop and
 warning policies remain independent of error preservation.
 
+### Error hints
+
+Set `request_controls.error_hint` to append client text to the sanitized
+messages for HTTP 5xx responses and for transport failures. It appears only
+after any retries are exhausted:
+
+~~~yaml
+defaults:
+  request_controls:
+    error_hint: Run mypackage_sitrep() to check service status.
+~~~
+
+The message becomes `HTTP 503 response Run mypackage_sitrep() to check service status.`
+4xx statuses, including 401, and typed `preserve_errors` errors are unchanged. A
+response policy that calls `decode(check_status = FALSE)` builds its own
+messages. With batch `on_error: drop`, each per-item warning repeats the hint.
+The `<package>.request` session option can set or override `error_hint`.
+Generation rejects a client request helper that predates this control; adopt
+the released template first (see `inspect_client()`).
+
 The scaffold also includes a client-owned `api_request_decode()` companion:
-`api_request_decode(response, method = 'GET', response_policy = NULL, policy_query = NULL, preserve_errors = FALSE)` decodes an
+`api_request_decode(response, method = 'GET', response_policy = NULL, policy_query = NULL, preserve_errors = FALSE, error_hint = NULL)` decodes an
 already-received response without performing transport. Its defaults preserve
 the existing native decoder behavior; true enables typed HTTP failures.
 A response policy receives the same response/context/decode interface. Existing
