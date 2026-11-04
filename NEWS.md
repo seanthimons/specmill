@@ -1,12 +1,29 @@
 
 
 
+## specmill 0.2.1 (2026-11-04)
+
+#### New features
+
+- append configured hints to server and transport errors (#280)
+  ([31602ec](https://github.com/seanthimons/specmill/tree/31602ec92e806b38707c88196010c6cad2048b3c))
+
+#### Other changes
+
+- release v0.2.1 \[skip ci\]
+  ([2e395da](https://github.com/seanthimons/specmill/tree/2e395da9314e35711270b2cc0ca4b35ce224dc2f))
+- remove proving-ground schema copies now kept in specmill-schemas
+  ([0e52ca9](https://github.com/seanthimons/specmill/tree/0e52ca90b34ea3ffd3c3feb9d8bc1ca9edf31208))
+
+Full set of changes:
+[`v0.2.0...v0.2.1`](https://github.com/seanthimons/specmill/compare/v0.2.0...v0.2.1)
+
 ## specmill 0.2.0 (2026-11-04)
 
 #### Other changes
 
 - release v0.2.0 \[skip ci\]
-  ([6a1fe37](https://github.com/seanthimons/specmill/tree/6a1fe37b09c62f0c2d3f96b267553b66637b855b))
+  ([ff01ea9](https://github.com/seanthimons/specmill/tree/ff01ea91eb533cd50d9ce8633175274b87348638))
 
 ## specmill 0.1.65 (2026-11-04)
 
