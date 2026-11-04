@@ -290,7 +290,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   if (verbose) base::message(base::toupper(method), if (dry) ' request (dry run)' else ' request')
   if (dry) base::return(request)
   request <- httr2::req_error(request, is_error = function(response) FALSE)
-  response <- base::tryCatch(httr2::req_perform(request), error = function(e) {
+  # Only transport failures are rewritten; mock, replay and other errors pass through unchanged.
+  response <- base::tryCatch(httr2::req_perform(request), httr2_failure = function(e) {
     if (preserve_errors) base::stop(e)
     if (base::is.finite(timeout) && base::inherits(e$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', call. = FALSE)
     base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', call. = FALSE)
