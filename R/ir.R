@@ -1,7 +1,7 @@
 # Format-neutral API intermediate representation (IR), version 1.
 # Contract: dev/ir/ir-v1.md. Schema: inst/ir/ir-v1.schema.json. Field ledger:
-# inst/ir/field-ledger.csv. Nothing in the generation pipeline consumes the IR
-# yet; importers (#229) and the registry (#230) arrive in later changes.
+# inst/ir/field-ledger.csv. importer_openapi() emits this contract; generation
+# still uses compatibility records during #229. The registry follows in #230.
 
 ir_state <- new.env(parent = emptyenv())
 
