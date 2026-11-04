@@ -497,7 +497,11 @@ request_controls_acceptance <- function() {
         retry_policy = function(response) value
       )
     )
-    error(request('/policy-501-invalid-return'), 'HTTP request failed')
+    # A received response whose policy fails is not reported as a transport failure.
+    error(
+      request('/policy-501-invalid-return'),
+      'Client retry policy must return TRUE or FALSE'
+    )
   }
   options(
     controlsclient.request = list(
@@ -506,7 +510,8 @@ request_controls_acceptance <- function() {
       retry_policy = function(response) stop('header-secret')
     )
   )
-  error(request('/policy-501-predicate-error'), 'HTTP request failed')
+  # The policy's own message, which may hold secrets, is not surfaced.
+  error(request('/policy-501-predicate-error'), '^Client retry policy failed$')
   Sys.setenv(CONTROLSCLIENT_DRY_RUN = 'true')
   on.exit(Sys.unsetenv('CONTROLSCLIENT_DRY_RUN'), add = TRUE)
   options(controlsclient.request = list(base_url = origin, max_retries = 2))
