@@ -1,6 +1,66 @@
 
 
 
+## specmill 0.1.64 (2026-11-04)
+
+#### New features
+
+- declare yaml and withr with testthat and vcr in new clients’ Suggests
+  (#262)
+  ([a3bb951](https://github.com/seanthimons/specmill/tree/a3bb951437962ca9f141df1cb3bc90b5ac0fb46d))
+- keep env-bound arguments out of recordings and harden recording scans
+  found in the AQS trial (#262)
+  ([7b4e6d1](https://github.com/seanthimons/specmill/tree/7b4e6d1014dca8742335a37e53a8ecc1f26f5063))
+- report verification layers and scenarios affected by changes since
+  recording (#261)
+  ([c2b3b0b](https://github.com/seanthimons/specmill/tree/c2b3b0b57278b2a8f180af1cbc4938858c6f7214))
+- propose scenarios and docs example stubs, and review recordings
+  against response schemas (#273)
+  ([153f9c5](https://github.com/seanthimons/specmill/tree/153f9c5b30d5799c29eb618c6a76f1ea98e54a4f))
+- resolve scenario inputs from reviewed docs examples and schema
+  examples (#272)
+  ([f365e20](https://github.com/seanthimons/specmill/tree/f365e20408bb6caafbcc0df62a71001f4921452e))
+- generate reviewed hook cases and wrapper integrations (#260)
+  ([2c0c74b](https://github.com/seanthimons/specmill/tree/2c0c74b58a0f4e8ce20f74e8315b863141229446))
+- require approval for write recordings and scan new recordings for
+  leaked values (#259)
+  ([de54c27](https://github.com/seanthimons/specmill/tree/de54c27612b2f799075960a251dc19a61f67fb66))
+- generate cassette scenario tests that replay reviewed recordings
+  offline (#258)
+  ([cab30be](https://github.com/seanthimons/specmill/tree/cab30beb72ae17dbe07bb19ac2a8d2d896fbaf76))
+- declare reviewed cassette scenarios, contract gaps and unrecorded
+  routes (#257)
+  ([68c2e65](https://github.com/seanthimons/specmill/tree/68c2e65d040751d9cb8c80358c0dc3aa60b25cc6))
+
+#### Build
+
+- require vcr 2.0.0 or later in new clients’ Suggests (#262)
+  ([6069f1b](https://github.com/seanthimons/specmill/tree/6069f1b0db22bd0925bc9a607f4f0d340d06edfa))
+
+#### Tests
+
+- certify offline replay of a generated Swagger 2 client and refuse
+  multipart scenarios (#262)
+  ([f8cd826](https://github.com/seanthimons/specmill/tree/f8cd826cd3d203c9aff0dc0184caaa3939dbbaf7))
+
+#### Docs
+
+- note the vcr 2.0.0 minimum for clients created before it was declared
+  (#262)
+  ([cd97930](https://github.com/seanthimons/specmill/tree/cd97930da74ae8a438a210d6575b942ed0e6cd1e))
+
+#### Other changes
+
+- release v0.1.64 \[skip ci\]
+  ([ac79783](https://github.com/seanthimons/specmill/tree/ac7978306b3de69f28e59c58d8541457eb14cc16))
+- update maintainer email in the catalogue fixture (#274)
+  ([f200c67](https://github.com/seanthimons/specmill/tree/f200c67cefae7d7ae8354ed52b12c661ce48fc5c))
+- update maintainer email (#274)
+  ([a3505ca](https://github.com/seanthimons/specmill/tree/a3505ca6ff2ccb365c33de8eab0da34edb240f4c))
+
+Full set of changes:
+[`v0.1.63...v0.1.64`](https://github.com/seanthimons/specmill/compare/v0.1.63...v0.1.64)
+
 ## specmill 0.1.63 (2026-11-02)
 
 #### Bug fixes
@@ -12,7 +72,7 @@
 #### Other changes
 
 - release v0.1.63 \[skip ci\]
-  ([1a83a06](https://github.com/seanthimons/specmill/tree/1a83a063ee5e43e3e1e544b1868ad994fe9221c2))
+  ([43ce837](https://github.com/seanthimons/specmill/tree/43ce83765f0d5a1707d1ac2600dad904c9216ba7))
 
 Full set of changes:
 [`v0.1.62...v0.1.63`](https://github.com/seanthimons/specmill/compare/v0.1.62...v0.1.63)
