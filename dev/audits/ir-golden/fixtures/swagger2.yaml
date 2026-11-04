@@ -1,0 +1,88 @@
+swagger: '2.0'
+info: {title: Golden Swagger 2, version: '1.0'}
+host: api.example.test
+basePath: /v2
+schemes: [https]
+consumes: [application/json]
+produces: [application/json]
+securityDefinitions:
+  header_key: {type: apiKey, name: X-Api-Key, in: header}
+  query_key: {type: apiKey, name: api_key, in: query}
+  basic_auth: {type: basic}
+  oauth: {type: oauth2, flow: implicit, authorizationUrl: 'https://auth.example.test/o', scopes: {read: Read}}
+security:
+  - header_key: []
+definitions:
+  Pet:
+    type: object
+    required: [name]
+    properties:
+      id: {type: integer, format: int64}
+      name: {type: string}
+      tags: {type: array, items: {type: string}}
+      owner: {$ref: '#/definitions/Owner'}
+  Owner:
+    type: object
+    properties:
+      name: {type: string}
+      address: {$ref: '#/definitions/Address'}
+  Address:
+    type: object
+    properties:
+      city: {type: string}
+paths:
+  /pets:
+    get:
+      operationId: list_pets
+      tags: [pets]
+      summary: List pets
+      parameters:
+        - {name: status, in: query, type: string, enum: [open, sold], default: open}
+        - {name: ids, in: query, type: array, items: {type: integer}, collectionFormat: csv, x-example: [1, 2]}
+        - {name: limit, in: query, type: integer, minimum: 1, maximum: 100}
+        - {name: X-Trace, in: header, type: string}
+      responses:
+        '200': {description: Pets, schema: {type: array, items: {$ref: '#/definitions/Pet'}}}
+    post:
+      operationId: create_pet
+      tags: [pets]
+      parameters:
+        - {name: pet, in: body, required: true, schema: {$ref: '#/definitions/Pet'}}
+      responses:
+        '201': {description: Created, schema: {$ref: '#/definitions/Pet'}}
+  /pets/{pet_id}:
+    parameters:
+      - {name: pet_id, in: path, required: true, type: integer}
+    get:
+      operationId: get_pet
+      tags: [pets]
+      security:
+        - query_key: []
+        - oauth: [read]
+      responses:
+        '200': {description: Pet, schema: {$ref: '#/definitions/Pet'}}
+    delete:
+      operationId: delete_pet
+      tags: [pets]
+      security: []
+      responses:
+        '204': {description: Deleted}
+  /forms:
+    post:
+      operationId: submit_form
+      consumes: [application/x-www-form-urlencoded]
+      parameters:
+        - {name: title, in: formData, required: true, type: string}
+        - {name: count, in: formData, type: integer}
+      responses:
+        '200': {description: Received}
+  /export/{name}:
+    get:
+      operationId: get_export
+      produces: [application/octet-stream]
+      security:
+        - basic_auth: []
+      parameters:
+        - {name: name, in: path, required: true, type: string}
+      responses:
+        '200': {description: Bytes, schema: {type: string, format: binary}}
