@@ -1,0 +1,80 @@
+{
+  "ir_version": "1",
+  "paradigm": "rest",
+  "service": { "id": "parcels", "title": "Parcels FeatureServer" },
+  "sources": [
+    {
+      "id": "featureserver",
+      "format": "arcgis-rest",
+      "format_version": "11.1",
+      "file": "captures/parcels-featureserver-0.json",
+      "hash": { "algorithm": "sha256", "value": "0000000000000000000000000000000000000000000000000000000000000000" },
+      "servers": [{ "url": "https://example.test/arcgis/rest/services/Parcels/FeatureServer" }],
+      "auth_schemes": {
+        "arcgis_token": {
+          "kind": "session_token",
+          "in": "query",
+          "name": "token",
+          "description": "Obtained from generateToken; sent as the token query parameter."
+        }
+      },
+      "types": {
+        "Feature": {
+          "kind": "record",
+          "fields": [
+            { "name": "attributes", "required": true, "type": { "kind": "map", "value": { "kind": "any" } } },
+            { "name": "geometry", "required": false, "type": { "kind": "any", "nullable": true } }
+          ]
+        },
+        "FeatureSet": {
+          "kind": "record",
+          "fields": [
+            { "name": "objectIdFieldName", "required": false, "type": { "kind": "scalar", "name": "string" } },
+            { "name": "features", "required": true, "type": { "kind": "list", "items": { "kind": "ref", "name": "Feature" } } },
+            { "name": "exceededTransferLimit", "required": false, "type": { "kind": "scalar", "name": "boolean", "default": false } }
+          ]
+        }
+      }
+    }
+  ],
+  "operations": [
+    {
+      "key": "GET /0/query",
+      "id": "parcels GET /0/query",
+      "name": "query_layer_0",
+      "native_name": "query",
+      "summary": "Query features in layer 0",
+      "paradigm": "rest",
+      "source": "featureserver",
+      "binding": { "method": "GET", "path": "/0/query" },
+      "parameters": [
+        { "name": "where", "location": "query", "required": true, "type": { "kind": "scalar", "name": "string", "default": "1=1" } },
+        { "name": "outFields", "location": "query", "required": false, "type": { "kind": "scalar", "name": "string", "default": "*" } },
+        { "name": "resultOffset", "location": "query", "required": false, "type": { "kind": "scalar", "name": "integer", "bits": 32, "minimum": 0 } },
+        { "name": "resultRecordCount", "location": "query", "required": false, "type": { "kind": "scalar", "name": "integer", "bits": 32, "minimum": 1, "maximum": 2000 } },
+        { "name": "f", "location": "query", "required": true, "type": { "kind": "enum", "base": "string", "default": "json", "values": [{ "value": "json" }, { "value": "pjson" }] } }
+      ],
+      "responses": [
+        { "status": "200", "media": "application/json", "type": { "kind": "ref", "name": "FeatureSet" } }
+      ],
+      "errors": [
+        {
+          "when": { "status": "200", "body_path": ["error"], "present": true },
+          "code_path": ["error", "code"],
+          "message_path": ["error", "message"],
+          "description": "ArcGIS reports failures as HTTP 200 with an error object."
+        }
+      ],
+      "security": [{ "arcgis_token": [] }],
+      "pagination": {
+        "strategy": "offset",
+        "offset_parameter": "resultOffset",
+        "limit_parameter": "resultRecordCount",
+        "more_path": ["exceededTransferLimit"],
+        "more_when": true,
+        "max_page_size": 2000
+      },
+      "source_location": { "file": "captures/parcels-featureserver-0.json", "pointer": "/layers/0" }
+    }
+  ]
+}

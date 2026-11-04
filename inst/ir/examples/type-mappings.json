@@ -1,0 +1,61 @@
+{
+  "ir_version": "1",
+  "paradigm": "rest",
+  "service": { "id": "type-mappings" },
+  "sources": [
+    {
+      "id": "types",
+      "format": "mixed-fixtures",
+      "file": "dev/ir/ir-v1.md",
+      "hash": { "algorithm": "sha256", "value": "2222222222222222222222222222222222222222222222222222222222222222" },
+      "types": {
+        "proto_int64": { "kind": "scalar", "name": "integer", "bits": 64, "signed": true, "native_type": "int64", "lossy": ["int64_precision"] },
+        "proto_uint32": { "kind": "scalar", "name": "integer", "bits": 32, "signed": false, "native_type": "uint32" },
+        "proto_double": { "kind": "scalar", "name": "float", "bits": 64, "native_type": "double" },
+        "proto_bytes": { "kind": "scalar", "name": "bytes", "encoding": "base64", "native_type": "bytes" },
+        "proto_enum": {
+          "kind": "enum",
+          "base": "integer",
+          "native_type": "Status",
+          "values": [{ "value": 0, "name": "STATUS_UNSPECIFIED" }, { "value": 1, "name": "ACTIVE" }]
+        },
+        "proto_map": { "kind": "map", "key": { "kind": "scalar", "name": "string" }, "value": { "kind": "scalar", "name": "integer", "bits": 32 }, "native_type": "map<string, int32>" },
+        "proto_oneof": {
+          "kind": "union",
+          "mode": "one_of",
+          "native_type": "oneof",
+          "variants": [{ "kind": "scalar", "name": "string" }, { "kind": "scalar", "name": "integer", "bits": 32 }]
+        },
+        "xsd_decimal": { "kind": "scalar", "name": "decimal", "precision": 10, "scale": 2, "minimum": "0", "native_type": "xs:decimal" },
+        "xsd_datetime": { "kind": "scalar", "name": "datetime", "native_type": "xs:dateTime" },
+        "xsd_code": { "kind": "scalar", "name": "string", "min_length": 2, "max_length": 3, "pattern": "[A-Z]+", "native_type": "xs:string" },
+        "xsd_choice": {
+          "kind": "union",
+          "mode": "one_of",
+          "native_type": "xs:choice",
+          "variants": [{ "kind": "ref", "name": "xsd_code" }, { "kind": "ref", "name": "xsd_decimal" }]
+        },
+        "edm_guid": { "kind": "scalar", "name": "uuid", "native_type": "Edm.Guid" },
+        "edm_datetimeoffset": { "kind": "scalar", "name": "datetime", "native_type": "Edm.DateTimeOffset" },
+        "edm_duration": { "kind": "scalar", "name": "duration", "native_type": "Edm.Duration" },
+        "edm_complex": {
+          "kind": "record",
+          "native_type": "Address",
+          "fields": [
+            { "name": "Street", "required": true, "type": { "kind": "scalar", "name": "string" } },
+            { "name": "Geo", "required": false, "type": { "kind": "any", "nullable": true, "lossy": ["geography_type"] } }
+          ]
+        },
+        "composed": {
+          "kind": "intersection",
+          "members": [{ "kind": "ref", "name": "edm_complex" }, { "kind": "record", "fields": [{ "name": "Extra", "required": false, "type": { "kind": "scalar", "name": "string" } }] }]
+        },
+        "recursive_tree": {
+          "kind": "record",
+          "fields": [{ "name": "children", "required": false, "type": { "kind": "list", "items": { "kind": "ref", "name": "recursive_tree" } } }]
+        }
+      }
+    }
+  ],
+  "operations": []
+}
