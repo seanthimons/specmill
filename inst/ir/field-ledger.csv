@@ -1,0 +1,129 @@
+stage,field,class,ir_path,note
+operation,key,neutral,operations[].key,'METHOD /path' for REST; other paradigms decided by #231
+operation,id,neutral,operations[].id,service id plus key
+operation,service,call_context,service.id,Set from the configuration policy; not part of the API description
+operation,name,neutral,operations[].name,Importer default name; policy$names override stays in policy
+operation,operationId,neutral,operations[].native_name,Source spelling (OpenAPI operationId; GraphQL field; JSON-RPC method)
+operation,method,neutral,operations[].binding.method,REST binding
+operation,path,neutral,operations[].binding.path,REST binding
+operation,server,neutral,operations[].server,Effective server of the operation
+operation,server_relative,neutral,operations[].server.relative,Used only by a configured server resolver
+operation,parameters,neutral,operations[].parameters,See the parameter stage
+operation,body,neutral,operations[].body.type,JSON Schema today; neutral type tree in the IR
+operation,body_required,neutral,operations[].body.required,
+operation,body_media,neutral,operations[].body.media,
+operation,body_encoding,neutral,operations[].body.form_encoding,Form serialization (style/explode per property)
+operation,text_encoding,policy,,policy$text_encoding and text_encoding_overrides; not a property of the description
+operation,body_example,neutral,operations[].body.example,
+operation,body_media_correction,policy,,Reviewed correction layered over the importer output
+operation,request_body_correction,policy,,Reviewed correction layered over the importer output
+operation,path_parameters_correction,policy,,Reviewed correction layered over the importer output
+operation,response_correction,policy,,Reviewed correction layered over the importer output
+operation,opaque_body,policy,,Reviewed opaque request body applied to the source document before import
+operation,security,neutral,operations[].security,Effective requirements; operation overrides document
+operation,security_schemes,neutral,sources[].auth_schemes,Per source; OpenAPI components.securitySchemes or securityDefinitions
+operation,source,neutral,sources[].file,Referenced by operations[].source
+operation,source_hash,neutral,sources[].hash,md5 today; the IR names the algorithm
+operation,schema_version,neutral,sources[].format_version,Value is OpenAPI-specific ('2.0' '3.0.x' '3.1.x')
+operation,transport_diagnostics,neutral,operations[].transport_diagnostics,Non-empty marks the operation unsupported
+operation,source_operation,openapi_only,operations[].native,Raw OpenAPI operation object; generators must stop reading it in #229
+operation,response,neutral,operations[].responses,Raw responses map today; status-keyed list in the IR
+operation,summary,neutral,operations[].summary,Defaults to name today
+operation,routes,policy,,policy$routes_overrides
+operation,excluded_parameters,policy,,policy exclusions
+operation,response_sources,policy,,Reviewed choice among duplicate responses across sources
+operation,status,diagnostic,diagnostics[].status,Present on retained-unsupported operations built from inventory records
+operation,reason,diagnostic,diagnostics[].reason,Present on retained-unsupported operations built from inventory records
+operation,classification,diagnostic,diagnostics[].classification,Present on retained-unsupported operations built from inventory records
+operation,code,diagnostic,diagnostics[].code,Present on retained-unsupported operations built from inventory records
+operation,guidance,diagnostic,diagnostics[].guidance,Present on retained-unsupported operations built from inventory records
+operation,source_location,diagnostic,diagnostics[].source_location,Present on retained-unsupported operations built from inventory records
+operation,parser_failure,diagnostic,operations[].transport_diagnostics,Set by endpoint_records when the compatibility parser fails
+operation,route,derived,operations[].binding.path,Compatibility column from openapi_to_spec
+operation,params,derived,operations[].parameters,Compatibility column from openapi_to_spec
+operation,query_params,derived,operations[].parameters,Compatibility column from openapi_to_spec
+operation,path_params,derived,operations[].parameters,Compatibility column from openapi_to_spec
+operation,body_params,derived,operations[].body.type,Compatibility column from openapi_to_spec
+operation,path_param_metadata,derived,operations[].parameters,Compatibility column from openapi_to_spec
+operation,query_param_metadata,derived,operations[].parameters,Compatibility column from openapi_to_spec
+operation,body_param_metadata,derived,operations[].body.type,Compatibility column from openapi_to_spec
+operation,num_path_params,derived,operations[].parameters,Compatibility column from openapi_to_spec
+operation,num_body_params,derived,operations[].body.type,Compatibility column from openapi_to_spec
+operation,has_body,derived,operations[].body,Compatibility column from openapi_to_spec
+operation,body_schema_type,derived,operations[].body.type,Compatibility column from openapi_to_spec
+operation,body_schema_full,derived,operations[].body.type,Compatibility column from openapi_to_spec
+operation,body_item_type,derived,operations[].body.type,Compatibility column from openapi_to_spec
+operation,request_type,derived,operations[].body.media,Compatibility column from openapi_to_spec
+operation,content_type,derived,operations[].responses,Joined response media types; read by the duplicate-response check
+operation,response_schema_type,derived,operations[].responses,Read by the duplicate-response check
+operation,deprecated,neutral,operations[].deprecated,Compatibility column today
+operation,description,neutral,operations[].description,Compatibility column today
+operation,pagination_strategy,derived,operations[].pagination.strategy,Stubbed to none on the read_operations path; policy owns pagination
+operation,pagination_metadata,derived,operations[].pagination,Stubbed to none on the read_operations path; policy owns pagination
+parameter,name,neutral,operations[].parameters[].name,
+parameter,location,neutral,operations[].parameters[].location,Policy-added client parameters carry the value 'client'; they are not described by the API
+parameter,required,neutral,operations[].parameters[].required,
+parameter,allow_empty_value,neutral,operations[].parameters[].allow_empty_value,
+parameter,schema,neutral,operations[].parameters[].type,JSON Schema today; neutral type tree in the IR. Defaults live on the type
+parameter,validation_schema,neutral,operations[].parameters[].validation_type,
+parameter,example,neutral,operations[].parameters[].example,Wrapped as list(example=) today; the IR holds the bare value
+parameter,source_location,neutral,operations[].parameters[].source_location,JSON Pointer today
+parameter,style,neutral,operations[].parameters[].style,
+parameter,explode,neutral,operations[].parameters[].explode,
+parameter,collection_format,neutral,operations[].parameters[].collection_format,Swagger 2 spelling of style plus explode
+parameter,public_name,policy,,configure_operation parameter override
+parameter,public_required,policy,,configure_operation parameter override
+parameter,public_default,policy,,configure_operation parameter override
+parameter,public_env,policy,,configure_operation parameter override
+parameter,public_type,policy,,configure_operation extra_parameters
+parameter,missing_as_null,policy,,configure_operation extra_parameters and inputs
+parameter,constrained,policy,,configure_operation extra_parameters and inputs
+policy,security_correction,policy,,Replaces operation security after review
+policy,schema_parameters,policy,,Pre-mapping copy kept for explicit inputs
+policy,schema_body,policy,,Pre-mapping copy kept for explicit inputs
+policy,explicit_inputs,policy,,
+policy,body_name,policy,,
+policy,body_description,policy,,
+policy,response_policy,policy,,
+policy,server_resolver,policy,,
+policy,request_controls,policy,,
+policy,auth,policy,,Authentication wiring built from operation security
+policy,paginate,policy,,Pagination policy; the IR pagination hint never replaces it
+policy,iterate,policy,,
+policy,batch,policy,,
+policy,guard_literals,policy,,
+policy,rdname,policy,,
+policy,text_body_reference,policy,,
+policy,functions,policy,,Deferral and maintenance record field; not an operation field
+policy,fingerprint,policy,,Deferral and maintenance record field; not an operation field
+policy,scenarios,policy,,Testing policy record field; not an operation field
+policy,writes,policy,,Testing policy record field; not an operation field
+policy,gap,policy,,Maintenance record field; not an operation field
+return,operations,neutral,operations,Supported operations
+return,unsupported_operations,neutral,operations,Operations with non-empty transport_diagnostics
+return,diagnostics,neutral,diagnostics,
+return,body_diagnostics,policy,,Reviewed opaque request bodies reported per operation
+return,fixture_diagnostics,policy,,Derived from fixtures
+return,server_diagnostics,neutral,operations[].server.diagnostic,
+return,inventory,derived,operations,Selection status of every schema operation
+return,mapping_diagnostics,diagnostic,diagnostics,Added by read_service_operations() for client-mapped operations
+return,retained_diagnostics,diagnostic,diagnostics,Added by read_service_operations() for retained-unsupported operations
+diagnostic,id,neutral,diagnostics[].id,
+diagnostic,service,call_context,service.id,
+diagnostic,key,neutral,diagnostics[].key,
+diagnostic,source,neutral,diagnostics[].source_location.file,
+diagnostic,status,neutral,diagnostics[].status,
+diagnostic,reason,neutral,diagnostics[].reason,
+diagnostic,classification,neutral,diagnostics[].classification,
+diagnostic,code,neutral,diagnostics[].code,
+diagnostic,source_location,neutral,diagnostics[].source_location,JSON Pointer string today; object in the IR
+diagnostic,guidance,neutral,diagnostics[].guidance,
+diagnostic,method,derived,operations[].binding.method,Inventory and schema-validation records carry the REST coordinates
+diagnostic,path,derived,operations[].binding.path,Inventory and schema-validation records carry the REST coordinates
+diagnostic,source_hash,neutral,sources[].hash,Schema-validation records
+diagnostic,routes,policy,,Schema-validation records copy policy routes
+diagnostic,excluded_parameters,policy,,Schema-validation records copy policy exclusions
+diagnostic,reference,policy,,Body diagnostics carry the reviewed opaque body reference
+diagnostic,level,policy,,Body diagnostics carry an informational level
+diagnostic,sha256,policy,,Body diagnostics carry the verified digest of the referenced schema
+diagnostic,message,policy,,Body diagnostics carry a fixed explanation
