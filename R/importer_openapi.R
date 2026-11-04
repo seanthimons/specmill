@@ -1,7 +1,7 @@
 # Policy-free OpenAPI/Swagger to IR boundary. Native request normalization is
-# shared with read_operations() during the staged migration (#229). Reviewed
-# policy is not accepted by importer_openapi(); its compatibility view still
-# accepts corrections and transport settings. Post-import types follow in #279.
+# shared with read_operations() during the staged migration (#229). Policy
+# resolves explicit native reviews before the IR view is built; importer_openapi()
+# accepts no policy. Compatibility JSON Schema fragments follow in #279.
 # Shared native source reader. Keeping this step ahead of selection preserves
 # the existing document errors while operation validation remains selection-aware.
 openapi_read_source <- function(file) {
@@ -82,6 +82,17 @@ openapi_ir_type <- function(schema, context, at = '#', depth = 0L) {
     annotations$nullable <- TRUE
   }
   type <- setdiff(type, if (length(type) > 1L) 'null')
+  if (
+    !is.null(schema$format) &&
+      (!is.character(schema$format) ||
+        length(schema$format) != 1L ||
+        is.na(schema$format))
+  ) {
+    return(c(
+      list(kind = 'any', lossy = list('unsupported_schema')),
+      annotations
+    ))
+  }
   if (length(schema$format)) {
     annotations$native_format <- schema$format
   }
@@ -90,6 +101,12 @@ openapi_ir_type <- function(schema, context, at = '#', depth = 0L) {
   }
   ref <- schema[['$ref']] %or% attr(schema, 'specmill_ref', exact = TRUE)
   if (!is.null(ref)) {
+    if (!is.character(ref) || length(ref) != 1L || is.na(ref)) {
+      return(c(
+        list(kind = 'any', lossy = list('invalid_reference')),
+        annotations
+      ))
+    }
     target <- context$refs[[ref]]
     base <- if (is.null(target)) {
       list(kind = 'any', lossy = list('unresolved_reference'))
@@ -354,6 +371,9 @@ openapi_ir_type <- function(schema, context, at = '#', depth = 0L) {
       base$discriminator <- list(property = discriminator$propertyName)
       if (length(discriminator$mapping)) {
         targets <- lapply(discriminator$mapping, function(ref) {
+          if (!is.character(ref) || length(ref) != 1L || is.na(ref)) {
+            return(NULL)
+          }
           context$refs[[ref]] %or%
             if (ref %in% names(context$schemas)) ref else NULL
         })
@@ -468,15 +488,27 @@ openapi_ir_context <- function(document, file) {
 
 openapi_ir_auth <- function(scheme, context, at) {
   scheme <- local_ref(scheme, context$document, source_location = at)
+  type <- scheme$type
+  if (!is.character(type) || length(type) != 1L || is.na(type)) {
+    type <- ''
+  }
+  http_scheme <- scheme$scheme
+  if (
+    !is.character(http_scheme) ||
+      length(http_scheme) != 1L ||
+      is.na(http_scheme)
+  ) {
+    http_scheme <- ''
+  }
   kind <- switch(
-    scheme$type %or% '',
+    type,
     apiKey = 'api_key',
     basic = 'http_basic',
     oauth2 = 'oauth2',
     openIdConnect = 'openid_connect',
     mutualTLS = 'mutual_tls',
     http = switch(
-      tolower(scheme$scheme %or% ''),
+      tolower(http_scheme),
       basic = 'http_basic',
       bearer = 'http_bearer',
       'custom'
@@ -517,6 +549,15 @@ openapi_ir_diagnostic <- function(diagnostic) {
   result
 }
 
+openapi_ir_unrepresented <- function(node, context, at, code) {
+  list(
+    kind = 'any',
+    lossy = list(code),
+    source_location = openapi_ir_location(context, at),
+    native = list(schema = node)
+  )
+}
+
 openapi_ir_responses <- function(responses, context, at, produces = NULL) {
   if (!length(responses)) {
     return(list())
@@ -524,11 +565,26 @@ openapi_ir_responses <- function(responses, context, at, produces = NULL) {
   unlist(
     lapply(names(responses), function(status) {
       pointer <- schema_location(at, status)
-      response <- local_ref(
-        responses[[status]],
-        context$document,
-        source_location = pointer
+      response <- tryCatch(
+        local_ref(
+          responses[[status]],
+          context$document,
+          source_location = pointer
+        ),
+        specmill_schema_problem = identity
       )
+      if (inherits(response, 'specmill_schema_problem')) {
+        return(list(list(
+          status = status,
+          source_location = openapi_ir_location(context, pointer),
+          type = openapi_ir_unrepresented(
+            responses[[status]],
+            context,
+            pointer,
+            response$code
+          )
+        )))
+      }
       content <- response$content
       if (identical(context$version, '2.0')) {
         media <- as.character(unlist(
@@ -571,11 +627,22 @@ openapi_ir_responses <- function(responses, context, at, produces = NULL) {
                 schema_location(pointer, 'headers'),
                 header_name
               )
-              header <- local_ref(
-                response$headers[[header_name]],
-                context$document,
-                source_location = header_at
+              header <- tryCatch(
+                local_ref(
+                  response$headers[[header_name]],
+                  context$document,
+                  source_location = header_at
+                ),
+                specmill_schema_problem = identity
               )
+              if (inherits(header, 'specmill_schema_problem')) {
+                return(openapi_ir_unrepresented(
+                  response$headers[[header_name]],
+                  context,
+                  header_at,
+                  header$code
+                ))
+              }
               openapi_ir_type(header$schema %or% header, context, header_at)
             }),
             names(response$headers)
@@ -600,14 +667,25 @@ importer_openapi <- function(files) {
   ) {
     cli::cli_abort('Supply one or more distinct local OpenAPI schema files')
   }
-  parsed <- operation_records_result(
-    openapi_read_records(files, prepare_operation_policy(list()))
+  records <- openapi_read_records(
+    files,
+    operation_review_context(prepare_operation_policy(list()))
   )
+  openapi_records_ir(
+    files,
+    operation_records_result(records),
+    records$source_data
+  )
+}
+
+# Materialize the neutral view from native normalization. The same source
+# snapshot supplies request records, named types and provenance hashes.
+openapi_records_ir <- function(files, parsed, source_data) {
   sources <- list()
   contexts <- list()
   for (i in seq_along(files)) {
     file <- files[[i]]
-    document <- read_schema_document(file)
+    document <- source_data[[i]]$document
     context <- openapi_ir_context(document, file)
     source_id <- paste0('source-', i)
     contexts[[normalizePath(file, winslash = '/')]] <- context
@@ -625,7 +703,7 @@ importer_openapi <- function(files) {
       format_version = context$version,
       importer_version = '1',
       file = context$file,
-      hash = list(algorithm = 'md5', value = unname(tools::md5sum(file))),
+      hash = list(algorithm = 'md5', value = source_data[[i]]$hash),
       servers = list(effective_server(document)),
       auth_schemes = openapi_ir_object(stats::setNames(
         lapply(names(schemes), function(name) {
@@ -791,8 +869,9 @@ importer_openapi <- function(files) {
 # Native compatibility view during the policy migration. Selection is decided
 # before validating request declarations, so excluded malformed operations keep
 # their established inventory status. Corrections/transport reviews still enter
-# here; importer_openapi() supplies only prepared, empty policy.
-openapi_read_records <- function(files, policy) {
+# here through a resolved review context; importer_openapi() uses empty reviews.
+openapi_read_records <- function(files, view) {
+  source_data <- list()
   operations <- list()
   diagnostics <- list()
   inventory <- list()
@@ -800,6 +879,7 @@ openapi_read_records <- function(files, policy) {
   for (file in files) {
     first_operation <- length(operations) + 1L
     source <- openapi_read_source(file)
+    source_data[[length(source_data) + 1L]] <- source
     document <- source$document
     source_hash <- source$hash
     security_schemes <- source$schemes
@@ -817,9 +897,9 @@ openapi_read_records <- function(files, policy) {
         key <- paste('PATH', path)
         failure <- c(
           list(
-            id = paste(policy$service %or% 'default', key),
+            id = paste(view$service, key),
             key = key,
-            service = policy$service %or% 'default',
+            service = view$service,
             source = file,
             status = 'unsupported',
             reason = conditionMessage(item)
@@ -839,7 +919,8 @@ openapi_read_records <- function(files, policy) {
         c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace')
       )) {
         key <- paste(toupper(method), path)
-        id <- paste(policy$service %or% 'default', key)
+        review <- view$operation(key, path, toupper(method))
+        id <- review$id
         operation_location <- schema_location(
           schema_location('#/paths', path),
           method
@@ -847,12 +928,12 @@ openapi_read_records <- function(files, policy) {
         source_location <- operation_location
         diagnostic_context <- NULL
         path_problems <- NULL
-        reason <- operation_selection_reason(key, path, toupper(method), policy)
+        reason <- review$reason
         selected <- !length(reason)
         record <- list(
           id = id,
           key = key,
-          service = policy$service %or% 'default',
+          service = view$service,
           method = toupper(method),
           path = path,
           source = file,
@@ -869,14 +950,11 @@ openapi_read_records <- function(files, policy) {
         )
         # Reviewed schema parameters dropped before validation (#59), e.g. the
         # multipart upload variant Springdoc folds into JSON operations.
-        excluded <- as.character(unlist(
-          policy$exclude_parameters_overrides[[key]],
-          use.names = FALSE
-        ))
+        excluded <- review$setting('excluded_parameters')
         if (selected && length(excluded)) {
           record$excluded_parameters <- excluded
         }
-        routes <- policy[['routes_overrides']][[key]]
+        routes <- review$setting('routes')
         if (selected && length(routes)) {
           record$routes <- routes
         }
@@ -894,7 +972,7 @@ openapi_read_records <- function(files, policy) {
               document,
               source_location = operation_location
             )
-            response_correction <- policy$response_corrections[[key]]
+            response_correction <- review$setting('response_correction')
             response_operation <- response_corrected_operation(
               op,
               response_correction,
@@ -1045,7 +1123,7 @@ openapi_read_records <- function(files, policy) {
               params <- params[!drop]
               parameter_locations <- parameter_locations[!drop]
             }
-            path_correction <- policy$path_parameters_corrections[[key]]
+            path_correction <- review$setting('path_correction')
             if (!is.null(path_correction)) {
               # Replace only effective path declarations; keep the archived operation.
               keep <- !vapply(
@@ -1076,7 +1154,7 @@ openapi_read_records <- function(files, policy) {
             body_required <- FALSE
             body_media <- 'application/json'
             body_encoding <- list()
-            media_correction <- policy$body_media_corrections[[key]]
+            media_correction <- review$setting('media_correction')
             if (
               !is.null(media_correction) &&
                 !body_present &&
@@ -1101,9 +1179,7 @@ openapi_read_records <- function(files, policy) {
                 body_location
               )
             }
-            text_encoding <- policy$text_encoding_overrides[[key]] %or%
-              policy$text_encoding %or%
-              'scalar'
+            text_encoding <- review$setting('text_encoding')
             if (
               !is.character(text_encoding) ||
                 length(text_encoding) != 1L ||
@@ -1118,9 +1194,8 @@ openapi_read_records <- function(files, policy) {
               )
             }
             body_example <- list()
-            preferred_media <- policy$body_media_overrides[[key]] %or%
-              policy[['body_media']]
-            body_correction <- policy$request_body_corrections[[key]]
+            preferred_media <- review$setting('preferred_media')
+            body_correction <- review$setting('body_correction')
             if (!is.null(body_correction)) {
               reviewed_body <- if (body_present) {
                 local_ref(body, document, source_location = body_location)
@@ -1133,7 +1208,7 @@ openapi_read_records <- function(files, policy) {
                   !toupper(method) %in% c('GET', 'HEAD') ||
                   (!is.null(reviewed_body$required) &&
                     !identical(reviewed_body$required, FALSE)) ||
-                  !is.null(policy$body_media_overrides[[key]]) ||
+                  review$setting('explicit_media') ||
                   !is.null(media_correction)
               ) {
                 schema_problem(
@@ -1154,7 +1229,7 @@ openapi_read_records <- function(files, policy) {
               body_present <- FALSE
             } else if (
               undefined_body_method &&
-                is.null(policy$body_media_overrides[[key]])
+                !review$setting('explicit_media')
             ) {
               schema_problem(
                 'request_body_method',
@@ -1376,8 +1451,7 @@ openapi_read_records <- function(files, policy) {
                     schema,
                     version,
                     source_location,
-                    policy$query_array_style_overrides[[key]] %or%
-                      policy$query_array_style
+                    review$setting('query_array_style')
                   )
                 },
                 error = function(e) {
@@ -1563,12 +1637,12 @@ openapi_read_records <- function(files, policy) {
                 sep = '_'
               ))
             }
-            name <- operation_policy_name(candidate, key, policy)
+            name <- review$name(candidate)
             server <- effective_server(document, item, op)
             list(
               key = key,
-              id = paste(policy$service %or% 'default', key),
-              service = policy$service %or% 'default',
+              id = paste(view$service, key),
+              service = view$service,
               operationId = op$operationId,
               name = name,
               method = toupper(method),
@@ -1607,7 +1681,7 @@ openapi_read_records <- function(files, policy) {
               diagnostics[[length(diagnostics) + 1L]] <<- c(
                 list(
                   id = id,
-                  service = policy$service %or% 'default',
+                  service = view$service,
                   key = key,
                   source = file,
                   status = 'unsupported',
@@ -1635,7 +1709,7 @@ openapi_read_records <- function(files, policy) {
             diagnostics[[length(diagnostics) + 1L]] <- c(
               list(
                 id = id,
-                service = policy$service %or% 'default',
+                service = view$service,
                 key = key,
                 source = file,
                 status = 'unsupported',
@@ -1680,23 +1754,25 @@ openapi_read_records <- function(files, policy) {
       }
     }
   }
-  merged <- openapi_merge_duplicate_records(operations, inventory, policy)
+  merged <- openapi_merge_duplicate_records(operations, inventory, view)
   list(
     operations = merged$operations,
     inventory = merged$inventory,
     diagnostics = diagnostics,
-    exclusion_errors = exclusion_errors
+    exclusion_errors = exclusion_errors,
+    source_data = source_data
   )
 }
 
 # Duplicate-response review depends on native response contracts. Keep that
 # comparison inside the importer until its neutral response equivalent lands.
-openapi_merge_duplicate_records <- function(operations, inventory, policy) {
+openapi_merge_duplicate_records <- function(operations, inventory, view) {
   ids <- vapply(operations, `[[`, character(1), 'id')
   duplicate_ids <- unique(ids[duplicated(ids)])
+  duplicate_reviews <- view$duplicates()
   reviewed_duplicates <- Filter(
     Negate(is.null),
-    policy$duplicate_response_overrides %or% list()
+    duplicate_reviews
   )
   for (key in names(reviewed_duplicates)) {
     review <- reviewed_duplicates[[key]]
@@ -1705,7 +1781,7 @@ openapi_merge_duplicate_records <- function(operations, inventory, policy) {
     config_string(review$reason, 'duplicate_response.reason')
     # Absent operations are reported with the other unknown overrides below.
     if (
-      identical(policy$absent_override_mode, 'warn') &&
+      identical(view$absent_override_mode, 'warn') &&
         !key %in% vapply(inventory, `[[`, character(1), 'key')
     ) {
       next
@@ -1719,7 +1795,7 @@ openapi_merge_duplicate_records <- function(operations, inventory, policy) {
   }
   for (id in duplicate_ids) {
     group <- operations[ids == id]
-    reviewed <- policy$duplicate_response_overrides[[group[[1L]]$key]]
+    reviewed <- duplicate_reviews[[group[[1L]]$key]]
     contract <- function(x) {
       x <- x[setdiff(names(x), c('source', 'source_hash'))]
       if (!is.null(reviewed)) {
@@ -1786,4 +1862,22 @@ openapi_merge_duplicate_records <- function(operations, inventory, policy) {
   }
   operations <- operations[!duplicated(ids)]
   list(operations = operations, inventory = inventory)
+}
+
+
+# Reviewed native patches are resolved before constructing this IR view. They
+# never enter importer_openapi(), which remains a policy-free source reader.
+openapi_reviewed_records <- function(files, view) {
+  records <- openapi_read_records(files, view)
+  if (!length(files)) {
+    return(records)
+  }
+  parsed <- operation_records_result(records)
+  # Preserve native interleaving of supported and unsupported operations. The
+  # public result partitions them only after policy finalization.
+  parsed$operations <- records$operations
+  parsed$unsupported_operations <- list()
+  ir <- openapi_records_ir(files, parsed, records$source_data)
+  ir$service$id <- view$service
+  ir_compatibility_records(ir, records)
 }

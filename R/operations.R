@@ -2,7 +2,10 @@
 # OpenAPI-specific document and request reading lives in the native importer.
 read_operations <- function(files, policy = list()) {
   policy <- prepare_operation_policy(policy)
-  finish_operation_policy(openapi_read_records(files, policy), policy)
+  finish_operation_policy(
+    openapi_reviewed_records(files, operation_review_context(policy)),
+    policy
+  )
 }
 
 compare_operations <- function(old, new) {
