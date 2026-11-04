@@ -170,22 +170,11 @@ read_operations <- function(files, policy = list()) {
   }
   for (file in files) {
     first_operation <- length(operations) + 1L
-    document <- read_schema_document(file)
-    source_hash <- unname(tools::md5sum(file))
-    security_schemes <- lapply(
-      document$components$securitySchemes %or%
-        document$securityDefinitions %or%
-        list(),
-      local_ref,
-      document = document
-    )
-    version <- document$openapi %or% document$swagger
-    if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
-      stop('Unsupported schema version in ', file, call. = FALSE)
-    }
-    if (!is.list(document$paths) || is.null(names(document$paths))) {
-      stop('Missing paths: ', file)
-    }
+    source <- openapi_read_source(file)
+    document <- source$document
+    source_hash <- source$hash
+    security_schemes <- source$schemes
+    version <- source$version
     for (path in names(document$paths)) {
       item <- tryCatch(
         local_ref(

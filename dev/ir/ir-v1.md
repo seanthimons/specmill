@@ -3,9 +3,10 @@
 Contract for [#228](https://github.com/seanthimons/specmill/issues/228). It also
 settles the type model asked for in
 [#232](https://github.com/seanthimons/specmill/issues/232), as the IR needs one
-to be format-neutral. Nothing in generation consumes the IR yet. The OpenAPI
-importer ([#229](https://github.com/seanthimons/specmill/issues/229)) and the
-registry ([#230](https://github.com/seanthimons/specmill/issues/230)) come next.
+to be format-neutral. The internal `importer_openapi(files)` now emits this IR.
+Generation still consumes compatibility records while
+[#229](https://github.com/seanthimons/specmill/issues/229) migrates the remaining
+readers. The registry follows in [#230](https://github.com/seanthimons/specmill/issues/230).
 
 | Artifact | Path |
 |---|---|
@@ -14,6 +15,39 @@ registry ([#230](https://github.com/seanthimons/specmill/issues/230)) come next.
 | Examples (GraphQL, ArcGIS, type mappings) | `inst/ir/examples/` |
 | Validator | `validate_ir()` in `R/ir.R` (internal) |
 | Checks | `tests/ir.R` |
+
+## OpenAPI importer migration
+
+`importer_openapi(files)` accepts distinct local OpenAPI 3.0/3.1 or Swagger 2
+files and no policy argument. It emits source-scoped types, authentication,
+servers and normalized operation metadata. Identical duplicate operations merge
+using the existing contract checks. Unsupported request operations retain their
+transport diagnostics. Native source loading retains the existing version/path
+checks; independent source validation remains with `validate_schema()`. Server
+diagnostics remain separate from transport blockers.
+
+This first slice shares `openapi_read_source()` with `read_operations()` and
+reuses the latter's policy-free request normalization. It does not yet make
+`read_operations()` an adapter over IR, move policy application out of that
+reader, or remove raw-document access from downstream modules. Those are the
+remaining parts of #229; the 411-artifact baseline must keep matching through
+them. The new importer remains internal until the registry and policy split land.
+
+The type mapper traverses structural slots only and preserves source spelling
+under `native.schema`. It emits named refs, recursive records, scalars, enums,
+lists, maps, unions and intersections. Unrepresented assertions are marked
+`lossy`, including unsupported keywords, boolean false schemas and unresolved
+references. Those markers describe representational limits; they do not make an
+operation supported by the existing renderer. `int64_precision` retains the IR's
+warning about the later R representation. Defaults, examples and explicit null
+values remain data. The current scalar mapping preserves bounds, width,
+nullability and binary encoding where represented in the v1 contract.
+
+`Rscript tests/importer-openapi.R` checks the installed package, including the
+shipped corpus, YAML/JSON inputs, recursion, source-scoped duplicate merging,
+transport diagnostics and literal data that resembles schema keywords. The
+standalone generation golden gate is documented in
+[`dev/audits/ir-golden/README.md`](../audits/ir-golden/README.md).
 
 ## Shape
 
