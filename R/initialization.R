@@ -93,7 +93,9 @@ initialize_client <- function(
         ),
         collapse = ', '
       ),
-      Suggests = 'testthat'
+      # Cassette scenario tests need these (vcr 2 for local cassettes); hooks
+      # move yaml to Imports.
+      Suggests = 'testthat, vcr (>= 2.0.0), withr, yaml'
     )
   }
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {

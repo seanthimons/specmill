@@ -210,20 +210,26 @@ inspect_client <- function(
   operations <- list()
   inventory <- list()
   diagnostics <- list()
+  testing <- list()
   for (service in project$services) {
     parsed <- read_service_operations(service)
     inventory <- c(inventory, parsed$inventory)
     diagnostics <- c(diagnostics, parsed$diagnostics)
+    entries <- list()
     for (operation in parsed$operations) {
       configured <- configure_operation(operation, service)
       name <- operation$name
       definition <- definitions[[name]]
       contract <- fixed_contract(service, operation)
-      test_file <- paste0(
-        'tests/testthat/test-',
-        if ('calls' %in% names(contract)) 'contract-',
-        name,
-        '.R'
+      # Generation writes portable names; look for the same file.
+      test_file <- portable_output_path(
+        root,
+        paste0(
+          'tests/testthat/test-',
+          if ('calls' %in% names(contract)) 'contract-',
+          name,
+          '.R'
+        )
       )
       operations[[operation$id]] <- list(
         id = operation$id,
@@ -263,6 +269,29 @@ inspect_client <- function(
           NULL
         }
       )
+      entries[[name]] <- list(
+        id = operation$id,
+        key = operation$key,
+        record = operations[[operation$id]],
+        configured = configured
+      )
+    }
+    if (!is.null(service$testing)) {
+      declared <- testing_declarations(
+        root,
+        service,
+        entries,
+        parsed$inventory,
+        definitions
+      )
+      testing[[service$id]] <- declared
+      for (entry in entries) {
+        operations[[entry$id]]$gap <- declared$gaps[[entry$key]]
+        operations[[entry$id]]$scenarios <- names(Filter(
+          function(x) entry$key %in% x$represents,
+          declared$scenarios
+        ))
+      }
     }
   }
   selected_names <- vapply(operations, `[[`, character(1), 'name')
@@ -313,7 +342,7 @@ inspect_client <- function(
         function(x) x$service == service$id && x$status != 'excluded',
         inventory
       )
-      list(
+      counts <- list(
         total = length(selected),
         implemented = sum(vapply(records, `[[`, logical(1), 'implemented')),
         contracts = sum(vapply(
@@ -322,7 +351,21 @@ inspect_client <- function(
           logical(1)
         ))
       )
-    })
+      declared <- testing[[service$id]]
+      if (!is.null(declared)) {
+        # Declarations only: gaps never count as contracts, and represented
+        # routes are not executed. Execution results are reported separately.
+        counts$gaps <- length(declared$gaps)
+        counts$scenarios <- length(declared$scenarios)
+        counts$represented <- sum(
+          declared$routes %in% c('scenario', 'represented')
+        )
+        counts$unrecorded <- sum(declared$routes == 'unrecorded')
+        counts$hook_cases_missing <- length(declared$hooks_without_cases)
+      }
+      counts
+    }),
+    testing = testing
   )
 }
 

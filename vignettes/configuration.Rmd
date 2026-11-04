@@ -1214,6 +1214,30 @@ Exclusions match names across query, header, and cookie parameters, so check for
 same-name parameters in other locations. Keep independent inputs such as `email`
 as ordinary arguments unless their contract requires a separate adaptation.
 
+**Read an argument from an environment variable.** An ordinary argument the user
+supplies on every call, such as AQS's `email`, can default to an environment
+variable instead:
+
+```yaml
+operations:
+  GET /list/states:
+    parameters:
+      query email: {env: AQS_EMAIL}
+```
+
+The wrapper keeps the argument, with the default
+`base::Sys.getenv("AQS_EMAIL", unset = "")`, so an explicit value still wins.
+The value is read on each call and never written into generated code, docs or
+manifests. If the schema requires the argument and neither a value nor the
+variable is set, the call stops before HTTP; an optional one is omitted. `env`
+replaces `default`, `exclude` and `required`, and applies only to scalar string
+path, query, header or cookie parameters that are not paged or batched. Cassette
+scenarios treat these variables like credentials, so their values never reach a
+recording. Replay sends a placeholder value in its place, so a parameter whose
+schema constrains the value (a pattern, enum or length) cannot use `env` with
+cassette scenarios; generation stops and says so. It is not authentication:
+nothing else reads the variable.
+
 Plan, review, apply, and check generation. Excluding `key` removes it from the
 public wrapper signature, so update callers, examples, and fixed contracts.
 Existing client-owned helpers must support generated authentication; regeneration

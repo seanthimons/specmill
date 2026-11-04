@@ -349,7 +349,8 @@ load_project <- function(
         'defaults',
         'operations',
         'hook_config',
-        'deferral'
+        'deferral',
+        'testing'
       ),
       file
     )
@@ -603,6 +604,19 @@ load_project <- function(
         stop(id, ': automatic deferral needs specific diagnostic codes')
       }
     }
+    if (
+      is.list(service$testing) &&
+        !is.null(service$contracts_file) &&
+        identical(service$testing$file, service$contracts_file)
+    ) {
+      stop(id, ': testing file must differ from contracts_file')
+    }
+    testing <- if (!is.null(service$testing)) {
+      read_testing_policy(root, service$testing, id)
+    }
+    if (!is.null(testing$file)) {
+      inputs <<- c(inputs, project_path(root, testing$file))
+    }
     contracts <- config_data(service[['contracts']]) %or% list()
     config_fields(contracts, names(contracts), 'contracts')
     if (!is.null(service$contracts_file)) {
@@ -697,12 +711,17 @@ load_project <- function(
       operations = overrides,
       contracts = contracts,
       contracts_file = service$contracts_file,
-      response_fixture = config_data(service$response_fixture)
+      response_fixture = config_data(service$response_fixture),
+      testing = testing
     )
   })
   ids <- vapply(services, `[[`, character(1), 'id')
   if (anyDuplicated(ids)) {
     stop('Duplicate service ID')
+  }
+  testing_files <- unlist(lapply(services, function(x) x$testing$file))
+  if (anyDuplicated(testing_files)) {
+    stop('Services must not share a testing file')
   }
   # An include-free `unclaimed` service skips operations that another service
   # on the same server selects through include or operations.

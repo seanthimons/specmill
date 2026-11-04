@@ -116,6 +116,23 @@ operation_documentation <- function(op, policy = list()) {
         ),
         if (identical(op$parameters[[i]]$name, op$iterate$fan_out)) {
           ' Accepts a vector: one request is sent per element and the results are combined.'
+        },
+        if (!is.null(op$parameters[[i]]$public_env)) {
+          paste0(
+            if (
+              !grepl(
+                '[.!?]\\s*$',
+                policy$parameters[[parameters[[i]]]] %or%
+                  op$parameters[[i]]$schema$description %or%
+                  ''
+              )
+            ) {
+              '.'
+            },
+            ' Defaults to the ',
+            op$parameters[[i]]$public_env,
+            ' environment variable.'
+          )
         }
       )
     },

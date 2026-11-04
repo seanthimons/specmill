@@ -1,4 +1,4 @@
-# Static validation for generated contract tests.
+# Static validation for generated contract and cassette scenario tests.
 
 tg_validate_generated_text <- function(text, file = "<memory>") {
   errors <- character(0)
@@ -18,10 +18,27 @@ tg_validate_generated_text <- function(text, file = "<memory>") {
   if (grepl("works without parameters", text, fixed = TRUE)) {
     errors <- c(errors, "contains retired no-parameter test wording")
   }
-  if (
-    !grepl("\\blocal_mocked_bindings\\s*\\(", text, perl = TRUE) &&
-      !grepl("\\bwith_mocked_bindings\\s*\\(", text, perl = TRUE)
-  ) {
+  mocked <- grepl("\\blocal_mocked_bindings\\s*\\(", text, perl = TRUE) ||
+    grepl("\\bwith_mocked_bindings\\s*\\(", text, perl = TRUE)
+  # Literal, not replay_test_marker: bind_tools() rebinds this function into
+  # client contexts that cannot see package constants.
+  scenario <- "# Cassette scenario test; replays a reviewed recording."
+  hook_case <- "# Hook case test; checks a reviewed hook rule."
+  header <- tg_text_header_lines(text)
+  if (hook_case %in% header) {
+    # Direct hook cases call client hooks; they neither mock nor replay.
+    if (mocked || grepl("\\breplay_cassette\\s*\\(", text, perl = TRUE)) {
+      errors <- c(errors, "hook case mocks bindings or replays a cassette")
+    }
+  } else if (scenario %in% header) {
+    # Cassette scenarios run the real wrapper and request helper.
+    if (mocked) {
+      errors <- c(errors, "cassette scenario mocks request helper bindings")
+    }
+    if (!grepl("\\breplay_cassette\\s*\\(", text, perl = TRUE)) {
+      errors <- c(errors, "cassette scenario does not replay a cassette")
+    }
+  } else if (!mocked) {
     errors <- c(errors, "does not mock request helper bindings")
   }
 
