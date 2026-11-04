@@ -26,27 +26,45 @@ transport diagnostics. Native source loading retains the existing version/path
 checks; independent source validation remains with `validate_schema()`. Server
 diagnostics remain separate from transport blockers.
 
-`read_operations()` now orchestrates policy preparation, native request reading,
-and policy finalization. Selection and name resolution live in
-`R/operation_policy.R`; native document/request reading and duplicate-response
-contract comparison live in `R/importer_openapi.R`. Selection still occurs before
-request validation, so excluded malformed operations and excluded invalid name
-overrides do not become import failures. Unknown-override handling, collision
-messages, supported/unsupported separation and inventory classifications retain
-the compatibility reader's behavior.
+`read_operations()` now prepares policy, resolves native review settings, builds a
+reviewed IR view and adapts its neutral fields into the established R records.
+Selection, name resolution and per-operation review lookup live in
+`R/operation_policy.R`. The native reader receives a review context rather than
+YAML policy. Its setting resolver is lazy: exclusions, route/name decisions,
+body/media/path corrections and serialization reviews are evaluated at the same
+points as before. Excluded malformed operations therefore remain unvalidated and
+earlier failures retain their precedence.
 
-The policy-free importer calls native normalization directly, without the
-client namespace collision check. Distinct route keys can therefore have the
-same default R name in IR; `read_operations()` still requires reviewed names or
-selection before generating wrappers. This removes the importer's dependency on
-the public compatibility entry point.
+The policy-free `importer_openapi()` uses empty reviews and bypasses client
+namespace collision checks. Distinct route keys can have the same default R name
+in IR; the public reader still requires reviewed names or selection before
+client generation. Reviewed corrections are applied in an explicit native view
+before IR projection; the source document and its raw validation report remain
+unchanged. The importer accepts no policy argument.
 
-The policy split is incomplete: reviewed schema corrections and transport
-settings still enter the native compatibility view. Making `read_operations()`
-an adapter over IR, separating those remaining reviews, and migrating raw-document
-access from the other downstream modules remain in #229. The 411-artifact
-baseline must keep matching through those changes. The importer remains internal
-until the registry and policy split land.
+`ir_compatibility_records()` projects neutral operation/parameter names,
+identities, bindings, servers, security, source provenance and body controls.
+An opaque compatibility sidecar retains JSON Schema fragments, derived parser
+columns, policy provenance, character diagnostics and R representation details
+until #279. The adapter never reads native format bags or JSON Schema keywords.
+This preserves full R records, including NULL fields, empty-list distinctions
+and schema attributes, rather than relying on a lossy type round trip.
+
+Request records, named types and provenance use the same cached source snapshot;
+the IR projection does not re-read documents after native normalization. Invalid
+unused metadata and broken response/header references produce explicit lossy
+projection nodes, while legacy request behavior and separate source validation
+remain intact. A malformed unused authentication kind stays opaque as `custom`.
+No request validation is bypassed by these metadata fallbacks.
+
+Remaining work in #229 is migrating the other raw-document readers and enforcing
+the importer boundary, including the compatibility parser/schema helpers still
+outside this module. JSON Schema consumers and cassette-provenance compatibility
+remain tracked in #279. The 411-artifact baseline must keep matching through the
+remaining migration, and the importer remains internal until the registry lands.
+
+`Rscript tests/ir-compatibility.R` verifies exact R-record parity, neutral-field
+projection, lazy reviews, source snapshots and invalid unused metadata.
 
 The type mapper traverses structural slots only and preserves source spelling
 under `native.schema`. It emits named refs, recursive records, scalars, enums,

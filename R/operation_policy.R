@@ -298,3 +298,52 @@ operation_records_result <- function(records) {
     inventory = inventory
   )
 }
+
+# Resolve reviewed settings at the point native parsing needs them. Keeping the
+# setting resolver lazy preserves error precedence and leaves excluded request
+# bodies/transport declarations unevaluated. No YAML policy enters the importer.
+operation_review_context <- function(policy) {
+  service <- policy$service %or% 'default'
+  list(
+    service = service,
+    # Reviewed opaque bodies replace verified recursive request schemas before
+    # any operation is parsed.
+    document = function(file) {
+      opaque_body_document(file, policy$opaque_bodies, policy = policy)
+    },
+    operation = function(key, path, method) {
+      list(
+        id = paste(service, key),
+        reason = operation_selection_reason(key, path, method, policy),
+        name = function(candidate) {
+          operation_policy_name(candidate, key, policy)
+        },
+        setting = function(name) {
+          switch(
+            name,
+            excluded_parameters = as.character(unlist(
+              policy$exclude_parameters_overrides[[key]],
+              use.names = FALSE
+            )),
+            routes = policy[['routes_overrides']][[key]],
+            response_correction = policy$response_corrections[[key]],
+            path_correction = policy$path_parameters_corrections[[key]],
+            media_correction = policy$body_media_corrections[[key]],
+            text_encoding = policy$text_encoding_overrides[[key]] %or%
+              policy$text_encoding %or%
+              'scalar',
+            preferred_media = policy$body_media_overrides[[key]] %or%
+              policy[['body_media']],
+            explicit_media = !is.null(policy$body_media_overrides[[key]]),
+            body_correction = policy$request_body_corrections[[key]],
+            query_array_style = policy$query_array_style_overrides[[key]] %or%
+              policy$query_array_style,
+            cli::cli_abort('Unknown native review setting: {name}')
+          )
+        }
+      )
+    },
+    duplicates = function() policy$duplicate_response_overrides %or% list(),
+    absent_override_mode = policy$absent_override_mode
+  )
+}

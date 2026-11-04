@@ -1,7 +1,8 @@
 # Format-neutral API intermediate representation (IR), version 1.
 # Contract: dev/ir/ir-v1.md. Schema: inst/ir/ir-v1.schema.json. Field ledger:
-# inst/ir/field-ledger.csv. importer_openapi() emits this contract; generation
-# still uses compatibility records during #229. The registry follows in #230.
+# inst/ir/field-ledger.csv. importer_openapi() emits this contract; the reviewed
+# view projects neutral fields into compatibility records during #229. Registry:
+# #230. Remaining JSON Schema consumers: #279.
 
 ir_state <- new.env(parent = emptyenv())
 
@@ -168,4 +169,82 @@ validate_ir <- function(ir) {
     ))
   }
   ir_semantic_problems(jsonlite::fromJSON(json, simplifyVector = FALSE))
+}
+
+# Adapt neutral operation fields to the established R record shape. The opaque
+# compatibility sidecar retains JSON Schema fragments, derived parser columns,
+# policy provenance and character diagnostics until the #279 consumers migrate.
+# This adapter never reads native format bags or JSON Schema keywords.
+ir_compatibility_records <- function(ir, compatibility) {
+  keys <- vapply(ir$operations, `[[`, character(1), 'key')
+  source_ids <- vapply(ir$sources, `[[`, character(1), 'id')
+  compatibility$operations <- lapply(
+    compatibility$operations,
+    function(record) {
+      index <- match(record$key, keys)
+      if (is.na(index)) {
+        cli::cli_abort(
+          'Missing IR operation for compatibility record: {record$key}'
+        )
+      }
+      operation <- ir$operations[[index]]
+      source <- ir$sources[[match(operation$source, source_ids)]]
+      for (field in intersect(
+        c('key', 'id', 'name', 'summary', 'description', 'deprecated'),
+        names(operation)
+      )) {
+        record[field] <- operation[field]
+      }
+      record$service <- ir$service$id
+      record$method <- operation$binding$method
+      record$path <- operation$binding$path
+      record$source <- source$file
+      record$source_hash <- source$hash$value
+      record$schema_version <- source$format_version
+      record$server <- operation$server[setdiff(
+        names(operation$server),
+        'relative'
+      )]
+      record['server_relative'] <- list(operation$server$relative)
+      record['security'] <- list(operation$security)
+      if (length(record$parameters) != length(operation$parameters)) {
+        cli::cli_abort(
+          'IR parameter count differs from compatibility record: {record$key}'
+        )
+      }
+      record$parameters <- lapply(seq_along(record$parameters), function(i) {
+        parameter <- record$parameters[[i]]
+        neutral <- operation$parameters[[i]]
+        fields <- c(
+          'name',
+          'location',
+          'required',
+          'allow_empty_value',
+          'style',
+          'explode',
+          'collection_format'
+        )
+        for (field in intersect(
+          fields,
+          union(names(parameter), names(neutral))
+        )) {
+          parameter[field] <- list(neutral[[field]])
+        }
+        parameter
+      })
+      if (!is.null(operation$body)) {
+        record$body_required <- operation$body$required
+        record$body_media <- operation$body$media
+        # Empty R list and empty named object serialize differently in wrappers;
+        # retain that legacy representation when the IR encoding object is empty.
+        if (
+          length(operation$body$form_encoding) || length(record$body_encoding)
+        ) {
+          record$body_encoding <- operation$body$form_encoding
+        }
+      }
+      record
+    }
+  )
+  compatibility
 }
