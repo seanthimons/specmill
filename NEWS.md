@@ -1,6 +1,13 @@
 
 
 
+## specmill 0.2.0 (2026-11-04)
+
+#### Other changes
+
+- release v0.2.0 \[skip ci\]
+  ([6a1fe37](https://github.com/seanthimons/specmill/tree/6a1fe37b09c62f0c2d3f96b267553b66637b855b))
+
 ## specmill 0.1.65 (2026-11-04)
 
 #### Bug fixes
@@ -12,7 +19,7 @@
 #### Other changes
 
 - release v0.1.65 \[skip ci\]
-  ([4548176](https://github.com/seanthimons/specmill/tree/45481767b67df826aef784e85beef64070c556f1))
+  ([0f3f67c](https://github.com/seanthimons/specmill/tree/0f3f67c4f72a936bf3da2ed9da6ee741dea82377))
 
 Full set of changes:
 [`v0.1.64...v0.1.65`](https://github.com/seanthimons/specmill/compare/v0.1.64...v0.1.65)
