@@ -780,7 +780,17 @@ read_operations <- function(files, policy = list()) {
                   required = isTRUE(p$required),
                   allow_empty_value = isTRUE(p$allowEmptyValue),
                   schema = schema,
-                  example = p[intersect('example', names(p))],
+                  # Swagger 2 has no parameter example; Swagger UI's
+                  # x-example convention fills that gap.
+                  example = if (
+                    identical(version, '2.0') &&
+                      !'example' %in% names(p) &&
+                      'x-example' %in% names(p)
+                  ) {
+                    list(example = p[['x-example']])
+                  } else {
+                    p[intersect('example', names(p))]
+                  },
                   source_location = source_location,
                   style = encoding$style,
                   explode = encoding$explode,

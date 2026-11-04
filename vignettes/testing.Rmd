@@ -77,20 +77,23 @@ Keys such as `get_item` are public wrapper names.
 `tests/testthat/`, keyed by `METHOD /path` (for example `GET /items/{item_id}`).
 Route keys survive renaming a wrapper and give reviewable diffs. Text fixtures
 cannot tell `1L` from `1`, so their generated tests compare with
-`expect_equal()`; use RDS when exact types matter. Add `yaml` to the client's
-`Suggests`, as the generated tests read the file with it. A key naming both a
-wrapper and its route is an error. Inputs use their public R names.
+`expect_equal()`; use RDS when exact types matter. The generated tests read the
+file with `yaml`; clients older than this release must add it to `Suggests`. A
+key naming both a wrapper and its route is an error. Inputs use their public R
+names.
 Specify types intentionally: `1L` is an integer, `1` is a double, and exact
 expectations distinguish them. Use actual response classes (for example tibbles)
 when preserving an existing client. Never put credentials in fixtures.
 
 Optional contract `environment` values are scoped environment variables for the
-test, implemented with `withr::local_envvar()`. Add `withr` to that client's test
-dependencies if using this field. Keep environment values nonsecret.
+test, implemented with `withr::local_envvar()`. New clients already declare
+`withr`; older ones must add it to `Suggests` to use this field. Keep environment
+values nonsecret.
 
 ## 3. Add the standard package test runner
 
-Initialization declares testthat in `Suggests` but does not create its runner.
+Initialization declares testthat, vcr (2.0.0 or later), withr and yaml in
+`Suggests` but does not create its runner.
 For this new client, create `tests/testthat.R`:
 
 ```{r runner}
@@ -230,10 +233,389 @@ candidate_inputs <- specmill::operation_fixtures(operations)
 candidate_inputs$get_item
 ```
 
+Each input list's `input_sources` attribute says where every value came from,
+for example `parameter_example`, `schema_default` or `synthesized`.
 Review these values before using them against a service. They do not establish
 expected helper calls or correct upstream results. `check_requests()` is a small
 alternative for checking one zero-argument call against a capture function and
 independent result; see its reference example.
+
+## Declare cassette scenarios, gaps and unrecorded routes
+
+A cassette scenario records one real response, then replays it offline
+through the client's real wrapper, hooks and request helper. Declare what each
+scenario covers first. Policy goes in the service YAML under `testing`:
+
+```yaml
+testing:
+  file: tests/testthat/fixtures/testing.yml
+  match: [method, uri]
+  gaps:
+    POST /items: {reason: 'Write endpoint; expectations pending', issue: '#300'}
+  unrecorded:
+    POST /refresh: {reason: Side effects on the live service}
+```
+
+- `file` holds scenarios and hook cases. It must sit under `tests/testthat/`,
+  differ from `contracts_file`, and belong to one service.
+- `match` lists the request parts a recording must match: `method`, `uri`,
+  `host`, `path`, `query`, `body` or `body_json`. The default is
+  `[method, uri]`. A scenario whose operation sends a body must add `body` or
+  `body_json`. Header matching is not offered, because recordings compare all
+  headers or none. Fixed contracts and local transport tests cover headers.
+- `gaps` names selected routes that have no reviewed contract yet. A gap stays
+  visible and never counts as a contract. It may name a route that specmill
+  cannot generate.
+- `unrecorded` names routes you have decided never to record. Routes without a
+  scenario and without an entry are reported as not covered.
+
+The data file declares scenarios. Each scenario will become one recording,
+stored at `tests/testthat/_vcr/<service>/<scenario>.yml`:
+
+```yaml
+scenarios:
+  get_item_basic:
+    operation: GET /items/{item_id}       # route key, or the wrapper name
+    represents: ['GET /items/{item_id}']  # routes with the same behavior
+    inputs: {item_id: item-1}             # or `example: 1` for a docs example
+hook_cases:
+  trims_item_id:
+    hook: normalize_item_id
+    stage: pre_request
+    state: {params: {item_id: ' abc '}}
+    expect: {state: {params: {item_id: abc}}}
+```
+
+When a scenario gives no `inputs`, they are resolved in this order: the docs
+example it names with `example:`, then the parameter example, the media-type
+body example, and the schema's example, default, enum or const for each
+required input. Optional inputs are only sent when the docs example names them.
+A value that would have to be built from its type, or Swagger UI's `'string'`
+placeholder, is a missing example; a docs example that breaks a schema
+constraint is invalid. Either blocks the scenario: `inspect_client()` reports
+`inputs: blocked` with the reason, generation warns, writes no new test, and
+keeps an existing one. Add a reviewed `docs.examples` entry to unblock it, and
+the same values document the wrapper. In Swagger 2 schemas, a parameter's
+`x-example` counts as its example, because Swagger 2 has no example field.
+Reading it changes the recorded schema provenance of scenarios whose
+parameters use `x-example` once, without a schema edit.
+
+A scenario's default expectation is the reviewed type and shape of the result.
+Add `result` for an exact value, or `checks` (`class`, `rows`, `names`,
+`values` at a `path`) for the parts a reviewer verified. In `inputs`, a YAML
+sequence of same-type scalars becomes an R vector, except in the body argument,
+which is sent exactly as written. Routes in
+`represents` are counted as represented, never as executed. Use the route key
+for `operation`, so renaming a wrapper does not break the scenario.
+
+`inspect_client()` checks the declarations against the selected operations.
+It returns them under `testing`, with each route's status: `scenario`,
+`represented`, `unrecorded` or `not_covered`:
+
+```{r testing-declarations}
+writeLines(c(
+  'scenarios:',
+  '  get_item_basic:',
+  "    operation: GET /items/{item_id}",
+  '    inputs: {item_id: item-1, language: en}'
+), file.path(root, 'tests/testthat/fixtures/testing.yml'))
+cat('testing: {file: tests/testthat/fixtures/testing.yml}\n',
+    file = file.path(root, 'apis/default.yml'), append = TRUE)
+declared <- specmill::inspect_client(root)$testing$testedclient
+declared$routes
+declared$scenarios$get_item_basic$cassette
+```
+
+### Generate, record and replay
+
+Generation writes one `tests/testthat/test-scenario-<service>-<scenario>.R`
+per scenario, a shared `tests/testthat/helper-scenario-replay.R`, and the
+standard `tests/testthat.R` runner when the client has none. The client must
+declare `httr2` and `jsonlite`, and `testthat`, `vcr`, `withr` and `yaml` (new
+clients from `initialize_client()` declare all of them; in `Suggests` is
+enough); generation reports any that are missing and never edits
+`DESCRIPTION`. The generated helper needs `vcr` 2.0.0 or later; generation
+checks package names only, so a client created before this requirement should
+declare `vcr (>= 2.0.0)`. A scenario needs `inputs`, an `example`, or a
+wrapper with no required inputs.
+
+Routine test runs only replay (`record = 'none'`). A missing or unmatched
+recording fails without contacting the service. To record, set the real
+credential and list the scenario as `<service>/<scenario>` in the client's
+record variable, `<PACKAGE>_RECORD`:
+
+```{r record, eval=FALSE}
+withr::with_envvar(
+  c(TESTEDCLIENT_KEY = 'your key', TESTEDCLIENT_RECORD = 'testedclient/get_item_basic'),
+  testthat::test_local(root, filter = 'scenario', stop_on_failure = TRUE)
+)
+```
+
+Recording refuses to run while `CI` is `true`, `1` or `yes`, so CI never
+records, and generation and checks never run tests.
+
+### Recording policy
+
+**Names.** Each scenario has three files, named only from the service and
+scenario IDs:
+
+- `tests/testthat/_vcr/<service>/<scenario>.yml`, the recording;
+- `tests/testthat/_vcr/<service>/<scenario>.credentials`, the names (never the
+  values) of the credentials the recording used;
+- `tests/testthat/_signatures/<service>/<scenario>.yml`, the result's class,
+  emptiness, column classes and nested element types.
+
+**Matching.** Replay matches the method and URI by default. A scenario whose
+operation sends a body must add `body` or `body_json` to `match`. Headers are
+never matched. Multipart bodies cannot be recorded, because vcr cannot store
+their parts: a scenario for a multipart operation is a declaration error. List
+the route under `unrecorded` and cover it with a contract instead.
+
+**Credentials.** Credentials never reach a recording, and neither do arguments
+bound to an environment variable with `parameters.<name>.env` (such as an email
+address the API requires): they get the same treatment as credentials. Values
+are found by matching their text, so a very short credential, such as AQS's
+public `test` key, also matches unrelated text like `test@aqs.api` and breaks
+replay; record with real, long credentials. Query credentials are
+replaced by parameter name, and every raw or URL-encoded form of each value is
+replaced by a `<<VARIABLE>>` placeholder. Request `Authorization` and `Cookie`
+headers and response `Set-Cookie` headers are dropped. Replay gives each
+credential named in the `.credentials` file a dummy value and unsets the rest,
+so authentication works offline without a real key.
+
+**Other sensitive data.** Declare anything else to keep out of recordings
+under `testing.filter`. This includes private hosts, emails, account
+identifiers, and secrets an approved write returns:
+
+```yaml
+testing:
+  file: tests/testthat/fixtures/testing.yml
+  filter:
+    response_headers: [X-Internal-Host]
+    patterns:
+      '<<EMAIL>>': '[a-z]+@corp[.]example'
+      '<<PRIVATE_URL>>': 'https://intranet[.]corp[.]example[^"]*'
+```
+
+Response headers listed there are dropped. Each pattern is an extended regular
+expression, and every match in the recording is replaced by its placeholder.
+Replay does not restore placeholders, so do not target filtered fields with
+`checks.values`. A pattern must not match its own placeholder or the request
+URI or body, because replay could not match a rewritten request. Patterns see
+the recording as stored, where URIs are URL-encoded (`@` is `%40`), and their
+placeholders must differ from credential placeholders.
+
+**Scan.** vcr keeps bodies it cannot read as text (no content type, binary or
+compressed) as base64, and its filters do not apply to them, so the scan
+decodes them too. After a new recording is written, it is checked for every form of
+every credential value, for leftover pattern matches, for pattern
+placeholders in requests, and for dropped response headers in any letter case.
+A recording whose test failed before its signature was written, for example on
+an error response, is deleted with its `.credentials` and `.provenance` files;
+an earlier reviewed signature is kept. A body the scan cannot decode, or any
+scan error, also deletes the recording. A hit deletes the recording, its `.credentials`
+file and its signature, and fails the test.
+
+**Writes.** Recording an operation other than GET or HEAD changes the live
+service, so it needs approval in the scenario:
+
+```yaml
+scenarios:
+  create_basic:
+    operation: POST /items
+    inputs: {body: {title: Example}}
+    match: [method, uri, body_json]
+    record_write: {reason: Sandbox account accepts test items}
+```
+
+**Review.** Before committing a recording, read the cassette, the
+`.credentials` file and the signature diff. Confirm the inputs are the
+reviewed ones and that nothing private remains.
+
+**Replacing a recording.** Recording never replaces an existing cassette.
+Listing a scenario that already has one replays it and leaves its signature
+alone. To replace it on purpose, delete the cassette and record again. Never
+re-record just to make a failing expectation pass. Find out first whether the
+input, the client or the service changed.
+
+### Diagnose replay failures
+
+| Message | Cause | Next step |
+|---|---|---|
+| `No recording for <service>/<scenario>` | The cassette does not exist. | Record it on purpose with `<PACKAGE>_RECORD`. |
+| `HTTP request failed before a response was received` during replay | Usually a request the recording does not match: changed inputs, wrapper, hooks or helper. The helper reports vcr's refusal as a transport failure. | Run the test with `options(<package>.request = list(preserve_errors = TRUE))` to see vcr's message, then compare the request with the cassette. Re-record only if the change is intended. |
+| A signature comparison fails | The result's class, columns or nested types differ from the reviewed signature. | Find out whether the client or a response policy changed. If the new shape is right, delete the cassette and record again, then review the signature diff. |
+| `No reviewed signature for <service>/<scenario>` | The cassette exists but its signature was deleted. | Delete the cassette, then record the scenario again. |
+| `Recording of ... did not complete and was deleted` | The test failed while recording, for example on an error response or a failed check. | Fix the inputs or expectation, then record again. |
+| `Recording of ... contained ... and was deleted` | The scan found a credential, a pattern match, a dropped header, a placeholder in a request, or a body it could not decode. | Adjust `testing.filter` (or use longer credentials), then record again. |
+| `Recording is refused while CI is set` | A scenario was listed for recording under CI. | Record locally. |
+| `would change the live service` | A write operation has no approval. | Add `record_write` with a reason, or leave the route `unrecorded`. |
+| `Scenario ... is blocked` (generation) | An input has no reviewed example or breaks the schema. | Add a `docs.examples` entry or explicit `inputs`. |
+| `The replay dummy does not satisfy the schema` (generation) | An argument bound with `env` has a pattern or format the dummy value breaks. | Such a parameter cannot use `env`; remove the binding. |
+| `multipart request bodies cannot be recorded` | A scenario names a multipart operation. | Declare the route under `unrecorded` and cover it with a contract. |
+
+`testing_report()` shows which recordings are stale before you run anything:
+see *Report what is verified* below.
+
+### Propose scenarios and review recordings
+
+`propose_testing()` drafts declarations for you to review. It does not write
+them into the project.
+
+- **Grouping.** Selected read operations are grouped by behavior: source schema,
+  success response media and schema, required inputs, body media, paging,
+  batching, result formatting and hooks. Each group gets one proposed scenario that represents
+  the rest of the group. Routes a declared scenario already covers, and
+  unrecorded routes, are skipped.
+- **Writes.** State-changing operations are listed but never proposed. Writes
+  are recognized by HTTP method only, so review proposed GET routes that change
+  state, such as an account sign-up, and do not copy them.
+- **Stubs.** When no group member's inputs resolve, the proposal adds a
+  `docs.examples` stub with `null` for each missing input and points the
+  scenario at it. Fill those values in once, and they both document the
+  wrapper and feed the scenario. A scenario using an unfilled stub stays
+  blocked.
+
+```{r propose, eval=FALSE}
+proposal <- specmill::propose_testing(root, file = 'review/testing-proposal.yml')
+cat(proposal$yaml)
+```
+
+After recording, `review_recordings()` checks each declared scenario's
+recorded responses against the response schema its operation declares. Each
+scenario is reported as `agrees`, `disagrees` (with error paths and messages,
+never recorded values) or `unchecked` (with the reason). A disagreement means a
+person should review the recording or the schema. The check never marks either
+as correct and never re-records.
+
+```{r review, eval=FALSE}
+specmill::review_recordings(root)
+```
+
+### Report what is verified
+
+`testing_report()` reports each verification layer separately, per service:
+
+- reviewed helper contracts and their test files;
+- cassette scenarios, their tests, recordings and signatures;
+- routes replayed from their own recording versus routes represented by
+  another scenario;
+- hook cases and wrapper integrations;
+- explicit gaps, unrecorded routes, excluded routes and selected routes
+  specmill cannot generate.
+
+`routes` has one row per route. Its `no_cassette` column explains each route
+without its own recording, for example `represented by get_item`,
+`unrecorded: <reason>`, `blocked: <reason>`, `not recorded yet` or
+`no scenario`.
+
+The report never infers that tests ran from files existing. Execution is
+`not run` unless you pass testthat results:
+
+```{r report, eval=FALSE}
+results <- testthat::test_local(root, reporter = 'silent', stop_on_failure = FALSE)
+report <- specmill::testing_report(root, results = results)
+report$services$testedclient$summary
+```
+
+When a scenario is recorded, a `<scenario>.provenance` file beside the cassette
+keeps digests (never values) of what the recording depends on:
+
+- the operation's schema, including the components it references, for its own
+  route and the routes it represents;
+- the operation policy;
+- the request helper, its companions and the hook callback;
+- the hook chains and their functions;
+- the scenario declaration and resolved inputs.
+
+The report compares those digests with the current ones. It lists the
+`changed` components and sets `review` to `review changes`. `record`, `resolve
+inputs` and `review response` (with `check_responses = TRUE`) flag the other
+review needs. Nothing is re-recorded, and a recording is never treated as
+proof that the live service still behaves that way. A recording without a provenance file,
+such as one made before this check existed, reports `unknown` and also asks for
+review; to clear it, delete the cassette and record again. `test_current =
+FALSE` means the generated test is older than its inputs: regenerate before
+recording. While a represented route is deferred, its scenario can show as
+changed until the deferral ends. Digests come from deparsed function sources, so an R upgrade can
+change them without a code change. An invalid testing declaration stops the
+report, as it stops `inspect_client()`.
+
+## Declare hook cases and wrapper integrations
+
+Hooks hold your client's own rules. OpenAPI says nothing about them, so their
+expected results must come from review. Declare them in the same testing file;
+generation writes one test per declaration.
+
+A **hook case** runs one hook function, or a wrapper's whole chain for a stage
+through your hook callback:
+
+```yaml
+hook_cases:
+  trims_item_id:
+    hook: normalize_item_id
+    stage: pre_request
+    state: {params: {item_id: ' abc '}}
+    expect: {state: {params: {item_id: abc}}}
+  rejects_blank_id:
+    chain: get_item                  # the configured pre_request chain, in order
+    stage: pre_request
+    state: {params: {item_id: ''}}
+    expect: {error: client_hook_error, hook: normalize_item_id}
+```
+
+A chain error is checked for its wrapper, stage and failing hook. Chain cases
+run your executor, so the chain comes from its runtime registry (for the
+scaffold, `inst/hooks.yml`).
+
+A **wrapper integration** calls the real wrapper with its real hooks while the
+request helper is replaced by a recorder. It lists the helper calls you expect,
+which may be none, and the public result or error:
+
+```yaml
+hook_integrations:
+  local_item_skips:
+    operation: GET /items/{item_id}
+    inputs: {item_id: local}
+    calls: []                                   # a skip makes no request
+    result: {id: local}
+    sequence: [normalize_item_id, extract_item] # hooks and helper calls, in order
+  pages_run_hooks_per_page:
+    operation: list_items
+    inputs: {}
+    calls:
+      - helper: api_request
+        arguments:
+          method: GET
+          path: /items
+          path_params: []
+          query: {page: 1}
+          body: null
+          request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+          server: {url: 'https://api.example.org'}
+        response: [{id: a}]
+      # one entry per further page, ending with the empty page
+    result: {rows: [{id: a}], count: 1}
+    sequence: [api_request, keep_rows, api_request, keep_rows, count_rows]
+```
+
+`calls` uses the fixed-contract shape and must name request helpers, not
+companions or the callback. `sequence` records hook runs and helper calls in
+one log, so it checks chain order, skip and `post_on_skip` behavior, rejection
+before any request, and how often `post_response` and `post_combine` run for
+paging, batching and `post_response_scope: combined`. Error results can name
+the `class`, the `hook` and the `stage`.
+
+In scenario and integration `inputs` and in helper `arguments`, a YAML sequence
+of same-type scalars becomes an R vector, as a caller would pass it. The body
+argument is the exception: it stays exactly as written, because a one-item list
+and a single value send different JSON. Responses, results and hook states also
+keep YAML sequences as lists.
+
+`inspect_client()` lists configured hooks that no hook case covers under
+`testing$<service>$hooks_without_cases`, and counts them in coverage. Write
+those cases from your reviewed rules; specmill never infers them from
+generated code.
 
 ## Add the verification layer your change needs
 
@@ -241,7 +623,8 @@ independent result; see its reference example.
 |---|---|
 | Generation check | Committed output matches schema, policy, callbacks, and fixtures |
 | Fixed helper contract | Successful wrapper result plus exact ordered helper calls |
-| Hook tests | Validation, parameter changes, skip behavior, and post-processing |
+| Hook tests | Reviewed hook cases and wrapper integrations: validation, parameter changes, skips, ordering, and post-processing |
+| Cassette scenario | Real wrapper, hooks and helper replayed against a reviewed recording; result type and reviewed values |
 | Local transport test | Final method, encoded URL, query/body placement, headers, media, and error decoding |
 | Bounded live check | Current endpoint/authentication behavior using reviewed nonsecret input |
 

@@ -1,0 +1,17 @@
+\name{testing_report}
+\alias{testing_report}
+\title{Report verification layers and scenarios needing review}
+\description{Report helper contracts, cassette scenarios, represented routes, hook tests, gaps and exclusions separately for each service, with optional test results and the scenarios affected by changes since they were recorded. No file is changed.}
+\usage{
+testing_report(root, config = "specmill.yml", callbacks = new.env(parent = emptyenv()), results = NULL, check_responses = FALSE)
+}
+\arguments{
+\item{root}{Explicit existing client root directory.}
+\item{config}{Project YAML path relative to root.}
+\item{callbacks}{Explicit environment containing named development callbacks.}
+\item{results}{Optional testthat results, or a data frame with \code{file}, \code{failed}, \code{error} and \code{skipped} columns. Without it every generated test is reported as \code{not run}.}
+\item{check_responses}{When \code{TRUE}, also check recorded responses with \code{\link{review_recordings}}.}
+}
+\value{A list with \code{services}, keyed by service ID. Each holds \code{summary} (counts per layer, with schema and selected denominators kept apart), \code{routes} (one row per route: selection, support, wrapper, contract, gap, replay status, own scenarios, whether the route has its own recording and, if not, why), \code{contracts}, \code{scenarios} (inputs, test, recording, signature, provenance status, changed components, response check, execution and review need), \code{hook_tests} and \code{hooks_without_cases}.}
+\details{Declarations, generated test files and execution are distinct: a test is passed, failed or skipped only when \code{results} name its file. A route counts as replayed only when its own scenario test passed. A recording's provenance file holds digests of its operation schema and referenced components (own and represented routes), operation policy, request helper with companions and hook callback, hook chains and functions, and scenario declaration with resolved inputs; a digest that differs from the current one is listed in \code{changed} and asks for review. A recording without a provenance file, such as one made before provenance existed, is \code{unknown} and also asks for review; delete the cassette and record again to clear it. \code{test_current} is \code{FALSE} when the generated test is older than its inputs; regenerate before recording. While a represented route is deferred, its scenario can show as changed until the deferral ends. The report never re-records and never treats a recording as current service acceptance. Digests use deparsed function sources, so an R upgrade can change them. An invalid testing declaration stops the report.}
+\seealso{\code{\link{inspect_client}}, \code{\link{review_recordings}}, \href{https://seanthimons.github.io/specmill/articles/testing.html}{Step-by-step guide}.}

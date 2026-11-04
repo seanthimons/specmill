@@ -64,7 +64,10 @@ configure_hooks <- function(root, mode = c('plan', 'apply')) {
   )
   if (mode == 'apply') {
     if (length(missing)) {
-      stop('Add yaml to DESCRIPTION Imports before applying hook scaffolding')
+      stop(
+        'Move yaml to DESCRIPTION Imports (out of Suggests) before applying ',
+        'hook scaffolding'
+      )
     }
     if (length(collisions)) {
       stop('Existing hook executor functions; retain or adapt them instead')

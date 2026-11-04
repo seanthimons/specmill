@@ -1,7 +1,7 @@
 Package: localcatalogue
 Title: Offline Catalogue Acceptance Fixture
 Version: 0.0.1
-Authors@R: person('Sean', 'Thimons', role = c('aut', 'cre'), email = 'sxthi@outlook.com')
+Authors@R: person('Sean', 'Thimons', role = c('aut', 'cre'), email = 'thimons.sean@gmail.com')
 Description: A local synthetic client used to verify generated request contracts.
 License: MIT
 Encoding: UTF-8

@@ -46,7 +46,8 @@ parameter_default_diagnostics <- function(operation, native_transport = TRUE) {
   for (p in operation$parameters) {
     if (
       !p$location %in% c('path', 'query', 'header', 'cookie') ||
-        isTRUE(p$public_required %or% p$required)
+        isTRUE(p$public_required %or% p$required) ||
+        !is.null(p$public_env)
     ) {
       next
     }

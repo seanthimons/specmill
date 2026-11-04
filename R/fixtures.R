@@ -70,6 +70,17 @@ fixture_diagnostics <- function(op) {
 }
 
 fixture_value <- function(schema, override = NULL) {
+  if (missing(override)) {
+    fixture_value_sourced(schema)$value
+  } else {
+    fixture_value_sourced(schema, override)$value
+  }
+}
+
+# The selected value and where it came from: an override, a schema example,
+# default, enum or const, or a synthesized type fixture.
+fixture_value_sourced <- function(schema, override = NULL) {
+  source <- if (missing(override)) NULL else 'override'
   if (identical(schema$type, 'object')) {
     if (
       missing(override) &&
@@ -79,27 +90,33 @@ fixture_value <- function(schema, override = NULL) {
       if (!length(keys) && !isFALSE(schema$additionalProperties)) {
         keys <- 'example'
       }
-      override <- setNames(
-        lapply(keys, function(name) {
-          child <- schema$properties[[name]] %or%
-            if (is.list(schema$additionalProperties)) {
-              schema$additionalProperties
-            } else {
-              list()
-            }
-          if (is.null(child$type)) {
-            child$type <- 'string'
+      children <- lapply(keys, function(name) {
+        child <- schema$properties[[name]] %or%
+          if (is.list(schema$additionalProperties)) {
+            schema$additionalProperties
+          } else {
+            list()
           }
-          fixture_value(child)
-        }),
-        keys
-      )
+        if (is.null(child$type)) {
+          child$type <- 'string'
+        }
+        fixture_value_sourced(child)
+      })
+      override <- setNames(lapply(children, `[[`, 'value'), keys)
+      sources <- vapply(children, `[[`, character(1), 'source')
+      source <- if (all(startsWith(sources, 'schema_'))) {
+        'schema_example'
+      } else {
+        'synthesized'
+      }
     }
-    value <- if (missing(override)) {
-      body_fixture(schema)
+    fixture <- if (missing(override)) {
+      body_fixture_sourced(schema)
     } else {
-      body_fixture(schema, override)
+      body_fixture_sourced(schema, override)
     }
+    value <- fixture$value
+    source <- source %or% fixture$source
     if (
       !length(value) ||
         any(vapply(
@@ -110,24 +127,29 @@ fixture_value <- function(schema, override = NULL) {
     ) {
       stop('Parameter fixture must be a nonempty flat object')
     }
-    return(value)
+    return(list(value = value, source = source))
   }
   if (identical(schema$type, 'array')) {
-    value <- if (missing(override)) {
-      body_fixture(schema)
+    fixture <- if (missing(override)) {
+      body_fixture_sourced(schema)
     } else {
-      body_fixture(schema, as.list(override))
+      body_fixture_sourced(schema, as.list(override))
     }
+    value <- fixture$value
+    source <- source %or% fixture$source
     value <- unlist(value, use.names = FALSE)
     if (!length(value)) {
       stop('Parameter fixture must be a nonempty array')
     }
-    return(switch(
-      schema$items$type,
-      string = as.character(value),
-      integer = as.integer(value),
-      number = as.numeric(value),
-      boolean = as.logical(value)
+    return(list(
+      value = switch(
+        schema$items$type,
+        string = as.character(value),
+        integer = as.integer(value),
+        number = as.numeric(value),
+        boolean = as.logical(value)
+      ),
+      source = source
     ))
   }
   selected <- intersect(c('example', 'default', 'enum'), names(schema))
@@ -138,13 +160,14 @@ fixture_value <- function(schema, override = NULL) {
       value <- if (length(candidates)) candidates[[1L]] else value[[1L]]
     }
     override <- value
+    source <- paste0('schema_', selected[[1L]])
   }
   if (!missing(override) && is.null(override)) {
     if (
       (isTRUE(schema$nullable) || 'null' %in% schema$type) &&
         (is.null(schema$enum) || any(vapply(schema$enum, is.null, logical(1))))
     ) {
-      return(NULL)
+      return(list(value = NULL, source = source))
     }
     stop('Explicit null fixture is not nullable')
   }
@@ -214,18 +237,19 @@ fixture_value <- function(schema, override = NULL) {
   if (!isTRUE(valid)) {
     stop('No valid fixture: supply a reviewed override', call. = FALSE)
   }
-  value
+  list(value = value, source = source %or% 'synthesized')
 }
 
-# Composed parameters take the first wire-shaped candidate the original accepts.
-parameter_fixture <- function(p, override) {
+# A parameter's value and source. Composed parameters take the first
+# wire-shaped candidate the original accepts.
+parameter_fixture_sourced <- function(p, override) {
   schema <- p$validation_schema
   if (is.null(schema)) {
     return(
       if (missing(override)) {
-        fixture_value(p$schema)
+        fixture_value_sourced(p$schema)
       } else {
-        fixture_value(p$schema, override)
+        list(value = fixture_value(p$schema, override), source = 'override')
       }
     )
   }
@@ -239,20 +263,32 @@ parameter_fixture <- function(p, override) {
     value
   }
   if (!missing(override)) {
-    return(check(override))
+    return(list(value = check(override), source = 'override'))
   }
   # A null default or example is omission, not a fixture candidate.
   wire <- Filter(Negate(is.null), p$schema)
   wire$type <- wire$type[[1L]]
-  candidates <- c(
-    tryCatch(list(fixture_value(wire)), error = function(e) list()),
-    lapply(body_fixture_candidates(schema), function(x) {
+  first <- tryCatch(list(fixture_value_sourced(wire)), error = function(e) {
+    list()
+  })
+  composed <- body_fixture_candidates(schema)
+  values <- c(
+    lapply(first, `[[`, 'value'),
+    lapply(composed, function(x) {
       if (is.list(x) && is.null(names(x))) unlist(x, use.names = FALSE) else x
     })
   )
-  for (value in Filter(Negate(is.null), candidates)) {
-    if (!inherits(try(check(value), silent = TRUE), 'try-error')) {
-      return(value)
+  sources <- c(
+    vapply(first, `[[`, character(1), 'source'),
+    attr(composed, 'sources')
+  )
+  for (i in seq_along(values)) {
+    value <- values[[i]]
+    if (
+      !is.null(value) &&
+        !inherits(try(check(value), silent = TRUE), 'try-error')
+    ) {
+      return(list(value = value, source = sources[[i]]))
     }
   }
   stop('No valid fixture: supply a reviewed override', call. = FALSE)
@@ -280,19 +316,48 @@ operation_fixtures <- function(
   mode = c('default', 'minimal')
 ) {
   mode <- match.arg(mode)
-  lapply(operations, function(op) {
+  lapply(
+    operations,
+    operation_fixture_inputs,
+    overrides = overrides,
+    mode = mode
+  )
+}
+
+# One operation's inputs. `public` holds reviewed values keyed by public R
+# name (a docs example), matched positionally so duplicate schema names stay
+# distinct. Each input's source is recorded in attr(, 'input_sources').
+operation_fixture_inputs <- function(
+  op,
+  overrides = list(),
+  mode = 'default',
+  public = list(),
+  public_required = FALSE,
+  defer_synthesis = FALSE
+) {
+  {
     omitted <- character()
+    sources <- character()
     # Schema-level override keys stay 'body'; the wrapper argument may differ.
     body_argument <- body_argument_name(op)
     # Argument names come from the full list: leaving a parameter out must not
     # renumber duplicates (x, x.1) away from the wrapper's real arguments.
     public_names <- parameter_names(op$parameters)
     kept <- vapply(
-      op$parameters,
-      function(p) {
+      seq_along(op$parameters),
+      function(i) {
+        p <- op$parameters[[i]]
+        # Scenarios follow the wrapper: client-located inputs keep their
+        # public requiredness. operation_fixtures() keeps schema requiredness.
+        required <- if (public_required) {
+          p$public_required %or% p$required
+        } else {
+          p$required
+        }
         keep <- mode != 'minimal' ||
-          p$required ||
-          p$name %in% names(overrides[[op$name]])
+          isTRUE(required) ||
+          p$name %in% names(overrides[[op$name]]) ||
+          public_names[[i]] %in% names(public)
         if (!keep) {
           omitted <<- c(omitted, p$name)
         }
@@ -302,82 +367,122 @@ operation_fixtures <- function(
     )
     parameters <- op$parameters[kept]
     inputs <- setNames(
-      lapply(parameters, function(p) {
-        tryCatch(
-          {
-            value <- if (p$name %in% names(overrides[[op$name]])) {
-              parameter_fixture(p, overrides[[op$name]][[p$name]])
-            } else if ('example' %in% names(p$example)) {
-              parameter_fixture(p, p$example$example)
-            } else {
-              parameter_fixture(p)
-            }
-            if (
-              p$location == 'query' &&
-                !isTRUE(p$allow_empty_value) &&
-                is.character(value) &&
-                any(!nzchar(value))
-            ) {
-              stop('Empty query parameter: ', p$name)
-            }
-            value
-          },
-          error = function(e) {
-            problem <- Filter(
-              function(d) {
-                identical(d$parameter, p$name) &&
-                  identical(d$location, p$location)
-              },
-              fixture_diagnostics(op)
-            )
-            classification <- if (length(problem)) {
-              'schema_defect'
-            } else {
-              'review_required'
-            }
-            code <- if (length(problem)) {
-              'type_enum_contradiction'
-            } else {
-              'fixture_synthesis'
-            }
-            at <- if (length(problem)) {
-              problem[[1L]]$source_location
-            } else {
-              p$source_location
-            }
-            schema_problem(
-              code,
-              classification,
-              paste(
-                op$key,
-                p$location,
-                p$name,
-                if (p$required) {
-                  '(required input)'
-                } else {
-                  '(optional input; minimal mode reduces coverage)'
+      Map(
+        function(p, name) {
+          tryCatch(
+            {
+              fixture <- if (name %in% names(public)) {
+                # Name the failed constraint, not only the missing fixture.
+                parameter_values(
+                  list(value = public[[name]]),
+                  list(value = p$validation_schema %or% p$schema),
+                  body_value,
+                  list(value = p$location)
+                )
+                utils::modifyList(
+                  parameter_fixture_sourced(p, public[[name]]),
+                  list(source = 'docs_example')
+                )
+              } else if (p$name %in% names(overrides[[op$name]])) {
+                parameter_fixture_sourced(p, overrides[[op$name]][[p$name]])
+              } else if ('example' %in% names(p$example)) {
+                utils::modifyList(
+                  parameter_fixture_sourced(p, p$example$example),
+                  list(source = 'parameter_example')
+                )
+              } else {
+                parameter_fixture_sourced(p)
+              }
+              value <- fixture$value
+              sources[[name]] <<- fixture_source_label(fixture$source, value)
+              if (
+                p$location == 'query' &&
+                  !isTRUE(p$allow_empty_value) &&
+                  is.character(value) &&
+                  any(!nzchar(value))
+              ) {
+                stop('Empty query parameter: ', p$name)
+              }
+              value
+            },
+            error = function(e) {
+              problem <- Filter(
+                function(d) {
+                  identical(d$parameter, p$name) &&
+                    identical(d$location, p$location)
                 },
-                if (length(problem)) {
-                  problem[[1L]]$reason
-                } else {
-                  conditionMessage(e)
-                }
-              ),
-              at
-            )
-          }
-        )
-      }),
+                fixture_diagnostics(op)
+              )
+              # Scenarios report an input no example could fill as a missing
+              # example (including invalid schema examples, which a docs
+              # example overrides). A type/enum contradiction still stops.
+              if (
+                defer_synthesis &&
+                  !length(problem) &&
+                  !name %in% names(public)
+              ) {
+                sources[[name]] <<- 'synthesized'
+                return(NULL)
+              }
+              classification <- if (length(problem)) {
+                'schema_defect'
+              } else {
+                'review_required'
+              }
+              code <- if (length(problem)) {
+                'type_enum_contradiction'
+              } else {
+                'fixture_synthesis'
+              }
+              at <- if (length(problem)) {
+                problem[[1L]]$source_location
+              } else {
+                p$source_location
+              }
+              schema_problem(
+                code,
+                classification,
+                paste(
+                  op$key,
+                  p$location,
+                  p$name,
+                  if (p$required) {
+                    '(required input)'
+                  } else {
+                    '(optional input; minimal mode reduces coverage)'
+                  },
+                  if (length(problem)) {
+                    problem[[1L]]$reason
+                  } else {
+                    conditionMessage(e)
+                  }
+                ),
+                at
+              )
+            }
+          )
+        },
+        parameters,
+        public_names[kept]
+      ),
       public_names[kept]
     )
     if (
       mode == 'minimal' &&
         !isTRUE(op$body_required) &&
         !'body' %in% names(overrides[[op$name]]) &&
+        !body_argument %in% names(public) &&
         !is.null(op$body)
     ) {
       omitted <- c(omitted, 'body')
     } else if (!is.null(op$body)) {
+      body_source <- NULL
+      if (body_argument %in% names(public)) {
+        overrides[[op$name]]['body'] <- list(public[[body_argument]])
+        body_source <- 'docs_example'
+      } else if ('body' %in% names(overrides[[op$name]])) {
+        body_source <- 'override'
+      }
       tryCatch(
         {
           if (
@@ -400,8 +505,23 @@ operation_fixtures <- function(
               'example' %in% names(op$body_example)
           ) {
             overrides[[op$name]]['body'] <- list(op$body_example$example)
+            body_source <- 'media_example'
           }
           if (form_media(op$body_media)) {
+            binary <- vapply(
+              op$body$properties,
+              function(field) {
+                identical(field$format, 'binary') ||
+                  identical(field$items$format, 'binary')
+              },
+              logical(1)
+            )
+            body_source <- body_source %or%
+              if (any(binary)) {
+                'synthesized'
+              } else {
+                body_fixture_sourced(op$body)$source
+              }
             allow_empty <- identical(
               op$body_media,
               'application/x-www-form-urlencoded'
@@ -427,22 +547,46 @@ operation_fixtures <- function(
             if (!is.raw(value)) {
               stop('Binary fixture must be a raw vector')
             }
+            body_source <- body_source %or% 'synthesized'
+            inputs[body_argument] <- list(value)
+          } else if ('body' %in% names(overrides[[op$name]])) {
+            value <- overrides[[op$name]]$body
+            if (
+              identical(op$text_encoding, 'lines') &&
+                grepl('^text/', op$body_media %or% '')
+            ) {
+              # Line bodies take a vector of lines and send them joined.
+              body_fixture(
+                op$body,
+                text_value(value, 'lines', op$batch$max_items)
+              )
+            } else {
+              value <- body_fixture(op$body, value)
+            }
             inputs[body_argument] <- list(value)
           } else {
-            inputs[body_argument] <- list(
-              if ('body' %in% names(overrides[[op$name]])) {
-                body_fixture(op$body, overrides[[op$name]]$body)
-              } else {
-                body_fixture(op$body)
-              }
-            )
+            fixture <- body_fixture_sourced(op$body)
+            body_source <- fixture$source
+            inputs[body_argument] <- list(fixture$value)
           }
+          sources[[body_argument]] <- fixture_source_label(
+            body_source,
+            inputs[[body_argument]]
+          )
         },
         error = function(e) {
           problem <- Filter(
             function(d) identical(d$location, 'body'),
             fixture_diagnostics(op)
           )
+          if (
+            defer_synthesis &&
+              !length(problem) &&
+              !body_argument %in% names(public)
+          ) {
+            sources[[body_argument]] <<- 'synthesized'
+            return(invisible())
+          }
           if (length(problem)) {
             d <- problem[[1L]]
             schema_problem(
@@ -474,6 +618,23 @@ operation_fixtures <- function(
     if (mode == 'minimal') {
       attr(inputs, 'omitted_inputs') <- omitted
     }
+    attr(inputs, 'input_sources') <- sources
     inputs
-  })
+  }
+}
+
+# Swagger UI's 'string' placeholder is not a real example.
+fixture_source_label <- function(source, value) {
+  provided <- startsWith(source, 'schema_') ||
+    source %in% c('parameter_example', 'media_example')
+  if (
+    provided &&
+      is.character(value) &&
+      length(value) &&
+      all(value == 'string')
+  ) {
+    'schema_placeholder'
+  } else {
+    source
+  }
 }

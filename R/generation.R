@@ -291,7 +291,15 @@ render_operation <- function(operation, spec) {
     function(i) {
       paste0(
         formal_names[[i]],
-        if (!isTRUE(params[[i]]$public_required %or% params[[i]]$required)) {
+        if (!is.null(params[[i]]$public_env)) {
+          paste0(
+            ' = base::Sys.getenv(',
+            r_literal(params[[i]]$public_env),
+            ', unset = "")'
+          )
+        } else if (
+          !isTRUE(params[[i]]$public_required %or% params[[i]]$required)
+        ) {
           paste0(' = ', r_literal(parameter_default(params[[i]])))
         } else {
           ''
@@ -561,6 +569,43 @@ render_operation <- function(operation, spec) {
           formal_names[[i]],
           ' <- NULL'
         )
+      )
+    }
+    env <- params[[i]]$public_env
+    if (!is.null(env)) {
+      value <- formal_names[[i]]
+      lines <- c(
+        lines,
+        if (isTRUE(params[[i]]$required)) {
+          # An explicit value wins; otherwise the variable must be set.
+          paste0(
+            '  if (base::is.null(',
+            value,
+            ') || base::length(',
+            value,
+            ') != 1L || base::is.na(',
+            value,
+            ') || !base::nzchar(',
+            value,
+            ')) base::stop(',
+            r_literal(paste0('Supply ', input_names[[i]], ' or set ', env)),
+            ')'
+          )
+        } else {
+          paste0(
+            '  if (base::is.character(',
+            value,
+            ') && base::length(',
+            value,
+            ') == 1L && !base::is.na(',
+            value,
+            ') && !base::nzchar(',
+            value,
+            ')) ',
+            value,
+            ' <- NULL'
+          )
+        }
       )
     }
     if (
@@ -1813,6 +1858,7 @@ generate_client <- function(
   split_sources <- character()
   portable_sources <- list()
   previous <- baseline$files %or% list()
+  testing_entries <- list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
@@ -2374,9 +2420,40 @@ generate_client <- function(
         desired[[test_file]] <- render_contract(op, operation_spec, contract)
         owners[[test_file]] <- op$id
       }
+      if (!is.null(service$testing)) {
+        testing_entries[[service$id]][[op$name]] <- list(
+          id = op$id,
+          key = op$key,
+          record = list(name = op$name, contract_declared = !is.null(contract)),
+          configured = list(operation = op, spec = operation_spec)
+        )
+      }
     }
   }
   absorb_retries()
+  if (!is.null(config) && 'tests' %in% artifacts) {
+    replay <- replay_outputs(
+      root,
+      services,
+      parsed,
+      testing_entries,
+      runtime_definitions,
+      authentication,
+      unlist(
+        lapply(deferral_records[intersect(withheld, names(deferral_records))], `[[`, 'functions'),
+        use.names = FALSE
+      ),
+      withheld,
+      previous
+    )
+    for (file in names(replay$files)) {
+      if (file %in% names(desired)) {
+        stop('Portable test filenames collide: ', file)
+      }
+      desired[[file]] <- replay$files[[file]]
+      owners[[file]] <- replay$owners[[file]]
+    }
+  }
   for (id in deferral_pending) {
     selected <- any(vapply(
       configured_operations,
@@ -2609,6 +2686,15 @@ generate_client <- function(
     }
     removals <- union(removals, renamed)
   }
+  # Scenario tests and their replay helper belong to declarations, not to
+  # operations; apply removes them only while their bytes are unchanged.
+  declared_outputs <- names(Filter(
+    function(x) {
+      any(grepl('^specmill (scenario|replay|hook)', unlist(x$operations)))
+    },
+    previous
+  ))
+  removals <- union(removals, setdiff(declared_outputs, names(desired)))
   if (length(prune)) {
     removals <- union(
       removals,
