@@ -315,6 +315,82 @@ importer_openapi_acceptance <- function() {
     !length(validate(no_responses_ir)),
     identical(no_responses_ir$operations[[1L]]$responses, list())
   )
+  # Route identity survives colliding default wrapper names. Namespace review
+  # remains a client-policy concern, not an importer rejection.
+  simple <- list(responses = list('200' = list(description = 'OK')))
+  collisions <- list(
+    openapi = '3.0.3',
+    info = document$info,
+    paths = list(
+      '/a-b' = list(get = simple),
+      '/a_b' = list(get = simple)
+    )
+  )
+  collision_file <- write_schema(collisions, 'collisions.json')
+  collision_ir <- importer(collision_file)
+  stopifnot(
+    !length(validate(collision_ir)),
+    length(collision_ir$operations) == 2L,
+    anyDuplicated(vapply(collision_ir$operations, `[[`, character(1), 'name')) >
+      0L,
+    !anyDuplicated(vapply(collision_ir$operations, `[[`, character(1), 'key'))
+  )
+  client_collision <- tryCatch(
+    specmill::read_operations(collision_file),
+    error = identity
+  )
+  stopifnot(
+    inherits(client_collision, 'error'),
+    grepl(
+      'Operation name collision',
+      conditionMessage(client_collision),
+      fixed = TRUE
+    )
+  )
+  renamed <- specmill::read_operations(
+    collision_file,
+    list(names = list('GET /a_b' = 'get_other'))
+  )
+  stopifnot(
+    length(renamed$operations) == 2L,
+    'get_other' %in% names(renamed$operations)
+  )
+  # Excluded invalid inputs and invalid wrapper overrides must remain unparsed.
+  selection <- list(
+    openapi = '3.0.3',
+    info = document$info,
+    paths = list(
+      '/skip/{id}' = list(
+        get = list(
+          parameters = list(list(
+            name = 'id',
+            `in` = 'path',
+            required = FALSE,
+            schema = list(type = 'integer')
+          )),
+          responses = simple$responses
+        )
+      ),
+      '/keep' = list(get = simple)
+    )
+  )
+  selected_file <- write_schema(selection, 'selected.json')
+  selected <- specmill::read_operations(
+    selected_file,
+    list(
+      service = 'reviewed',
+      include = 'GET /keep',
+      names = list('GET /skip/{id}' = 'invalid name', 'GET /keep' = 'keep_item')
+    )
+  )
+  stopifnot(
+    length(selected$operations) == 1L,
+    !length(selected$diagnostics),
+    selected$operations[[1L]]$id == 'reviewed GET /keep',
+    selected$operations[[1L]]$name == 'keep_item',
+    selected$inventory[[1L]]$status == 'excluded',
+    selected$inventory[[1L]]$reason == 'Not in service include'
+  )
   # No input policy can enter this API, and malformed file lists fail early.
   rejects <- function(expr) {
     stopifnot(inherits(tryCatch(force(expr), error = identity), 'error'))

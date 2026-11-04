@@ -26,12 +26,27 @@ transport diagnostics. Native source loading retains the existing version/path
 checks; independent source validation remains with `validate_schema()`. Server
 diagnostics remain separate from transport blockers.
 
-This first slice shares `openapi_read_source()` with `read_operations()` and
-reuses the latter's policy-free request normalization. It does not yet make
-`read_operations()` an adapter over IR, move policy application out of that
-reader, or remove raw-document access from downstream modules. Those are the
-remaining parts of #229; the 411-artifact baseline must keep matching through
-them. The new importer remains internal until the registry and policy split land.
+`read_operations()` now orchestrates policy preparation, native request reading,
+and policy finalization. Selection and name resolution live in
+`R/operation_policy.R`; native document/request reading and duplicate-response
+contract comparison live in `R/importer_openapi.R`. Selection still occurs before
+request validation, so excluded malformed operations and excluded invalid name
+overrides do not become import failures. Unknown-override handling, collision
+messages, supported/unsupported separation and inventory classifications retain
+the compatibility reader's behavior.
+
+The policy-free importer calls native normalization directly, without the
+client namespace collision check. Distinct route keys can therefore have the
+same default R name in IR; `read_operations()` still requires reviewed names or
+selection before generating wrappers. This removes the importer's dependency on
+the public compatibility entry point.
+
+The policy split is incomplete: reviewed schema corrections and transport
+settings still enter the native compatibility view. Making `read_operations()`
+an adapter over IR, separating those remaining reviews, and migrating raw-document
+access from the other downstream modules remain in #229. The 411-artifact
+baseline must keep matching through those changes. The importer remains internal
+until the registry and policy split land.
 
 The type mapper traverses structural slots only and preserves source spelling
 under `native.schema`. It emits named refs, recursive records, scalars, enums,
