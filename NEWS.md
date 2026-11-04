@@ -1,6 +1,38 @@
 
 
 
+## specmill 0.1.63 (2026-11-02)
+
+#### Bug fixes
+
+- configure_client keeps the first reviewed name when groups wrap one
+  route twice (#270)
+  ([0ff8f8f](https://github.com/seanthimons/specmill/tree/0ff8f8f0e5c6dd4b799d4bad9945e69c36d0a3b4))
+
+#### Other changes
+
+- release v0.1.63 \[skip ci\]
+  ([1a83a06](https://github.com/seanthimons/specmill/tree/1a83a063ee5e43e3e1e544b1868ad994fe9221c2))
+
+Full set of changes:
+[`v0.1.62...v0.1.63`](https://github.com/seanthimons/specmill/compare/v0.1.62...v0.1.63)
+
+## specmill 0.1.62 (2026-11-02)
+
+#### New features
+
+- opt-in absent_overrides = ‘warn’ skips overrides for operations
+  missing from the schema (#266)
+  ([fe5381f](https://github.com/seanthimons/specmill/tree/fe5381fe2f0192efdac39efc33097bbd2c1fb224))
+
+#### Other changes
+
+- release v0.1.62 \[skip ci\]
+  ([d457fe0](https://github.com/seanthimons/specmill/tree/d457fe02da90b748272eb03d0914c68daf65ef3f))
+
+Full set of changes:
+[`v0.1.61.9000...v0.1.62`](https://github.com/seanthimons/specmill/compare/v0.1.61.9000...v0.1.62)
+
 ## specmill 0.1.61.9000 (2026-10-29)
 
 #### Docs
@@ -13,7 +45,7 @@
 #### Other changes
 
 - release v0.1.61.9000 \[skip ci\]
-  ([1ee2042](https://github.com/seanthimons/specmill/tree/1ee204230da82f80e13e36b9cfdbbba5e76da758))
+  ([6adbbab](https://github.com/seanthimons/specmill/tree/6adbbab2e8ce2e9847cf491e0ba09453f7e7397e))
 
 Full set of changes:
 [`v0.1.61...v0.1.61.9000`](https://github.com/seanthimons/specmill/compare/v0.1.61...v0.1.61.9000)
