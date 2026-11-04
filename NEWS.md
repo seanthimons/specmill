@@ -1,6 +1,22 @@
 
 
 
+## specmill 0.1.65 (2026-11-04)
+
+#### Bug fixes
+
+- keep non-transport errors from req_perform distinct from connection
+  failures (#275)
+  ([604926e](https://github.com/seanthimons/specmill/tree/604926eebb369cf280b1a1d926696441221c24ad))
+
+#### Other changes
+
+- release v0.1.65 \[skip ci\]
+  ([4548176](https://github.com/seanthimons/specmill/tree/45481767b67df826aef784e85beef64070c556f1))
+
+Full set of changes:
+[`v0.1.64...v0.1.65`](https://github.com/seanthimons/specmill/compare/v0.1.64...v0.1.65)
+
 ## specmill 0.1.64 (2026-11-04)
 
 #### New features
@@ -52,7 +68,7 @@
 #### Other changes
 
 - release v0.1.64 \[skip ci\]
-  ([ac79783](https://github.com/seanthimons/specmill/tree/ac7978306b3de69f28e59c58d8541457eb14cc16))
+  ([8f8f966](https://github.com/seanthimons/specmill/tree/8f8f966175b444f8e747015d7c474e11de0c12ff))
 - update maintainer email in the catalogue fixture (#274)
   ([f200c67](https://github.com/seanthimons/specmill/tree/f200c67cefae7d7ae8354ed52b12c661ce48fc5c))
 - update maintainer email (#274)
