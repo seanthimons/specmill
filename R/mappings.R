@@ -337,10 +337,14 @@ validate_settings <- function(
         'retry_writes',
         'retry_policy',
         'preserve_errors',
-        'throttle'
+        'throttle',
+        'error_hint'
       ),
       paste(label, 'request_controls')
     )
+    if (!is.null(controls$error_hint)) {
+      config_string(controls$error_hint, 'request_controls.error_hint')
+    }
     if (!is.null(controls$throttle)) {
       throttle <- controls$throttle
       config_fields(
