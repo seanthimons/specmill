@@ -2351,6 +2351,23 @@ generate_client <- function(
             op$id
           )
         }
+        error_hint <- !is.null(op$request_controls$error_hint) ||
+          !is.null(
+            operation_spec$request$arguments$request_controls$value$error_hint
+          )
+        if (
+          error_hint &&
+            !any(grepl(
+              'error_hint',
+              deparse(helper_definition$expr),
+              fixed = TRUE
+            ))
+        ) {
+          stop(
+            'request_controls.error_hint needs the current client helper template: ',
+            op$id
+          )
+        }
         if (preserve_errors &&
             !paste0(operation_spec$helper, '_decode') %in% names(runtime_definitions)) {
           stop('request_controls.preserve_errors needs the current client decoder companion: ', op$id)
