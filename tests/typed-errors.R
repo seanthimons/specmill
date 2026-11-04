@@ -14,6 +14,23 @@ typed_errors_acceptance <- function() {
     runtime$api_request('GET', '/items', list(), list(), NULL, ...)
   }
   capture <- function(expr) tryCatch(force(expr), error = identity)
+  # A real refused connection is an httr2 transport failure and is rewritten.
+  refused <- capture(request())
+  stopifnot(
+    inherits(refused, 'simpleError'),
+    grepl('before a response was received', conditionMessage(refused))
+  )
+  # Errors raised inside req_perform that are not transport failures, such as a
+  # vcr replay mismatch, keep their class and message.
+  local({
+    mismatch <- simpleCondition('cassette has no matching request')
+    class(mismatch) <- c('vcr_mismatch', 'error', 'condition')
+    testthat::local_mocked_bindings(
+      req_perform = function(...) stop(mismatch),
+      .package = 'httr2'
+    )
+    stopifnot(identical(capture(request()), mismatch))
+  })
   local({
     sentinel <- structure(
       list(
@@ -25,7 +42,13 @@ typed_errors_acceptance <- function() {
           class = 'curl_error_operation_timedout'
         )
       ),
-      class = c('httr2_error', 'rlang_error', 'error', 'condition')
+      class = c(
+        'httr2_failure',
+        'httr2_error',
+        'rlang_error',
+        'error',
+        'condition'
+      )
     )
     testthat::local_mocked_bindings(
       req_perform = function(...) stop(sentinel),

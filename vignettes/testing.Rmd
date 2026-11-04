@@ -443,7 +443,8 @@ input, the client or the service changed.
 | Message | Cause | Next step |
 |---|---|---|
 | `No recording for <service>/<scenario>` | The cassette does not exist. | Record it on purpose with `<PACKAGE>_RECORD`. |
-| `HTTP request failed before a response was received` during replay | Usually a request the recording does not match: changed inputs, wrapper, hooks or helper. The helper reports vcr's refusal as a transport failure. | Run the test with `options(<package>.request = list(preserve_errors = TRUE))` to see vcr's message, then compare the request with the cassette. Re-record only if the change is intended. |
+| `Failed to find matching request in active cassette` | The request does not match the recording: changed inputs, wrapper, hooks or helper. | Compare the request with the cassette; `vcr::local_vcr_configure_log()` shows the mismatch. Re-record only if the change is intended. |
+| `HTTP request failed before a response was received` during replay | A transport failure outside vcr. Older helper templates also reported vcr's refusals this way. | Run the test with `options(<package>.request = list(preserve_errors = TRUE))` to see the original error, or update the helper template (see `inspect_client()`). |
 | A signature comparison fails | The result's class, columns or nested types differ from the reviewed signature. | Find out whether the client or a response policy changed. If the new shape is right, delete the cassette and record again, then review the signature diff. |
 | `No reviewed signature for <service>/<scenario>` | The cassette exists but its signature was deleted. | Delete the cassette, then record the scenario again. |
 | `Recording of ... did not complete and was deleted` | The test failed while recording, for example on an error response or a failed check. | Fix the inputs or expectation, then record again. |
