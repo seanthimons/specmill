@@ -1,0 +1,71 @@
+{
+  "ir_version": "1",
+  "paradigm": "graphql",
+  "service": { "id": "library" },
+  "sources": [
+    {
+      "id": "sdl",
+      "format": "graphql-sdl",
+      "file": "schema.graphql",
+      "hash": { "algorithm": "sha256", "value": "1111111111111111111111111111111111111111111111111111111111111111" },
+      "servers": [{ "url": "https://example.test/graphql" }],
+      "auth_schemes": { "bearer": { "kind": "http_bearer" } },
+      "types": {
+        "DateTime": { "kind": "scalar", "name": "datetime", "native_type": "DateTime" },
+        "Node": {
+          "kind": "record",
+          "abstract": true,
+          "fields": [{ "name": "id", "required": true, "type": { "kind": "scalar", "name": "string", "native_type": "ID" } }]
+        },
+        "Book": {
+          "kind": "record",
+          "implements": ["Node"],
+          "fields": [
+            { "name": "id", "required": true, "type": { "kind": "scalar", "name": "string", "native_type": "ID" } },
+            { "name": "title", "required": true, "type": { "kind": "scalar", "name": "string" } },
+            { "name": "published", "required": false, "type": { "kind": "ref", "name": "DateTime", "nullable": true } }
+          ]
+        },
+        "Author": {
+          "kind": "record",
+          "implements": ["Node"],
+          "fields": [
+            { "name": "id", "required": true, "type": { "kind": "scalar", "name": "string", "native_type": "ID" } },
+            { "name": "name", "required": true, "type": { "kind": "scalar", "name": "string" } }
+          ]
+        },
+        "SearchResult": {
+          "kind": "union",
+          "mode": "one_of",
+          "discriminator": { "property": "__typename" },
+          "variants": [{ "kind": "ref", "name": "Book" }, { "kind": "ref", "name": "Author" }]
+        },
+        "SearchFilter": {
+          "kind": "record",
+          "fields": [{ "name": "text", "required": true, "type": { "kind": "scalar", "name": "string" } }]
+        }
+      }
+    }
+  ],
+  "operations": [
+    {
+      "key": "query search",
+      "id": "library query search",
+      "name": "search",
+      "paradigm": "graphql",
+      "source": "sdl",
+      "binding": { "operation_type": "query", "field": "search" },
+      "parameters": [
+        { "name": "filter", "location": "argument", "required": true, "type": { "kind": "ref", "name": "SearchFilter" } },
+        { "name": "first", "location": "argument", "required": false, "type": { "kind": "scalar", "name": "integer", "bits": 32, "default": 20 } }
+      ],
+      "responses": [
+        { "status": "data", "type": { "kind": "list", "items": { "kind": "ref", "name": "SearchResult" } } }
+      ],
+      "errors": [
+        { "when": { "body_path": ["errors"], "present": true }, "message_path": ["errors"], "description": "GraphQL returns HTTP 200 with an errors array." }
+      ],
+      "security": [{ "bearer": [] }]
+    }
+  ]
+}
