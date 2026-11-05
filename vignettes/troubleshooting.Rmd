@@ -22,7 +22,7 @@ unsupported coverage. See [validation policy](configuration.html#schema-validati
 
 | Feature | Current behavior |
 |---|---|
-| Schema references | Same-document and local-file references are supported; remote references are not downloaded |
+| Schema references | Same-document and local-file references are supported; remote references are never downloaded but resolve from [reviewed local copies](configuration.html#reviewed-remote-references) |
 | Scalar parameters | Path, query, header, and supported cookie parameters; paths must be required |
 | Array/object parameters | Flat primitive arrays and flat objects with supported styles; nested shapes are diagnosed |
 | JSON bodies | Scalars, nested objects/arrays, free-form values, supported composition, and bounded local recursion |

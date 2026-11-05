@@ -30,7 +30,13 @@ diagnostic_fields <- function(problem, source_location) {
   if (
     any(
       problem$code %in%
-        c('external_reference', 'local_reference', 'recursive_reference')
+        c(
+          'external_reference',
+          'local_reference',
+          'recursive_reference',
+          'reference_hash_mismatch',
+          'reference_base'
+        )
     )
   ) {
     guidance <- 'Review reference support and retain the operation for follow-up; a client mapping cannot bypass unresolved input metadata.'
