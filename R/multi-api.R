@@ -81,7 +81,7 @@ multi_api_proposal <- function(
       ))
     }
     source_file <- grep(
-      '^schema/openapi\\.',
+      '^schema/(openapi|arcgis)\\.',
       names(proposal$files),
       value = TRUE
     )
@@ -93,7 +93,16 @@ multi_api_proposal <- function(
       apis$base_url[[i]],
       apis$base_url[[i]],
       dry_run_env(package),
-      companions
+      union(
+        companions,
+        if (
+          'source_format' %in%
+            names(apis) &&
+            apis$source_format[[i]] == 'arcgis-rest'
+        ) {
+          c('pagination', 'arcgis')
+        }
+      )
     )
     helpers[[paste0('R/', helper, '.R')]] <- scaffold$code
     helpers[[paste0(
@@ -138,6 +147,12 @@ multi_api_proposal <- function(
           fixed = TRUE
         )
       }
+      text <- gsub(
+        'api_request_arcgis_',
+        paste0(helper, '_arcgis_'),
+        text,
+        fixed = TRUE
+      )
       group <- yaml::yaml.load(text, handlers = list(seq = function(x) x))
       group$id <- NULL
       group$schemas <- NULL

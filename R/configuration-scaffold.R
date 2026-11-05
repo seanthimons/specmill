@@ -84,7 +84,7 @@ configuration_proposal <- function(
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {
     stop('Invalid R package name')
   }
-  source <- openapi_configuration_source(schema)
+  source <- importer_configuration_source(schema)
   records <- list()
   diagnostics <- list()
   report <- function(key, code, message) {
@@ -408,6 +408,9 @@ configuration_proposal <- function(
   records <- lapply(records, function(record) {
     record[c('key', 'tag', 'group', 'name')]
   })
+  if (is.function(source$decorate)) {
+    files <- source$decorate(files, parsed)
+  }
   list(files = files, operations = records, diagnostics = diagnostics)
 }
 

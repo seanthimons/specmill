@@ -728,7 +728,7 @@ load_project <- function(
     any(vapply(services, function(x) isTRUE(x$policy$unclaimed), logical(1)))
   ) {
     lapply(services, function(x) {
-      unique(unlist(lapply(x$files, schema_servers), use.names = FALSE))
+      unique(unlist(lapply(x$files, importer_servers), use.names = FALSE))
     })
   }
   for (i in seq_along(services)) {

@@ -70,7 +70,10 @@ importer_registry_acceptance <- function() {
   stopifnot(
     metadata$source_format == 'toy',
     metadata$importer_version == 'test-1',
-    identical(names(internal('importer_registry')()), c('openapi', 'swagger'))
+    identical(
+      names(internal('importer_registry')()),
+      c('openapi', 'swagger', 'arcgis-rest')
+    )
   )
   fail(
     resolve(path, registry = list(a = fake, b = fake)),

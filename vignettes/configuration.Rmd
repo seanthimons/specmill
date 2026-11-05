@@ -2670,7 +2670,7 @@ resolver settings or fallback URLs remain errors.
 ## Schema formats
 
 Schemas are detected by registered importers. OpenAPI 3.0/3.1 and Swagger 2.0
-are currently implemented. Other recognized descriptions report their format
+and reviewed ArcGIS REST captures are currently implemented. Other recognized descriptions report their format
 and the supported importer list; recognition alone does not enable generation.
 Use an API-level or flat-service `format: openapi` or `format: swagger` to
 override detection. API groups inherit that setting. Omit it to detect each
@@ -2682,3 +2682,71 @@ format means automatic detection. Format selection happens before the review
 table is built. Detected `source_format` and `importer_version` are read-only
 metadata, also recorded per schema in generated ownership provenance. Importer
 registration is internal until the extension contract stabilizes.
+
+## ArcGIS local captures
+
+ArcGIS imports use reviewed local JSON captures rather than fetching metadata at
+runtime. In a checkout, `source('dev/capture_arcgis.R')` provides the development
+capture utility. Give it public directory or FeatureServer/MapServer URLs and a
+new or empty output directory. It follows metadata listings once, records source
+URLs and hashes, and writes one service capture per supported service plus a
+directory index. It records inaccessible directories and unsupported service
+types as diagnostics. Review the files before using them as generation inputs.
+
+```{r arcgis-capture-workflow, eval=FALSE}
+source('dev/capture_arcgis.R')
+root <- '/path/to/new/client'
+capture_arcgis(c(
+  'https://echogeo.epa.gov/arcgis/rest/services',
+  'https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/National_Measured_Conductivity/FeatureServer'
+), output = root)
+apis <- specmill::configure_apis(
+  root, schemas = file.path(root, 'directory.json'), review = FALSE
+)
+# Review apis and its source_diagnostics attribute before initialization.
+specmill::initialize_client(
+  root, apis, package = 'myarcgis', title = 'My ArcGIS client',
+  author = list(given = 'Your', family = 'Name', email = 'you@example.org'),
+  license = 'MIT'
+)
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+```
+
+Service captures contain `arcgis_capture_version: "1"`, `kind: "service"`, a
+reviewed service `url`, its native `document`, and `layers` entries containing
+their own `url` and native `document`. Tables are included in that layer list.
+Every advertised leaf layer/table must have a local capture; missing captures
+fail instead of silently reducing the API. Directory captures have
+`kind: "directory"` and `services`, a list of relative service-capture paths.
+Use `format: arcgis-rest` to override detection in API configuration if needed.
+
+Query parameters include `where`, `outFields` and `returnGeometry`. Offset and
+page-size arguments are emitted only when the layer advertises pagination.
+Initialization writes explicit offset paging policy using `resultOffset`,
+`resultRecordCount`, the captured record limit, and client-owned callbacks for
+`exceededTransferLimit`. The caller's page-size argument sets both the requested
+size and offset stride, including after renaming the argument. Empty pages do
+not end traversal when the server says more records remain. Page caps still
+limit requests. Paged query wrappers return feature records; `all_pages = FALSE`
+returns one page of those records. Nonpaging wrappers retain the response
+envelope and do not accept paging controls.
+
+MapServer captures can emit service-level `identify`; relationships expose
+`queryRelatedRecords`. Some related-record endpoints omit the transfer-limit
+flag even for a full requested page. Their generated completion callback probes
+after a full page when the flag is absent and preserves related groups across
+pages. Explicit server flags take precedence. FeatureServer edit wrappers require declared editing
+capabilities. Their form body accepts JSON text for `adds`/`updates` and a
+comma-separated ID string for `deletes`; values are not guessed or coerced into
+geometry objects. No edit requests are made by import or generation. Root
+ArcGIS error payloads raise even with HTTP 200, without copying potentially
+sensitive server messages into errors. Callers must inspect per-edit results
+for partial edit failures.
+
+Token-capable server metadata does not imply that every service is protected.
+Set `requires_token: true` in a reviewed service capture only when that service
+requires it. The IR uses a `session_token` query scheme and records a captured
+`generateToken` endpoint/flow when available. Generated clients read the token
+from their configured environment variable. Token acquisition and renewal stay
+client-owned; imports never sign in or persist credentials. OpenAPI-specific
+source corrections do not apply to ArcGIS captures.

@@ -1,0 +1,5793 @@
+{
+  "arcgis_capture_version": "1",
+  "kind": "service",
+  "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer",
+  "sha256": "49efd65e75d6557526100548f51baff87f423a33cbe12834966755c3add02954",
+  "document": {
+    "currentVersion": 12.1,
+    "mapName": "Facilities",
+    "capabilities": "Map,Query,Data",
+    "maxRecordCount": 1000,
+    "layers": [
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "All ECHO Facilities",
+        "defaultVisibility": true,
+        "id": 0,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "Air Facilities",
+        "defaultVisibility": false,
+        "id": 1,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "CWA Facilities",
+        "defaultVisibility": false,
+        "id": 2,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "RCRA Facilities",
+        "defaultVisibility": false,
+        "id": 3,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "Inactive Facilities",
+        "defaultVisibility": false,
+        "id": 4,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "Oil and Gas ICIS Air Facilities",
+        "defaultVisibility": false,
+        "id": 5,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      }
+    ],
+    "tables": []
+  },
+  "layers": [
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer/0",
+      "sha256": "fea0ddd55a09ded2033667aa6c30e726179def64aba5f36028e0adf355b63013",
+      "document": {
+        "id": 0,
+        "name": "All ECHO Facilities",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 1000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": true,
+          "supportsSqlExpression": true,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": true,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": true,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": true,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": true,
+          "supportsHavingClause": true
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "FAC_US_CANADA_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Canada Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "GLOBALID",
+            "type": "esriFieldTypeString",
+            "alias": "GlobalID",
+            "nullable": true,
+            "length": 40,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "ObjectID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "SHAPE",
+            "type": "esriFieldTypeGeometry",
+            "alias": "SHAPE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "REGISTRY_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Registry ID",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Name",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "FAC_STREET",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Street",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "FAC_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - City",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "FAC_STATE",
+            "type": "esriFieldTypeString",
+            "alias": "Address - State",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "FAC_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Zip Code",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "FAC_COUNTY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - County",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "FAC_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_EPA_REGION",
+            "type": "esriFieldTypeString",
+            "alias": "EPA Region",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "FAC_INDIAN_CNTRY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Indian Country?",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Federal?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_US_MEX_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Mexico Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_CHESAPEAKE_BAY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Chesapeake Bay?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAA_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "NAA?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Latitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_LONG",
+            "type": "esriFieldTypeDouble",
+            "alias": "Longitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_ICON",
+            "type": "esriFieldTypeString",
+            "alias": "Map Icon",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "FAC_COLLECTION_METHOD",
+            "type": "esriFieldTypeString",
+            "alias": "Collection Method",
+            "nullable": true,
+            "length": 750,
+            "domain": null
+          },
+          {
+            "name": "FAC_REFERENCE_POINT",
+            "type": "esriFieldTypeString",
+            "alias": "Reference Point",
+            "nullable": true,
+            "length": 750,
+            "domain": null
+          },
+          {
+            "name": "FAC_ACCURACY_METERS",
+            "type": "esriFieldTypeDouble",
+            "alias": "Accuracy in Meters",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_TRIBES",
+            "type": "esriFieldTypeString",
+            "alias": "Derived Tribes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_HUC",
+            "type": "esriFieldTypeString",
+            "alias": "Derived HUC",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD",
+            "nullable": true,
+            "length": 14,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_STCTY_FIPS",
+            "type": "esriFieldTypeString",
+            "alias": "Derived State/County FIPS Code",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "Derived ZIP Code",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_CD113",
+            "type": "esriFieldTypeString",
+            "alias": "Derived Congressional District",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_CB2010",
+            "type": "esriFieldTypeString",
+            "alias": "Derived Cb2010",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_PERCENT_MINORITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "Percent Minority",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_POP_DEN",
+            "type": "esriFieldTypeDouble",
+            "alias": "Population Density",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAJOR_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Major?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_ACTIVE_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Active?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_MYRTK_UNIVERSE",
+            "type": "esriFieldTypeString",
+            "alias": "MYRTK Universe",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "FAC_INSPECTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Inspections",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INSPECTION",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Inspection",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DAYS_LAST_INSPECTION",
+            "type": "esriFieldTypeDouble",
+            "alias": "Days Since Last Inspection",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INFORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Formal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_TOTAL_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "Total Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_PENALTY_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_PENALTY",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Penalty",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_QTRS_IN_NC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_PROGRAMS_IN_SNC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Programs in Significant Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "FAC_CURR_SNC_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Currently in Significant Non-Compliance?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_3YR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Three-Year Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "AIR_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "AIR?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "NPDES_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "NPDES?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "SDWIS_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "SDWIS?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "RCRA_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "TRI_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "TRI?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "GHG_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "GHG?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_PERMIT_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Permit Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_SICS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - SICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_EVALUATION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Number Evaluated",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_DAYS_LAST_EVALUATION",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Days Since Last Evaluation",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "CAA - Date Since Last Formal Actions",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CAA_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "CAA - Last Penalty Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CAA_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_QTRS_IN_NC",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Current Compliance Status",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "CAA_CURR_HPV_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Current HPV Flag",
+            "nullable": true,
+            "length": 4,
+            "domain": null
+          },
+          {
+            "name": "CAA_3YR_COMPL_QTRS_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Three-Year Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "NPDES_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "NPDES IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_PERMIT_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Permit Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_COMPLIANCE_TRACKING",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Compliance Tracking",
+            "nullable": true,
+            "length": 7,
+            "domain": null
+          },
+          {
+            "name": "CWA_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_SICS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - SICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_INSPECTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Number of Inspections",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_DAYS_LAST_INSPECTION",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Days Since Last Inspection",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "CWA - Date Since Last Formal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWA_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "CWA - Last Penalty Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWA_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_QTRS_IN_NC",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Quarters in Non-Compliance",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "CWA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "CWA_CURR_SNC_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Current SNC Flag",
+            "nullable": true,
+            "length": 4,
+            "domain": null
+          },
+          {
+            "name": "CWA_13QTRS_COMPL_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Thirteen Quarters Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "CWA_13QTRS_EFFLNT_EXCEEDANCES",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Thirteen Quarters Effluent Exceedances",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_3_YR_QNCR_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Three-Year QNCR Codes",
+            "nullable": true,
+            "length": 12,
+            "domain": null
+          },
+          {
+            "name": "RCRA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_PERMIT_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Permit Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_INSPECTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Number of Inspections",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_DAYS_LAST_EVALUATION",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Days Since Last Evaluation",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "RCRA - Date of Last Formal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "RCRA - Date of Last Penalty",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_QTRS_IN_NC",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CURR_SNC_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Current SNC Flag",
+            "nullable": true,
+            "length": 4,
+            "domain": null
+          },
+          {
+            "name": "RCRA_3YR_COMPL_QTRS_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Three-Year Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "SDWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_SYSTEM_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA - System Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "SDWA - Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SDWA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "SDWA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SDWA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA - Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "SDWA_CURR_SNC_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA - Current SNC Flag",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "TRI_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "TRI IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "TRI_RELEASES_TRANSFERS",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - Releases Transfers",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "TRI_ON_SITE_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - On-Site Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "TRI_OFF_SITE_TRANSFERS",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - Off-Site Transfers",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "TRI_REPORTER_IN_PAST",
+            "type": "esriFieldTypeString",
+            "alias": "TRI - Reporter In Past",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FEC_CASE_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "FEC - Case IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FEC_NUMBER_OF_CASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FEC - Number Of Cases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FEC_LAST_CASE_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "FEC - Last Case Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FEC_TOTAL_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FEC - Total Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "GHG_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "GHG IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "GHG_CO2_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "GHG CO2 Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DFR_URL",
+            "type": "esriFieldTypeString",
+            "alias": "Detailed Facility Report",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "FAC_SIC_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "SIC Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAICS_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INSPECTION_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Inspection by EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INSPECTION_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Inspection by State",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_FORMAL_ACT_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Formal Action by EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_FORMAL_ACT_ST",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Formal Action by State",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INFORMAL_ACT_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Action by EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INFORMAL_ACT_ST",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Action by State",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY",
+            "type": "esriFieldTypeString",
+            "alias": "Federal Agency",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "TRI_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "TRI - Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_IMP_WATER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Impaired Water?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "EJSCREEN_FLAG_US",
+            "type": "esriFieldTypeString",
+            "alias": "EJScreen Flag US",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PCTPRE1960_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pctpre1960 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_DPM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Dpm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_CANCER_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Cancer US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_RESP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Resp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_TRAFFIC_SCORE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Traffic Score US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPDES_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity NPDES US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPL_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Npl US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_RMP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Rmp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_TSDF_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Tsdf US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_O3_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile O3 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "MAX_PCTILE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max Pctile US",
+            "nullable": true,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer/1",
+      "sha256": "c8ed9bc69333de3c38aa900dd2fb58a2d0d404e8e56e26182a4e062f0219419e",
+      "document": {
+        "id": 1,
+        "name": "Air Facilities",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 1000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": true,
+          "supportsSqlExpression": true,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": true,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": true,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": true,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": true,
+          "supportsHavingClause": true
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "FAC_US_CANADA_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Canada Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "GLOBALID",
+            "type": "esriFieldTypeString",
+            "alias": "GlobalID",
+            "nullable": true,
+            "length": 40,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "ObjectID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "SHAPE",
+            "type": "esriFieldTypeGeometry",
+            "alias": "SHAPE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SOURCE_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Source ID",
+            "nullable": true,
+            "length": 30,
+            "domain": null
+          },
+          {
+            "name": "EPA_SYSTEM",
+            "type": "esriFieldTypeString",
+            "alias": "EPA System",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "REGISTRY_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Registry ID",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "STATUTE",
+            "type": "esriFieldTypeString",
+            "alias": "Statute",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "AIR_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Name",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "AIR_STREET",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Street",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "AIR_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - City",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "AIR_STATE",
+            "type": "esriFieldTypeString",
+            "alias": "Address - State",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "AIR_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Zip Code",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "AIR_COUNTY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - County",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "LOCAL_CONTROL_REGION_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Local Control Region Code",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "LOCAL_CONTROL_REGION_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Local Control Region Name",
+            "nullable": true,
+            "length": 70,
+            "domain": null
+          },
+          {
+            "name": "AIR_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 32,
+            "domain": null
+          },
+          {
+            "name": "AIR_EPA_REGION",
+            "type": "esriFieldTypeString",
+            "alias": "EPA Region",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "AIR_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Status",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "AIR_INDIAN_CNTRY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Indian Country?",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "AIR_TRIBAL_EPAIDS",
+            "type": "esriFieldTypeString",
+            "alias": "Tribal EPA IDs",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "AIR_TRIBAL_NAMES",
+            "type": "esriFieldTypeString",
+            "alias": "Tribal Names",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "FAC_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Latitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_LONG",
+            "type": "esriFieldTypeDouble",
+            "alias": "Longitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_US_MEX_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Mexico Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_UNIVERSE",
+            "type": "esriFieldTypeString",
+            "alias": "Universe",
+            "nullable": true,
+            "length": 150,
+            "domain": null
+          },
+          {
+            "name": "AIR_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "NAICS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_SIC_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "SIC Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_PERCENT_MINORITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "Percent Minority",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_POPULATION_DENSITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "Population Density",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Federal Agency Code",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Federal Agency Name",
+            "nullable": true,
+            "length": 150,
+            "domain": null
+          },
+          {
+            "name": "CHESAPEAKE_BAY_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Chesapeake Bay?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "TRI_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "TRI IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_CASE_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "Case IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "GHG_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "GHG IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "EIS_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "EIS IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_MACTS",
+            "type": "esriFieldTypeString",
+            "alias": "MACTS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_PROGRAMS",
+            "type": "esriFieldTypeString",
+            "alias": "Programs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_CURR_HPV",
+            "type": "esriFieldTypeString",
+            "alias": "Current HPV",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "AIR_CURR_COMPL_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Current Compliance Status",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "AIR_QTRS_IN_HPV",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "Quarters in HPV",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_MNTHS_IN_HPV",
+            "type": "esriFieldTypeDouble",
+            "alias": "Months in HPV",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_QTRS_WITH_VIOL",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "Quarters with Violations",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_POLL_RECENT_VIOL",
+            "type": "esriFieldTypeString",
+            "alias": "Poll Recent Violations",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_RECENT_VIOL_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Recent Violation Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_VIOL_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Violation",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_EVAL_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Evaluation Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_EVAL_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Evaluation",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_DAYS_LAST_EVAL",
+            "type": "esriFieldTypeDouble",
+            "alias": "Days Since Last Evaluation",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_TEST_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Stock Test Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Stock EPA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Stock State Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_TEST_RESULTS",
+            "type": "esriFieldTypeString",
+            "alias": "Last Stock Test Results",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "AIR_IEA_CNT",
+            "type": "esriFieldTypeInteger",
+            "alias": "IEA Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_IEA_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last IEA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_FEA_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "FEA",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_FEA_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last FEA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Penalty Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_EVAL_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Evaluation EPA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_EVAL_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Evaluation State Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_FEA_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Last FEA EPA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_FEA_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "FEA State Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_IEA_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Last IEA EPA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_IEA_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last IEA State Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "TRI - Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - AIR Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_CARC_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - CARC AIR Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_HAPS_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - HAPS AIR Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_EIS_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "EIS AIR Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_GHG_CO2_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_GHG_CO2_RELEASES",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_HUC",
+            "type": "esriFieldTypeString",
+            "alias": "Derived HUC",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD",
+            "nullable": true,
+            "length": 14,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD Name",
+            "nullable": true,
+            "length": 80,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Map?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_ICON",
+            "type": "esriFieldTypeString",
+            "alias": "Map Icon",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAA_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "NAA?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_GHG_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "GHG Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_EIS_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "EIS Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_CAMD_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "CAMD Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_FACILITY_TYPE_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Facility Type Code",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "AIR_MAJOR_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Major?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "EJSCREEN_FLAG_US",
+            "type": "esriFieldTypeString",
+            "alias": "EJScreen Flag US",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PCTPRE1960_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pctpre1960 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_DPM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Dpm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_CANCER_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Cancer US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_RESP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Resp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_TRAFFIC_SCORE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Traffic Score US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPDES_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity NPDES US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPL_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Npl US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_RMP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Rmp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_TSDF_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Tsdf US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_O3_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile O3 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "MAX_PCTILE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max Pctile US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DFR_URL",
+            "type": "esriFieldTypeString",
+            "alias": "Detailed Facility Report",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer/2",
+      "sha256": "be248f5c86d84e95d0c4e5164bc0872efa262b1d664c6e3337b20b49769a6114",
+      "document": {
+        "id": 2,
+        "name": "CWA Facilities",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 1000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": true,
+          "supportsSqlExpression": true,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": true,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": true,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": true,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": true,
+          "supportsHavingClause": true
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "PERMIT_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "PERMIT_NAME",
+            "nullable": true,
+            "length": 120,
+            "domain": null
+          },
+          {
+            "name": "PERMIT_COMPONENTS",
+            "type": "esriFieldTypeString",
+            "alias": "PERMIT_COMPONENTS",
+            "nullable": true,
+            "length": 1000,
+            "domain": null
+          },
+          {
+            "name": "FAC_US_CANADA_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Canada Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "GLOBALID",
+            "type": "esriFieldTypeString",
+            "alias": "GlobalID",
+            "nullable": true,
+            "length": 40,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "ObjectID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "SHAPE",
+            "type": "esriFieldTypeGeometry",
+            "alias": "SHAPE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SOURCE_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Source ID",
+            "nullable": true,
+            "length": 30,
+            "domain": null
+          },
+          {
+            "name": "EPA_SYSTEM",
+            "type": "esriFieldTypeString",
+            "alias": "EPA System",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "REGISTRY_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Registry ID",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "STATUTE",
+            "type": "esriFieldTypeString",
+            "alias": "Statute",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "CWP_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Name",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "CWP_STREET",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Street",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "CWP_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - City",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "CWP_STATE",
+            "type": "esriFieldTypeString",
+            "alias": "Address - State",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "CWP_STATE_DISTRICT",
+            "type": "esriFieldTypeString",
+            "alias": "Address - State District",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "CWP_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Zip Code",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "CWP_COUNTY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - County",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "CWP_EPA_REGION",
+            "type": "esriFieldTypeString",
+            "alias": "EPA Region",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "CWP_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Status",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "CWP_INDIAN_CNTRY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Indian Country?",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "CWP_TRIBAL_LAND_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Tribal Land Code",
+            "nullable": true,
+            "length": 80,
+            "domain": null
+          },
+          {
+            "name": "CWP_VERSION_NMBR",
+            "type": "esriFieldTypeDouble",
+            "alias": "Version Number",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_PERMIT_STATUS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Permit Status Code",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "CWP_PERMIT_STATUS_DESC",
+            "type": "esriFieldTypeString",
+            "alias": "Permit Status Description",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "CWP_PERMIT_TYPE_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Permit Type Code",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "CWP_PERMIT_TYPE_DESC",
+            "type": "esriFieldTypeString",
+            "alias": "Permit Type Desc",
+            "nullable": true,
+            "length": 120,
+            "domain": null
+          },
+          {
+            "name": "CWP_EXPIRATION_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Expiration Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_FACILITY_TYPE_INDICATOR",
+            "type": "esriFieldTypeString",
+            "alias": "Facility Type Indicator",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "CWP_MAJOR_MINOR_STATUS_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Major/Minor Status",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_PERCENT_MINORITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "Percent Minority",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_POP_DEN",
+            "type": "esriFieldTypeDouble",
+            "alias": "Population Density",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Federal Agency Code",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "CWP_CURRENT_SNC_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Current SNC Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "CWP_SNC_EVENT_DESC",
+            "type": "esriFieldTypeString",
+            "alias": "SNC Event Description",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "CWP_CURRENT_SNC_STATUS_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Current SNC Status Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_QTRS_IN_NC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_CURRENT_VIOL",
+            "type": "esriFieldTypeString",
+            "alias": "Current Violations",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "CWP_QTRS_IN_SNC",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "Quarters in SNC",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_INSPECTION_COUNT",
+            "type": "esriFieldTypeInteger",
+            "alias": "Inspection Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_INSPECTION",
+            "type": "esriFieldTypeDate",
+            "alias": "Date Since Last Inspection",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_INFORMAL_EA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_INFORMAL_ENF_ACT_COUNT",
+            "type": "esriFieldTypeInteger",
+            "alias": "Informal Enforcement Action Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Latitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_LONG",
+            "type": "esriFieldTypeDouble",
+            "alias": "Longitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_US_MEX_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Mexico Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "CWP_IMP_WATER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Impaired Water?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_HUC",
+            "type": "esriFieldTypeString",
+            "alias": "Derived HUC",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Map?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_ICON",
+            "type": "esriFieldTypeString",
+            "alias": "Map Icon",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "FAC_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "CWP_E90_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "E90 Cnt",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_CSO_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "CSO?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "CWP_CSO_OUTFALLS",
+            "type": "esriFieldTypeDouble",
+            "alias": "CSO Outfalls",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_FORMAL_EA_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Formal Enforcement Action Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_FEA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Formal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_FEA_ST",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last State Formal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_FEA_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last EPA Formal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_IEA_ST",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of last State Informal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_IEA_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last EPA Informal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_INSP_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last EPA Inspection",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_INSP_ST",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last State Inspection",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_DATE_LAST_PENALTY",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Penalty",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWP_COMPLIANCE_TRACKING",
+            "type": "esriFieldTypeString",
+            "alias": "Compliance Tracking",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "TRI - Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_SW_REL",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - SW Rel",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_POTW_TRANS",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - POTW Trans",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_13QTRS_COMPL_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "13-Quarters Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "CWP_DAYS_LAST_INSPECTION",
+            "type": "esriFieldTypeDouble",
+            "alias": "Days Since Last Inspection",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_SIC_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "SIC Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWP_NAICS_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWP_CASE_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "Case IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWP_TOTAL_DESIGN_FLOW_NMBR",
+            "type": "esriFieldTypeDouble",
+            "alias": "Total Design Flow Number",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_ACTUAL_AVERAGE_FLOW_NMBR",
+            "type": "esriFieldTypeDouble",
+            "alias": "Actual Average Flow Number",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWP_STATE_WATER_BODY_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "State Water Body Code",
+            "nullable": true,
+            "length": 240,
+            "domain": null
+          },
+          {
+            "name": "CWP_STATE_WATER_BODY_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "State Water Body Name",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_CYCLE_YEAR",
+            "type": "esriFieldTypeString",
+            "alias": "Cycle Year",
+            "nullable": true,
+            "length": 4,
+            "domain": null
+          },
+          {
+            "name": "RAD_GNIS_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "GNIS Name",
+            "nullable": true,
+            "length": 60,
+            "domain": null
+          },
+          {
+            "name": "RAD_REACHCODE",
+            "type": "esriFieldTypeString",
+            "alias": "Reachcode",
+            "nullable": true,
+            "length": 14,
+            "domain": null
+          },
+          {
+            "name": "RAD_WBD_HUC12",
+            "type": "esriFieldTypeString",
+            "alias": "WBD HUC12",
+            "nullable": true,
+            "length": 12,
+            "domain": null
+          },
+          {
+            "name": "RAD_HU_12_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "HUC12 Name",
+            "nullable": true,
+            "length": 80,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_SOURCE",
+            "type": "esriFieldTypeString",
+            "alias": "Source",
+            "nullable": true,
+            "length": 6,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_IMP_WATER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Impaired Water?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_AU_CATEGORY",
+            "type": "esriFieldTypeString",
+            "alias": "Assessment Use Category",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_AQUATIC_LIFE_USE_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Aquatic Life Use?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_EXCEPTNL_USE_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Exceptional Use?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_RECREATION_USE_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Recreation Use?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_SHELLFISH_USE_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Shellfish Use?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_STATE_CAUSES",
+            "type": "esriFieldTypeString",
+            "alias": "State Causes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_CAUSE_GROUPS",
+            "type": "esriFieldTypeString",
+            "alias": "Cause Groups",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "ATTAINS_POSSIBLE_NPDES_PARAMS",
+            "type": "esriFieldTypeString",
+            "alias": "Possible NPDES Parameters",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "LIM_POLLUTANT",
+            "type": "esriFieldTypeString",
+            "alias": "Lim Pollutant",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "BEACH_CLOSE_LAST_YEAR_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Beach Close Last Year?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "BEACH_CLOSE_LAST_2YRS_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Beach Close Last 2 Years?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "CHESAPEAKE_BAY_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Chesapeake Bay?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "TRI_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "TRI IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD",
+            "nullable": true,
+            "length": 12,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD Name",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "CWP_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PCTPRE1960_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pctpre1960 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_DPM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Dpm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_CANCER_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Cancer US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_RESP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Resp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_TRAFFIC_SCORE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Traffic Score US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPDES_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity NPDES US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPL_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Npl US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_RMP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Rmp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_TSDF_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Tsdf US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_O3_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile O3 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "MAX_PCTILE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max Pctile US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DMR_POUNDS",
+            "type": "esriFieldTypeDouble",
+            "alias": "Dmr Pounds",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DFR_URL",
+            "type": "esriFieldTypeString",
+            "alias": "Detailed Facility Report",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "PAST_CAL_YR_CONV_POLLUTANTS",
+            "type": "esriFieldTypeDouble",
+            "alias": "PAST_CAL_YR_CONV_POLLUTANTS",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PAST_CAL_YR_CONV_POL_OVR_LMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "PAST_CAL_YR_CONV_POL_OVR_LMT",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PAST_CAL_YR_TOXIC_POL_OVR_LMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "PAST_CAL_YR_TOXIC_POL_OVR_LMT",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DMR_TWPE",
+            "type": "esriFieldTypeDouble",
+            "alias": "DMR_TWPE",
+            "nullable": true,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer/3",
+      "sha256": "384274f2f2d3512266e377b241476c7d20cc82778d03cbc289a2b88af2f4d5a1",
+      "document": {
+        "id": 3,
+        "name": "RCRA Facilities",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 1000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": true,
+          "supportsSqlExpression": true,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": true,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": true,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": true,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": true,
+          "supportsHavingClause": true
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "FAC_US_CANADA_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Canada Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "GLOBALID",
+            "type": "esriFieldTypeString",
+            "alias": "GlobalID",
+            "nullable": true,
+            "length": 40,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "ObjectID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "SHAPE",
+            "type": "esriFieldTypeGeometry",
+            "alias": "SHAPE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SOURCE_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Source ID",
+            "nullable": true,
+            "length": 30,
+            "domain": null
+          },
+          {
+            "name": "EPA_SYSTEM",
+            "type": "esriFieldTypeString",
+            "alias": "EPA System",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "REGISTRY_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Registry ID",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "STATUTE",
+            "type": "esriFieldTypeString",
+            "alias": "Statute",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "RCR_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Name",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "RCR_STREET",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Street",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "RCR_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - City",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "RCR_STATE",
+            "type": "esriFieldTypeString",
+            "alias": "Address - State",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "RCR_STATE_DISTRICT",
+            "type": "esriFieldTypeString",
+            "alias": "Address - State District",
+            "nullable": true,
+            "length": 40,
+            "domain": null
+          },
+          {
+            "name": "RCR_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Zip Code",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "RCR_COUNTY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - County",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "RCR_EPA_REGION",
+            "type": "esriFieldTypeString",
+            "alias": "EPA Region",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "RCR_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Status",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "RCR_INDIAN_CNTRY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Indian Country?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "RCR_TRIBAL_LAND_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Tribal Land Code",
+            "nullable": true,
+            "length": 80,
+            "domain": null
+          },
+          {
+            "name": "FAC_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Latitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_LONG",
+            "type": "esriFieldTypeDouble",
+            "alias": "Longitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_US_MEX_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Mexico Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "RCR_IMP_WATER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Impaired Water?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "RCRA_UNIVERSE",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Universe",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_SIC_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "SIC Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_PERCENT_MINORITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "Percent Minority",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_POPULATION_DENSITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "Population Density",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Federal Agency Code",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "CHESAPEAKE_BAY_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Chesapeake Bay?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "TRI_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "TRI IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CASE_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Case IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CURR_SNC",
+            "type": "esriFieldTypeString",
+            "alias": "Current SNC",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CURR_COMPL_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "RCRA_QTRS_IN_SNC",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "Quarters in SNC",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_QTRS_IN_NC",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "RCRA - Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CURR_VIOLATION_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "Current Violation Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_INSP_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Inspection Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_INSPECTION_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "RCRA - Last Inspection Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_DAYS_LAST_INSPECTION",
+            "type": "esriFieldTypeDouble",
+            "alias": "Days Since Last Inspection",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_IEA_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Informal Enforcement Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_IEA_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_FEA_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Federal Enforcement Action Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_FEA_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Federal Enforcement Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "RCRA - Date of Last Penalty",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_INSP_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Last EPA Inspection Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_INSP_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last State Inspection Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_FEA_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Last EPA FEA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_FEA_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last State FEA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_IEA_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Last EPA IEA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_IEA_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last State IEA Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "TRI - Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_ON_SITE_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI On-Site Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_HUC",
+            "type": "esriFieldTypeString",
+            "alias": "Derived HUC",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD",
+            "nullable": true,
+            "length": 14,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD Name",
+            "nullable": true,
+            "length": 80,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Map?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_ICON",
+            "type": "esriFieldTypeString",
+            "alias": "Map Icon",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "LAST_VIOLATION_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Violation Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CURRENT_VIO_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Current Violation Count",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Federal Agency Name",
+            "nullable": true,
+            "length": 150,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_OFF_SITE_TRANSFERS",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - Off Site Transfers",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCR_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "RCR_LAND_TYPE_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "Land Type Code",
+            "nullable": true,
+            "length": 30,
+            "domain": null
+          },
+          {
+            "name": "RCR_OLDEST_OPEN_VIO_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Oldest Open Violation Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_LAND_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - Land Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_MAP_ICON",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Map Icon",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "EJSCREEN_FLAG_US",
+            "type": "esriFieldTypeString",
+            "alias": "EJScreen Flag US",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PCTPRE1960_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pctpre1960 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_DPM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Dpm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_CANCER_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Cancer US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_RESP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Resp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_TRAFFIC_SCORE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Traffic Score US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPDES_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity NPDES US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPL_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Npl US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_RMP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Rmp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_TSDF_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Tsdf US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_O3_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile O3 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "MAX_PCTILE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max Pctile US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DFR_URL",
+            "type": "esriFieldTypeString",
+            "alias": "Detailed Facility Report",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer/4",
+      "sha256": "fe47f79fd4249bdb61b23f57732c514378f14e8888b584d7595059ae649618b5",
+      "document": {
+        "id": 4,
+        "name": "Inactive Facilities",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 1000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": true,
+          "supportsSqlExpression": true,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": true,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": true,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": true,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": true,
+          "supportsHavingClause": true
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "FAC_US_CANADA_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US Canada Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "GLOBALID",
+            "type": "esriFieldTypeString",
+            "alias": "GLOBALID",
+            "nullable": true,
+            "length": 40,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "ObjectID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "SHAPE",
+            "type": "esriFieldTypeGeometry",
+            "alias": "SHAPE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "REGISTRY_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Registry ID",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Name",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "FAC_STREET",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Street",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "FAC_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - City",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "FAC_STATE",
+            "type": "esriFieldTypeString",
+            "alias": "Address - State",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "FAC_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "Address - Zip Code",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "FAC_COUNTY",
+            "type": "esriFieldTypeString",
+            "alias": "Address - County",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "FAC_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FIPS Code",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_EPA_REGION",
+            "type": "esriFieldTypeString",
+            "alias": "EPA Region",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "FAC_INDIAN_CNTRY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Indian Country?",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Federal?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_US_MEX_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Mexico Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_CHESAPEAKE_BAY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Chesapeake Bay?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAA_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "NAA?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Latitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_LONG",
+            "type": "esriFieldTypeDouble",
+            "alias": "Longitude",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_ICON",
+            "type": "esriFieldTypeString",
+            "alias": "Map Icon",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "FAC_COLLECTION_METHOD",
+            "type": "esriFieldTypeString",
+            "alias": "Collection Method",
+            "nullable": true,
+            "length": 750,
+            "domain": null
+          },
+          {
+            "name": "FAC_REFERENCE_POINT",
+            "type": "esriFieldTypeString",
+            "alias": "Reference Point",
+            "nullable": true,
+            "length": 750,
+            "domain": null
+          },
+          {
+            "name": "FAC_ACCURACY_METERS",
+            "type": "esriFieldTypeDouble",
+            "alias": "Accuracy in Meters",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_TRIBES",
+            "type": "esriFieldTypeString",
+            "alias": "Derived Tribes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_HUC",
+            "type": "esriFieldTypeString",
+            "alias": "Derived HUC",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD",
+            "type": "esriFieldTypeString",
+            "alias": "Derived WBD",
+            "nullable": true,
+            "length": 14,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_STCTY_FIPS",
+            "type": "esriFieldTypeString",
+            "alias": "Derived State/County FIPS Code",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "Derived ZIP Code",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_CD113",
+            "type": "esriFieldTypeString",
+            "alias": "Derived Congressional District",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_CB2010",
+            "type": "esriFieldTypeString",
+            "alias": "Derived Cb2010",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_PERCENT_MINORITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "Percent Minority",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_POP_DEN",
+            "type": "esriFieldTypeDouble",
+            "alias": "Population Density",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAJOR_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Major?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_ACTIVE_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "Active?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_MYRTK_UNIVERSE",
+            "type": "esriFieldTypeString",
+            "alias": "MYRTK Universe",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "FAC_INSPECTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Inspections",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INSPECTION",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Inspection",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DAYS_LAST_INSPECTION",
+            "type": "esriFieldTypeDouble",
+            "alias": "Days Since Last Inspection",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INFORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Formal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_TOTAL_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "Total Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_PENALTY_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_PENALTY",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Penalty",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_QTRS_IN_NC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_PROGRAMS_IN_SNC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Programs in Significant Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "FAC_CURR_SNC_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Currently in Significant Non-Compliance?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_3YR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "Three-Year Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "AIR_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "AIR?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "NPDES_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "NPDES?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "SDWIS_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "SDWIS?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "RCRA_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "TRI_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "TRI?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "GHG_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "GHG?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_PERMIT_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Permit Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_SICS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - SICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CAA_EVALUATION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Number Evaluated",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_DAYS_LAST_EVALUATION",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Days Since Last Evaluation",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "CAA - Date Since Last Formal Actions",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CAA_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "CAA - Last Penalty Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CAA_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_QTRS_IN_NC",
+            "type": "esriFieldTypeDouble",
+            "alias": "CAA - Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CAA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Current Compliance Status",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "CAA_CURR_HPV_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Current HPV Flag",
+            "nullable": true,
+            "length": 4,
+            "domain": null
+          },
+          {
+            "name": "CAA_3YR_COMPL_QTRS_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CAA - Three-Year Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "NPDES_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "NPDES IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_PERMIT_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Permit Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_COMPLIANCE_TRACKING",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Compliance Tracking",
+            "nullable": true,
+            "length": 7,
+            "domain": null
+          },
+          {
+            "name": "CWA_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_SICS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - SICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_INSPECTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Number of Inspections",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_DAYS_LAST_INSPECTION",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Days Since Last Inspection",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "CWA - Date Since Last Formal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWA_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "CWA - Last Penalty Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "CWA_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_QTRS_IN_NC",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Quarters in Non-Compliance",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "CWA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "CWA_CURR_SNC_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Current SNC Flag",
+            "nullable": true,
+            "length": 4,
+            "domain": null
+          },
+          {
+            "name": "CWA_13QTRS_COMPL_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Thirteen Quarters Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "CWA_13QTRS_EFFLNT_EXCEEDANCES",
+            "type": "esriFieldTypeDouble",
+            "alias": "CWA - Thirteen Quarters Effluent Exceedances",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "CWA_3_YR_QNCR_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "CWA - Three-Year QNCR Codes",
+            "nullable": true,
+            "length": 12,
+            "domain": null
+          },
+          {
+            "name": "RCRA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_PERMIT_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Permit Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_INSPECTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Number of Inspections",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_DAYS_LAST_EVALUATION",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Days Since Last Evaluation",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_DATE_LAST_FORMAL_ACTION",
+            "type": "esriFieldTypeDate",
+            "alias": "RCRA - Date of Last Formal Action",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "RCRA - Date of Last Penalty",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "RCRA_LAST_PENALTY_AMT",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Last Penalty Amount",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_QTRS_IN_NC",
+            "type": "esriFieldTypeDouble",
+            "alias": "RCRA - Quarters in Non-Compliance",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "RCRA_CURR_SNC_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Current SNC Flag",
+            "nullable": true,
+            "length": 4,
+            "domain": null
+          },
+          {
+            "name": "RCRA_3YR_COMPL_QTRS_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA - Three-Year Compliance Status",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "SDWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_SYSTEM_TYPES",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA - System Types",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_INFORMAL_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "SDWA - Number of Informal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SDWA_FORMAL_ACTION_COUNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "SDWA - Number of Formal Actions",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SDWA_CURR_COMPLIANCE_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA - Current Compliance Status",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "SDWA_CURR_SNC_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA - Current SNC Flag",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "TRI_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "TRI IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "TRI_RELEASES_TRANSFERS",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - Releases Transfers",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "TRI_ON_SITE_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - On-Site Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "TRI_OFF_SITE_TRANSFERS",
+            "type": "esriFieldTypeDouble",
+            "alias": "TRI - Off-Site Transfers",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "TRI_REPORTER_IN_PAST",
+            "type": "esriFieldTypeString",
+            "alias": "TRI - Reporter In Past",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FEC_CASE_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "FEC - Case IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FEC_NUMBER_OF_CASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FEC - Number Of Cases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FEC_LAST_CASE_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "FEC - Last Case Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FEC_TOTAL_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FEC - Total Penalties",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "GHG_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "GHG IDs",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "GHG_CO2_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "GHG CO2 Releases",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DFR_URL",
+            "type": "esriFieldTypeString",
+            "alias": "Detailed Facility Report",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "FAC_SIC_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "SIC Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAICS_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "NAICS Codes",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INSPECTION_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Inspection by EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INSPECTION_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Inspection by State",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_FORMAL_ACT_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Formal Action by EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_FORMAL_ACT_ST",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Formal Action by State",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INFORMAL_ACT_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Action by EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DATE_LAST_INFORMAL_ACT_ST",
+            "type": "esriFieldTypeDate",
+            "alias": "Date of Last Informal Action by State",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY",
+            "type": "esriFieldTypeString",
+            "alias": "Federal Agency",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "TRI_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "TRI - Reporter",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_IMP_WATER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "Impaired Water?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "EJSCREEN_FLAG_US",
+            "type": "esriFieldTypeString",
+            "alias": "EJScreen Flag US",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PCTPRE1960_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pctpre1960 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_DPM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Dpm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_CANCER_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Cancer US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_RESP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Resp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_TRAFFIC_SCORE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Traffic Score US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPDES_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity NPDES US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPL_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Npl US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_RMP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Rmp US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_TSDF_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Proximity Tsdf US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_O3_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile O3 US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Pctile Pm US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "MAX_PCTILE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max Pctile US",
+            "nullable": true,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer/5",
+      "sha256": "8856c458eeaa33528c5b5a519157a3a45180fbb2b4828d3be5f9009aee39679c",
+      "document": {
+        "id": 5,
+        "name": "Oil and Gas ICIS Air Facilities",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 1000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": true,
+          "supportsSqlExpression": true,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": true,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": true,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": true,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": true,
+          "supportsHavingClause": true
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "FAC_US_CANADA_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "US/Canada Border?",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID_1",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID_1",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "SHAPE",
+            "type": "esriFieldTypeGeometry",
+            "alias": "SHAPE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "SOURCE_ID",
+            "type": "esriFieldTypeString",
+            "alias": "SOURCE_ID",
+            "nullable": false,
+            "length": 30,
+            "domain": null
+          },
+          {
+            "name": "EPA_SYSTEM",
+            "type": "esriFieldTypeString",
+            "alias": "EPA_SYSTEM",
+            "nullable": false,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "REGISTRY_ID",
+            "type": "esriFieldTypeString",
+            "alias": "REGISTRY_ID",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "STATUTE",
+            "type": "esriFieldTypeString",
+            "alias": "STATUTE",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "AIR_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_NAME",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "AIR_STREET",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_STREET",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "AIR_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_CITY",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "AIR_STATE",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_STATE",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "AIR_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_ZIP",
+            "nullable": true,
+            "length": 10,
+            "domain": null
+          },
+          {
+            "name": "AIR_COUNTY",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_COUNTY",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "LOCAL_CONTROL_REGION_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "LOCAL_CONTROL_REGION_CODE",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "LOCAL_CONTROL_REGION_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "LOCAL_CONTROL_REGION_NAME",
+            "nullable": true,
+            "length": 70,
+            "domain": null
+          },
+          {
+            "name": "AIR_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_FIPS_CODE",
+            "nullable": true,
+            "length": 32,
+            "domain": null
+          },
+          {
+            "name": "AIR_EPA_REGION",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_EPA_REGION",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "AIR_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_STATUS",
+            "nullable": true,
+            "length": 500,
+            "domain": null
+          },
+          {
+            "name": "AIR_INDIAN_CNTRY_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_INDIAN_CNTRY_FLG",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "AIR_TRIBAL_EPAIDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_TRIBAL_EPAIDS",
+            "nullable": true,
+            "length": 50,
+            "domain": null
+          },
+          {
+            "name": "AIR_TRIBAL_NAMES",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_TRIBAL_NAMES",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "FAC_FIPS_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_FIPS_CODE",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_LAT",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_LAT",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_LONG",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_LONG",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_US_MEX_BORDER_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_US_MEX_BORDER_FLG",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_UNIVERSE",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_UNIVERSE",
+            "nullable": true,
+            "length": 150,
+            "domain": null
+          },
+          {
+            "name": "AIR_NAICS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_NAICS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_SIC_CODES",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_SIC_CODES",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "FAC_PERCENT_MINORITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_PERCENT_MINORITY",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_POPULATION_DENSITY",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_POPULATION_DENSITY",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_FEDERAL_AGENCY_CODE",
+            "nullable": true,
+            "length": 15,
+            "domain": null
+          },
+          {
+            "name": "FAC_FEDERAL_AGENCY_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_FEDERAL_AGENCY_NAME",
+            "nullable": true,
+            "length": 150,
+            "domain": null
+          },
+          {
+            "name": "CHESAPEAKE_BAY_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "CHESAPEAKE_BAY_FLAG",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "CWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "CWA_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RCRA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "RCRA_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "TRI_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "TRI_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "SDWA_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "SDWA_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_CASE_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_CASE_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "GHG_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "GHG_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "EIS_IDS",
+            "type": "esriFieldTypeString",
+            "alias": "EIS_IDS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_MACTS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_MACTS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_PROGRAMS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_PROGRAMS",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_CURR_HPV",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_CURR_HPV",
+            "nullable": true,
+            "length": 80,
+            "domain": null
+          },
+          {
+            "name": "AIR_CURR_COMPL_STATUS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_CURR_COMPL_STATUS",
+            "nullable": true,
+            "length": 80,
+            "domain": null
+          },
+          {
+            "name": "AIR_QTRS_IN_HPV",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "AIR_QTRS_IN_HPV",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_MNTHS_IN_HPV",
+            "type": "esriFieldTypeDouble",
+            "alias": "AIR_MNTHS_IN_HPV",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_QTRS_WITH_VIOL",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "AIR_QTRS_WITH_VIOL",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_POLL_RECENT_VIOL",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_POLL_RECENT_VIOL",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "AIR_RECENT_VIOL_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "AIR_RECENT_VIOL_CNT",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_VIOL_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_VIOL_DATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_EVAL_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "AIR_EVAL_CNT",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_EVAL_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_EVAL_DATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_DAYS_LAST_EVAL",
+            "type": "esriFieldTypeDouble",
+            "alias": "AIR_DAYS_LAST_EVAL",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_TEST_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_STCK_TEST_DATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_STCK_DATE_EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_STCK_DATE_STATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_STCK_TEST_RESULTS",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_LAST_STCK_TEST_RESULTS",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "AIR_IEA_CNT",
+            "type": "esriFieldTypeInteger",
+            "alias": "AIR_IEA_CNT",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_IEA_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_IEA_DATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_FEA_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "AIR_FEA_CNT",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_FEA_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_FEA_DATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_PENALTIES",
+            "type": "esriFieldTypeDouble",
+            "alias": "AIR_PENALTIES",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_PENALTY_DATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_PENALTY_DATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_EVAL_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_EVAL_DATE_EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_EVAL_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_EVAL_DATE_STATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_FEA_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_FEA_DATE_EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_FEA_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_FEA_DATE_STATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_IEA_DATE_EPA",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_IEA_DATE_EPA",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "AIR_LAST_IEA_DATE_STATE",
+            "type": "esriFieldTypeDate",
+            "alias": "AIR_LAST_IEA_DATE_STATE",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_TRI_REPORTER",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_TRI_AIR_RELEASES",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_CARC_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_TRI_CARC_AIR_RELEASES",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_TRI_HAPS_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_TRI_HAPS_AIR_RELEASES",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_EIS_AIR_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_EIS_AIR_RELEASES",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_GHG_CO2_RELEASES",
+            "type": "esriFieldTypeDouble",
+            "alias": "FAC_GHG_CO2_RELEASES",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_HUC",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_DERIVED_HUC",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_DERIVED_WBD",
+            "nullable": true,
+            "length": 14,
+            "domain": null
+          },
+          {
+            "name": "FAC_DERIVED_WBD_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_DERIVED_WBD_NAME",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_FLG",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_MAP_FLG",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_MAP_ICON",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_MAP_ICON",
+            "nullable": true,
+            "length": 20,
+            "domain": null
+          },
+          {
+            "name": "FAC_NAA_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_NAA_FLAG",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_GHG_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_GHG_REPORTER",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_EIS_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_EIS_REPORTER",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "FAC_CAMD_REPORTER",
+            "type": "esriFieldTypeString",
+            "alias": "FAC_CAMD_REPORTER",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "AIR_FACILITY_TYPE_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_FACILITY_TYPE_CODE",
+            "nullable": true,
+            "length": 3,
+            "domain": null
+          },
+          {
+            "name": "AIR_MAJOR_FLAG",
+            "type": "esriFieldTypeString",
+            "alias": "AIR_MAJOR_FLAG",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "EJSCREEN_FLAG_US",
+            "type": "esriFieldTypeString",
+            "alias": "EJSCREEN_FLAG_US",
+            "nullable": true,
+            "length": 1,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PCTPRE1960_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_PCTPRE1960_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_DPM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_DPM_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_CANCER_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_CANCER_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_RESP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_RESP_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_TRAFFIC_SCORE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_TRAFFIC_SCORE_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPDES_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_PROXIMITY_NPDES_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_NPL_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_PROXIMITY_NPL_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_RMP_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_PROXIMITY_RMP_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PROXIMITY_TSDF_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_PROXIMITY_TSDF_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_O3_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_O3_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "PCTILE_PM_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "PCTILE_PM_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "MAX_PCTILE_US",
+            "type": "esriFieldTypeDouble",
+            "alias": "MAX_PCTILE_US",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeBigInteger",
+            "alias": "OBJECTID",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "DFR_URL",
+            "type": "esriFieldTypeString",
+            "alias": "DFR_URL",
+            "nullable": true,
+            "length": 200,
+            "domain": null
+          },
+          {
+            "name": "CEDRI_LIST",
+            "type": "esriFieldTypeString",
+            "alias": "CEDRI_LIST",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          },
+          {
+            "name": "RMP_LIST",
+            "type": "esriFieldTypeString",
+            "alias": "RMP_LIST",
+            "nullable": true,
+            "length": 4000,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    }
+  ]
+}

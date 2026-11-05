@@ -3,7 +3,7 @@ generation_schema_inventory <- function(files, labels) {
     lapply(files, function(file) {
       # Reporting must not replace the schema validation diagnostics.
       keys <- tryCatch(
-        openapi_operation_keys(file),
+        importer_operation_keys(file),
         error = function(e) NULL
       )
       if (is.null(keys)) {

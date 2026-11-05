@@ -56,6 +56,31 @@ configure_apis <- function(
   if (!length(schemas)) {
     stop('No schema files found')
   }
+  source_diagnostics <- list()
+  expanded <- FALSE
+  schemas <- unlist(
+    lapply(schemas, function(path) {
+      selected <- tryCatch(resolve_importer(path), error = function(e) NULL)
+      if (is.null(selected) || !is.function(selected$importer$discover)) {
+        return(path)
+      }
+      discovery <- selected$importer$discover(path)
+      if (!identical(discovery$files, path)) {
+        expanded <<- TRUE
+      }
+      source_diagnostics <<- c(source_diagnostics, discovery$diagnostics)
+      discovery$files
+    }),
+    use.names = FALSE
+  )
+  if (expanded) {
+    schemas <- unique(schemas)
+  }
+  if (!length(schemas)) {
+    cli::cli_abort(
+      'No supported service captures in the selected local directories; inspect their source diagnostics.'
+    )
+  }
   paths <- normalizePath(schemas, winslash = '/', mustWork = TRUE)
   if (!all(startsWith(paths, paste0(root, '/')))) {
     stop('Schemas must be inside the project root')
@@ -325,6 +350,20 @@ configure_apis <- function(
       ),
       mode = 'apply',
       owned = function(path) identical(output_hash(path), prior_hash)
+    )
+  }
+  if (length(source_diagnostics)) {
+    attr(table, 'source_diagnostics') <- source_diagnostics
+    warning(
+      paste(
+        vapply(
+          source_diagnostics,
+          function(x) paste(x$url, x$reason, sep = ': '),
+          character(1)
+        ),
+        collapse = '\n'
+      ),
+      call. = FALSE
     )
   }
   table
