@@ -501,7 +501,8 @@ freeze_references <- function(schema, urls, refresh = FALSE) {
       stop('Cannot freeze ', url, ': ', file, ' escapes ', root, call. = FALSE)
     }
     claimed <<- c(claimed, file)
-    download <- tempfile(fileext = paste0('.', tools::file_ext(file)))
+    ext <- tools::file_ext(file)
+    download <- tempfile(fileext = if (nzchar(ext)) paste0('.', ext) else '')
     withCallingHandlers(
       utils::download.file(
         url,
@@ -571,30 +572,51 @@ freeze_references <- function(schema, urls, refresh = FALSE) {
   }
   changed <- Filter(function(x) x$status != 'unchanged', plan)
   # ponytail: files land before the lock rename; a crash in between leaves a
-  # hash mismatch diagnostic, never a silently wrong reference.
+  # hash mismatch diagnostic, never a silently wrong reference. A failed write
+  # puts back overwritten copies and removes new ones.
   staged <- tempfile('specmill-references-', tmpdir = root, fileext = '.yml')
   on.exit(unlink(staged), add = TRUE)
   yaml::write_yaml(list(references = entries), staged)
   written <- character()
+  backups <- character()
+  on.exit(unlink(backups), add = TRUE)
+  undo <- function(path) {
+    unlink(written)
+    kept <- backups[!file.rename(backups, names(backups))]
+    backups <<- character()
+    stop(
+      'Cannot write ',
+      path,
+      if (length(kept)) {
+        paste0('; previous copies kept at ', paste(kept, collapse = ', '))
+      },
+      call. = FALSE
+    )
+  }
   for (item in changed) {
     target <- file.path(root, item$file)
     dir.create(dirname(target), recursive = TRUE, showWarnings = FALSE)
-    if (!file.copy(item$download, target, overwrite = TRUE)) {
-      unlink(written)
-      stop('Cannot write ', target, call. = FALSE)
-    }
-    if (item$status == 'added') {
+    if (file.exists(target)) {
+      backup <- tempfile('specmill-backup-', tmpdir = dirname(target))
+      if (!file.copy(target, backup)) {
+        unlink(backup)
+        undo(target)
+      }
+      backups[target] <- backup
+    } else {
       written <- c(written, target)
+    }
+    if (!isTRUE(file.copy(item$download, target, overwrite = TRUE))) {
+      undo(target)
     }
   }
   if (
     any(
       vapply(changed, `[[`, character(1), 'status') %in% c('added', 'refreshed')
-    )
+    ) &&
+      !file.rename(staged, lock_path)
   ) {
-    if (!file.rename(staged, lock_path)) {
-      stop('Cannot write ', lock_path, call. = FALSE)
-    }
+    undo(lock_path)
   }
   read_reference_lock(schema)
   invisible(data.frame(
