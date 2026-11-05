@@ -858,6 +858,53 @@ options(comptoxr.api_request.batching = list(max_items = 50))
 The batching companion's `api_request_batched()` reads the same option and
 rejects `max_items` and `empty`. Unset them before calling it.
 
+**Parallel batches.** An individual operation can select bounded HTTP concurrency:
+
+~~~yaml
+operations:
+  GET /items/{id}:
+    batch:
+      fan_out: id
+      concurrency: 4
+    request_controls:
+      max_retries: 0
+      throttle: {capacity: 20, fill_time_s: 1}
+~~~
+
+`concurrency` is a positive integer and belongs under operations, alongside
+`fan_out` or `split`. Without it, execution stays sequential. Parallel execution
+requires httr2 >= 1.3.0 in the generated client, a throttle, and `max_retries: 0`.
+New clients declare `httr2 (>= 1.3.0)` in Imports; existing clients must update
+that declaration before distributing parallel wrappers.
+The runtime checks this version before sending requests. The parallel httr2
+executor does not honor per-request retry counts, so enabled retries are rejected
+before any network activity. Timeouts still apply to each request. Requests are submitted in groups no larger
+than the concurrency limit, and each group finishes before the next starts.
+
+All pre-request hooks and request preparation run in input order before sending.
+Each prepared request retains its own state. Responses are decoded and
+post-response hooks run in input order after all HTTP requests finish; final
+combination, combined hooks and formatting follow as usual. Duplicates retain
+their input positions. Dry runs send nothing and bypass response hooks.
+
+Every request must target the same service origin. Pagination, custom request
+mappings, caches, route guards and visibility preservation cannot combine with
+`concurrency` in this version. This setting does not make calls return immediately
+or parallelize unrelated wrapper calls. The existing batching session option
+does not override concurrency.
+
+`on_error: drop` retains the existing failure metadata. With `stop`, or a fatal
+HTTP 401, errors are reported during ordered completion after the HTTP batch has
+finished. Other requests may already have succeeded, including writes; no
+cancellation or rollback is promised. Call-level preparation failures stop before
+any requests are sent. Interrupting execution raises an error if responses are
+incomplete, rather than returning a partial success.
+
+Existing clients must deliberately adopt the updated request helper, including
+`<helper>_then()`, the request helper's `.prepare` argument, and the executor's
+`concurrency` argument. Generation diagnoses missing capabilities and preserves
+client-owned files. Compare with the current template using `inspect_client()`.
+
 **Configuration rules.** Inherited settings apply only where they fit. An
 API-level `split: true` affects only operations with an array body and a
 `max_items` limit, and a group-level `fan_out` affects only operations with that

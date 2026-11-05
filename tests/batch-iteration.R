@@ -755,7 +755,7 @@ batch_iteration_acceptance <- function() {
   yaml::write_yaml(warning_service, service_path)
   helper <- file.path(root, 'R/api_request.R')
   helper_text <- readLines(helper)
-  writeLines(sub(', warning = NULL)', ')', helper_text, fixed = TRUE), helper)
+  writeLines(sub(', warning = NULL', '', helper_text, fixed = TRUE), helper)
   error <- tryCatch(run(), error = identity)
   stopifnot(
     inherits(error, 'error'),

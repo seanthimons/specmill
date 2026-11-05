@@ -86,7 +86,7 @@ initialize_client <- function(
       Encoding = 'UTF-8',
       Imports = paste(
         c(
-          'httr2',
+          'httr2 (>= 1.3.0)',
           'jsonlite',
           'curl',
           if ('pagination' %in% companions) 'digest'
