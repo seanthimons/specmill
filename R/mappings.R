@@ -424,6 +424,7 @@ validate_settings <- function(
       c(
         'max_items',
         'max_bytes',
+        'concurrency',
         'fan_out',
         'input',
         'split',
@@ -462,6 +463,18 @@ validate_settings <- function(
         !isFALSE(settings$batch$split)
     ) {
       stop('batch.split must be true or false')
+    }
+    concurrency <- settings$batch$concurrency
+    if (
+      !is.null(concurrency) &&
+        (!is.numeric(concurrency) ||
+          length(concurrency) != 1L ||
+          !is.finite(concurrency) ||
+          concurrency < 1 ||
+          concurrency != floor(concurrency) ||
+          concurrency > .Machine$integer.max)
+    ) {
+      stop('batch.concurrency must be a positive R integer')
     }
     on_error <- settings$batch$on_error
     if (is.list(on_error)) {

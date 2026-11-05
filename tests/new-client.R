@@ -255,11 +255,11 @@ new_client_acceptance <- function() {
   runtime_packages <- c('httr2', 'jsonlite', 'curl')
   stopifnot(all(
     runtime_packages %in%
-      trimws(strsplit(
+      trimws(sub(' *\\(.*', '', strsplit(
         read.dcf(file.path(root, 'DESCRIPTION'))[1L, 'Imports'],
         ',',
         fixed = TRUE
-      )[[1L]])
+      )[[1L]]))
   ))
   dependencies <- unique(c(
     runtime_packages,
