@@ -1,0 +1,1060 @@
+{
+  "arcgis_capture_version": "1",
+  "kind": "service",
+  "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/National_Measured_Conductivity/FeatureServer",
+  "sha256": "e319c5961c92e259c338f1b5d90471c60f0eb6ddf6717d0d648c42e4b736d6fa",
+  "document": {
+    "currentVersion": 12,
+    "capabilities": "Query,Extract,Sync",
+    "maxRecordCount": 2000,
+    "layers": [
+      {
+        "id": 1,
+        "name": "Rivers/Streams",
+        "parentLayerId": -1,
+        "defaultVisibility": true,
+        "subLayerIds": null,
+        "minScale": 0,
+        "maxScale": 0,
+        "type": "Feature Layer",
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "id": 2,
+        "name": "Lakes/Wetlands",
+        "parentLayerId": -1,
+        "defaultVisibility": true,
+        "subLayerIds": null,
+        "minScale": 0,
+        "maxScale": 0,
+        "type": "Feature Layer",
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "id": 3,
+        "name": "Wells",
+        "parentLayerId": -1,
+        "defaultVisibility": true,
+        "subLayerIds": null,
+        "minScale": 0,
+        "maxScale": 0,
+        "type": "Feature Layer",
+        "geometryType": "esriGeometryPoint"
+      },
+      {
+        "id": 4,
+        "name": "Other",
+        "parentLayerId": -1,
+        "defaultVisibility": true,
+        "subLayerIds": null,
+        "minScale": 0,
+        "maxScale": 0,
+        "type": "Feature Layer",
+        "geometryType": "esriGeometryPoint"
+      }
+    ],
+    "tables": []
+  },
+  "layers": [
+    {
+      "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/National_Measured_Conductivity/FeatureServer/1",
+      "sha256": "512b258be97eee391e0790495f3aea0086566392291ae8c5b52e67b45009a634",
+      "document": {
+        "id": 1,
+        "name": "Rivers/Streams",
+        "type": "Feature Layer",
+        "currentVersion": 12,
+        "capabilities": "Query,Extract,Sync",
+        "maxRecordCount": 2000,
+        "advancedQueryCapabilities": {
+          "supportsPagination": true,
+          "supportsPaginationOnAggregatedQueries": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsQueryWithDistance": true,
+          "supportsOutDistance": true,
+          "supportsReturningQueryExtent": true,
+          "supportsStatistics": true,
+          "supportsOrderBy": true,
+          "supportsDistinct": true,
+          "supportsQueryWithResultType": true,
+          "supportsSqlExpression": true,
+          "supportsTimeRelation": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsCountDistinct": true,
+          "supportsPercentileStatistics": true,
+          "supportsApproxPercentileStatistics": true,
+          "supportsSpatialAggregationStatistics": true,
+          "supportedSpatialAggregationStatistics": [
+            "EnvelopeAggregate",
+            "CentroidAggregate",
+            "ConvexHullAggregate"
+          ],
+          "supportsLod": true,
+          "supportsQueryWithLodSR": false,
+          "supportedLodTypes": [
+            "geohash"
+          ],
+          "supportsReturningGeometryCentroid": false,
+          "supportsReturningGeometryEnvelope": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCurrentUserQueries": true,
+          "supportsHavingClause": true,
+          "supportsOutFieldSQLExpression": true,
+          "supportsMaxRecordCountFactor": true,
+          "supportsTopFeaturesQuery": true,
+          "supportsDisjointSpatialRel": true,
+          "supportsQueryWithCacheHint": true,
+          "supportedOperationsWithCacheHint": [
+            "query",
+            "queryTopFilter",
+            "queryAnalytics",
+            "queryAttachments",
+            "queryRelated",
+            "queryBins",
+            "queryPivot"
+          ],
+          "supportsQueryAnalytic": true,
+          "supportsQueryPivot": true,
+          "supportsQueryBins": true,
+          "supportsDefaultSR": true,
+          "supportsTranslations": false,
+          "supportsAggIds": true,
+          "supportsQueryWithCollation": true,
+          "supportsISODOW": true,
+          "supportsISOWeek": true,
+          "supportsFullTextSearch": true,
+          "fullTextSearchCapabilities": {
+            "supportsAccentSensitivity": true,
+            "supportsStopWords": true,
+            "supportsSearchOperator": true,
+            "supportsOperator": true
+          }
+        },
+        "objectIdField": "OBJECTID",
+        "relationships": [],
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "OrganizationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Abbreviation",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "OrganizationFormalName",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "StationID",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationName",
+            "type": "esriFieldTypeString",
+            "alias": "Monitoring Location Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "LatitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LatitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "LongitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LongitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "ProviderName",
+            "type": "esriFieldTypeString",
+            "alias": "Provider Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "State",
+            "type": "esriFieldTypeString",
+            "alias": "State",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "SiteType",
+            "type": "esriFieldTypeString",
+            "alias": "Station Type",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          },
+          {
+            "name": "COMID",
+            "type": "esriFieldTypeInteger",
+            "alias": "COMID",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "StreamName",
+            "type": "esriFieldTypeString",
+            "alias": "Stream Name",
+            "nullable": true,
+            "length": 65,
+            "domain": null
+          },
+          {
+            "name": "AvgPredEC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Average Predicted Background Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Conductivity_Samples",
+            "type": "esriFieldTypeDouble",
+            "alias": "Conductivity Samples",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Mean",
+            "type": "esriFieldTypeDouble",
+            "alias": "Mean",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Minimum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Min",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Maximum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measurement_Date",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Measurement Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "Median",
+            "type": "esriFieldTypeDouble",
+            "alias": "Median",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measured_Conductivity",
+            "type": "esriFieldTypeDouble",
+            "alias": "Last Measured Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "GlobalID",
+            "type": "esriFieldTypeGlobalID",
+            "alias": "GlobalID",
+            "nullable": false,
+            "length": 38,
+            "domain": null
+          },
+          {
+            "name": "RegionEPA",
+            "type": "esriFieldTypeString",
+            "alias": "RegionEPA",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/National_Measured_Conductivity/FeatureServer/2",
+      "sha256": "6cf4f89160646738bc62268c82e3b53784b07d36b61a90dd9c76e2c33ab16c4f",
+      "document": {
+        "id": 2,
+        "name": "Lakes/Wetlands",
+        "type": "Feature Layer",
+        "currentVersion": 12,
+        "capabilities": "Query,Extract,Sync",
+        "maxRecordCount": 2000,
+        "advancedQueryCapabilities": {
+          "supportsPagination": true,
+          "supportsPaginationOnAggregatedQueries": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsQueryWithDistance": true,
+          "supportsOutDistance": true,
+          "supportsReturningQueryExtent": true,
+          "supportsStatistics": true,
+          "supportsOrderBy": true,
+          "supportsDistinct": true,
+          "supportsQueryWithResultType": true,
+          "supportsSqlExpression": true,
+          "supportsTimeRelation": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsCountDistinct": true,
+          "supportsPercentileStatistics": true,
+          "supportsApproxPercentileStatistics": true,
+          "supportsSpatialAggregationStatistics": true,
+          "supportedSpatialAggregationStatistics": [
+            "EnvelopeAggregate",
+            "CentroidAggregate",
+            "ConvexHullAggregate"
+          ],
+          "supportsLod": true,
+          "supportsQueryWithLodSR": false,
+          "supportedLodTypes": [
+            "geohash"
+          ],
+          "supportsReturningGeometryCentroid": false,
+          "supportsReturningGeometryEnvelope": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCurrentUserQueries": true,
+          "supportsHavingClause": true,
+          "supportsOutFieldSQLExpression": true,
+          "supportsMaxRecordCountFactor": true,
+          "supportsTopFeaturesQuery": true,
+          "supportsDisjointSpatialRel": true,
+          "supportsQueryWithCacheHint": true,
+          "supportedOperationsWithCacheHint": [
+            "query",
+            "queryTopFilter",
+            "queryAnalytics",
+            "queryAttachments",
+            "queryRelated",
+            "queryBins",
+            "queryPivot"
+          ],
+          "supportsQueryAnalytic": true,
+          "supportsQueryPivot": true,
+          "supportsQueryBins": true,
+          "supportsDefaultSR": true,
+          "supportsTranslations": false,
+          "supportsAggIds": true,
+          "supportsQueryWithCollation": true,
+          "supportsISODOW": true,
+          "supportsISOWeek": true,
+          "supportsFullTextSearch": true,
+          "fullTextSearchCapabilities": {
+            "supportsAccentSensitivity": true,
+            "supportsStopWords": true,
+            "supportsSearchOperator": true,
+            "supportsOperator": true
+          }
+        },
+        "objectIdField": "OBJECTID",
+        "relationships": [],
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "OrganizationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Abbreviation",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "OrganizationFormalName",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "StationID",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationName",
+            "type": "esriFieldTypeString",
+            "alias": "Monitoring Location Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "LatitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LatitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "LongitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LongitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "ProviderName",
+            "type": "esriFieldTypeString",
+            "alias": "Provider Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "State",
+            "type": "esriFieldTypeString",
+            "alias": "State",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "SiteType",
+            "type": "esriFieldTypeString",
+            "alias": "Station Type",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          },
+          {
+            "name": "COMID",
+            "type": "esriFieldTypeInteger",
+            "alias": "COMID",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "StreamName",
+            "type": "esriFieldTypeString",
+            "alias": "Stream Name",
+            "nullable": true,
+            "length": 65,
+            "domain": null
+          },
+          {
+            "name": "AvgPredEC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Average Predicted Background Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Conductivity_Samples",
+            "type": "esriFieldTypeDouble",
+            "alias": "Conductivity Samples",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Mean",
+            "type": "esriFieldTypeDouble",
+            "alias": "Mean",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Minimum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Min",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Maximum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measurement_Date",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Measurement Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "Median",
+            "type": "esriFieldTypeDouble",
+            "alias": "Median",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measured_Conductivity",
+            "type": "esriFieldTypeDouble",
+            "alias": "Last Measured Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "GlobalID",
+            "type": "esriFieldTypeGlobalID",
+            "alias": "GlobalID",
+            "nullable": false,
+            "length": 38,
+            "domain": null
+          },
+          {
+            "name": "RegionEPA",
+            "type": "esriFieldTypeString",
+            "alias": "RegionEPA",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/National_Measured_Conductivity/FeatureServer/3",
+      "sha256": "8b1f2c0873c150ec91256d33cb8ec9bcc43c412674dc65eadcba3931aa1f8543",
+      "document": {
+        "id": 3,
+        "name": "Wells",
+        "type": "Feature Layer",
+        "currentVersion": 12,
+        "capabilities": "Query,Extract,Sync",
+        "maxRecordCount": 2000,
+        "advancedQueryCapabilities": {
+          "supportsPagination": true,
+          "supportsPaginationOnAggregatedQueries": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsQueryWithDistance": true,
+          "supportsOutDistance": true,
+          "supportsReturningQueryExtent": true,
+          "supportsStatistics": true,
+          "supportsOrderBy": true,
+          "supportsDistinct": true,
+          "supportsQueryWithResultType": true,
+          "supportsSqlExpression": true,
+          "supportsTimeRelation": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsCountDistinct": true,
+          "supportsPercentileStatistics": true,
+          "supportsApproxPercentileStatistics": true,
+          "supportsSpatialAggregationStatistics": true,
+          "supportedSpatialAggregationStatistics": [
+            "EnvelopeAggregate",
+            "CentroidAggregate",
+            "ConvexHullAggregate"
+          ],
+          "supportsLod": true,
+          "supportsQueryWithLodSR": false,
+          "supportedLodTypes": [
+            "geohash"
+          ],
+          "supportsReturningGeometryCentroid": false,
+          "supportsReturningGeometryEnvelope": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCurrentUserQueries": true,
+          "supportsHavingClause": true,
+          "supportsOutFieldSQLExpression": true,
+          "supportsMaxRecordCountFactor": true,
+          "supportsTopFeaturesQuery": true,
+          "supportsDisjointSpatialRel": true,
+          "supportsQueryWithCacheHint": true,
+          "supportedOperationsWithCacheHint": [
+            "query",
+            "queryTopFilter",
+            "queryAnalytics",
+            "queryAttachments",
+            "queryRelated",
+            "queryBins",
+            "queryPivot"
+          ],
+          "supportsQueryAnalytic": true,
+          "supportsQueryPivot": true,
+          "supportsQueryBins": true,
+          "supportsDefaultSR": true,
+          "supportsTranslations": false,
+          "supportsAggIds": true,
+          "supportsQueryWithCollation": true,
+          "supportsISODOW": true,
+          "supportsISOWeek": true,
+          "supportsFullTextSearch": true,
+          "fullTextSearchCapabilities": {
+            "supportsAccentSensitivity": true,
+            "supportsStopWords": true,
+            "supportsSearchOperator": true,
+            "supportsOperator": true
+          }
+        },
+        "objectIdField": "OBJECTID",
+        "relationships": [],
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "OrganizationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Abbreviation",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "OrganizationFormalName",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "StationID",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationName",
+            "type": "esriFieldTypeString",
+            "alias": "Monitoring Location Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "LatitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LatitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "LongitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LongitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "WellDepthMeasure_MeasureValue",
+            "type": "esriFieldTypeString",
+            "alias": "WellDepthMeasure/MeasureValue",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "WellDepthMeasure_MeasureUnitCode",
+            "type": "esriFieldTypeString",
+            "alias": "WellDepthMeasure/MeasureUnitCode",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "ProviderName",
+            "type": "esriFieldTypeString",
+            "alias": "Provider Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "State",
+            "type": "esriFieldTypeString",
+            "alias": "State",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "SiteType",
+            "type": "esriFieldTypeString",
+            "alias": "Station Type",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          },
+          {
+            "name": "COMID",
+            "type": "esriFieldTypeInteger",
+            "alias": "COMID",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "StreamName",
+            "type": "esriFieldTypeString",
+            "alias": "Stream Name",
+            "nullable": true,
+            "length": 65,
+            "domain": null
+          },
+          {
+            "name": "AvgPredEC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Average Predicted Background Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Conductivity_Samples",
+            "type": "esriFieldTypeDouble",
+            "alias": "Conductivity Samples",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Mean",
+            "type": "esriFieldTypeDouble",
+            "alias": "Mean",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Minimum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Min",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Maximum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measurement_Date",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Measurement Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "Median",
+            "type": "esriFieldTypeDouble",
+            "alias": "Median",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measured_Conductivity",
+            "type": "esriFieldTypeDouble",
+            "alias": "Last Measured Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "GlobalID",
+            "type": "esriFieldTypeGlobalID",
+            "alias": "GlobalID",
+            "nullable": false,
+            "length": 38,
+            "domain": null
+          },
+          {
+            "name": "RegionEPA",
+            "type": "esriFieldTypeString",
+            "alias": "RegionEPA",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    },
+    {
+      "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/National_Measured_Conductivity/FeatureServer/4",
+      "sha256": "bb31e2031427c48b37f44a1a3b0dd5dc094018cef63ce51cc266fa6ab408eef2",
+      "document": {
+        "id": 4,
+        "name": "Other",
+        "type": "Feature Layer",
+        "currentVersion": 12,
+        "capabilities": "Query,Extract,Sync",
+        "maxRecordCount": 2000,
+        "advancedQueryCapabilities": {
+          "supportsPagination": true,
+          "supportsPaginationOnAggregatedQueries": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsQueryWithDistance": true,
+          "supportsOutDistance": true,
+          "supportsReturningQueryExtent": true,
+          "supportsStatistics": true,
+          "supportsOrderBy": true,
+          "supportsDistinct": true,
+          "supportsQueryWithResultType": true,
+          "supportsSqlExpression": true,
+          "supportsTimeRelation": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsCountDistinct": true,
+          "supportsPercentileStatistics": true,
+          "supportsApproxPercentileStatistics": true,
+          "supportsSpatialAggregationStatistics": true,
+          "supportedSpatialAggregationStatistics": [
+            "EnvelopeAggregate",
+            "CentroidAggregate",
+            "ConvexHullAggregate"
+          ],
+          "supportsLod": true,
+          "supportsQueryWithLodSR": false,
+          "supportedLodTypes": [
+            "geohash"
+          ],
+          "supportsReturningGeometryCentroid": false,
+          "supportsReturningGeometryEnvelope": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCurrentUserQueries": true,
+          "supportsHavingClause": true,
+          "supportsOutFieldSQLExpression": true,
+          "supportsMaxRecordCountFactor": true,
+          "supportsTopFeaturesQuery": true,
+          "supportsDisjointSpatialRel": true,
+          "supportsQueryWithCacheHint": true,
+          "supportedOperationsWithCacheHint": [
+            "query",
+            "queryTopFilter",
+            "queryAnalytics",
+            "queryAttachments",
+            "queryRelated",
+            "queryBins",
+            "queryPivot"
+          ],
+          "supportsQueryAnalytic": true,
+          "supportsQueryPivot": true,
+          "supportsQueryBins": true,
+          "supportsDefaultSR": true,
+          "supportsTranslations": false,
+          "supportsAggIds": true,
+          "supportsQueryWithCollation": true,
+          "supportsISODOW": true,
+          "supportsISOWeek": true,
+          "supportsFullTextSearch": true,
+          "fullTextSearchCapabilities": {
+            "supportsAccentSensitivity": true,
+            "supportsStopWords": true,
+            "supportsSearchOperator": true,
+            "supportsOperator": true
+          }
+        },
+        "objectIdField": "OBJECTID",
+        "relationships": [],
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "OrganizationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Abbreviation",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "OrganizationFormalName",
+            "type": "esriFieldTypeString",
+            "alias": "Organization Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationIdentifier",
+            "type": "esriFieldTypeString",
+            "alias": "StationID",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "MonitoringLocationName",
+            "type": "esriFieldTypeString",
+            "alias": "Monitoring Location Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "LatitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LatitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "LongitudeMeasure",
+            "type": "esriFieldTypeDouble",
+            "alias": "LongitudeMeasure",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "ProviderName",
+            "type": "esriFieldTypeString",
+            "alias": "Provider Name",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "State",
+            "type": "esriFieldTypeString",
+            "alias": "State",
+            "nullable": true,
+            "length": 8000,
+            "domain": null
+          },
+          {
+            "name": "SiteType",
+            "type": "esriFieldTypeString",
+            "alias": "Station Type",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          },
+          {
+            "name": "COMID",
+            "type": "esriFieldTypeInteger",
+            "alias": "COMID",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "StreamName",
+            "type": "esriFieldTypeString",
+            "alias": "Stream Name",
+            "nullable": true,
+            "length": 65,
+            "domain": null
+          },
+          {
+            "name": "AvgPredEC",
+            "type": "esriFieldTypeDouble",
+            "alias": "Average Predicted Background Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Conductivity_Samples",
+            "type": "esriFieldTypeDouble",
+            "alias": "Conductivity Samples",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Mean",
+            "type": "esriFieldTypeDouble",
+            "alias": "Mean",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Minimum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Min",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Maximum",
+            "type": "esriFieldTypeDouble",
+            "alias": "Max",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measurement_Date",
+            "type": "esriFieldTypeDate",
+            "alias": "Last Measurement Date",
+            "nullable": true,
+            "length": 8,
+            "domain": null
+          },
+          {
+            "name": "Median",
+            "type": "esriFieldTypeDouble",
+            "alias": "Median",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "Last_Measured_Conductivity",
+            "type": "esriFieldTypeDouble",
+            "alias": "Last Measured Conductivity",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "GlobalID",
+            "type": "esriFieldTypeGlobalID",
+            "alias": "GlobalID",
+            "nullable": false,
+            "length": 38,
+            "domain": null
+          },
+          {
+            "name": "RegionEPA",
+            "type": "esriFieldTypeString",
+            "alias": "RegionEPA",
+            "nullable": true,
+            "length": 255,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    }
+  ]
+}

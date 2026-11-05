@@ -1,0 +1,108 @@
+{
+  "arcgis_capture_version": "1",
+  "kind": "service",
+  "url": "https://echogeo.epa.gov/arcgis/rest/services/monitor/ncc_arcgis_checks/MapServer",
+  "sha256": "b090b03e97a1c0371677b5844783f660994245e3bd9eb05a55e40dfda627dc23",
+  "document": {
+    "currentVersion": 12.1,
+    "mapName": "Map",
+    "capabilities": "Map,Query,Data",
+    "maxRecordCount": 2000,
+    "layers": [
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "city1",
+        "defaultVisibility": true,
+        "id": 0,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      }
+    ],
+    "tables": []
+  },
+  "layers": [
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/monitor/ncc_arcgis_checks/MapServer/0",
+      "sha256": "481bc0f7e285ce065f5e240f22b1464e7374e274bcd6130dae39943bf7b0884c",
+      "document": {
+        "id": 0,
+        "name": "city1",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 2000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": false,
+          "supportsSqlExpression": false,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": false,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": false,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": false,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": false,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": false,
+          "supportsHavingClause": false
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "FID",
+            "type": "esriFieldTypeOID",
+            "alias": "FID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "Shape",
+            "type": "esriFieldTypeGeometry",
+            "alias": "Shape",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeInteger",
+            "alias": "OBJECTID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "City",
+            "type": "esriFieldTypeString",
+            "alias": "City",
+            "nullable": false,
+            "length": 254,
+            "domain": null
+          },
+          {
+            "name": "State",
+            "type": "esriFieldTypeString",
+            "alias": "State",
+            "nullable": false,
+            "length": 254,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    }
+  ]
+}

@@ -40,7 +40,8 @@ initialize_client <- function(
   naming_options <- validate_naming_options(naming, naming_options)
   name_case <- match.arg(name_case)
   group_by <- match.arg(group_by)
-  source <- openapi_initialization_source(schema)
+  source <- importer_initialization_source(schema)
+  companions <- union(companions, source$companions)
   base_url_override <- base_url
   if (!is.null(base_url) && !valid_server_url(base_url)) {
     stop(
@@ -176,7 +177,7 @@ initialize_client <- function(
   output <- c(
     output,
     initialization_scripts(
-      grep('^schema/openapi[.]', names(proposal$files), value = TRUE),
+      grep('^schema/(openapi|arcgis)[.]', names(proposal$files), value = TRUE),
       list(
         package = package,
         title = title,

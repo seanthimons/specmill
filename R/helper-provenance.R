@@ -138,12 +138,14 @@ validate_companions <- function(companions) {
     !is.character(companions) ||
       anyNA(companions) ||
       anyDuplicated(companions) ||
-      !all(companions %in% c('batching', 'pagination'))
+      !all(companions %in% c('batching', 'pagination', 'arcgis'))
   ) {
-    stop('companions must select batching and/or pagination without duplicates')
+    stop(
+      'companions must select batching, pagination and/or arcgis without duplicates'
+    )
   }
   # Selection order does not change the emitted baseline.
-  intersect(c('batching', 'pagination'), companions)
+  intersect(c('batching', 'pagination', 'arcgis'), companions)
 }
 
 request_helper_template <- function(companions = character()) {
@@ -153,6 +155,17 @@ request_helper_template <- function(companions = character()) {
     package = 'specmill',
     mustWork = TRUE
   ))
+  if ('arcgis' %in% companions) {
+    template <- paste(
+      template,
+      file_text(system.file(
+        'templates/arcgis.R',
+        package = 'specmill',
+        mustWork = TRUE
+      )),
+      sep = '\n\n'
+    )
+  }
   functions <- c(
     if ('batching' %in% companions) c('batched'),
     if ('pagination' %in% companions) {

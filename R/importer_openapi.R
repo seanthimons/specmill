@@ -4526,6 +4526,15 @@ reviewed_response_validation <- function(service, reports) {
     if (!length(corrections) && !length(opaque_bodies)) {
       next
     }
+    # Reviewed views patch OpenAPI documents. Other sources keep their own
+    # validation report and reject OpenAPI-only reviews when they are read.
+    selected <- tryCatch(
+      resolve_importer(file, service[['format']]),
+      error = function(e) NULL
+    )
+    if (!is.null(selected) && !selected$format %in% c('openapi', 'swagger')) {
+      next
+    }
     document <- tryCatch(
       read_schema_document(file, resolve_references = FALSE),
       error = identity

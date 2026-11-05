@@ -13,7 +13,21 @@ importer_registry <- function() {
       references = openapi_reference_inputs
     )
   }
-  list(openapi = entry('openapi'), swagger = entry('swagger'))
+  list(
+    openapi = entry('openapi'),
+    swagger = entry('swagger'),
+    'arcgis-rest' = list(
+      version = '1',
+      detect = arcgis_detect,
+      family = 'arcgis-rest',
+      import = importer_arcgis,
+      records = arcgis_records,
+      references = function(path) character(),
+      discover = arcgis_discover,
+      configuration = arcgis_configuration_source,
+      validate = arcgis_validation_report
+    )
+  )
 }
 
 importer_document <- function(path) {
@@ -247,5 +261,46 @@ importer_source_provenance <- function(files, labels, services = list()) {
       )
     }),
     labels
+  )
+}
+
+importer_configuration_source <- function(path) {
+  selected <- resolve_importer(path)
+  if (is.function(selected$importer$configuration)) {
+    return(selected$importer$configuration(path))
+  }
+  openapi_configuration_source(path)
+}
+
+importer_initialization_source <- function(path) {
+  selected <- resolve_importer(path)
+  if (selected$format != 'arcgis-rest') {
+    return(openapi_initialization_source(path))
+  }
+  source <- importer_catalogue_source(path, basename(path))
+  list(
+    server = function() source$server(''),
+    companions = c('pagination', 'arcgis')
+  )
+}
+
+importer_operation_keys <- function(path) {
+  selected <- resolve_importer(path)
+  if (selected$format %in% c('openapi', 'swagger')) {
+    return(openapi_operation_keys(path))
+  }
+  vapply(import_description(path)$ir$operations, `[[`, character(1), 'key')
+}
+
+importer_servers <- function(path) {
+  selected <- resolve_importer(path)
+  if (selected$format %in% c('openapi', 'swagger')) {
+    return(schema_servers(path))
+  }
+  unlist(
+    lapply(import_description(path)$ir$sources, function(source) {
+      vapply(source$servers, `[[`, character(1), 'url')
+    }),
+    use.names = FALSE
   )
 }

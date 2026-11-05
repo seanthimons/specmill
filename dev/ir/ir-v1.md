@@ -171,8 +171,10 @@ type, a GraphQL nullable field, and protobuf `optional` all land on one spelling
 ### Mapping tables
 
 The mappings below are fixture-covered by `inst/ir/examples/type-mappings.json`
-(protobuf, XSD, EDM and recursion) and `graphql.json`. Only the OpenAPI row is
-read by an importer today; the others are the contract their importers must meet.
+(protobuf, XSD, EDM and recursion) and `graphql.json`. The OpenAPI mappings and ArcGIS field mappings are read by importers today;
+the other rows remain the contract their importers must meet. ArcGIS import
+and supplied-case evidence are documented in
+[the ArcGIS audit](../audits/arcgis/README.md).
 
 | Source construct | IR | Notes / `lossy` code |
 |---|---|---|

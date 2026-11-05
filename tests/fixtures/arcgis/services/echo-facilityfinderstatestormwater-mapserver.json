@@ -1,0 +1,186 @@
+{
+  "arcgis_capture_version": "1",
+  "kind": "service",
+  "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/FacilityFinderStateStormWater/MapServer",
+  "sha256": "ca2028a683aa0b8cb45ef3fe7bd56ce2af018600ba1115dc0473c5633e3581bf",
+  "document": {
+    "currentVersion": 12.1,
+    "mapName": "FacilityFinderStateStormWater",
+    "capabilities": "Map,Query,Data",
+    "maxRecordCount": 2000,
+    "layers": [
+      {
+        "subLayerIds": null,
+        "maxScale": 0,
+        "name": "Facility Finder Industrial Stormwater",
+        "defaultVisibility": true,
+        "id": 0,
+        "minScale": 0,
+        "supportsDynamicLegends": true,
+        "type": "Feature Layer",
+        "parentLayerId": -1,
+        "geometryType": "esriGeometryPoint"
+      }
+    ],
+    "tables": []
+  },
+  "layers": [
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/FacilityFinderStateStormWater/MapServer/0",
+      "sha256": "6d73646ca71d57a2884e211b0342395b97a637c6f8ac573e481f1293c4b9a340",
+      "document": {
+        "id": 0,
+        "name": "Facility Finder Industrial Stormwater",
+        "type": "Feature Layer",
+        "currentVersion": 12.1,
+        "capabilities": "Map,Query,Data",
+        "maxRecordCount": 2000,
+        "advancedQueryCapabilities": {
+          "supportsStatistics": true,
+          "supportsSqlExpression": true,
+          "supportsQueryWithResultType": true,
+          "supportsTrueCurve": true,
+          "supportsOrderBy": true,
+          "supportsQueryRelatedPagination": true,
+          "supportsSqlFormat": false,
+          "useStandardizedQueries": true,
+          "supportsLod": false,
+          "supportsQueryWithDistance": true,
+          "supportsQueryWithCacheHint": false,
+          "supportsQueryWithDatumTransformation": true,
+          "supportsCountDistinct": true,
+          "supportsCurrentUserQueries": true,
+          "supportsAdvancedQueryRelated": true,
+          "supportsReturningQueryExtent": true,
+          "supportsQueryWithLodSR": false,
+          "supportsPagination": true,
+          "supportsMaxRecordCountFactor": false,
+          "supportsDistinct": true,
+          "supportsTimeRelation": true,
+          "supportsQueryAnalytic": false,
+          "supportsPercentileStatistics": true,
+          "supportsHavingClause": true
+        },
+        "relationships": [],
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "ID",
+            "type": "esriFieldTypeDouble",
+            "alias": "ID",
+            "nullable": false,
+            "domain": null
+          },
+          {
+            "name": "STATE_ID",
+            "type": "esriFieldTypeString",
+            "alias": "STATE_ID",
+            "nullable": false,
+            "length": 40,
+            "domain": null
+          },
+          {
+            "name": "BUSINESS_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "BUSINESS_NAME",
+            "nullable": true,
+            "length": 400,
+            "domain": null
+          },
+          {
+            "name": "SECONDARY_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "SECONDARY_NAME",
+            "nullable": true,
+            "length": 400,
+            "domain": null
+          },
+          {
+            "name": "ADDRESS",
+            "type": "esriFieldTypeString",
+            "alias": "ADDRESS",
+            "nullable": true,
+            "length": 400,
+            "domain": null
+          },
+          {
+            "name": "CITY",
+            "type": "esriFieldTypeString",
+            "alias": "CITY",
+            "nullable": true,
+            "length": 100,
+            "domain": null
+          },
+          {
+            "name": "STATE",
+            "type": "esriFieldTypeString",
+            "alias": "STATE",
+            "nullable": true,
+            "length": 2,
+            "domain": null
+          },
+          {
+            "name": "ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "ZIP",
+            "nullable": true,
+            "length": 5,
+            "domain": null
+          },
+          {
+            "name": "SIC",
+            "type": "esriFieldTypeString",
+            "alias": "SIC",
+            "nullable": true,
+            "length": 1000,
+            "domain": null
+          },
+          {
+            "name": "LATITUDE",
+            "type": "esriFieldTypeDouble",
+            "alias": "LATITUDE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "LONGITUDE",
+            "type": "esriFieldTypeDouble",
+            "alias": "LONGITUDE",
+            "nullable": true,
+            "domain": null
+          },
+          {
+            "name": "GEOGRAPHIC_DATA_SOURCE",
+            "type": "esriFieldTypeString",
+            "alias": "GEOGRAPHIC_DATA_SOURCE",
+            "nullable": true,
+            "length": 7,
+            "domain": null
+          },
+          {
+            "name": "ADDRESS_GEOCODE_QUALITY",
+            "type": "esriFieldTypeString",
+            "alias": "ADDRESS_GEOCODE_QUALITY",
+            "nullable": true,
+            "length": 256,
+            "domain": null
+          },
+          {
+            "name": "SHAPE",
+            "type": "esriFieldTypeGeometry",
+            "alias": "SHAPE",
+            "nullable": true,
+            "domain": null
+          }
+        ],
+        "geometryType": "esriGeometryPoint"
+      }
+    }
+  ]
+}

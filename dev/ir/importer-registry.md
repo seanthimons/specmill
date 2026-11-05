@@ -15,6 +15,11 @@ registry validates the IR before returning it. Importers own policy interpretati
 and must retain source diagnostics; reviewed OpenAPI requests use the existing
 lazy review context.
 
+OpenAPI, Swagger and `arcgis-rest` are registered. ArcGIS uses reviewed local
+captures; directory discovery expands only local service-capture paths and
+retains source diagnostics. Configuration and validation callbacks provide
+format-specific metadata without native keys in catalogue/generation modules.
+
 OpenAPI and Swagger are separate detected formats sharing importer version `1`
 and the same normalization family. Their existing 3.0/3.1 and 2.0 generation
 limits remain. A registry entry may also provide catalogue metadata, reference
@@ -26,7 +31,7 @@ may merge sources; unrelated families cannot be merged in one service.
 Blueprint filename extensions. Content detectors recognize OpenAPI/Swagger and
 Postman collection metadata. Text signatures identify GraphQL SDL, protobuf,
 WSDL namespaces, RAML headers and API Blueprint headers. Recognition does not
-provide an importer: currently unimplemented formats fail with their detected
+provide an importer: other unimplemented formats fail with their detected
 name and the supported-format list. Invalid JSON/YAML remains a source parse
 error. Future format issues add implementations rather than placeholders that
 claim to import them.
@@ -67,3 +72,13 @@ digests. Full package checks remain required for registry changes.
 - [WSDL 1.1](https://www.w3.org/TR/wsdl.html) and [WSDL 2.0](https://www.w3.org/TR/wsdl20/)
 - [RAML 1.0](https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md)
 - [API Blueprint metadata](https://apiblueprint.org/documentation/specification.html)
+
+## ArcGIS integration
+
+`R/importer_arcgis.R` emits IR directly. `R/ir_records.R` compiles its neutral
+request types to the existing request-record/schema contract without creating
+OpenAPI documents. The registered ArcGIS entry supplies local directory
+discovery, configuration metadata and capture/IR validation. Initialization
+includes client-owned ArcGIS protocol callbacks and pagination companions.
+See [supplied-case verification](../audits/arcgis/README.md) for the reviewed
+service set, offline acceptance and bounded live evidence.

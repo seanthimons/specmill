@@ -336,6 +336,7 @@ operation_review_context <- function(policy) {
               policy[['body_media']],
             explicit_media = !is.null(policy$body_media_overrides[[key]]),
             body_correction = policy$request_body_corrections[[key]],
+            opaque_body = policy$opaque_bodies[[key]],
             query_array_style = policy$query_array_style_overrides[[key]] %or%
               policy$query_array_style,
             cli::cli_abort('Unknown native review setting: {name}')
