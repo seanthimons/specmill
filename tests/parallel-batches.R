@@ -348,6 +348,14 @@ parallel_batches_acceptance <- function() {
   options(parallelclient.events = NULL)
   withr::with_options(list(parallelclient.dry_run = TRUE), {
     result <- runtime$item(c('a', 'b'))
+    options(parallelclient.formatted = NULL, parallelclient.combined = NULL)
+    prepared <- runtime$bulk(c('a', 'b', 'c'))
+    stopifnot(
+      length(prepared) == 2L,
+      all(vapply(prepared, inherits, logical(1), 'httr2_request')),
+      is.null(getOption('parallelclient.formatted')),
+      is.null(getOption('parallelclient.combined'))
+    )
     stopifnot(
       length(history()$history) == 0L,
       length(getOption('parallelclient.events')) == 2L
