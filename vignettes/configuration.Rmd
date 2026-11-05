@@ -56,9 +56,19 @@ on the original download directory. JSON and YAML share these rules.
 
 ### Reviewed remote references
 
-specmill never fetches a remote `$ref`. To resolve one, download the target
-yourself, review it, and record it in `specmill-references.yml` beside the
-root schema:
+Parsing and generation never fetch a remote `$ref`. To resolve one, download
+the target explicitly, review it, and record it in `specmill-references.yml`
+beside the root schema. `freeze_references()` does both:
+
+```r
+specmill::freeze_references(
+  'schema/openapi.json',
+  'https://raw.githubusercontent.com/opengeospatial/ogcapi-records/master/core/openapi/parameters/sortby.yaml'
+)
+```
+
+It stores the file under `references/<host>/<path>` and writes an entry like
+this, which you can also write by hand:
 
 ```yaml
 references:
@@ -79,8 +89,11 @@ Parsing then works offline and reproducibly. The lock file and mapped files are
 generation inputs, so check mode reports their hash changes. Initialization
 bundles them, and the generated client never fetches schemas at runtime.
 
-To refresh a mutable URL, replace the file and update its `sha256` in the same
-reviewed change. Until then, changed bytes produce `reference_hash_mismatch`.
+To refresh a mutable URL, call `freeze_references(..., refresh = TRUE)` after
+reviewing the upstream change, or replace the file and update its `sha256` in
+the same reviewed change. Without `refresh`, a changed upstream stops with both
+hashes. Nested references are not followed; freeze each unmapped URL that
+`read_operations()` reports. Until then, changed bytes produce `reference_hash_mismatch`.
 Other per-operation diagnostics: `external_reference` (URL not in the lock or
 not HTTP(S)), `unresolved_reference` (mapped file missing), `invalid_reference`
 (unreadable file), `recursive_reference`, and `reference_base` (a mapped schema

@@ -51,6 +51,7 @@ reference:
   - generation_command
   - coverage_report
   - schema_diff
+  - freeze_references
   - check_public_boundary
   - credential_status
 - title: File safety and advanced integration

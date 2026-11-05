@@ -1,0 +1,38 @@
+\name{freeze_references}
+\alias{freeze_references}
+\title{Download and record reviewed copies of remote schema references}
+\description{Explicitly download remote \code{$ref} target documents and record them in \code{specmill-references.yml} beside a local schema, so parsing and generation resolve them offline.}
+\usage{
+freeze_references(schema, urls, refresh = FALSE)
+}
+\arguments{
+\item{schema}{Existing local JSON or YAML schema. The lock file is written beside it.}
+\item{urls}{HTTP(S) document URLs, without fragments, queries, dot segments or a trailing slash.}
+\item{refresh}{Replace an entry whose upstream bytes changed. Leave \code{FALSE} until you have reviewed the change.}
+}
+\value{Invisibly, a data frame with \code{url}, \code{file}, \code{sha256} and \code{status}: \code{added}, \code{refreshed}, \code{restored} (local copy rewritten to the recorded bytes) or \code{unchanged}.}
+\details{
+This is the only specmill function that fetches schema dependencies. Parsing,
+validation, generation and generated clients stay offline.
+
+New files are stored under \code{references/<host>/<path>} inside the lock
+directory. Existing entries keep their \code{file}. Each download must parse as
+YAML when its file ends in \code{.yaml} or \code{.yml}, and as JSON otherwise.
+All URLs are downloaded and checked before any file or the lock changes; an
+unchanged re-run leaves the lock untouched. Rewriting the lock drops YAML comments written
+by hand.
+
+Nested references are not followed. After freezing, \code{read_operations()}
+reports any remaining unmapped URL as \code{external_reference}; review it and
+freeze it too. Review downloaded content before committing it.
+}
+\examples{
+\dontrun{
+freeze_references(
+  "schema/openapi.json",
+  "https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml"
+)
+read_operations("schema/openapi.json")$diagnostics
+}
+}
+\seealso{\code{\link{read_operations}}, \code{\link{validate_schema}}}

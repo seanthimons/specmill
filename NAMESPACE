@@ -1,6 +1,7 @@
 export(bind_tools)
 export(read_operations)
 export(validate_schema)
+export(freeze_references)
 export(compare_operations)
 export(generate_client)
 S3method(print,specmill_generation)
