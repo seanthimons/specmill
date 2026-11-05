@@ -183,8 +183,39 @@ freeze_references_acceptance <- function() {
       'sortby'
     )
   )
+
+  # A failed write puts back copies the batch already overwrote.
+  # Read-only files do not stop root, so the case is skipped there.
+  if (
+    .Platform$OS.type != 'windows' &&
+      Sys.info()[['effective_user']] != 'root'
+  ) {
+    other <- paste0(origin, '/ogc/other.yaml')
+    writeLines(sortby, file.path(served, 'ogc', 'other.yaml'))
+    other_file <- file.path(
+      project,
+      specmill::freeze_references(schema, other)$file
+    )
+    writeLines('edited', other_file)
+    Sys.chmod(other_file, '444')
+    writeLines(
+      c(sortby, 'description: changed again'),
+      file.path(served, 'ogc', 'sortby.yaml')
+    )
+    before <- readBin(file, 'raw', 1e6)
+    stopifnot(grepl(
+      'Cannot write',
+      fails(c(url, other), refresh = TRUE),
+      fixed = TRUE
+    ))
+    stopifnot(
+      identical(readBin(file, 'raw', 1e6), before),
+      identical(readLines(other_file), 'edited')
+    )
+    Sys.chmod(other_file, '644')
+  }
   cat(
-    'Freeze references: explicit download, provenance, no-op rerun, restore, refresh gate and failure atomicity passed against localhost.\n'
+    'Freeze references: explicit download, provenance, no-op rerun, restore, refresh gate, write rollback and failure atomicity passed against localhost.\n'
   )
 }
 
