@@ -216,9 +216,15 @@ schema_validation_report <- function(file, document = NULL) {
     ))
   }
   report$schema_version <- version
+  # Reviewed remote references (specmill-references.yml) are validated as the
+  # bundled document generation would produce; anything left is unsupported.
+  locked <- file.exists(reference_lock_path(file))
   external_refs <- function(node) {
     if (!is.list(node)) {
       return(FALSE)
+    }
+    if (locked && !is.null(node[['x-specmill-reference-error']])) {
+      return(TRUE)
     }
     ref <- node[['$ref']]
     if (
@@ -232,6 +238,10 @@ schema_validation_report <- function(file, document = NULL) {
     # ponytail: every external $ref is conservative, including example data;
     # a context-aware reference walker can relax literal examples if needed.
     any(vapply(node, external_refs, logical(1)))
+  }
+  if (locked && external_refs(document)) {
+    document <- resolve_schema_references(document, file)
+    attr(document, 'specmill_reference_dependencies') <- NULL
   }
   if (external_refs(document)) {
     return(result(

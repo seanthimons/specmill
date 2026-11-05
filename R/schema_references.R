@@ -59,11 +59,174 @@ schema_reference_pointer <- function(document, fragment, ref) {
   value
 }
 
+reference_lock_path <- function(path) {
+  file.path(dirname(path), 'specmill-references.yml')
+}
+
+# Reviewed URL-to-file mappings for remote references. Malformed lock data is
+# a configuration error, not a per-reference diagnostic.
+read_reference_lock <- function(path) {
+  lock_path <- reference_lock_path(path)
+  if (!file.exists(lock_path)) {
+    return(NULL)
+  }
+  lock_path <- normalizePath(lock_path, winslash = '/', mustWork = TRUE)
+  fail <- function(...) stop(lock_path, ': ', ..., call. = FALSE)
+  lock <- tryCatch(
+    read_schema_document(lock_path, resolve_references = FALSE),
+    error = function(e) fail(conditionMessage(e))
+  )
+  if (
+    !is.list(lock) ||
+      !identical(names(lock), 'references') ||
+      !is.list(lock$references) ||
+      !is.null(names(lock$references))
+  ) {
+    fail('expected only a `references` sequence')
+  }
+  root <- dirname(lock_path)
+  entries <- list()
+  for (i in seq_along(lock$references)) {
+    entry <- lock$references[[i]]
+    at <- paste0('references[', i, ']')
+    fields <- c('url', 'file', 'sha256')
+    if (
+      !is.list(entry) ||
+        !all(fields %in% names(entry)) ||
+        length(setdiff(names(entry), c(fields, 'retrieved')))
+    ) {
+      fail(at, ' needs url, file and sha256 (optional: retrieved)')
+    }
+    for (field in names(entry)) {
+      tryCatch(
+        config_string(entry[[field]], field),
+        error = function(e) fail(at, ': ', conditionMessage(e))
+      )
+    }
+    if (!grepl('^https?://[^/?#]+', entry$url) || grepl('#', entry$url)) {
+      fail(at, ': url must be an absolute HTTP(S) URL without a fragment')
+    }
+    if (!is.null(entries[[entry$url]])) {
+      fail(at, ': duplicate url ', entry$url)
+    }
+    if (!grepl('^[0-9a-f]{64}$', entry$sha256)) {
+      fail(at, ': sha256 must be 64 lowercase hexadecimal characters')
+    }
+    target <- file.path(root, entry$file)
+    if (file.exists(target)) {
+      target <- normalizePath(target, winslash = '/')
+    }
+    if (
+      fs::is_absolute_path(entry$file) ||
+        !fs::path_has_parent(target, root) ||
+        dir.exists(target)
+    ) {
+      fail(at, ': file must be a file inside ', root)
+    }
+    entries[[entry$url]] <- list(
+      file = as.character(fs::path_norm(target)),
+      sha256 = entry$sha256
+    )
+  }
+  list(path = lock_path, entries = entries)
+}
+
+# RFC 3986 section 5.2 reference resolution against an absolute base URI.
+reference_uri <- function(base, ref) {
+  if (grepl('^[A-Za-z][A-Za-z0-9+.-]*:', ref)) {
+    return(ref)
+  }
+  if (startsWith(ref, '#') || startsWith(ref, '?')) {
+    return(paste0(
+      sub(if (startsWith(ref, '#')) '#.*$' else '[?#].*$', '', base),
+      ref
+    ))
+  }
+  if (startsWith(ref, '//')) {
+    return(paste0(sub(':.*$', ':', base), ref))
+  }
+  authority <- sub('^([^:]+://[^/?#]*).*$', '\\1', base)
+  path <- if (startsWith(ref, '/')) {
+    ref
+  } else {
+    base_path <- substring(sub('[?#].*$', '', base), nchar(authority) + 1L)
+    paste0(sub('[^/]*$', '', if (nzchar(base_path)) base_path else '/'), ref)
+  }
+  query <- regmatches(path, regexpr('[?].*$', path))
+  path <- sub('[?].*$', '', path)
+  segments <- character()
+  for (segment in strsplit(path, '/', fixed = TRUE)[[1L]][-1L]) {
+    if (segment == '..') {
+      segments <- utils::head(segments, -1L)
+    } else if (segment != '.') {
+      segments <- c(segments, segment)
+    }
+  }
+  trailing <- if (length(segments) && grepl('/(\\.\\.?)?$', path)) '/' else ''
+  paste0(
+    authority,
+    '/',
+    paste(segments, collapse = '/'),
+    trailing,
+    paste(query, collapse = '')
+  )
+}
+
 resolve_schema_references <- function(document, path) {
   root <- normalizePath(path, winslash = '/', mustWork = TRUE)
   dependencies <- stats::setNames(tools::md5sum(root), root)
+  lock <- read_reference_lock(root)
   documents <- list()
   resolved <- list()
+  is_uri <- function(x) grepl('^https?://', x)
+  # Mapped documents are keyed by URI: their base for nested references is the
+  # reviewed URL, never the local storage path.
+  load_remote <- function(uri, ref) {
+    if (is.null(documents[[uri]])) {
+      entry <- lock$entries[[uri]]
+      dependencies[[lock$path]] <<- tools::md5sum(lock$path)
+      documents[[uri]] <<- if (!file.exists(entry$file)) {
+        schema_reference_error(
+          ref,
+          'unresolved_reference',
+          paste0('Missing reviewed reference file for ', uri, ': ', entry$file)
+        )
+      } else {
+        sha256 <- digest::digest(file = entry$file, algo = 'sha256')
+        dependencies[[entry$file]] <<- tools::md5sum(entry$file)
+        if (!identical(sha256, entry$sha256)) {
+          schema_reference_error(
+            ref,
+            'reference_hash_mismatch',
+            paste0(
+              'Reviewed reference file ',
+              entry$file,
+              ' has SHA-256 ',
+              sha256,
+              ' but ',
+              basename(lock$path),
+              ' records ',
+              entry$sha256,
+              ' for ',
+              uri
+            )
+          )
+        } else {
+          tryCatch(
+            read_schema_document(entry$file, resolve_references = FALSE),
+            error = function(e) {
+              schema_reference_error(
+                ref,
+                'invalid_reference',
+                paste('Cannot read reference:', ref)
+              )
+            }
+          )
+        }
+      }
+    }
+    documents[[uri]]
+  }
   load_document <- function(file) {
     file <- normalizePath(file, winslash = '/', mustWork = TRUE)
     if (!file %in% names(dependencies)) {
@@ -87,6 +250,22 @@ resolve_schema_references <- function(document, path) {
   ) {
     if (!is.list(node)) {
       return(node)
+    }
+    id <- node[['$id']]
+    if (
+      is_uri(file) &&
+        is.character(id) &&
+        length(id) == 1L &&
+        !startsWith(id, '#') &&
+        !identical(sub('#.*$', '', reference_uri(file, id)), file)
+    ) {
+      # ponytail: $id rebasing is rejected rather than modelled; add a base
+      # stack when a reviewed dependency needs it.
+      return(schema_reference_error(
+        id,
+        'reference_base',
+        paste('Remote schema $id changes the reference base:', id)
+      ))
     }
     ref <- node[['$ref']]
     if (!allow_ref || is.null(ref) || !is.character(ref) || length(ref) != 1L) {
@@ -121,17 +300,30 @@ resolve_schema_references <- function(document, path) {
     target_file <- if (split < 0L) ref else substr(ref, 1L, split - 1L)
     fragment <- if (split < 0L) '' else substr(ref, split, nchar(ref))
     external <- nzchar(target_file)
-    if (external && grepl('^(?:[A-Za-z][A-Za-z0-9+.-]*:|//)', target_file)) {
-      return(schema_reference_error(
-        ref,
-        'external_reference',
-        paste('Remote reference is not fetched:', ref)
-      ))
-    }
+    remote <- external &&
+      (is_uri(file) ||
+        grepl('^(?:[A-Za-z][A-Za-z0-9+.-]*:|//)', target_file))
     if (!external && !inline_local) {
       return(node)
     }
-    if (external) {
+    if (remote) {
+      target_path <- if (is_uri(file)) {
+        reference_uri(file, target_file)
+      } else {
+        target_file
+      }
+      if (is.null(lock$entries[[target_path]])) {
+        return(schema_reference_error(
+          ref,
+          'external_reference',
+          paste0('Remote reference is not fetched: ', target_path, fragment)
+        ))
+      }
+      target_document <- load_remote(target_path, ref)
+      if (inherits(target_document, 'specmill_reference_error')) {
+        return(target_document)
+      }
+    } else if (external) {
       target_path <- normalizePath(
         file.path(dirname(file), utils::URLdecode(target_file)),
         winslash = '/',
@@ -177,7 +369,10 @@ resolve_schema_references <- function(document, path) {
       return(schema_reference_error(
         ref,
         'recursive_reference',
-        paste('Recursive reference:', ref)
+        paste(
+          'Recursive reference:',
+          if (is_uri(target_path)) identity else ref
+        )
       ))
     }
     if (!is.null(resolved[[identity]])) {

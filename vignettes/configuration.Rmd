@@ -54,6 +54,39 @@ diagnostics when they affect an operation's request contract. Initialization bun
 dependencies into the copied schema so the generated client does not depend
 on the original download directory. JSON and YAML share these rules.
 
+### Reviewed remote references
+
+specmill never fetches a remote `$ref`. To resolve one, download the target
+yourself, review it, and record it in `specmill-references.yml` beside the
+root schema:
+
+```yaml
+references:
+  - url: https://raw.githubusercontent.com/opengeospatial/ogcapi-records/master/core/openapi/parameters/sortby.yaml
+    file: references/sortby.yaml
+    sha256: <sha256 of the reviewed file>
+    retrieved: 2026-11-05 # optional provenance note
+```
+
+`url` is the referenced document without its fragment; matching is exact.
+`file` is relative to the lock file and must stay inside its directory; JSON or
+YAML is chosen by its extension. Compute `sha256` with
+`digest::digest(file = 'references/sortby.yaml', algo = 'sha256')`. Relative
+references inside a mapped document resolve against its `url`, not its local
+path, and must be mapped too. A malformed lock file stops parsing.
+
+Parsing then works offline and reproducibly. The lock file and mapped files are
+generation inputs, so check mode reports their hash changes. Initialization
+bundles them, and the generated client never fetches schemas at runtime.
+
+To refresh a mutable URL, replace the file and update its `sha256` in the same
+reviewed change. Until then, changed bytes produce `reference_hash_mismatch`.
+Other per-operation diagnostics: `external_reference` (URL not in the lock or
+not HTTP(S)), `unresolved_reference` (mapped file missing), `invalid_reference`
+(unreadable file), `recursive_reference`, and `reference_base` (a mapped schema
+`$id` changes the reference base). Unrelated operations still parse. Keep the
+lock file next to every copy of the schema you parse or diff.
+
 ## Project file: specmill.yml
 
 ### Schema validation
@@ -67,7 +100,7 @@ nothing is uploaded. `validate_schema()` returns a standalone report. Explicit
 validation: false
 ```
 
-References outside the document return unsupported coverage; bundle them first. Request mappings and retained implementations cannot bypass the gate.
+References outside the document return unsupported coverage; bundle them first, or map remote ones in `specmill-references.yml` so validation checks the resolved document. Request mappings and retained implementations cannot bypass the gate.
 
 ### Review multiple APIs once
 
@@ -1855,7 +1888,8 @@ null automatically. Sending a service-specific null encoding requires an
 explicit client mapping or helper.
 
 Local references are resolved relative to the containing file; remote references
-are never fetched. Cycles and reference chains exceeding 100 levels are
+are never fetched, but can resolve from
+[reviewed local copies](#reviewed-remote-references). Cycles and reference chains exceeding 100 levels are
 diagnosed. OpenAPI 3.1 local schema-reference siblings are conjunctive. For a
 bundled reference with assertion siblings, use an explicit `allOf` containing
 the reference and the sibling constraints; a diagnostic prevents lossy merging.

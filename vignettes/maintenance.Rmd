@@ -70,7 +70,8 @@ testthat::test_local(root, stop_on_failure = TRUE)
 Generation validates each schema locally against its official OpenAPI JSON
 Schema before translating operations. Invalid documents and unsupported coverage
 block apply and check; inspect `plan$validation` for the full findings.
-References outside the document must be bundled first.
+References outside the document must be bundled first or, for remote ones,
+mapped to [reviewed local copies](configuration.html#reviewed-remote-references).
 
 Check mode warns when a current schema's hash differs from the last applied
 manifest, showing its path and previous/current SHA-256 hashes. The warning
