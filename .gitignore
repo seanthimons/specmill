@@ -2,6 +2,9 @@
 *.Rcheck/
 evidence/
 .Rhistory
+.RData
+.Rproj.user/
+.planning/
 *.jar
 .worktrees/
 docs/
