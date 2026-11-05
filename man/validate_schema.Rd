@@ -21,7 +21,10 @@ invalid keywords. They do not cover rules the specification states only in
 prose, such as unique operation IDs or resolvable internal references.
 Unparseable documents, non-object roots and duplicate keys are invalid. Other
 versions and schemas with external references, including local sibling files,
-are unsupported; bundle them into one document first. Reference detection is
+are unsupported; bundle them into one document first. When
+\code{specmill-references.yml} sits beside the schema, the document resolved
+through its reviewed remote copies is validated instead, and any reference
+left unresolved keeps it unsupported. Reference detection is
 conservative: external \code{$ref} keys in example data also require review.
 
 Each finding carries a JSON pointer. Pointers under an operation block that

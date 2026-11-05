@@ -2,8 +2,18 @@
 *.Rcheck/
 evidence/
 .Rhistory
+.RData
+.Rproj.user/
+.planning/
 *.jar
 .worktrees/
 docs/
 .docs-lib/
 artifacts/
+# Root-local workspace files (baseline templates/config/.gitignore). Blocks every
+# root dot-directory and root markdown file; required files are opted in below.
+/.*/
+/*.md
+!/.github/
+!/README.md
+!/NEWS.md

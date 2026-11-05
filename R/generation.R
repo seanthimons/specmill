@@ -209,6 +209,12 @@ iteration_settings <- function(operation, batch, explicit) {
     stop('batch.fan_out and batch.split cannot be combined: ', operation$id)
   }
   if (is.null(fan_out) && !split) {
+    if (!is.null(explicit$concurrency)) {
+      stop(
+        'batch.concurrency requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
     if (!is.null(explicit$metadata)) {
       stop(
         'batch.metadata requires batch.fan_out or batch.split: ',
@@ -241,6 +247,7 @@ iteration_settings <- function(operation, batch, explicit) {
   }
   list(
     fan_out = fan_out,
+    concurrency = batch$concurrency,
     input = input,
     split = split,
     on_error = on_error,
@@ -1090,7 +1097,37 @@ render_operation <- function(operation, spec) {
     stopifnot(sum(assigned) == 1L)
     request[assigned] <- sub('^  result <- ', '  ', request[assigned])
   }
+  parallel_batch <- !is.null(operation$iterate$concurrency)
+  if (parallel_batch) {
+    if ('.specmill_prepare' %in% state_parameters) {
+      stop(
+        'batch.concurrency internal name collides with a client input: ',
+        operation$id
+      )
+    }
+    if (
+      !is.null(pg) ||
+        !is.null(request_paging) ||
+        !is.null(spec[['request']]) ||
+        !is.null(spec$cache) ||
+        preserve_visibility ||
+        !is.null(spec$route_guard)
+    ) {
+      stop(
+        'batch.concurrency requires native unpaged requests without cache, route_guard or preserve_visibility: ',
+        operation$id
+      )
+    }
+    # The native call is one generated assignment. Carry preparation explicitly.
+    assigned <- which(startsWith(trimws(request), 'result <- '))
+    stopifnot(length(assigned) == 1L)
+    request[assigned] <- paste0(
+      substr(request[assigned], 1L, nchar(request[assigned]) - 1L),
+      ', .prepare = .specmill_prepare)'
+    )
+  }
   lines <- c(lines, request)
+  completion_start <- length(lines)
   post_response_lines <- character()
   if (length(hooks$post_response)) {
     post_start <- length(lines)
@@ -1144,6 +1181,14 @@ render_operation <- function(operation, spec) {
   }
   if (!preserve_visibility) {
     lines <- c(lines, '  result')
+  }
+  if (parallel_batch) {
+    lines <- c(
+      head(lines, completion_start),
+      paste0('  ', helper, '_then(result, function(result) {'),
+      paste0('  ', tail(lines, -completion_start)),
+      '  })'
+    )
   }
   if (
     length(hooks$post_combine) &&
@@ -1284,7 +1329,11 @@ render_operation <- function(operation, spec) {
       combined_post
     lines <- c(
       head(lines, per_request),
-      '  send <- function(params) {',
+      if (parallel_batch) {
+        '  send <- function(params, .specmill_prepare = FALSE) {'
+      } else {
+        '  send <- function(params) {'
+      },
       paste0('  ', tail(lines, -per_request)),
       '  }',
       if (!is.null(pg)) {
@@ -1294,10 +1343,20 @@ render_operation <- function(operation, spec) {
         '  ',
         if (combine) 'result <- ',
         helper,
-        '_each(function(chunk) {'
+        if (parallel_batch) {
+          '_each(function(chunk, .specmill_prepare = FALSE) {'
+        } else {
+          '_each(function(chunk) {'
+        }
       ),
       paste0('    params[', r_literal(input), '] <- base::list(chunk)'),
-      if (is.null(pg)) '    send(params)' else '    fetch(params)',
+      if (parallel_batch) {
+        '    send(params, .specmill_prepare)'
+      } else if (is.null(pg)) {
+        '    send(params)'
+      } else {
+        '    fetch(params)'
+      },
       paste0(
         '  }, params[[',
         r_literal(input),
@@ -1311,6 +1370,9 @@ render_operation <- function(operation, spec) {
         },
         ', on_error = ',
         r_literal(operation$iterate$on_error),
+        if (parallel_batch) {
+          paste0(', concurrency = ', r_literal(operation$iterate$concurrency))
+        },
         if (!is.null(operation$iterate$empty)) {
           paste0(', empty = ', operation$iterate$empty)
         },
@@ -1330,6 +1392,9 @@ render_operation <- function(operation, spec) {
         },
         ')'
       ),
+      if (parallel_batch && combine) {
+        '  if (base::is.list(result) && base::any(base::vapply(result, base::inherits, base::logical(1), "httr2_request"))) base::return(result)'
+      },
       if (!keep_metadata) '  base::attr(result, "failed") <- NULL',
       if (length(hooks$post_combine)) {
         post_combine_lines('failed')
@@ -1798,6 +1863,7 @@ generate_client <- function(
       paste0(
         x$helper,
         c(
+          '_then',
           '_decode',
           '_delimited',
           '_records',
@@ -2041,6 +2107,22 @@ generate_client <- function(
           op$id,
           '. Compare the helper with the current template and adopt them.'
         )
+      }
+      if (!is.null(op$iterate$concurrency) && !is.null(config)) {
+        runner <- runtime_definitions[[paste0(operation_spec$helper, '_each')]]
+        native <- runtime_definitions[[operation_spec$helper]]
+        if (
+          !paste0(operation_spec$helper, '_then') %in%
+            names(runtime_definitions) ||
+            !'concurrency' %in% names(formals(eval(runner$expr, baseenv()))) ||
+            !'.prepare' %in% names(formals(eval(native$expr, baseenv())))
+        ) {
+          stop(
+            'batch.concurrency needs the current client helper with _then(), .prepare and concurrency support: ',
+            op$id,
+            '. Compare the helper with the current template and adopt it.'
+          )
+        }
       }
       if (!is.null(op$iterate$warning)) {
         warning_formatter <- op$iterate$warning

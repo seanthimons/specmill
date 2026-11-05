@@ -4,6 +4,8 @@
 ^evidence$
 ^.*\.jar$
 ^HANDOFF\.md$
+^AGENTS\.md$
+^CLAUDE\.md$
 ^\.worktrees$
 ^\.git$
 ^\.gitleaksignore$
@@ -14,4 +16,3 @@
 ^\.docs-lib$
 ^artifacts$
 ^dev$
-^specmill_hex\.png$

@@ -54,6 +54,52 @@ diagnostics when they affect an operation's request contract. Initialization bun
 dependencies into the copied schema so the generated client does not depend
 on the original download directory. JSON and YAML share these rules.
 
+### Reviewed remote references
+
+Parsing and generation never fetch a remote `$ref`. To resolve one, download
+the target explicitly, review it, and record it in `specmill-references.yml`
+beside the root schema. `freeze_references()` does both:
+
+```r
+specmill::freeze_references(
+  'schema/openapi.json',
+  'https://raw.githubusercontent.com/opengeospatial/ogcapi-records/master/core/openapi/parameters/sortby.yaml'
+)
+```
+
+It stores the file under `references/<host>/<path>` and writes an entry like
+this, which you can also write by hand:
+
+```yaml
+references:
+  - url: https://raw.githubusercontent.com/opengeospatial/ogcapi-records/master/core/openapi/parameters/sortby.yaml
+    file: references/sortby.yaml
+    sha256: <sha256 of the reviewed file>
+    retrieved: 2026-11-05 # optional provenance note
+```
+
+`url` is the referenced document without its fragment; matching is exact.
+`file` is relative to the lock file and must stay inside its directory; JSON or
+YAML is chosen by its extension. Compute `sha256` with
+`digest::digest(file = 'references/sortby.yaml', algo = 'sha256')`. Relative
+references inside a mapped document resolve against its `url`, not its local
+path, and must be mapped too. A malformed lock file stops parsing.
+
+Parsing then works offline and reproducibly. The lock file and mapped files are
+generation inputs, so check mode reports their hash changes. Initialization
+bundles them, and the generated client never fetches schemas at runtime.
+
+To refresh a mutable URL, call `freeze_references(..., refresh = TRUE)` after
+reviewing the upstream change, or replace the file and update its `sha256` in
+the same reviewed change. Without `refresh`, a changed upstream stops with both
+hashes. Nested references are not followed; freeze each unmapped URL that
+`read_operations()` reports. Until then, changed bytes produce `reference_hash_mismatch`.
+Other per-operation diagnostics: `external_reference` (URL not in the lock or
+not HTTP(S)), `unresolved_reference` (mapped file missing), `invalid_reference`
+(unreadable file), `recursive_reference`, and `reference_base` (a mapped schema
+`$id` changes the reference base). Unrelated operations still parse. Keep the
+lock file next to every copy of the schema you parse or diff.
+
 ## Project file: specmill.yml
 
 ### Schema validation
@@ -67,7 +113,7 @@ nothing is uploaded. `validate_schema()` returns a standalone report. Explicit
 validation: false
 ```
 
-References outside the document return unsupported coverage; bundle them first. Request mappings and retained implementations cannot bypass the gate.
+References outside the document return unsupported coverage; bundle them first, or map remote ones in `specmill-references.yml` so validation checks the resolved document. Request mappings and retained implementations cannot bypass the gate.
 
 ### Review multiple APIs once
 
@@ -857,6 +903,53 @@ options(comptoxr.api_request.batching = list(max_items = 50))
 
 The batching companion's `api_request_batched()` reads the same option and
 rejects `max_items` and `empty`. Unset them before calling it.
+
+**Parallel batches.** An individual operation can select bounded HTTP concurrency:
+
+~~~yaml
+operations:
+  GET /items/{id}:
+    batch:
+      fan_out: id
+      concurrency: 4
+    request_controls:
+      max_retries: 0
+      throttle: {capacity: 20, fill_time_s: 1}
+~~~
+
+`concurrency` is a positive integer and belongs under operations, alongside
+`fan_out` or `split`. Without it, execution stays sequential. Parallel execution
+requires httr2 >= 1.3.0 in the generated client, a throttle, and `max_retries: 0`.
+New clients declare `httr2 (>= 1.3.0)` in Imports; existing clients must update
+that declaration before distributing parallel wrappers.
+The runtime checks this version before sending requests. The parallel httr2
+executor does not honor per-request retry counts, so enabled retries are rejected
+before any network activity. Timeouts still apply to each request. Requests are submitted in groups no larger
+than the concurrency limit, and each group finishes before the next starts.
+
+All pre-request hooks and request preparation run in input order before sending.
+Each prepared request retains its own state. Responses are decoded and
+post-response hooks run in input order after all HTTP requests finish; final
+combination, combined hooks and formatting follow as usual. Duplicates retain
+their input positions. Dry runs send nothing and bypass response hooks.
+
+Every request must target the same service origin. Pagination, custom request
+mappings, caches, route guards and visibility preservation cannot combine with
+`concurrency` in this version. This setting does not make calls return immediately
+or parallelize unrelated wrapper calls. The existing batching session option
+does not override concurrency.
+
+`on_error: drop` retains the existing failure metadata. With `stop`, or a fatal
+HTTP 401, errors are reported during ordered completion after the HTTP batch has
+finished. Other requests may already have succeeded, including writes; no
+cancellation or rollback is promised. Call-level preparation failures stop before
+any requests are sent. Interrupting execution raises an error if responses are
+incomplete, rather than returning a partial success.
+
+Existing clients must deliberately adopt the updated request helper, including
+`<helper>_then()`, the request helper's `.prepare` argument, and the executor's
+`concurrency` argument. Generation diagnoses missing capabilities and preserves
+client-owned files. Compare with the current template using `inspect_client()`.
 
 **Configuration rules.** Inherited settings apply only where they fit. An
 API-level `split: true` affects only operations with an array body and a
@@ -1808,7 +1901,8 @@ null automatically. Sending a service-specific null encoding requires an
 explicit client mapping or helper.
 
 Local references are resolved relative to the containing file; remote references
-are never fetched. Cycles and reference chains exceeding 100 levels are
+are never fetched, but can resolve from
+[reviewed local copies](#reviewed-remote-references). Cycles and reference chains exceeding 100 levels are
 diagnosed. OpenAPI 3.1 local schema-reference siblings are conjunctive. For a
 bundled reference with assertion siblings, use an explicit `allOf` containing
 the reference and the sibling constraints; a diagnostic prevents lossy merging.

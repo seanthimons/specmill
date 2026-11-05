@@ -1,4 +1,4 @@
-# source('testing_specs.R'); source('dev/download_testing_specs.R')
+# source('dev/testing_specs.R'); source('dev/download_testing_specs.R')
 # download_testing_specs(specs, 'C:/Users/sxthi/Documents/specmill-testing')
 download_testing_specs <- function(specs, root) {
   stopifnot(
