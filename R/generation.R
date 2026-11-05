@@ -2862,6 +2862,8 @@ generate_client <- function(
     method = 'radix'
   )]
   attr(desired, 'schema_inventory') <- schema_inventory
+  source_importers <- importer_source_provenance(schema_files, schema_labels, services)
+  attr(desired, 'importers') <- source_importers
   attr(desired, 'callbacks') <- callbacks_before
   unused_hooks <- list()
   if (any(vapply(services, function(x) length(x$hooks) > 0L, logical(1)))) {
@@ -3043,6 +3045,7 @@ generate_client <- function(
       manifest = list(
         toolkit_version = as.character(utils::packageVersion('specmill')),
         inputs = input_hashes,
+        importers = source_importers,
         policy_version = vapply(
           services,
           function(x) x$policy_version %or% 'unspecified',

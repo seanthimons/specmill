@@ -93,7 +93,11 @@ fixed_contract <- function(service, operation) {
 }
 
 read_service_operations <- function(service) {
-  parsed <- read_operations(service$files, service[['policy']] %or% list())
+  parsed <- read_operations(
+    service$files,
+    service[['policy']] %or% list(),
+    service[['format']]
+  )
   mapped <- character()
   retained <- character()
   known <- vapply(
@@ -323,6 +327,7 @@ load_project <- function(
         'id',
         'authentication',
         'schemas',
+        'format',
         'selection',
         'helper',
         'names',
@@ -397,8 +402,15 @@ load_project <- function(
     if (!length(schema_files)) {
       stop(id, ': no schemas selected')
     }
+    format <- service[['format']]
+    if (!is.null(format)) {
+      config_string(format, paste(id, 'format'))
+    }
     reference_inputs <- unlist(
-      lapply(schema_files, openapi_reference_inputs),
+      lapply(schema_files, function(path) {
+        selected <- resolve_importer(path, format)
+        selected$importer$references(path)
+      }),
       use.names = FALSE
     )
     inputs <<- c(inputs, schema_files, reference_inputs)
@@ -635,6 +647,7 @@ load_project <- function(
       id = id,
       authentication = service$authentication,
       files = schema_files,
+      format = format,
       helper = helper,
       hooks = hooks,
       hook_config = service$hook_config,
@@ -760,7 +773,11 @@ load_project <- function(
     ) {
       next
     }
-    parsed <- read_operations(service$files, service[['policy']])
+    parsed <- read_operations(
+      service$files,
+      service[['policy']],
+      service[['format']]
+    )
     for (operation in Filter(
       function(x) x$status != 'excluded',
       parsed$inventory
@@ -811,18 +828,21 @@ load_project <- function(
             route_key
           )]
         }
-        target <- tryCatch(read_operations(file, policy), error = function(e) {
-          stop(
-            service$id,
-            ': unknown or unparseable route: ',
-            basename(file),
-            ' ',
-            route_key,
-            '; ',
-            conditionMessage(e),
-            call. = FALSE
-          )
-        })
+        target <- tryCatch(
+          read_operations(file, policy, service[['format']]),
+          error = function(e) {
+            stop(
+              service$id,
+              ': unknown or unparseable route: ',
+              basename(file),
+              ' ',
+              route_key,
+              '; ',
+              conditionMessage(e),
+              call. = FALSE
+            )
+          }
+        )
         records <- c(target$operations, target$unsupported_operations)
         if (length(records) != 1L) {
           stop(

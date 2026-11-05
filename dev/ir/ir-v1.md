@@ -5,8 +5,9 @@ settles the type model asked for in
 [#232](https://github.com/seanthimons/specmill/issues/232), as the IR needs one
 to be format-neutral. The internal `importer_openapi(files)` now emits this IR.
 Generation consumes the IR compatibility projection introduced in
-[#229](https://github.com/seanthimons/specmill/issues/229). The registry follows
-in [#230](https://github.com/seanthimons/specmill/issues/230).
+[#229](https://github.com/seanthimons/specmill/issues/229). The registry is introduced
+in [#230](https://github.com/seanthimons/specmill/issues/230); its internal
+contract is documented in [importer-registry.md](importer-registry.md).
 
 | Artifact | Path |
 |---|---|
@@ -62,7 +63,7 @@ live in the importer. Their callers receive source metadata or compatible record
 through importer accessors; source validation and loading remain explicit
 exceptions. JSON Schema fragment consumers remain tracked in #279. The
 411-artifact output baseline and 102 referenced-contract provenance digests
-protect this boundary. The importer remains internal until the registry lands.
+protect this boundary. The importer and registry remain internal while the public extension contract settles.
 
 `Rscript tests/ir-compatibility.R` verifies exact R-record parity, neutral-field
 projection, lazy reviews, source snapshots and invalid unused metadata.
@@ -296,13 +297,14 @@ post-import consumers to the type tree.
 
 Source `dev/check_importer_boundary.R` and call `check_importer_boundary()` to
 check native root-field access and document-loader calls. The source validator
-and loader infrastructure are explicit exemptions. The only `definitions` field
+and loader infrastructure are explicit exemptions. The registry may load an
+unresolved document for detectors but cannot interpret native OpenAPI fields. The only `definitions` field
 exception is the unrelated `loaded$definitions` R function table.
 
 The public legacy `openapi_to_spec()` name is retained for explicit client parser
 contexts; its implementation is importer-owned. Version-gate consolidation is
-still a registry concern for #230: legacy compatibility accepts broader 2.x/3.x
-versions than the current generation and catalogue entry points.
+preserved for legacy compatibility: those helpers accept broader 2.x/3.x
+versions than the current registered generation and catalogue entry points.
 
 ## Not decided here
 

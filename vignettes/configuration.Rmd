@@ -2666,3 +2666,19 @@ Declared alternative routes compare the configured server resolver, key,
 relative base path and recorded absolute fallback. A common resolver can join
 relative OpenAPI and hostless Swagger routes with the same base path; different
 resolver settings or fallback URLs remain errors.
+
+## Schema formats
+
+Schemas are detected by registered importers. OpenAPI 3.0/3.1 and Swagger 2.0
+are currently implemented. Other recognized descriptions report their format
+and the supported importer list; recognition alone does not enable generation.
+Use an API-level or flat-service `format: openapi` or `format: swagger` to
+override detection. API groups inherit that setting. Omit it to detect each
+source automatically.
+
+For a catalogue, supply a `format` column in `configure_apis()`'s `choices`
+data frame or maintain `format:` in `specmill-apis.yml`; a blank catalogue
+format means automatic detection. Format selection happens before the review
+table is built. Detected `source_format` and `importer_version` are read-only
+metadata, also recorded per schema in generated ownership provenance. Importer
+registration is internal until the extension contract stabilizes.

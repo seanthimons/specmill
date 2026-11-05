@@ -154,7 +154,7 @@ apply_files <- function(
   if (
     !is.list(desired) ||
       (length(desired) &&
-        (is.null(names(desired)) || any(!nzchar(names(desired))))) ||
+        (is.null(names(desired)) || !all(nzchar(names(desired))))) ||
       !is.character(remove)
   ) {
     stop('Expected named output text and relative removal paths')
@@ -293,6 +293,9 @@ apply_files <- function(
   }
   if (!is.null(attr(desired, 'schema_inventory'))) {
     manifest$schema_inventory <- attr(desired, 'schema_inventory')
+  }
+  if (!is.null(attr(desired, 'importers'))) {
+    manifest$importers <- attr(desired, 'importers')
   }
   if (!is.null(attr(desired, 'callbacks'))) {
     manifest$callbacks <- attr(desired, 'callbacks')
