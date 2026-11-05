@@ -17,8 +17,8 @@ diagnostics and inventory, and generated client files. Client files include
 wrappers, help, exports, configuration, helpers, schemas and ownership metadata.
 Each fixture uses a fresh client; generation sends no HTTP requests. No request
 contracts are configured, so this baseline does not certify generated contract
-tests or stored cassette provenance; the latter belongs to
-[#279](https://github.com/seanthimons/specmill/issues/279).
+tests. A separate referenced-contract provenance baseline protects the raw
+reference digests retained for [#279](https://github.com/seanthimons/specmill/issues/279).
 
 ## Reproduce
 
@@ -82,3 +82,19 @@ keep full artifacts to inspect a mismatch.
 
 The harness is development tooling under `dev/`, excluded from package builds.
 It complements the full package check required for the later importer refactor.
+
+## Referenced-contract provenance
+
+`provenance.csv` freezes 102 operation reference digests captured before the
+native reference accessors moved into the importer. Rebasing that reference
+onto `main` at `v0.2.5` left all 102 digests unchanged. It covers the
+same seven fixtures, including unsupported operations. Do not regenerate it
+after a reader migration merely to accept a mismatch.
+
+```r
+source('dev/check_ir_provenance.R')
+check_ir_provenance()
+```
+
+This protects the referenced-schema portion of cassette provenance. The ordinary
+package tests continue to cover recorded request and response review.

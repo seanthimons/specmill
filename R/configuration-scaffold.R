@@ -37,7 +37,12 @@ configuration_name_diagnostics <- function(operations, package) {
   public_names <- vapply(operations, `[[`, character(1), 'name')
   collisions <- duplicated(tolower(public_names)) |
     duplicated(tolower(public_names), fromLast = TRUE) |
-    public_names %in% c('api_request', 'run_hook', paste0(package, c('_run_verbose', '_dry_run')))
+    public_names %in%
+      c(
+        'api_request',
+        'run_hook',
+        paste0(package, c('_run_verbose', '_dry_run'))
+      )
   lapply(which(collisions), function(i) {
     diagnostic <- list(
       key = operations[[i]]$key,
@@ -79,14 +84,7 @@ configuration_proposal <- function(
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {
     stop('Invalid R package name')
   }
-  document <- read_schema_document(schema)
-  version <- document$openapi %or% document$swagger
-  if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
-    stop('Unsupported schema version')
-  }
-  if (!is.list(document$paths) || is.null(names(document$paths))) {
-    stop('Missing paths')
-  }
+  source <- openapi_configuration_source(schema)
   records <- list()
   diagnostics <- list()
   report <- function(key, code, message) {
@@ -96,57 +94,12 @@ configuration_proposal <- function(
       message = message
     )
   }
-  for (path in sort(names(document$paths), method = 'radix')) {
-    item <- tryCatch(
-      local_ref(
-        document$paths[[path]],
-        document,
-        source_location = schema_location('#/paths', path)
-      ),
-      error = identity
-    )
-    if (inherits(item, 'error')) {
-      report(paste('PATH', path), 'unsupported', conditionMessage(item))
-      next
-    }
-    for (method in intersect(
-      c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'),
-      names(item)
-    )) {
-      key <- paste(toupper(method), path)
-      operation <- tryCatch(
-        local_ref(
-          item[[method]],
-          document,
-          source_location = schema_location(
-            schema_location('#/paths', path),
-            method
-          )
-        ),
-        error = identity
-      )
-      if (inherits(operation, 'error')) {
-        report(key, 'unsupported', conditionMessage(operation))
-        next
-      }
-      tags <- operation$tags
-      if (
-        !is.null(tags) &&
-          (!is.list(tags) ||
-            !is.null(names(tags)) ||
-            !all(vapply(
-              tags,
-              function(x) {
-                is.character(x) &&
-                  length(x) == 1L &&
-                  !is.na(x)
-              },
-              logical(1)
-            )))
-      ) {
-        stop('Invalid tags for ', key)
-      }
-      tags <- Filter(function(tag) nzchar(trimws(tag)), tags)
+  source$operations(
+    function(metadata) {
+      key <- metadata$key
+      path <- metadata$path
+      method <- metadata$method
+      tags <- metadata$tags
       tag <- if (length(tags)) tags[[1L]] else 'default'
       if (!length(tags)) {
         report(key, 'missing_tag', 'Assigned to default')
@@ -167,7 +120,7 @@ configuration_proposal <- function(
       if (group_by == 'none') {
         group <- 'default'
       }
-      name <- operation$operationId
+      name <- metadata$name
       if (naming == 'path') {
         # The route alone decides the name, so operationId is not consulted.
         name <- path_operation_name(
@@ -196,7 +149,7 @@ configuration_proposal <- function(
       }
       raw <- name
       name <- make.names(configuration_case(name, name_case))
-      records[[length(records) + 1L]] <- list(
+      records[[length(records) + 1L]] <<- list(
         key = key,
         tag = tag,
         group = group,
@@ -205,8 +158,9 @@ configuration_proposal <- function(
         method = toupper(method),
         path = path
       )
-    }
-  }
+    },
+    report
+  )
   if (!length(records)) {
     stop('Schema contains no operations')
   }
@@ -246,7 +200,10 @@ configuration_proposal <- function(
       )
     }
   }
-  diagnostics <- c(diagnostics, configuration_name_diagnostics(records, package))
+  diagnostics <- c(
+    diagnostics,
+    configuration_name_diagnostics(records, package)
+  )
   # Diagnostic parsing must not fail early on the very name collisions we report.
   parsed <- read_operations(
     schema,
@@ -271,33 +228,9 @@ configuration_proposal <- function(
     text
   }
   services <- sort(unique(groups), method = 'radix')
-  extension <- tolower(tools::file_ext(schema))
-  if (!extension %in% c('yaml', 'yml')) {
-    extension <- 'json'
-  }
-  schema_file <- paste0('schema/openapi.', extension)
-  schema_text <- if (
-    !is.null(attr(document, 'specmill_reference_dependencies'))
-  ) {
-    plain <- function(x) {
-      if (!is.list(x)) {
-        return(x)
-      }
-      output <- lapply(unclass(x), plain)
-      names(output) <- names(x)
-      output
-    }
-    as.character(jsonlite::toJSON(
-      plain(document),
-      auto_unbox = TRUE,
-      pretty = TRUE,
-      digits = NA,
-      null = 'null'
-    ))
-  } else {
-    file_text(schema)
-  }
-  files <- setNames(list(schema_text), schema_file)
+  artifact <- source$artifact()
+  schema_file <- artifact$file
+  files <- setNames(list(artifact$text), schema_file)
   project <- list(
     config_version = 1L,
     package = package,
@@ -328,17 +261,14 @@ configuration_proposal <- function(
     )
   )
   if (
-    length(
-      document$components$securitySchemes %or% document$securityDefinitions
-    ) ||
-      !is.null(document[['security']]) ||
+    source$security_declared() ||
       any(vapply(
         parsed$operations,
         function(op) !is.null(op[['security']]),
         logical(1)
       ))
   ) {
-    project$authentication <- authentication_envvars(document, package)
+    project$authentication <- source$authentication(package)
   }
   files[['specmill.yml']] <- paste(
     encode(
