@@ -5582,3 +5582,43 @@ form_encoding <- function(schema, encoding, media, at) {
   }
   encoding %or% list()
 }
+
+# Format detection belongs beside native interpretation, not in the catalogue.
+openapi_detect <- function(document, format) {
+  if (!is.list(document)) {
+    return(0)
+  }
+  value <- if (format == 'swagger') document$swagger else document$openapi
+  if (is.character(value) && length(value) == 1L && !is.na(value)) 1 else 0
+}
+
+openapi_import_description <- function(path, policy = list()) {
+  ir <- if (!length(policy)) {
+    importer_openapi(path)
+  } else {
+    prepared <- prepare_operation_policy(policy)
+    view <- operation_review_context(prepared)
+    records <- openapi_read_records(path, view)
+    finish_operation_policy(records, prepared)
+    parsed <- operation_records_result(records)
+    output <- openapi_records_ir(path, parsed, records$source_data)
+    output$service$id <- view$service
+    output
+  }
+  list(ir = ir, diagnostics = ir$diagnostics %or% list())
+}
+
+openapi_assert_format <- function(path, format) {
+  document <- read_schema_document(path, resolve_references = FALSE)
+  if (
+    openapi_detect(document, format) == 0 ||
+      openapi_detect(
+        document,
+        if (format == 'swagger') 'openapi' else 'swagger'
+      ) >
+        0
+  ) {
+    stop('Document does not declare an unambiguous ', format, ' format: ', path)
+  }
+  invisible(NULL)
+}

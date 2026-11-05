@@ -26,6 +26,7 @@ expand_api_configuration <- function(config, file, callbacks) {
     c(
       'api',
       'schemas',
+      'format',
       'selection',
       'helper',
       'authentication',
@@ -56,7 +57,7 @@ expand_api_configuration <- function(config, file, callbacks) {
   } else {
     all_methods
   }
-  if (any(!methods %in% all_methods)) {
+  if (!all(methods %in% all_methods)) {
     stop('Invalid API HTTP method: ', api)
   }
   exclude <- if ('exclude' %in% names(selection)) {
@@ -80,7 +81,13 @@ expand_api_configuration <- function(config, file, callbacks) {
       stop('Group ID conflicts with its key: ', id)
     }
     group$id <- id
-    for (field in c('schemas', 'helper', 'authentication', 'documentation')) {
+    for (field in c(
+      'schemas',
+      'format',
+      'helper',
+      'authentication',
+      'documentation'
+    )) {
       if (!field %in% names(group) && field %in% names(config)) {
         group[[field]] <- config[[field]]
       }

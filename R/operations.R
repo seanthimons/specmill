@@ -1,9 +1,9 @@
 # Public compatibility entry point. Selection and naming remain reviewed policy;
 # OpenAPI-specific document and request reading lives in the native importer.
-read_operations <- function(files, policy = list()) {
+read_operations <- function(files, policy = list(), format = NULL) {
   policy <- prepare_operation_policy(policy)
   finish_operation_policy(
-    openapi_reviewed_records(files, operation_review_context(policy)),
+    importer_records(files, operation_review_context(policy), format),
     policy
   )
 }

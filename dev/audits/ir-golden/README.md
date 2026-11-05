@@ -25,22 +25,20 @@ reference digests retained for [#279](https://github.com/seanthimons/specmill/is
 Run from an interactive R session at the repository root:
 
 ```r
-source('dev/golden_output.R')
-changes <- golden_compare(keep = 'artifacts/golden-current')
-stopifnot(nrow(changes) == 0L)
-
-source('dev/check_golden_output.R')
-check_golden_output()
+source('dev/check_registry_output.R')
+check_registry_output()
 ```
 
 `pkgload::load_all()` loads this checkout, so an older installed package cannot
 silently supply the reference behavior. The check takes two fresh snapshots,
-compares them with the baseline and each other, then verifies changed, removed,
-added and duplicate artifact detection. Full normalized artifacts can be kept
+compares them with each other and the baseline, and verifies the additive
+registry provenance described below. The strict pre-registry check also exercises
+changed, removed, added and duplicate artifact detection. Full normalized artifacts can be kept
 with `golden_snapshot(keep = 'artifacts/golden-current')` for inspection. Use a
 fresh output directory, since retained artifacts are not automatically cleaned.
-`golden_compare()` returns differing keys and expected/actual hashes; callers
-must assert that the result is empty when using it as a failing gate.
+`golden_compare()` returns raw differing keys and expected/actual hashes,
+including the seven intended provenance additions. Use the registry gate for
+current revisions.
 
 Only regenerate the baseline on an explicitly reviewed reference revision:
 
@@ -98,3 +96,15 @@ check_ir_provenance()
 
 This protects the referenced-schema portion of cassette provenance. The ordinary
 package tests continue to cover recorded request and response review.
+
+## Registry provenance addition (#230)
+
+The reference manifest remains unchanged. The registry intentionally adds an
+`importers` object to seven generated ownership manifests. The current gate in
+`dev/check_registry_output.R` requires exactly those seven differences, validates
+the new fields, and removes only that object from the original serialized bytes
+to recover each reference hash. All wrappers, helpers, schemas, documentation,
+operation records and other metadata still match the reference.
+
+`check_golden_output()` remains the strict pre-registry comparison and therefore
+reports the seven intended ownership-provenance additions on newer revisions.

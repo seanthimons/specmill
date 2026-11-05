@@ -39,7 +39,7 @@ configure_apis <- function(
   if (is.null(schemas)) {
     schemas <- list.files(
       root,
-      '\\.(json|ya?ml)$',
+      '\\.(json|ya?ml|graphql|gql|proto|wsdl|raml|apib)$',
       full.names = TRUE,
       ignore.case = TRUE
     )
@@ -54,7 +54,7 @@ configure_apis <- function(
     ]
   }
   if (!length(schemas)) {
-    stop('No JSON or YAML schemas found')
+    stop('No schema files found')
   }
   paths <- normalizePath(schemas, winslash = '/', mustWork = TRUE)
   if (!all(startsWith(paths, paste0(root, '/')))) {
@@ -88,8 +88,41 @@ configure_apis <- function(
   } else {
     list()
   }
+  if (
+    !is.null(choices) &&
+      (!is.data.frame(choices) ||
+        !'schema' %in% names(choices) ||
+        anyDuplicated(choices$schema) ||
+        !all(choices$schema %in% relative) ||
+        !all(
+          names(choices) %in%
+            c('schema', 'api', 'base_url', 'include', 'format')
+        ))
+  ) {
+    stop(
+      'choices must be a data frame with schema and optional api, base_url, include, format columns'
+    )
+  }
   rows <- lapply(seq_along(paths), function(i) {
-    source <- openapi_catalogue_source(paths[[i]], relative[[i]])
+    prior_path <- Filter(
+      function(record) identical(record$schema, relative[[i]]),
+      previous
+    )
+    override <- if (length(prior_path) == 1L) {
+      prior_path[[1L]][['format']]
+    } else {
+      NULL
+    }
+    reviewed_format <- !is.null(choices) &&
+      'format' %in% names(choices) &&
+      relative[[i]] %in% choices$schema
+    if (reviewed_format) {
+      override <- choices$format[[match(relative[[i]], choices$schema)]]
+    }
+    if (identical(override, '')) {
+      override <- NULL
+    }
+    source <- importer_catalogue_source(paths[[i]], relative[[i]], override)
     hash <- source$hash
     matches <- Filter(
       function(record) identical(record$schema, relative[[i]]),
@@ -99,6 +132,13 @@ configure_apis <- function(
       matches <- Filter(function(record) identical(record$hash, hash), previous)
     }
     prior <- if (length(matches) == 1L) matches[[1L]] else list()
+    # Content identity also retains an explicit override after a file rename.
+    if (
+      !reviewed_format && is.null(override) && nzchar(prior[['format']] %or% '')
+    ) {
+      override <- prior[['format']]
+      source <- importer_catalogue_source(paths[[i]], relative[[i]], override)
+    }
     title <- source$title
     suggested <- configuration_words(sub(
       ' (API|Module)$',
@@ -125,7 +165,18 @@ configure_apis <- function(
       include = prior$include %or% TRUE,
       origin = origin,
       hash = hash,
-      saved = identical(prior$hash, hash),
+      format = override %or% '',
+      source_format = source$source_format,
+      importer_version = source$importer_version,
+      saved = identical(prior$hash, hash) &&
+        identical(
+          prior$source_format %or% source$source_format,
+          source$source_format
+        ) &&
+        identical(
+          prior$importer_version %or% source$importer_version,
+          source$importer_version
+        ),
       stringsAsFactors = FALSE
     )
   })
@@ -161,13 +212,16 @@ configure_apis <- function(
         !'schema' %in% names(choices) ||
         anyDuplicated(choices$schema) ||
         !all(choices$schema %in% table$schema) ||
-        !all(names(choices) %in% c('schema', 'api', 'base_url', 'include'))
+        !all(
+          names(choices) %in%
+            c('schema', 'api', 'base_url', 'include', 'format')
+        )
     ) {
       stop(
         'choices must be a data frame with schema and optional api, base_url, include columns'
       )
     }
-    for (field in setdiff(names(choices), 'schema')) {
+    for (field in setdiff(names(choices), c('schema', 'format'))) {
       table[match(choices$schema, table$schema), field] <- choices[[field]]
     }
   }
@@ -186,8 +240,26 @@ configure_apis <- function(
     !is.data.frame(table) ||
       !identical(names(table), names(before)) ||
       !identical(
-        table[c('schema', 'title', 'origin', 'hash', 'status')],
-        before[c('schema', 'title', 'origin', 'hash', 'status')]
+        table[c(
+          'schema',
+          'title',
+          'origin',
+          'hash',
+          'status',
+          'format',
+          'source_format',
+          'importer_version'
+        )],
+        before[c(
+          'schema',
+          'title',
+          'origin',
+          'hash',
+          'status',
+          'format',
+          'source_format',
+          'importer_version'
+        )]
       )
   ) {
     stop('Only api, base_url and include may be edited')
@@ -222,7 +294,17 @@ configure_apis <- function(
     records <- lapply(seq_len(nrow(table)), function(i) {
       as.list(table[
         i,
-        c('schema', 'hash', 'api', 'base_url', 'include', 'origin')
+        c(
+          'schema',
+          'hash',
+          'api',
+          'base_url',
+          'include',
+          'origin',
+          'format',
+          'source_format',
+          'importer_version'
+        )
       ])
     })
     if (file.exists(catalog_path)) {
