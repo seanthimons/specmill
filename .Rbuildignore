@@ -4,6 +4,8 @@
 ^evidence$
 ^.*\.jar$
 ^HANDOFF\.md$
+^AGENTS\.md$
+^CLAUDE\.md$
 ^\.worktrees$
 ^\.git$
 ^\.gitleaksignore$
