@@ -442,7 +442,10 @@ api_request_then <- function(result, finish) {
   if (base::inherits(result, 'httr2_request')) base::return(result)
   if (!base::inherits(result, 'specmill_pending_request')) base::return(finish(result))
   complete <- result$complete
-  result$complete <- function(response) finish(complete(response))
+  result$complete <- function(response) {
+    decoded <- complete(response)
+    finish(decoded)
+  }
   result
 }
 

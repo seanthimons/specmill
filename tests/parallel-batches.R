@@ -242,6 +242,16 @@ parallel_batches_acceptance <- function() {
     capture(suppressWarnings(runtime$item(c('denied', 'fast')))),
     'specmill_call_error'
   ))
+  # A hook that replaces its result must not suppress decoding or HTTP failures.
+  normal_hook <- runtime$run_hook
+  runtime$run_hook <- function(fn_name, hook_type, state) {
+    if (hook_type == 'pre_request') state else list(list(id = 'constant'))
+  }
+  stopifnot(inherits(
+    capture(runtime$item(c('denied', 'fast'))),
+    'specmill_call_error'
+  ))
+  runtime$run_hook <- normal_hook
   result <- suppressWarnings(runtime$item(c('rate', 'fast')))
   stopifnot(
     identical(ids(result), 'fast'),
