@@ -54,11 +54,11 @@ diff_single_schema <- function(old_path, new_path) {
       }
 
       # Parse both schemas
-      old_json <- read_schema_document(old_path)
-      new_json <- read_schema_document(new_path)
-
-      old_spec <- suppressMessages(openapi_to_spec(old_json))
-      new_spec <- suppressMessages(openapi_to_spec(new_json))
+      tables <- openapi_spec_tables(c(old_path, new_path), function(document) {
+        openapi_to_spec(document)
+      })
+      old_spec <- tables[[1L]]
+      new_spec <- tables[[2L]]
 
       # Filter out admin/auth/metadata/version endpoints
       if (exists("ENDPOINT_PATTERNS_TO_EXCLUDE")) {
@@ -281,8 +281,9 @@ diff_schemas <- function(
               )
             })
           }
-          new_json <- read_schema_document(new_path)
-          new_spec <- suppressMessages(openapi_to_spec(new_json))
+          new_spec <- openapi_spec_tables(new_path, function(document) {
+            openapi_to_spec(document)
+          })[[1L]]
 
           # Filter out admin/auth/metadata/version endpoints
           if (exists("ENDPOINT_PATTERNS_TO_EXCLUDE")) {
@@ -334,8 +335,9 @@ diff_schemas <- function(
               )
             })
           }
-          old_json <- read_schema_document(old_path)
-          old_spec <- suppressMessages(openapi_to_spec(old_json))
+          old_spec <- openapi_spec_tables(old_path, function(document) {
+            openapi_to_spec(document)
+          })[[1L]]
 
           # Filter out admin/auth/metadata/version endpoints
           if (exists("ENDPOINT_PATTERNS_TO_EXCLUDE")) {

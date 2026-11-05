@@ -1,0 +1,757 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanthimons/specmill/inst/ir/ir-v1.schema.json",
+  "title": "specmill API intermediate representation, version 1",
+  "description": "Format-neutral description of an API. Importers emit it; generation, policy, drift, coverage and tests consume it. Contract: dev/ir/ir-v1.md in the specmill repository. Field ledger: inst/ir/field-ledger.csv.",
+  "type": "object",
+  "required": ["ir_version", "paradigm", "service", "sources", "operations"],
+  "additionalProperties": false,
+  "properties": {
+    "ir_version": { "const": "1" },
+    "paradigm": {
+      "description": "Dominant paradigm of the description. Use 'mixed' when operations differ. Each operation still carries its own effective paradigm.",
+      "enum": ["rest", "graphql", "soap", "jsonrpc", "grpc", "event", "mixed"]
+    },
+    "service": { "$ref": "#/$defs/service" },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/source" }
+    },
+    "operations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/operation" }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "text": { "type": "string" },
+    "paradigm": {
+      "enum": ["rest", "graphql", "soap", "jsonrpc", "grpc", "event"]
+    },
+    "anyValue": {
+      "description": "Any JSON value, including null.",
+      "type": ["object", "array", "string", "number", "boolean", "null"]
+    },
+    "nativeBag": {
+      "description": "Raw format-specific data an importer keeps for lossless round trips. Generators must not read it.",
+      "type": "object"
+    },
+    "sourceLocation": {
+      "description": "Where a construct was read. 'pointer' is a JSON Pointer for JSON/YAML sources; 'line' and 'column' serve text formats such as SDL, proto and WSDL.",
+      "type": "object",
+      "required": ["file"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string" },
+        "pointer": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" },
+        "version": { "$ref": "#/$defs/text" }
+      }
+    },
+    "source": {
+      "description": "One description document. A service can be composed of several; auth schemes and types are scoped to the source that declares them.",
+      "type": "object",
+      "required": ["id", "format", "file", "hash"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "format": {
+          "description": "Importer format id, such as openapi, swagger, graphql-sdl, arcgis-rest.",
+          "$ref": "#/$defs/id"
+        },
+        "format_version": { "type": "string" },
+        "importer_version": { "type": "string" },
+        "file": { "type": "string" },
+        "hash": {
+          "type": "object",
+          "required": ["algorithm", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": { "enum": ["md5", "sha256"] },
+            "value": { "type": "string", "minLength": 1 }
+          }
+        },
+        "title": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" },
+        "version": { "$ref": "#/$defs/text" },
+        "servers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/server" }
+        },
+        "auth_schemes": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/authScheme" }
+        },
+        "types": {
+          "description": "Named types, keyed by name. A 'ref' type resolves here.",
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/type" }
+        },
+        "native": { "$ref": "#/$defs/nativeBag" }
+      }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "relative": { "type": "string" },
+        "description": { "$ref": "#/$defs/text" },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "default": { "type": "string" },
+              "enum": { "type": "array", "items": { "type": "string" } },
+              "description": { "$ref": "#/$defs/text" }
+            }
+          }
+        },
+        "diagnostic": { "$ref": "#/$defs/text" }
+      }
+    },
+    "authScheme": {
+      "description": "Provisional until #251 settles per-transport injection. 'kind' is neutral; the remaining fields depend on it.",
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "api_key",
+            "http_basic",
+            "http_bearer",
+            "oauth2",
+            "openid_connect",
+            "mutual_tls",
+            "session_token",
+            "custom"
+          ]
+        },
+        "in": { "enum": ["header", "query", "cookie", "message"] },
+        "name": { "type": "string" },
+        "bearer_format": { "type": "string" },
+        "flows": { "type": "object" },
+        "token_url": { "type": "string" },
+        "description": { "$ref": "#/$defs/text" },
+        "source_location": { "$ref": "#/$defs/sourceLocation" },
+        "native": { "$ref": "#/$defs/nativeBag" }
+      },
+      "if": { "properties": { "kind": { "const": "api_key" } } },
+      "then": { "required": ["in", "name"] }
+    },
+    "securityRequirement": {
+      "description": "Alternative set of schemes that together authorize a call: scheme id to scopes.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "classification": { "type": "string" },
+        "reason": { "type": "string" },
+        "guidance": { "type": "string" },
+        "key": { "type": "string" },
+        "id": { "type": "string" },
+        "status": { "type": "string" },
+        "source_location": { "$ref": "#/$defs/sourceLocation" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": ["key", "id", "name", "paradigm", "source", "binding"],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "description": "Stable identity within a service; unique across all sources. REST keeps 'METHOD /path'; #231 decides the other paradigms.",
+          "$ref": "#/$defs/id"
+        },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/id" },
+        "native_name": {
+          "description": "Identifier the source format gave the operation (OpenAPI operationId, GraphQL field, JSON-RPC method).",
+          "type": "string"
+        },
+        "summary": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" },
+        "deprecated": { "type": "boolean" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "paradigm": { "$ref": "#/$defs/paradigm" },
+        "source": {
+          "description": "Id of the entry in sources.",
+          "$ref": "#/$defs/id"
+        },
+        "binding": { "$ref": "#/$defs/binding" },
+        "server": { "$ref": "#/$defs/server" },
+        "parameters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "body": { "$ref": "#/$defs/body" },
+        "responses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/response" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/errorRule" }
+        },
+        "security": {
+          "description": "Effective requirements. Absent: none declared. Empty array: explicitly unauthenticated.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/securityRequirement" }
+        },
+        "pagination": { "$ref": "#/$defs/pagination" },
+        "transport_diagnostics": {
+          "description": "Non-empty means the operation is unsupported by the transport.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        },
+        "source_location": { "$ref": "#/$defs/sourceLocation" },
+        "native": { "$ref": "#/$defs/nativeBag" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["paradigm"],
+            "properties": { "paradigm": { "const": "rest" } }
+          },
+          "then": {
+            "properties": {
+              "binding": { "required": ["method", "path"] }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["paradigm"],
+            "properties": { "paradigm": { "const": "graphql" } }
+          },
+          "then": {
+            "properties": {
+              "binding": { "required": ["operation_type", "field"] }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["paradigm"],
+            "properties": { "paradigm": { "const": "jsonrpc" } }
+          },
+          "then": {
+            "properties": { "binding": { "required": ["method"] } }
+          }
+        },
+        {
+          "if": {
+            "required": ["paradigm"],
+            "properties": { "paradigm": { "const": "grpc" } }
+          },
+          "then": {
+            "properties": {
+              "binding": { "required": ["service", "method", "streaming"] }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["paradigm"],
+            "properties": { "paradigm": { "const": "soap" } }
+          },
+          "then": {
+            "properties": {
+              "binding": { "required": ["action", "port_type"] }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["paradigm"],
+            "properties": { "paradigm": { "const": "event" } }
+          },
+          "then": {
+            "properties": {
+              "binding": { "required": ["channel", "action"] }
+            }
+          }
+        }
+      ]
+    },
+    "binding": {
+      "description": "Paradigm-specific wire coordinates. Required keys per paradigm are enforced from the operation. Everything except 'rest' is provisional until its transport issue lands.",
+      "type": "object",
+      "properties": {
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "operation_type": { "enum": ["query", "mutation", "subscription"] },
+        "field": { "type": "string" },
+        "service": { "type": "string" },
+        "streaming": { "enum": ["none", "client", "server", "bidi"] },
+        "action": { "type": "string" },
+        "port_type": { "type": "string" },
+        "channel": { "type": "string" }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "required": ["name", "location", "required", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "location": {
+          "description": "REST: path, query, header, cookie. Named arguments: argument. By position: positional. Message fields: message.",
+          "enum": [
+            "path",
+            "query",
+            "header",
+            "cookie",
+            "argument",
+            "positional",
+            "message"
+          ]
+        },
+        "required": { "type": "boolean" },
+        "type": { "$ref": "#/$defs/type" },
+        "validation_type": {
+          "description": "Narrower type used to validate input when 'type' is a composed or nullable shape. Defaults live on the type.",
+          "$ref": "#/$defs/type"
+        },
+        "style": { "type": "string" },
+        "explode": { "type": "boolean" },
+        "collection_format": { "type": "string" },
+        "allow_empty_value": { "type": "boolean" },
+        "example": { "$ref": "#/$defs/anyValue" },
+        "description": { "$ref": "#/$defs/text" },
+        "deprecated": { "type": "boolean" },
+        "source_location": { "$ref": "#/$defs/sourceLocation" }
+      }
+    },
+    "body": {
+      "type": "object",
+      "required": ["media", "required", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "media": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "type": { "$ref": "#/$defs/type" },
+        "form_encoding": { "$ref": "#/$defs/anyValue" },
+        "example": { "$ref": "#/$defs/anyValue" },
+        "description": { "$ref": "#/$defs/text" },
+        "source_location": { "$ref": "#/$defs/sourceLocation" }
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "description": "HTTP code, range (2XX), 'default', or the format's own result label.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": { "$ref": "#/$defs/text" },
+        "media": { "type": "string" },
+        "type": { "$ref": "#/$defs/type" },
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/type" }
+        },
+        "error": {
+          "description": "True when the response declares a failure payload.",
+          "type": "boolean"
+        },
+        "source_location": { "$ref": "#/$defs/sourceLocation" }
+      }
+    },
+    "errorRule": {
+      "description": "How a failure is recognised. Status-only rules cover ordinary HTTP errors. A 'body_path' rule covers APIs that return success statuses with an error payload (ArcGIS REST, JSON-RPC 'error').",
+      "type": "object",
+      "required": ["when"],
+      "additionalProperties": false,
+      "properties": {
+        "when": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "description": "Matches this status (or range) only; omit to match any.",
+              "type": "string"
+            },
+            "body_path": {
+              "description": "Path of keys into the decoded response body.",
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" }
+            },
+            "present": {
+              "description": "With body_path: true when the key exists, false when absent.",
+              "type": "boolean"
+            },
+            "equals": {
+              "description": "With body_path: matches when the value equals this.",
+              "$ref": "#/$defs/anyValue"
+            }
+          },
+          "anyOf": [
+            { "required": ["status"] },
+            { "required": ["body_path"] }
+          ]
+        },
+        "message_path": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "code_path": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "type": { "$ref": "#/$defs/type" },
+        "description": { "$ref": "#/$defs/text" }
+      }
+    },
+    "pagination": {
+      "description": "Non-normative hint. Policy remains the authority until #254 settles paradigm-aware pagination semantics.",
+      "type": "object",
+      "required": ["strategy"],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": { "enum": ["none", "offset", "page", "cursor", "link"] },
+        "offset_parameter": { "type": "string" },
+        "limit_parameter": { "type": "string" },
+        "page_parameter": { "type": "string" },
+        "cursor_parameter": { "type": "string" },
+        "next_path": { "type": "array", "items": { "type": "string" } },
+        "more_path": {
+          "description": "Response key whose value signals more data.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "more_when": { "$ref": "#/$defs/anyValue" },
+        "max_page_size": { "type": "integer", "minimum": 1 },
+        "native": { "$ref": "#/$defs/nativeBag" }
+      }
+    },
+    "typeAnnotations": {
+      "description": "Properties every type node may carry.",
+      "type": "object",
+      "properties": {
+        "title": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" },
+        "nullable": { "type": "boolean" },
+        "default": { "$ref": "#/$defs/anyValue" },
+        "const": {
+          "description": "The only permitted value. Present with a null value means null is the only value.",
+          "$ref": "#/$defs/anyValue"
+        },
+        "example": { "$ref": "#/$defs/anyValue" },
+        "examples": { "type": "array" },
+        "deprecated": { "type": "boolean" },
+        "read_only": { "type": "boolean" },
+        "write_only": { "type": "boolean" },
+        "native_type": {
+          "description": "The type as the source spelled it (int64, xs:dateTime, Edm.Guid, Float).",
+          "type": "string"
+        },
+        "native_format": { "type": "string" },
+        "lossy": {
+          "description": "Codes of constructs the mapping could not represent.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "source_location": { "$ref": "#/$defs/sourceLocation" },
+        "native": { "$ref": "#/$defs/nativeBag" }
+      }
+    },
+    "type": {
+      "description": "Tagged union on 'kind'.",
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "any",
+            "scalar",
+            "enum",
+            "list",
+            "map",
+            "record",
+            "union",
+            "intersection",
+            "ref"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "any" } } },
+          "then": { "$ref": "#/$defs/typeAny" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "scalar" } } },
+          "then": { "$ref": "#/$defs/typeScalar" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "enum" } } },
+          "then": { "$ref": "#/$defs/typeEnum" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "list" } } },
+          "then": { "$ref": "#/$defs/typeList" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "map" } } },
+          "then": { "$ref": "#/$defs/typeMap" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "record" } } },
+          "then": { "$ref": "#/$defs/typeRecord" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "union" } } },
+          "then": { "$ref": "#/$defs/typeUnion" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "intersection" } } },
+          "then": { "$ref": "#/$defs/typeIntersection" }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "ref" } } },
+          "then": { "$ref": "#/$defs/typeRef" }
+        }
+      ]
+    },
+    "typeAny": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "properties": { "kind": { "const": "any" } }
+    },
+    "typeScalar": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["name"],
+      "properties": {
+        "kind": { "const": "scalar" },
+        "name": {
+          "description": "string, boolean, integer, float, decimal, bytes, date, time, datetime, duration, uuid, uri, null.",
+          "enum": [
+            "string",
+            "boolean",
+            "integer",
+            "float",
+            "decimal",
+            "bytes",
+            "date",
+            "time",
+            "datetime",
+            "duration",
+            "uuid",
+            "uri",
+            "null"
+          ]
+        },
+        "bits": {
+          "description": "Width of integer and float types when the source fixes it.",
+          "enum": [8, 16, 32, 64, 128]
+        },
+        "signed": { "type": "boolean" },
+        "precision": { "type": "integer", "minimum": 1 },
+        "scale": { "type": "integer", "minimum": 0 },
+        "encoding": {
+          "description": "Text form of bytes.",
+          "enum": ["base64", "base64url", "hex", "raw"]
+        },
+        "media_type": { "type": "string" },
+        "minimum": { "type": ["number", "string"] },
+        "maximum": { "type": ["number", "string"] },
+        "exclusive_minimum": { "type": ["number", "string"] },
+        "exclusive_maximum": { "type": ["number", "string"] },
+        "multiple_of": { "type": "number", "exclusiveMinimum": 0 },
+        "min_length": { "type": "integer", "minimum": 0 },
+        "max_length": { "type": "integer", "minimum": 0 },
+        "pattern": { "type": "string" }
+      }
+    },
+    "typeEnum": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["base", "values"],
+      "properties": {
+        "kind": { "const": "enum" },
+        "base": {
+          "description": "Scalar name of the values: string or integer for most formats.",
+          "enum": ["string", "integer", "float", "boolean"]
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["value"],
+            "additionalProperties": false,
+            "properties": {
+              "value": { "$ref": "#/$defs/anyValue" },
+              "name": { "type": "string" },
+              "description": { "$ref": "#/$defs/text" },
+              "deprecated": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "typeList": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["items"],
+      "properties": {
+        "kind": { "const": "list" },
+        "items": { "$ref": "#/$defs/type" },
+        "min_items": { "type": "integer", "minimum": 0 },
+        "max_items": { "type": "integer", "minimum": 0 },
+        "unique": { "type": "boolean" }
+      }
+    },
+    "typeMap": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["value"],
+      "properties": {
+        "kind": { "const": "map" },
+        "key": {
+          "description": "Defaults to string.",
+          "$ref": "#/$defs/type"
+        },
+        "value": { "$ref": "#/$defs/type" },
+        "min_properties": { "type": "integer", "minimum": 0 },
+        "max_properties": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "typeRecord": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["fields"],
+      "properties": {
+        "kind": { "const": "record" },
+        "fields": {
+          "description": "Ordered.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "required"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "$ref": "#/$defs/type" },
+              "required": { "type": "boolean" },
+              "description": { "$ref": "#/$defs/text" },
+              "deprecated": { "type": "boolean" },
+              "read_only": { "type": "boolean" },
+              "write_only": { "type": "boolean" },
+              "wire_name": {
+                "description": "Name on the wire when it differs from 'name'.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additional": {
+          "description": "false (closed), true (open, untyped) or a type for extra members.",
+          "oneOf": [{ "type": "boolean" }, { "$ref": "#/$defs/type" }]
+        },
+        "pattern_properties": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/type" }
+        },
+        "min_properties": { "type": "integer", "minimum": 0 },
+        "max_properties": { "type": "integer", "minimum": 0 },
+        "abstract": { "type": "boolean" },
+        "implements": {
+          "description": "Names of interface types this record satisfies (GraphQL interfaces).",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "typeUnion": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["variants"],
+      "properties": {
+        "kind": { "const": "union" },
+        "mode": {
+          "description": "one_of: exactly one variant matches. any_of: one or more may match.",
+          "enum": ["one_of", "any_of"]
+        },
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/type" }
+        },
+        "discriminator": {
+          "type": "object",
+          "required": ["property"],
+          "additionalProperties": false,
+          "properties": {
+            "property": { "type": "string" },
+            "mapping": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "typeIntersection": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["members"],
+      "properties": {
+        "kind": { "const": "intersection" },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/type" }
+        }
+      }
+    },
+    "typeRef": {
+      "allOf": [{ "$ref": "#/$defs/typeAnnotations" }],
+      "unevaluatedProperties": false,
+      "required": ["name"],
+      "properties": {
+        "kind": { "const": "ref" },
+        "name": {
+          "description": "Key in the declaring source's 'types'.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

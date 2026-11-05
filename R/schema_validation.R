@@ -155,6 +155,10 @@ schema_validator <- function() {
 }
 
 validate_schema <- function(file) {
+  selected <- tryCatch(resolve_importer(file), error = function(e) NULL)
+  if (!is.null(selected) && is.function(selected$importer$validate)) {
+    return(selected$importer$validate(file))
+  }
   schema_validation_report(file)
 }
 

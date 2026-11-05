@@ -83,21 +83,58 @@ pagination_settings <- function(operation, pagination, explicit) {
       operation$id
     )
   }
-  list(
-    mode = if (cursor) 'cursor' else 'page',
-    parameter = p$name,
-    location = p$location,
-    start = pagination[['start']],
-    completed = pagination[['completed']] %or% 'empty',
-    max_pages = as.integer(pagination[['max_pages']] %or% 100L),
-    metadata = !isFALSE(pagination[['metadata']]),
-    next_cursor = pagination$next_cursor,
-    items = pagination$items,
-    error_policy = pagination$error_policy %or% 'stop',
-    warn_limits = !isFALSE(pagination$warn_limits),
-    warn_errors = !isFALSE(pagination$warn_errors),
-    stop_on_empty = !isFALSE(pagination$stop_on_empty),
-    on_limit = pagination$on_limit
+  offset <- identical(pagination$mode, 'offset')
+  if (offset) {
+    size <- Filter(
+      function(parameter) {
+        parameter$name == pagination$size_parameter &&
+          parameter$location == 'query'
+      },
+      operation$parameters
+    )
+    if (
+      length(size) != 1L || !size[[1L]]$schema$type %in% c('integer', 'number')
+    ) {
+      stop('Offset page size must name a numeric query parameter')
+    }
+    if (isTRUE(size[[1L]]$public_required %or% size[[1L]]$required)) {
+      stop('Pagination page size requires an optional public parameter')
+    }
+    if ('public_default' %in% names(size[[1L]])) {
+      stop(
+        'pagination.page_size conflicts with the configured parameter default'
+      )
+    }
+    if (
+      !is.null(size[[1L]]$schema$maximum) &&
+        pagination$page_size > size[[1L]]$schema$maximum
+    ) {
+      stop('Pagination page size exceeds the source limit')
+    }
+  }
+  c(
+    if (offset) {
+      list(
+        size_parameter = pagination$size_parameter,
+        page_size = as.integer(pagination$page_size)
+      )
+    },
+    list(
+      mode = pagination$mode,
+      parameter = p$name,
+      location = p$location,
+      start = pagination[['start']],
+      completed = pagination[['completed']] %or% 'empty',
+      max_pages = as.integer(pagination[['max_pages']] %or% 100L),
+      metadata = !isFALSE(pagination[['metadata']]),
+      next_cursor = pagination$next_cursor,
+      items = pagination$items,
+      error_policy = pagination$error_policy %or% 'stop',
+      warn_limits = !isFALSE(pagination$warn_limits),
+      warn_errors = !isFALSE(pagination$warn_errors),
+      stop_on_empty = !isFALSE(pagination$stop_on_empty),
+      on_limit = pagination$on_limit
+    )
   )
 }
 
@@ -830,7 +867,13 @@ render_operation <- function(operation, spec) {
     lines <- c(
       lines,
       if (!is.null(pg)) {
-        paste0('  page_value <- params[[', r_literal(page_formal), ']]')
+        c(
+          paste0('  page_value <- params[[', r_literal(page_formal), ']]'),
+          if (identical(pg$mode, 'offset')) {
+            paste0('  page_size_value <- params[[',
+              r_literal(mapping[[paste('query', pg$size_parameter)]]), ']]')
+          }
+        )
       },
       paste0(
         '  state <- ',
@@ -868,6 +911,13 @@ render_operation <- function(operation, spec) {
           ']], page_value)) base::stop("pre_request hooks must not change the pagination argument ',
           page_formal,
           ': the pages are requested by the wrapper", call. = FALSE)'
+        )
+      },
+      if (!is.null(pg) && identical(pg$mode, 'offset')) {
+        paste0(
+          '  if (!base::identical(params[[',
+          r_literal(mapping[[paste('query', pg$size_parameter)]]),
+          ']], page_size_value)) base::stop("pre_request hooks must not change the pagination size argument", call. = FALSE)'
         )
       }
     )
@@ -1279,7 +1329,7 @@ render_operation <- function(operation, spec) {
             callback_reference(pg$completed)
           },
           if (
-            identical(pg$mode, 'cursor') ||
+            pg$mode %in% c('cursor', 'offset') ||
               !is.null(pg$items) ||
               !is.null(pg$on_limit) ||
               pg$error_policy != 'stop' ||
@@ -1290,6 +1340,14 @@ render_operation <- function(operation, spec) {
             paste0(
               ', mode = ',
               r_literal(pg$mode),
+              if (identical(pg$mode, 'offset')) {
+                paste0(
+                  ', size_parameter = ',
+                  r_literal(mapping[[paste('query', pg$size_parameter)]]),
+                  ', page_size = params[[',
+                  r_literal(mapping[[paste('query', pg$size_parameter)]]), ']]'
+                )
+              },
               ', next_cursor = ',
               callback_reference(pg$next_cursor),
               ', items = ',
@@ -2192,10 +2250,17 @@ generate_client <- function(
             ) {
               op$parameters[[index]]$public_default <- op$paginate$start
             }
+            if (
+              identical(op$paginate$mode, 'offset') &&
+                identical(param$name, op$paginate$size_parameter) &&
+                identical(param$location, 'query')
+            ) {
+              op$parameters[[index]]$public_default <- op$paginate$page_size
+            }
           }
         }
         helper <- operation_spec$helper
-        extended <- identical(op$paginate$mode, 'cursor') ||
+        extended <- op$paginate$mode %in% c('cursor', 'offset') ||
           !is.null(op$paginate$items) ||
           !is.null(op$paginate$on_limit) ||
           op$paginate$error_policy != 'stop' ||
@@ -2213,7 +2278,8 @@ generate_client <- function(
             'warn_limits',
             'warn_errors',
             'stop_on_empty',
-            'on_limit'
+            'on_limit',
+            if (identical(op$paginate$mode, 'offset')) c('size_parameter', 'page_size')
           )
           if (!'...' %in% accepted && !all(required %in% accepted)) {
             stop(
@@ -2273,7 +2339,7 @@ generate_client <- function(
             names(credential_map)
           )
         }
-        op$auth <- operation_authentication(op, envvars)
+        op$auth <- client_operation_authentication(op, envvars)
         if (!is.null(credential_map)) {
           op$auth <- lapply(op$auth, function(requirement) {
             lapply(requirement, function(scheme) {
@@ -2944,6 +3010,8 @@ generate_client <- function(
     method = 'radix'
   )]
   attr(desired, 'schema_inventory') <- schema_inventory
+  source_importers <- importer_source_provenance(schema_files, schema_labels, services)
+  attr(desired, 'importers') <- source_importers
   attr(desired, 'callbacks') <- callbacks_before
   unused_hooks <- list()
   if (any(vapply(services, function(x) length(x$hooks) > 0L, logical(1)))) {
@@ -3125,6 +3193,7 @@ generate_client <- function(
       manifest = list(
         toolkit_version = as.character(utils::packageVersion('specmill')),
         inputs = input_hashes,
+        importers = source_importers,
         policy_version = vapply(
           services,
           function(x) x$policy_version %or% 'unspecified',

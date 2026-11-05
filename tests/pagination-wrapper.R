@@ -692,7 +692,7 @@ pagination_wrapper_acceptance <- function() {
   service <- paged()
   service$defaults$pagination$mode <- 'offset'
   yaml::write_yaml(service, service_path)
-  fails('pagination.mode must be page')
+  fails('pagination.size_parameter')
   service <- paged()
   service$defaults$pagination$start <- NULL
   yaml::write_yaml(service, service_path)

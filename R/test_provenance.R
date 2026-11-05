@@ -30,55 +30,8 @@ provenance_source <- function(definition) {
 
 # Response schemas keep their local `$ref`s; include exactly the components
 # they reach, so an edit to an unrelated component changes nothing.
-provenance_references <- function(x, document) {
-  found <- list()
-  pending <- character()
-  collect <- function(node) {
-    if (!is.list(node)) {
-      return(invisible())
-    }
-    ref <- node[['$ref']]
-    if (is.character(ref) && length(ref) == 1L && startsWith(ref, '#/')) {
-      pending <<- c(pending, ref)
-    }
-    for (child in node) {
-      collect(child)
-    }
-  }
-  collect(x)
-  while (length(pending)) {
-    ref <- pending[[1L]]
-    pending <- pending[-1L]
-    if (ref %in% names(found)) {
-      next
-    }
-    target <- document
-    for (part in strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1L]]) {
-      part <- gsub('~0', '~', gsub('~1', '/', part, fixed = TRUE), fixed = TRUE)
-      target <- if (is.list(target)) target[[part]] else NULL
-    }
-    # A missing target is recorded too, so it counts and is not looked up again.
-    found[ref] <- list(target)
-    collect(target)
-  }
-  # Radix order is locale-independent, so digests match across machines.
-  found[order(names(found) %or% character(), method = 'radix')]
-}
 
 # Schema documents with local references left as written, read once each.
-provenance_documents <- function() {
-  cache <- new.env(parent = emptyenv())
-  function(source) {
-    if (is.null(cache[[source]])) {
-      # External references are inlined; local ones stay for the walk above.
-      cache[[source]] <- read_schema_document(
-        source,
-        resolve_references = TRUE
-      )
-    }
-    cache[[source]]
-  }
-}
 
 provenance_policy <- function(service, key) {
   settings <- merge_settings(

@@ -40,7 +40,8 @@ initialize_client <- function(
   naming_options <- validate_naming_options(naming, naming_options)
   name_case <- match.arg(name_case)
   group_by <- match.arg(group_by)
-  document <- read_schema_document(schema)
+  source <- importer_initialization_source(schema)
+  companions <- union(companions, source$companions)
   base_url_override <- base_url
   if (!is.null(base_url) && !valid_server_url(base_url)) {
     stop(
@@ -48,7 +49,7 @@ initialize_client <- function(
     )
   }
   if (is.null(base_url)) {
-    base_url <- effective_server(document)$url
+    base_url <- source$server()
   }
   description <- file.path(root, 'DESCRIPTION')
   existing <- file.exists(description)
@@ -154,12 +155,21 @@ initialize_client <- function(
     proposal$files,
     list(
       'R/api_request.R' = scaffold$code,
-      'R/api_options.R' = gsub('CLIENT_PREFIX', package, gsub(
-        'OPTION_PREFIX',
-        r_literal(tolower(sub('_DRY_RUN$', '', dry_run_env(package)))),
-        file_text(system.file('templates/options.R', package = 'specmill', mustWork = TRUE)),
+      'R/api_options.R' = gsub(
+        'CLIENT_PREFIX',
+        package,
+        gsub(
+          'OPTION_PREFIX',
+          r_literal(tolower(sub('_DRY_RUN$', '', dry_run_env(package)))),
+          file_text(system.file(
+            'templates/options.R',
+            package = 'specmill',
+            mustWork = TRUE
+          )),
+          fixed = TRUE
+        ),
         fixed = TRUE
-      ), fixed = TRUE),
+      ),
       '.specmill/helpers/api_request.json' = scaffold$provenance,
       '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
     )

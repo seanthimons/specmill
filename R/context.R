@@ -60,15 +60,29 @@ dry_run_env <- function(package) {
 
 # YAML/JSON read whole numbers as integers; number schemas render as doubles (100, not 100L).
 number_value <- function(value, schema) {
-  type <- if (identical(schema$type, 'array')) schema$items$type else schema$type
-  if (is.integer(value) && identical(type, 'number')) storage.mode(value) <- 'double'
+  type <- if (identical(schema$type, 'array')) {
+    schema$items$type
+  } else {
+    schema$type
+  }
+  if (is.integer(value) && identical(type, 'number')) {
+    storage.mode(value) <- 'double'
+  }
   value
 }
 
 # Functions deparse() can emit for data values.
 literal_constructors <- c(
-  'c', 'list', 'structure', 'character', 'integer', 'numeric', 'double',
-  'logical', '-', ':'
+  'c',
+  'list',
+  'structure',
+  'character',
+  'integer',
+  'numeric',
+  'double',
+  'logical',
+  '-',
+  ':'
 )
 
 # Escape schema strings as R literals. No remote text is evaluated as code.
@@ -83,13 +97,26 @@ r_literal <- function(x, guard = literal_state$guard) {
   if (any(utf8ToInt(enc2utf8(text)) > 127L)) {
     # Quoted names allow Unicode escapes; backtick names do not in R.
     if (!is.language(x) && !is.function(x)) {
-      text <- paste(deparse(x, width.cutoff = 500L,
-        control = c('keepNA', 'keepInteger', 'showAttributes')), collapse = '\n')
+      text <- paste(
+        deparse(
+          x,
+          width.cutoff = 500L,
+          control = c('keepNA', 'keepInteger', 'showAttributes')
+        ),
+        collapse = '\n'
+      )
     }
     points <- utf8ToInt(enc2utf8(text))
-    text <- paste0(vapply(points, function(point) {
-      if (point <= 127L) intToUtf8(point) else sprintf('\\U%08x', point)
-    }, character(1)), collapse = '')
+    text <- paste0(
+      vapply(
+        points,
+        function(point) {
+          if (point <= 127L) intToUtf8(point) else sprintf('\\U%08x', point)
+        },
+        character(1)
+      ),
+      collapse = ''
+    )
   }
   # Data constructors must not resolve through generated functions named list/c.
   # Language objects remain caller-owned expressions (development callbacks).
@@ -102,103 +129,6 @@ r_literal <- function(x, guard = literal_state$guard) {
   }
 }
 
-local_ref <- function(
-  node,
-  document,
-  seen = character(),
-  source_location = '#',
-  schema_context = FALSE
-) {
-  fail <- function(code, message, classification = 'schema_defect') {
-    schema_problem(code, classification, message, source_location)
-  }
-  if (!is.list(node)) {
-    fail('invalid_reference_target', 'Reference target must be an object')
-  }
-  reference_error <- node[['x-specmill-reference-error']]
-  if (!is.null(reference_error)) {
-    fail(
-      reference_error$code %or% 'external_reference',
-      reference_error$message %or% 'Unresolved reference',
-      'capability_gap'
-    )
-  }
-  ref <- node[['$ref']]
-  if (is.null(ref)) {
-    return(node)
-  }
-  if (!is.character(ref) || length(ref) != 1L || is.na(ref)) {
-    fail('invalid_reference', 'Reference must be a string')
-  }
-  if (!startsWith(ref, '#/')) {
-    fail(
-      if (startsWith(ref, '#')) 'local_reference' else 'external_reference',
-      paste(
-        if (startsWith(ref, '#')) {
-          'Unsupported local reference fragment:'
-        } else {
-          'Unsupported external reference:'
-        },
-        ref
-      ),
-      'capability_gap'
-    )
-  }
-  if (ref %in% seen) {
-    fail(
-      'recursive_reference',
-      paste('Unsupported local recursive reference:', ref),
-      'capability_gap'
-    )
-  }
-  if (length(seen) >= 100L) {
-    fail(
-      'reference_depth',
-      'Reference nesting exceeds 100 levels',
-      'capability_gap'
-    )
-  }
-  parts <- strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1]]
-  if (any(grepl('~([^01]|$)', parts))) {
-    fail('invalid_reference', paste('Invalid reference escape:', ref))
-  }
-  parts <- gsub('~0', '~', gsub('~1', '/', parts, fixed = TRUE), fixed = TRUE)
-  value <- document
-  for (part in parts) {
-    if (!is.list(value)) {
-      fail('unresolved_reference', paste('Missing reference:', ref))
-    }
-    value <- value[[part]]
-  }
-  if (is.null(value)) {
-    fail('unresolved_reference', paste('Missing reference:', ref))
-  }
-  value <- local_ref(value, document, c(seen, ref), ref, schema_context)
-  siblings <- node[setdiff(names(node), '$ref')]
-  if (
-    schema_context &&
-      startsWith(document$openapi %or% '', '3.1') &&
-      length(siblings)
-  ) {
-    annotations <- names(siblings) %in%
-      c(
-        'title',
-        'description',
-        'summary',
-        'example',
-        'examples',
-        'default',
-        'deprecated'
-      ) |
-      startsWith(names(siblings), 'x-')
-    assertions <- siblings[!annotations]
-    if (length(assertions)) {
-      value <- list(allOf = list(value, assertions))
-    }
-    value[names(siblings)[annotations]] <- siblings[annotations]
-  }
-  value
-}
 
 # Names a client's NAMESPACE imports; imports shadow base in namespace lookup.
 # An uninstalled package imported whole is assumed to shadow every constructor.
@@ -212,7 +142,9 @@ imported_names <- function(root) {
     if (length(entry) == 2L && is.null(except)) {
       return(entry[[2L]])
     }
-    exports <- tryCatch(getNamespaceExports(entry[[1L]]), error = function(e) literal_constructors)
+    exports <- tryCatch(getNamespaceExports(entry[[1L]]), error = function(e) {
+      literal_constructors
+    })
     setdiff(exports, except)
   }))
 }
