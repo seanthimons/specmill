@@ -26,155 +26,6 @@ valid_server_url <- function(url) {
     !grepl(':0(/|$)', sub('^https?://([^/]+).*$', '\\1', url))
 }
 
-# Return a diagnostic with the operation instead of silently choosing a host.
-# Runtime overrides can resolve these cases without changing endpoint signatures.
-effective_server <- function(
-  document,
-  item = list(),
-  operation = list(),
-  origin = ''
-) {
-  # Kept with the diagnostic so a configured client resolver can supply the host.
-  relative <- NULL
-  tryCatch(
-    {
-      if (identical(document$swagger, '2.0')) {
-        schemes <- operation$schemes %or% document$schemes
-        host <- document$host
-        if (is.null(schemes) || !length(schemes) || is.null(host)) {
-          if (!valid_server_url(origin)) {
-            base_path <- document$basePath %or% '/'
-            if (
-              is.character(base_path) &&
-                length(base_path) == 1L &&
-                !is.na(base_path) &&
-                startsWith(base_path, '/')
-            ) {
-              relative <- base_path
-            }
-            stop(
-              'Swagger host/scheme requires a recorded origin or explicit base URL override'
-            )
-          }
-          if (is.null(schemes) || !length(schemes)) {
-            schemes <- sub('://.*$', '', origin)
-          }
-          if (is.null(host)) host <- sub('^https?://([^/]+).*$', '\\1', origin)
-        }
-        schemes <- unique(unlist(schemes))
-        if (length(schemes) != 1L) {
-          stop('Ambiguous Swagger schemes')
-        }
-        base_path <- document$basePath %or% '/'
-        if (
-          !is.character(base_path) ||
-            length(base_path) != 1L ||
-            is.na(base_path) ||
-            !startsWith(base_path, '/')
-        ) {
-          stop('Invalid Swagger basePath')
-        }
-        urls <- paste0(schemes, '://', host, base_path)
-      } else {
-        servers <- if ('servers' %in% names(operation)) {
-          operation$servers
-        } else if ('servers' %in% names(item)) {
-          item$servers
-        } else {
-          document$servers
-        }
-        if (!is.list(servers) && !is.null(servers)) {
-          stop('Invalid server array')
-        }
-        urls <- vapply(
-          servers,
-          function(server) {
-            if (!is.list(server)) {
-              stop('Invalid server object')
-            }
-            url <- server$url
-            if (!is.character(url) || length(url) != 1L || is.na(url)) {
-              stop('Invalid server URL')
-            }
-            for (name in names(server$variables)) {
-              variable <- server$variables[[name]]
-              if (!is.list(variable)) {
-                stop('Invalid server variable')
-              }
-              value <- variable$default
-              if (!is.character(value) || length(value) != 1L || is.na(value)) {
-                stop('Unresolved server variable default')
-              }
-              if (
-                !is.null(variable$enum) && !value %in% unlist(variable$enum)
-              ) {
-                stop('Server variable default is outside its enum')
-              }
-              url <- gsub(paste0('{', name, '}'), value, url, fixed = TRUE)
-            }
-            url
-          },
-          character(1)
-        )
-        if (!length(urls)) urls <- '/'
-      }
-      if (any(grepl('[{}]', urls))) {
-        stop('Unresolved server variables')
-      }
-      if (any(!grepl('^[A-Za-z][A-Za-z0-9+.-]*:', urls))) {
-        if (!nzchar(origin)) {
-          # Network-path references (//host) would replace the resolver's host.
-          if (
-            length(unique(urls)) == 1L &&
-              grepl('^(/(?!/)|$)', urls[[1L]], perl = TRUE)
-          ) {
-            relative <- urls[[1L]]
-          }
-          stop(
-            'Relative server URL requires a recorded origin or explicit base URL override'
-          )
-        }
-        if (!valid_server_url(origin)) {
-          stop('Invalid server origin')
-        }
-        if (!requireNamespace('httr2', quietly = TRUE)) {
-          stop('Install httr2 to resolve schema origins')
-        }
-        urls <- tryCatch(
-          vapply(
-            urls,
-            function(url) {
-              httr2::url_build(httr2::url_parse(url, base_url = origin))
-            },
-            character(1)
-          ),
-          error = function(e) stop('Unsupported relative server URL')
-        )
-      }
-      urls <- unique(urls)
-      if (length(urls) != 1L) {
-        stop('Ambiguous server selection: supply an explicit base URL override')
-      }
-      if (!valid_server_url(urls)) {
-        stop(
-          'Unsupported server URL: expected absolute HTTP(S) without credentials, query, or fragment'
-        )
-      }
-      list(url = urls)
-    },
-    error = function(e) {
-      c(
-        list(diagnostic = conditionMessage(e)),
-        if (!is.null(relative)) list(relative = relative)
-      )
-    }
-  )
-}
-
-schema_server <- function(document, origin = '') {
-  effective_server(document, origin = origin)$url %or% ''
-}
-
 configure_apis <- function(
   root,
   schemas = NULL,
@@ -206,7 +57,7 @@ configure_apis <- function(
     stop('No JSON or YAML schemas found')
   }
   paths <- normalizePath(schemas, winslash = '/', mustWork = TRUE)
-  if (any(!startsWith(paths, paste0(root, '/')))) {
+  if (!all(startsWith(paths, paste0(root, '/')))) {
     stop('Schemas must be inside the project root')
   }
   relative <- substring(paths, nchar(root) + 2L)
@@ -217,7 +68,7 @@ configure_apis <- function(
     !is.null(origins) &&
       (is.null(names(origins)) ||
         anyDuplicated(names(origins)) ||
-        any(!names(origins) %in% relative))
+        !all(names(origins) %in% relative))
   ) {
     stop('origins must be named by relative schema path')
   }
@@ -238,12 +89,8 @@ configure_apis <- function(
     list()
   }
   rows <- lapply(seq_along(paths), function(i) {
-    document <- read_schema_document(paths[[i]])
-    version <- document$openapi %or% document$swagger %or% ''
-    if (!grepl('^(3\\.[01]\\.|2\\.0$)', version) || is.null(document$paths)) {
-      stop('Not a supported API schema: ', relative[[i]])
-    }
-    hash <- schema_identity(document)
+    source <- openapi_catalogue_source(paths[[i]], relative[[i]])
+    hash <- source$hash
     matches <- Filter(
       function(record) identical(record$schema, relative[[i]]),
       previous
@@ -252,7 +99,7 @@ configure_apis <- function(
       matches <- Filter(function(record) identical(record$hash, hash), previous)
     }
     prior <- if (length(matches) == 1L) matches[[1L]] else list()
-    title <- document$info$title %or% 'Unnamed API'
+    title <- source$title
     suggested <- configuration_words(sub(
       ' (API|Module)$',
       '',
@@ -269,7 +116,7 @@ configure_apis <- function(
     } else {
       prior$origin %or% ''
     }
-    base_url <- prior$base_url %or% schema_server(document, origin)
+    base_url <- prior$base_url %or% source$server(origin)
     data.frame(
       schema = relative[[i]],
       title = title,
@@ -304,7 +151,7 @@ configure_apis <- function(
     )
   )
   if (is.null(review)) {
-    review <- interactive() && any(!table$saved)
+    review <- interactive() && !all(table$saved)
   }
   table$saved <- NULL
   before <- table
@@ -313,8 +160,8 @@ configure_apis <- function(
       !is.data.frame(choices) ||
         !'schema' %in% names(choices) ||
         anyDuplicated(choices$schema) ||
-        any(!choices$schema %in% table$schema) ||
-        any(!names(choices) %in% c('schema', 'api', 'base_url', 'include'))
+        !all(choices$schema %in% table$schema) ||
+        !all(names(choices) %in% c('schema', 'api', 'base_url', 'include'))
     ) {
       stop(
         'choices must be a data frame with schema and optional api, base_url, include columns'
@@ -352,7 +199,7 @@ configure_apis <- function(
   if (
     !is.character(table$api) ||
       anyNA(table$api) ||
-      any(!grepl('^[a-z][a-z0-9_]*$', table$api)) ||
+      !all(grepl('^[a-z][a-z0-9_]*$', table$api)) ||
       anyDuplicated(selected$api)
   ) {
     stop(
@@ -367,7 +214,7 @@ configure_apis <- function(
       stop('Select at least one API')
     }
     if (
-      any(!grepl('^https?://[^/]+', selected$base_url)) ||
+      !all(grepl('^https?://[^/]+', selected$base_url)) ||
         any(grepl('[{}]', selected$base_url))
     ) {
       stop('Supply an absolute base URL for every included API before saving')

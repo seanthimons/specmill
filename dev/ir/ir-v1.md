@@ -4,9 +4,9 @@ Contract for [#228](https://github.com/seanthimons/specmill/issues/228). It also
 settles the type model asked for in
 [#232](https://github.com/seanthimons/specmill/issues/232), as the IR needs one
 to be format-neutral. The internal `importer_openapi(files)` now emits this IR.
-Generation still consumes compatibility records while
-[#229](https://github.com/seanthimons/specmill/issues/229) migrates the remaining
-readers. The registry follows in [#230](https://github.com/seanthimons/specmill/issues/230).
+Generation consumes the IR compatibility projection introduced in
+[#229](https://github.com/seanthimons/specmill/issues/229). The registry follows
+in [#230](https://github.com/seanthimons/specmill/issues/230).
 
 | Artifact | Path |
 |---|---|
@@ -57,14 +57,17 @@ projection nodes, while legacy request behavior and separate source validation
 remain intact. A malformed unused authentication kind stays opaque as `custom`.
 No request validation is bypassed by these metadata fallbacks.
 
-Remaining work in #229 is migrating the other raw-document readers and enforcing
-the importer boundary, including the compatibility parser/schema helpers still
-outside this module. JSON Schema consumers and cassette-provenance compatibility
-remain tracked in #279. The 411-artifact baseline must keep matching through the
-remaining migration, and the importer remains internal until the registry lands.
+Native configuration, catalogue, server, report and compatibility readers now
+live in the importer. Their callers receive source metadata or compatible records
+through importer accessors; source validation and loading remain explicit
+exceptions. JSON Schema fragment consumers remain tracked in #279. The
+411-artifact output baseline and 102 referenced-contract provenance digests
+protect this boundary. The importer remains internal until the registry lands.
 
 `Rscript tests/ir-compatibility.R` verifies exact R-record parity, neutral-field
 projection, lazy reviews, source snapshots and invalid unused metadata.
+`Rscript tests/importer-accessors.R` additionally checks metadata callback order,
+cached snapshots, deferred server inspection and explicit client parser context.
 
 The type mapper traverses structural slots only and preserves source spelling
 under `native.schema`. It emits named refs, recursive records, scalars, enums,
@@ -119,7 +122,7 @@ Decisions behind the shape:
   importer output. The ledger classes them `policy`.
 - **Identity across sources.** `id` and `key` are unique across the whole IR. Today
   `read_operations()` merges the same operation found in several files when their
-  contracts match (`R/operations.R:1093-1158`), and the importer must do the same
+  contracts match (`openapi_merge_duplicate_records()` in the importer)
   and name the chosen file in `source`. A key that differs between files is an
   importer error, not two IR operations.
 - **Hashes.** `source_hash` is md5 today and validation reports use sha256, so
@@ -248,7 +251,8 @@ Dependency questions (`bit64`, `hms`) belong to
   rule covers APIs that fail with a success status, such as the ArcGIS `error`
   object or the GraphQL `errors` array.
 - **Pagination** is a hint. Today pagination comes only from policy on the
-  `read_operations()` path (`R/endpoint_records.R:64` stubs the spec-side detector),
+  `read_operations()` path (`endpoint_records()` in the importer stubs the
+  spec-side detector),
   and the IR hint changes nothing until
   [#254](https://github.com/seanthimons/specmill/issues/254) settles semantics.
   `more_path` plus `more_when` expresses the ArcGIS `exceededTransferLimit` rule.
@@ -270,33 +274,35 @@ when a ledger path does not exist in the schema.
 | `diagnostic` | Becomes a diagnostic |
 | `call_context` | Comes from configuration (service id), not the description |
 
-### Raw-document readers
+### Native document boundary
 
-These read OpenAPI keys outside `read_operations()` and need an IR home before
-[#229](https://github.com/seanthimons/specmill/issues/229) can finish.
+`R/importer_openapi.R` owns OpenAPI and Swagger interpretation. Reviewed
+operation records pass through the IR and its compatibility projection before
+downstream generation. The compatibility sidecar retains JSON Schema fragments
+until [#279](https://github.com/seanthimons/specmill/issues/279) converts the
+post-import consumers to the type tree.
 
-| Module | Reads | IR home |
-|---|---|---|
-| `R/configuration-scaffold.R:82-102,332-341` | `paths`, methods, `securitySchemes`, `securityDefinitions`, `security` | `operations`, `auth_schemes`, `security` |
-| `R/configuration.R:78-92` | `host`, `basePath`, `servers` | `sources[].servers` |
-| `R/schema_reports.R:49-85`, `R/schema_changes.R:3-21` | `paths`, `parameters` | `operations` keys and `parameters` |
-| `R/endpoint_records.R:68-111` | `paths`, `parameters` | Dissolves once the importer owns the operation shape |
-| `R/response_corrections.R:79-115` | `paths[[path]][[method]]` | `operations[].responses` |
-| `R/deferral.R:10-13` | `paths` | `operations` |
-| `R/schema_validation.R:15-46` | `paths`, `parameters`, `requestBody` refs | Stays OpenAPI-only: validates the source document |
-| `R/test_proposals.R:455-464` | `openapi`, `components$schemas`, `definitions` | `sources[].types` |
-| `R/api-catalogue.R:255,272` | `info.title`, server | `service.title`, `sources[].servers` |
-| `R/input_schema.R:28,91`, `R/context.R:180`, `R/body_shapes.R:113` | `openapi` version checks | `sources[].format_version` or the type tree |
-| `R/parser.R:329`, `R/diff.R` | whole document (`openapi_to_spec()`) | A second ingestion path used by diff and endpoint records; the importer should replace it |
+| Reader | Ownership |
+|---|---|
+| Operation parsing, body/parameter normalization, auth and server selection | Importer implementation |
+| Configuration proposals | Importer emits operation metadata through a callback; configuration applies naming and grouping policy |
+| Catalogue and initialization | Importer source metadata and lazy server accessors |
+| Schema reports, endpoint inventory, deferral fingerprints | Source-backed importer accessors |
+| Response validation and referenced-contract provenance | Native accessor in importer; provenance digests frozen separately |
+| Legacy `bind_tools()` schema/parser and diff functions | Public names retained; native implementations live in importer |
+| Formal schema validation | `R/schema_validation.R` deliberately validates the native document |
+| File loading and local reference resolution | `R/schema_document.R` and `R/schema_references.R` are source-loading infrastructure |
+| Fixtures, body checks, parameter defaults and documentation | JSON Schema fragment consumers deferred to #279 |
 
-## Findings along the way
+Source `dev/check_importer_boundary.R` and call `check_importer_boundary()` to
+check native root-field access and document-loader calls. The source validator
+and loader infrastructure are explicit exemptions. The only `definitions` field
+exception is the unrelated `loaded$definitions` R function table.
 
-- Version gates disagree. The catalogue gate (`R/api-catalogue.R:241-244`) and
-  `read_operations()` (`R/operations.R:182-185`) accept only 2.0, 3.0 and 3.1, while
-  `detect_schema_version()` (`R/schema.R:368-380`) accepts any 2.x or 3.x. #230
-  should leave one gate.
-- `openapi_to_spec()` is a second ingestion path (`R/parser.R:329`), consumed by diff
-  and endpoint records. #229 should retire it.
+The public legacy `openapi_to_spec()` name is retained for explicit client parser
+contexts; its implementation is importer-owned. Version-gate consolidation is
+still a registry concern for #230: legacy compatibility accepts broader 2.x/3.x
+versions than the current generation and catalogue entry points.
 
 ## Not decided here
 

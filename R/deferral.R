@@ -3,46 +3,6 @@
 
 deferral_fingerprint_version <- 1L
 
-# Fingerprint of an operation's referenced contract. Stops when the document,
-# operation or any reachable reference cannot be read; callers treat that as
-# uncertainty, never as a repair.
-operation_fingerprint <- function(file, key) {
-  document <- read_schema_document(file)
-  method <- sub(' .*', '', key)
-  path <- substring(key, nchar(method) + 2L)
-  item <- document$paths[[path]]
-  if (is.null(item)) {
-    stop('Operation is absent from the schema: ', key)
-  }
-  item <- local_ref(item, document)
-  if (!is.list(item[[tolower(method)]])) {
-    stop('Operation is absent from the schema: ', key)
-  }
-  normalize <- function(node) {
-    if (is.character(node)) {
-      return(gsub('\r\n?', '\n', node))
-    }
-    if (is.list(node)) lapply(node, normalize) else node
-  }
-  contract <- normalize(operation_contract(document, path, method))
-  json <- jsonlite::toJSON(
-    list(key = key, contract = contract),
-    auto_unbox = TRUE,
-    null = 'null',
-    digits = NA
-  )
-  paste0(
-    'v',
-    deferral_fingerprint_version,
-    ':',
-    digest::digest(
-      enc2utf8(as.character(json)),
-      algo = 'sha256',
-      serialize = FALSE
-    )
-  )
-}
-
 deferral_reason <- function(x) {
   if (
     !is.character(x) ||
