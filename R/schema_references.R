@@ -420,3 +420,187 @@ resolve_schema_references <- function(document, path) {
   }
   resolved
 }
+
+freeze_references <- function(schema, urls, refresh = FALSE) {
+  config_string(schema, 'schema')
+  schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
+  if (!is.character(urls) || !length(urls) || anyNA(urls)) {
+    stop('urls must be a nonempty character vector', call. = FALSE)
+  }
+  if (!isTRUE(refresh) && !isFALSE(refresh)) {
+    stop('refresh must be TRUE or FALSE', call. = FALSE)
+  }
+  urls <- unique(urls)
+  lock_path <- reference_lock_path(schema)
+  root <- dirname(lock_path)
+  lock <- read_reference_lock(schema)
+  entries <- if (is.null(lock)) {
+    list()
+  } else {
+    read_schema_document(lock_path, resolve_references = FALSE)$references
+  }
+  known <- vapply(entries, `[[`, character(1), 'url')
+  claimed <- vapply(entries, `[[`, character(1), 'file')
+  sha256 <- function(path) digest::digest(file = path, algo = 'sha256')
+  inside <- function(path) {
+    existing <- path
+    while (!file.exists(existing)) {
+      existing <- dirname(existing)
+    }
+    existing <- normalizePath(existing, winslash = '/')
+    identical(existing, root) || fs::path_has_parent(existing, root)
+  }
+  # Phase 1 downloads and checks everything; nothing is written on failure.
+  plan <- lapply(urls, function(url) {
+    path <- sub('^https?://[^/?#]+', '', url)
+    if (
+      !grepl('^https?://[^/?#]+/', url) ||
+        grepl('[?#]', url) ||
+        grepl('/$', path) ||
+        any(strsplit(path, '/', fixed = TRUE)[[1L]] %in% c('.', '..'))
+    ) {
+      stop(
+        'Cannot freeze ',
+        url,
+        ': use an HTTP(S) document URL without query, ',
+        'fragment, dot segments or trailing slash; map other URLs by hand ',
+        'in ',
+        basename(lock_path),
+        call. = FALSE
+      )
+    }
+    index <- match(url, known)
+    file <- if (is.na(index)) {
+      gsub(
+        '[^A-Za-z0-9._/-]',
+        '_',
+        paste0('references/', sub('^https?://', '', url))
+      )
+    } else {
+      entries[[index]]$file
+    }
+    target <- file.path(root, file)
+    # Case-folded, and no file may be another's directory, so one batch
+    # cannot write the same path twice on case-insensitive filesystems.
+    clash <- function(a, b) {
+      a <- tolower(a)
+      b <- tolower(b)
+      a == b | startsWith(a, paste0(b, '/')) | startsWith(b, paste0(a, '/'))
+    }
+    if (is.na(index) && (any(clash(file, claimed)) || file.exists(target))) {
+      stop(
+        'Cannot freeze ',
+        url,
+        ': ',
+        file,
+        ' is already in use',
+        call. = FALSE
+      )
+    }
+    if (!inside(target)) {
+      stop('Cannot freeze ', url, ': ', file, ' escapes ', root, call. = FALSE)
+    }
+    claimed <<- c(claimed, file)
+    download <- tempfile(fileext = paste0('.', tools::file_ext(file)))
+    withCallingHandlers(
+      utils::download.file(
+        url,
+        download,
+        mode = 'wb',
+        quiet = TRUE,
+        method = 'libcurl'
+      ),
+      warning = function(w) {
+        stop('Cannot download ', url, ': ', conditionMessage(w), call. = FALSE)
+      }
+    )
+    tryCatch(
+      read_schema_document(download, resolve_references = FALSE),
+      error = function(e) {
+        stop('Cannot parse ', url, ': ', conditionMessage(e), call. = FALSE)
+      }
+    )
+    hash <- sha256(download)
+    status <- if (is.na(index)) {
+      'added'
+    } else if (!identical(hash, entries[[index]]$sha256)) {
+      if (!refresh) {
+        stop(
+          url,
+          ' changed: ',
+          basename(lock_path),
+          ' records ',
+          entries[[index]]$sha256,
+          ', upstream is ',
+          hash,
+          '. Review it, then call again with refresh = TRUE.',
+          call. = FALSE
+        )
+      }
+      'refreshed'
+    } else if (!file.exists(target) || !identical(sha256(target), hash)) {
+      'restored'
+    } else {
+      'unchanged'
+    }
+    list(
+      url = url,
+      file = file,
+      download = download,
+      sha256 = hash,
+      status = status,
+      index = index
+    )
+  })
+  on.exit(unlink(vapply(plan, `[[`, character(1), 'download')), add = TRUE)
+  retrieved <- format(Sys.time(), '%Y-%m-%dT%H:%M:%SZ', tz = 'UTC')
+  for (item in plan) {
+    if (item$status %in% c('added', 'refreshed')) {
+      entry <- list(
+        url = item$url,
+        file = item$file,
+        sha256 = item$sha256,
+        retrieved = retrieved
+      )
+      if (is.na(item$index)) {
+        entries[[length(entries) + 1L]] <- entry
+      } else {
+        entries[[item$index]] <- entry
+      }
+    }
+  }
+  changed <- Filter(function(x) x$status != 'unchanged', plan)
+  # ponytail: files land before the lock rename; a crash in between leaves a
+  # hash mismatch diagnostic, never a silently wrong reference.
+  staged <- tempfile('specmill-references-', tmpdir = root, fileext = '.yml')
+  on.exit(unlink(staged), add = TRUE)
+  yaml::write_yaml(list(references = entries), staged)
+  written <- character()
+  for (item in changed) {
+    target <- file.path(root, item$file)
+    dir.create(dirname(target), recursive = TRUE, showWarnings = FALSE)
+    if (!file.copy(item$download, target, overwrite = TRUE)) {
+      unlink(written)
+      stop('Cannot write ', target, call. = FALSE)
+    }
+    if (item$status == 'added') {
+      written <- c(written, target)
+    }
+  }
+  if (
+    any(
+      vapply(changed, `[[`, character(1), 'status') %in% c('added', 'refreshed')
+    )
+  ) {
+    if (!file.rename(staged, lock_path)) {
+      stop('Cannot write ', lock_path, call. = FALSE)
+    }
+  }
+  read_reference_lock(schema)
+  invisible(data.frame(
+    url = vapply(plan, `[[`, character(1), 'url'),
+    file = vapply(plan, `[[`, character(1), 'file'),
+    sha256 = vapply(plan, `[[`, character(1), 'sha256'),
+    status = vapply(plan, `[[`, character(1), 'status')
+  ))
+}
