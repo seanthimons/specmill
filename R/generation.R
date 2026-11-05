@@ -1392,6 +1392,9 @@ render_operation <- function(operation, spec) {
         },
         ')'
       ),
+      if (parallel_batch && combine) {
+        '  if (base::is.list(result) && base::any(base::vapply(result, base::inherits, base::logical(1), "httr2_request"))) base::return(result)'
+      },
       if (!keep_metadata) '  base::attr(result, "failed") <- NULL',
       if (length(hooks$post_combine)) {
         post_combine_lines('failed')
