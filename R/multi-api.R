@@ -248,6 +248,31 @@ initialize_apis <- function(
     proposal$helpers,
     setNames(lapply(file.path(stage, metadata), file_text), metadata)
   )
+  script_apis <- apis[apis$include, , drop = FALSE]
+  script_apis$schema <- vapply(
+    script_apis$api,
+    function(api) {
+      grep(paste0('^schema/', api, '[.]'), names(proposal$files), value = TRUE)
+    },
+    character(1)
+  )
+  files <- c(
+    files,
+    initialization_scripts(
+      script_apis,
+      list(
+        package = package,
+        title = title,
+        author = author,
+        license = license,
+        naming = naming,
+        group_by = group_by,
+        name_case = name_case,
+        companions = companions,
+        naming_options = naming_options
+      )
+    )
+  )
   files[['.Rbuildignore']] <- paste(
     files[['.Rbuildignore']],
     '^specmill-apis\\.yml$',

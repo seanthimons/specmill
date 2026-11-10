@@ -27,6 +27,15 @@ initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
 \value{A list of applied file records, each containing file, path, and action. The configuration attribute contains proposed files, operation assignments, and diagnostics. Stops before application for invalid metadata, tag filename collisions, or conflicting scaffold paths.}
 \details{This function writes immediately and refuses any existing-file conflict. Supply package, title, author (given, family, email), and license for a new package. Existing DESCRIPTION metadata is retained; it must already declare httr2 and jsonlite, which the default transport needs for HTTP and JSON. Adding a new default transport also requires curl for form uploads. Without an explicit override, generated wrappers use operation, path, then root servers, resolving variable defaults. Ambiguous or unsupported selection produces server_diagnostics and fails before HTTP unless a runtime override is supplied. Baseline YAML defaults.request_controls exposes timeout, max_retries, and retry_writes. Regeneration passes these inherited defaults into helper calls without editing the client-owned helper. Runtime options override these fields. The helper reads the lowercase dry-run prefix plus .request as an R option containing base_url, timeout (default 30 seconds per attempt), max_retries (default 0), and retry_writes (default FALSE). Enabled retries cover transient HTTP responses for GET, HEAD, OPTIONS, PUT and DELETE; other methods need explicit write permission. Retry-After is honored. Normal generation never updates this helper. Initialization does not generate wrappers or tests: follow with generate_client(). The helper is client runtime code and does not import specmill.
 
+Initialization also emits client-owned \code{dev/init.R} and
+\code{dev/generate.R}, excluded from package builds. Source the first and call
+\code{init_main(root)} with an absent destination to recreate the initial
+scaffold from local schema copies. Later policy and helper edits are not replayed.
+Source the second and call \code{generate_main(args = "--plan")} to preview
+maintenance; \code{"--check"} checks and no flag applies. Both locate their
+source package independently of the working directory. Regeneration preserves
+these scripts. For prompted setup, see \code{setup_client()}.
+
 New clients also receive client-owned \code{R/api_options.R} with
 \code{<package>_run_verbose(verbose = FALSE)} and
 \code{<package>_dry_run(enabled = FALSE)}. Function prefixes preserve the exact
