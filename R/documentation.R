@@ -152,7 +152,7 @@ operation_documentation <- function(op, policy = list()) {
       body_text <- paste(
         body_text,
         'JSON body following',
-        op$opaque_body$reference,
+        prose(op$opaque_body$reference),
         'The schema shape is not validated locally.'
       )
     }

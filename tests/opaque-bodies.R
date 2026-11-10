@@ -189,6 +189,21 @@ opaque_bodies_acceptance <- function() {
     )
     stopifnot(inherits(error, 'error'))
   }
+  error <- tryCatch(
+    specmill::read_operations(
+      schema,
+      policy = list(
+        opaque_bodies = list(
+          'POST /filter' = list(
+            reference = paste0(url, '\n@eval unsafe()'),
+            reason = 'Reviewed'
+          )
+        )
+      )
+    ),
+    error = identity
+  )
+  stopifnot(inherits(error, 'error'))
   ready <- tempfile()
   on.exit(unlink(ready), add = TRUE)
   server <- callr::r_bg(
