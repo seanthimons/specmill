@@ -148,6 +148,14 @@ operation_documentation <- function(op, policy = list()) {
     } else {
       'Request body.'
     }
+    if (!is.null(op$opaque_body)) {
+      body_text <- paste(
+        body_text,
+        'JSON body following',
+        op$opaque_body$reference,
+        'The schema shape is not validated locally.'
+      )
+    }
     docs <- c(
       docs,
       paste0(

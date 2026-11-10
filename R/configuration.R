@@ -495,6 +495,7 @@ load_project <- function(
         'response_correction',
         'duplicate_response',
         'request_body_correction',
+        'opaque_body',
         'path_parameters_correction',
         'normalize_inputs',
         'validate_inputs',
@@ -688,6 +689,7 @@ load_project <- function(
         response_corrections = lapply(overrides, function(x) {
           x$response_correction
         }),
+        opaque_bodies = lapply(overrides, function(x) x$opaque_body),
         request_body_corrections = lapply(overrides, function(x) {
           x$request_body_correction
         }),
@@ -818,6 +820,7 @@ load_project <- function(
           'body_media_corrections',
           'response_corrections',
           'request_body_corrections',
+          'opaque_bodies',
           'path_parameters_corrections',
           'text_encoding_overrides',
           'query_array_style_overrides',

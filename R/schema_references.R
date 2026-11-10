@@ -251,6 +251,9 @@ resolve_schema_references <- function(document, path) {
     if (!is.list(node)) {
       return(node)
     }
+    if (!is.null(node[['x-specmill-reference-error']])) {
+      return(node)
+    }
     id <- node[['$id']]
     if (
       is_uri(file) &&
@@ -384,6 +387,22 @@ resolve_schema_references <- function(document, path) {
         target_path,
         TRUE,
         c(stack, identity)
+      )
+      resolved[[identity]] <<- target
+    }
+    if (
+      remote &&
+        is.list(target) &&
+        is.null(target[['x-specmill-opaque-source']]) &&
+        length(intersect(
+          opaque_reference_findings(target),
+          c('recursive_reference', 'dynamic_reference')
+        ))
+    ) {
+      # Keep reviewed provenance when initialization bundles a recursive target.
+      target[['x-specmill-opaque-source']] <- list(
+        reference = paste0(target_path, fragment),
+        sha256 = lock$entries[[target_path]]$sha256
       )
       resolved[[identity]] <<- target
     }

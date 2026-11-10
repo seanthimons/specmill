@@ -71,6 +71,7 @@ validate_settings <- function(
       'response_correction',
       'duplicate_response',
       'request_body_correction',
+      'opaque_body',
       'path_parameters_correction',
       'text_encoding',
       'query_array_style',
@@ -81,6 +82,9 @@ validate_settings <- function(
     ),
     label
   )
+  if (!is.null(settings$opaque_body)) {
+    validate_opaque_body(settings$opaque_body)
+  }
   if ('defer_inputs' %in% names(settings)) {
     deferred <- settings$defer_inputs
     if (

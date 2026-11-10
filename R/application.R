@@ -253,6 +253,14 @@ apply_files <- function(
       if (length(routes)) {
         manifest$files[[entry$file]]$routes <- routes
       }
+      opaque_bodies <- attr(desired, 'opaque_bodies')
+      opaque_bodies <- opaque_bodies[intersect(
+        names(opaque_bodies),
+        attr(desired, 'operations')[[entry$file]]
+      )]
+      if (length(opaque_bodies)) {
+        manifest$files[[entry$file]]$opaque_bodies <- opaque_bodies
+      }
       response_sources <- attr(desired, 'response_sources')
       response_sources <- response_sources[intersect(
         names(response_sources),

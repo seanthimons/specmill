@@ -100,6 +100,46 @@ not HTTP(S)), `unresolved_reference` (mapped file missing), `invalid_reference`
 `$id` changes the reference base). Unrelated operations still parse. Keep the
 lock file next to every copy of the schema you parse or diff.
 
+### Opaque recursive JSON request bodies
+
+An operation whose frozen remote request schema recurses, or uses `$dynamicRef`,
+can explicitly delegate body shape validation to its server:
+
+```yaml
+operations:
+  POST /collections/agency-codes/items:
+    opaque_body:
+      reference: https://schemas.opengis.net/cql2/1.0/cql2.json
+      reason: Reviewed CQL2 JSON filters; the server validates their shape.
+```
+
+`opaque_body` belongs under an individual OpenAPI 3 operation. It requires the exact
+remote reference used by that operation's `application/json` body schema and a
+nonempty review reason. The reference must already be frozen through
+`specmill-references.yml`. File existence, SHA-256 checks, missing dependencies
+and other reference errors remain enforced. Initialization preserves the URL
+and reviewed hash when it bundles these schemas into the client.
+
+The wrapper accepts JSON-compatible R values without enforcing the referenced
+schema's shape. Use named lists for objects and unnamed lists for arrays. Body
+requiredness, JSON representability, and ordinary parameter validation remain.
+No request media type, parameter, response, or schema source file is changed.
+Without the review, recursive references and unsupported dynamic keywords keep
+their existing diagnostics. Typed dynamic-reference resolution remains unsupported.
+
+Inspect `read_operations(..., policy = list(opaque_bodies = reviews))$body_diagnostics`,
+where `reviews` maps method/path keys to the same reference/reason lists, or
+`generate_client(..., mode = 'plan')$body_diagnostics`. These informational
+records do not block generation. Each contains the URL, reviewed SHA-256, review
+reason and source location. Generated body documentation states the validation
+limit, and wrapper entries in `.specmill/manifest.json` retain `opaque_bodies`
+provenance. Ordinary `diagnostics` remain blocking.
+
+Default schema validation still runs. Its original report is retained alongside
+the service's reviewed validation view. Only the approved request schemas become
+opaque in that view; unrelated validation failures still block generation.
+`validate_schema()` alone has no operation policy and reports the original schema.
+
 ## Project file: specmill.yml
 
 ### Schema validation

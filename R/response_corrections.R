@@ -70,9 +70,13 @@ reviewed_response_validation <- function(service, reports) {
     Negate(is.null),
     service$policy$response_corrections %or% list()
   )
+  opaque_bodies <- Filter(
+    Negate(is.null),
+    service$policy$opaque_bodies %or% list()
+  )
   views <- list()
   for (file in names(reports)) {
-    if (!length(corrections)) {
+    if (!length(corrections) && !length(opaque_bodies)) {
       next
     }
     document <- tryCatch(
@@ -115,12 +119,22 @@ reviewed_response_validation <- function(service, reports) {
       document$paths[[path]][[method]] <- corrected
       applied[[key]] <- corrections[[key]]
     }
-    if (!length(applied)) {
+    if (length(opaque_bodies)) {
+      document <- opaque_body_document(
+        file,
+        opaque_bodies,
+        document,
+        service$policy
+      )
+    }
+    body_reviews <- attr(document, 'specmill_opaque_bodies')
+    if (!length(applied) && !length(opaque_bodies)) {
       next
     }
     report <- schema_validation_report(file, document)
     report$service <- service$id %or% 'default'
     report$response_corrections <- config_data(applied)
+    report$opaque_bodies <- body_reviews
     views[[file]] <- report
     reports[[file]] <- report
   }
