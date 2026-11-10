@@ -14,8 +14,8 @@ permissions:
 jobs:
   r-cmd-check:
     name: R CMD check
-    # Baseline PR #1 fixes an empty TESTTHAT_PARALLEL value on Linux.
-    uses: seanthimons/baseline/.github/workflows/r-cmd-check.yaml@11de13b4212c6ef8b3c3dffae706798551a7e06d
+    # v1.4.1 leaves TESTTHAT_PARALLEL unset outside Windows.
+    uses: seanthimons/baseline/.github/workflows/r-cmd-check.yaml@248ad7ec1315ff863abc1d44bf5fe1554fb64f72 # v1.4.1
     with:
       matrix: '[{"os":"ubuntu-latest","r":"release"},{"os":"windows-latest","r":"release"}]'
       setup-air: true
