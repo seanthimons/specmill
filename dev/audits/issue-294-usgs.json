@@ -343,7 +343,7 @@
       }
     },
     {
-      "source_location": "#/paths//collections/edr/daily/locations/{locId}/get/responses/200/content/application/vnd.cov+json/schema/properties/coverages/items/properties/domain",
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/coverages/items/properties/domain",
       "reference": "domain.yaml",
       "finding": {
         "code": "external_reference",
@@ -351,7 +351,7 @@
       }
     },
     {
-      "source_location": "#/paths//collections/edr/daily/locations/{locId}/get/responses/200/content/application/vnd.cov+json/schema/properties/coverages/items/properties/ranges/additionalProperties",
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/coverages/items/properties/ranges/additionalProperties",
       "reference": "ndArray.yaml",
       "finding": {
         "code": "external_reference",
@@ -359,7 +359,7 @@
       }
     },
     {
-      "source_location": "#/paths//collections/edr/daily/locations/{locId}/get/responses/200/content/application/vnd.cov+json/schema/properties/parameters/additionalProperties",
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/parameters/additionalProperties",
       "reference": "parameter.yaml",
       "finding": {
         "code": "external_reference",
@@ -367,7 +367,7 @@
       }
     },
     {
-      "source_location": "#/paths//collections/edr/daily/locations/{locId}/get/responses/200/content/application/vnd.cov+json/schema/properties/ranges/additionalProperties",
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/ranges/additionalProperties",
       "reference": "ndArray.yaml",
       "finding": {
         "code": "external_reference",
@@ -375,7 +375,7 @@
       }
     },
     {
-      "source_location": "#/paths//collections/edr/daily/locations/{locId}/get/responses/200/content/application/vnd.cov+json/schema/properties/referencing/items",
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/referencing/items",
       "reference": "referenceSystemConnection.yaml",
       "finding": {
         "code": "external_reference",
