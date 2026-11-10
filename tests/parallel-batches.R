@@ -33,7 +33,13 @@ parallel_batches_acceptance <- function() {
           }
           id <- sub('^/items/', '', req$PATH_INFO)
           if (req$PATH_INFO == '/bulk') {
-            id <- unlist(jsonlite::fromJSON(rawToChar(req$rook.input$read())))
+            body <- rawToChar(req$rook.input$read())
+            id <- if (startsWith(req$CONTENT_TYPE, 'text/plain')) {
+              stopifnot(identical(req$HTTP_ACCEPT, 'application/json'))
+              strsplit(body, '\n', fixed = TRUE)[[1L]]
+            } else {
+              unlist(jsonlite::fromJSON(body))
+            }
           }
           label <- paste(id, collapse = ',')
           history <<- c(history, label)
@@ -180,10 +186,15 @@ parallel_batches_acceptance <- function() {
     ),
     file.path(root, 'R/hooks.R')
   )
+  callbacks <- new.env(parent = emptyenv())
+  callbacks$text_body <- function(operation) {
+    quote(base::paste(params$body, collapse = '\n'))
+  }
   generate <- function() {
     specmill::generate_client(
       root,
       config = 'specmill.yml',
+      callbacks = callbacks,
       mode = 'apply',
       validation = FALSE
     )
@@ -450,6 +461,7 @@ parallel_batches_acceptance <- function() {
     root,
     config = 'specmill.yml',
     mode = 'check',
+    callbacks = callbacks,
     validation = FALSE
   )
   # Exercise the installed client with a library path that cannot load specmill.
@@ -497,6 +509,84 @@ parallel_batches_acceptance <- function() {
     },
     libpath = c(library, libraries)
   )
+  # Complete native mappings retain chunk serialization and ordered completion.
+  service <- original
+  native_arguments <- list(
+    method = list(value = 'GET'),
+    path = list(value = '/items/{id}'),
+    path_params = list(object = list(id = list(from = c('params', 'id')))),
+    query = list(value = list()),
+    body = list(value = NULL),
+    request_controls = list(value = service$defaults$request_controls),
+    response_policy = list(callback = 'policy')
+  )
+  callbacks$policy <- function(operation) quote(context_policy)
+  service$operations[['GET /items/{id}']]$request <- list(
+    arguments = native_arguments
+  )
+  native_arguments$method <- list(value = 'POST')
+  native_arguments$path <- list(value = '/bulk')
+  native_arguments$path_params <- list(value = list())
+  native_arguments$body <- list(callback = 'text_body')
+  native_arguments$body_media <- list(value = 'text/plain')
+  native_arguments$headers <- list(value = list(Accept = 'application/json'))
+  service$operations[['POST /bulk']]$request <- list(
+    arguments = native_arguments
+  )
+  yaml::write_yaml(service, path)
+  generate()
+  mapped <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, mapped)
+  }
+  reset()
+  options(parallelclient.events = NULL)
+  result <- mapped$item(input)
+  stopifnot(
+    identical(ids(result), input),
+    identical(vapply(result, `[[`, character(1), 'query'), input),
+    history()$peak == 2L,
+    identical(
+      getOption('parallelclient.events'),
+      c(paste('pre_request', input), paste('post_response', input))
+    )
+  )
+  reset()
+  result <- mapped$bulk(c('slow', 'é', 'é', 'end', 'last'))
+  stopifnot(
+    identical(ids(result), c('slow', 'é', 'é', 'end', 'last')),
+    history()$peak == 2L,
+    identical(unlist(history()$history), c('slow,é', 'é,end', 'last'))
+  )
+  # Mapping does not change single-stop/multiple-drop behavior or chunk labels.
+  service$operations[['POST /bulk']]$batch$on_error <- list(
+    single = 'stop',
+    multiple = 'drop'
+  )
+  yaml::write_yaml(service, path)
+  generate()
+  sys.source(file.path(root, 'R/bulk.R'), mapped)
+  result <- suppressWarnings(mapped$bulk(c('bad', 'a', 'b')))
+  stopifnot(
+    identical(ids(result), 'b'),
+    'bad, a' %in% names(attr(result, 'failed'))
+  )
+  stopifnot(inherits(capture(mapped$bulk('bad')), 'error'))
+  result <- suppressWarnings(mapped$item(c('slow', 'bad', 'fast')))
+  stopifnot(
+    identical(ids(result), c('slow', 'fast')),
+    'bad' %in% names(attr(result, 'failed'))
+  )
+  # The preparation switch belongs to the executor, never to a mapping.
+  service$operations[['POST /bulk']]$request$arguments$.prepare <- list(
+    value = FALSE
+  )
+  yaml::write_yaml(service, path)
+  stopifnot(grepl(
+    'request.arguments..prepare',
+    conditionMessage(capture(generate())),
+    fixed = TRUE
+  ))
   # Explicit concurrency 1 keeps the ordinary interleaved synchronous lifecycle.
   service <- original
   service$operations[['GET /items/{id}']]$batch$concurrency <- 1L

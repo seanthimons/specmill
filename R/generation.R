@@ -1108,13 +1108,18 @@ render_operation <- function(operation, spec) {
     if (
       !is.null(pg) ||
         !is.null(request_paging) ||
-        !is.null(spec[['request']]) ||
         !is.null(spec$cache) ||
         preserve_visibility ||
         !is.null(spec$route_guard)
     ) {
       stop(
         'batch.concurrency requires native unpaged requests without cache, route_guard or preserve_visibility: ',
+        operation$id
+      )
+    }
+    if ('.prepare' %in% names(spec[['request']]$arguments)) {
+      stop(
+        'batch.concurrency reserves request.arguments..prepare: ',
         operation$id
       )
     }

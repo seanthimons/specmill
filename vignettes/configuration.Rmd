@@ -933,9 +933,14 @@ post-response hooks run in input order after all HTTP requests finish; final
 combination, combined hooks and formatting follow as usual. Duplicates retain
 their input positions. Dry runs send nothing and bypass response hooks.
 
-Every request must target the same service origin. Pagination, custom request
-mappings, caches, route guards and visibility preservation cannot combine with
-`concurrency` in this version. This setting does not make calls return immediately
+Every request must target the same service origin. Complete `request.arguments`
+mappings are supported when the client helper implements the preparation and
+completion contract below. Bindings run for each chunk after pre-request hooks;
+include the desired media type, headers, authentication, server selection,
+request controls and response policy in the mapping. The executor supplies
+`.prepare`; mapping that argument explicitly is rejected. Pagination, caches,
+route guards and visibility preservation cannot combine with `concurrency` in
+this version. This setting does not make calls return immediately
 or parallelize unrelated wrapper calls. The existing batching session option
 does not override concurrency.
 
