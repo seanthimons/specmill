@@ -1,43 +1,58 @@
+## specmill 0.2.4 (2026-11-10)
+
+#### Build
+
+- restore pre-rewrite version tags in the release runner so NEWS keeps
+  per-version sections
+  ([e625d11](https://github.com/seanthimons/specmill/tree/e625d11986588a03c10b637b4f744eec201ced96))
+
+#### CI
+
+- pin R CMD check to baseline v1.4.1 instead of a commit outside its
+  main history
+  ([f2eaae6](https://github.com/seanthimons/specmill/tree/f2eaae63a78cc81cb031da13cc0801fb83dd9952))
+
+Full set of changes:
+[`v0.2.3...v0.2.4`](https://github.com/seanthimons/specmill/compare/v0.2.3...v0.2.4)
+
 ## specmill 0.2.3 (2026-11-05)
 
 #### New features
 
 - add explicit freeze_references() acquisition helper (#293)
-  ([090c264](https://github.com/seanthimons/specmill/tree/090c26440a2ac58721d6d0272e3afca8c716e84a))
+  ([e11c50a](https://github.com/seanthimons/specmill/tree/e11c50a7c3f4dedc91d39c2bdc482bb02f00c39f))
 - resolve reviewed remote schema copies
-  ([e90d05f](https://github.com/seanthimons/specmill/tree/e90d05f8093e0d47bc255d38058e8550338eac1f))
+  ([41b136a](https://github.com/seanthimons/specmill/tree/41b136a8d8265ab389ab8b58ee228db8945101a0))
 - add bounded parallel request batches (#287)
-  ([2e8a942](https://github.com/seanthimons/specmill/tree/2e8a94276bad4e270b12262c61d4fd5b30555f69))
+  ([705c19b](https://github.com/seanthimons/specmill/tree/705c19bec27cd12439b4d8909449836f8fdf7617))
 
 #### Bug fixes
 
 - roll back freeze_references() writes when a copy fails (#293)
-  ([e13bba3](https://github.com/seanthimons/specmill/tree/e13bba3e69b4bd12a1ef0fca3267010bc5d02afc))
+  ([f9eb2ed](https://github.com/seanthimons/specmill/tree/f9eb2ed121ac53c36a8fadc294875b9452862b5e))
 - bypass combined hooks for prepared batches (#287)
-  ([e486917](https://github.com/seanthimons/specmill/tree/e48691732b51bb7d68958c05b8752f88d0179a48))
+  ([6de2e72](https://github.com/seanthimons/specmill/tree/6de2e72092842b52d4c006227ab79e9e2119842d))
 - decode parallel responses before completion hooks (#287)
-  ([5263300](https://github.com/seanthimons/specmill/tree/5263300d72c527f5a742adf725dcb4db724d3f3f))
+  ([dcbe303](https://github.com/seanthimons/specmill/tree/dcbe30357dce5b4dcf034bd141f26d4bd2522820))
 
 #### Build
 
 - drop release commits and empty sections from generated NEWS
-  ([04ef1fc](https://github.com/seanthimons/specmill/tree/04ef1fc428b3098fad9574500069fc02ab651bad))
+  ([1d31c15](https://github.com/seanthimons/specmill/tree/1d31c1557a228468c3da832bb1881ecac437a8c9))
 
 #### Docs
 
 - describe lock-resolved validation in validate_schema (#291)
-  ([b8cf910](https://github.com/seanthimons/specmill/tree/b8cf91044dee09186b8465711cbcd170031bf484))
+  ([f89ac4c](https://github.com/seanthimons/specmill/tree/f89ac4c21de12e68cf820d7a6a2f63d9af530e63))
 
 #### Other changes
 
 - ignore root dot-directories and markdown files except required ones
-  ([77c3876](https://github.com/seanthimons/specmill/tree/77c38763c2a808733470c4e5aecf1f6212d7042b))
+  ([4526e0e](https://github.com/seanthimons/specmill/tree/4526e0ef94788b8fbcc9be704dfb2962dfa24ccc))
 - remove duplicate root logo and move testing spec list into dev
-  ([9db5506](https://github.com/seanthimons/specmill/tree/9db5506fc85dbc0bb4c2260b74808bf6c93ca633))
+  ([4e91bf2](https://github.com/seanthimons/specmill/tree/4e91bf28c7307317a0e5d6050d2f7f23c17635e7))
 - ignore R session and planning files as in baseline
-  ([0726d95](https://github.com/seanthimons/specmill/tree/0726d958f0658cfd4f838267c1ae6e5d9b06f053))
-- ignore root agent and handoff files and stop tracking them
-  ([3f3d63a](https://github.com/seanthimons/specmill/tree/3f3d63a2c9a9cc8a292f6a8a2b22582da9109123))
+  ([5f769d7](https://github.com/seanthimons/specmill/tree/5f769d797c5714b2ef02194b1d807d3f213cfe5a))
 
 Full set of changes:
 [`v0.2.2...v0.2.3`](https://github.com/seanthimons/specmill/compare/v0.2.2...v0.2.3)
@@ -47,14 +62,14 @@ Full set of changes:
 #### Docs
 
 - document legacy debug and verbose integration (#285) (#288)
-  ([b65457e](https://github.com/seanthimons/specmill/tree/b65457e2cff67ab9de4dd2bf1c1b7aa1b8fc0454))
+  ([9c2d55a](https://github.com/seanthimons/specmill/tree/9c2d55a7cc5c720dc95ce4944131d747e7a452ca))
 
 #### Other changes
 
 - restore published patch version 0.2.1
-  ([c6f4731](https://github.com/seanthimons/specmill/tree/c6f47312287cdf05b48edb18b30c0d522416b4e7))
+  ([2249510](https://github.com/seanthimons/specmill/tree/2249510c951959140b22e5a1f7e6627d1db725f3))
 - retain development version after v0.2.1 release
-  ([f6b7f9b](https://github.com/seanthimons/specmill/tree/f6b7f9b433afbfecf2f8f0891d17cd8d11e6988d))
+  ([e1bdae0](https://github.com/seanthimons/specmill/tree/e1bdae0accfbd9d04d19c56c9309009a47cc76e2))
 
 Full set of changes:
 [`v0.2.1...v0.2.2`](https://github.com/seanthimons/specmill/compare/v0.2.1...v0.2.2)
@@ -64,14 +79,14 @@ Full set of changes:
 #### New features
 
 - append configured hints to server and transport errors (#280)
-  ([31602ec](https://github.com/seanthimons/specmill/tree/31602ec92e806b38707c88196010c6cad2048b3c))
+  ([f398b40](https://github.com/seanthimons/specmill/tree/f398b406c63dd420dbbbb6646272fd08a505a94e))
 
 #### Other changes
 
 - begin development version 0.2.1.9000
-  ([a43796e](https://github.com/seanthimons/specmill/tree/a43796e36a673157b07f3be6ac5fb2a8e99036ef))
+  ([b09ac60](https://github.com/seanthimons/specmill/tree/b09ac608938f86075ec6dbddb287dd3795b52e76))
 - remove proving-ground schema copies now kept in specmill-schemas
-  ([0e52ca9](https://github.com/seanthimons/specmill/tree/0e52ca90b34ea3ffd3c3feb9d8bc1ca9edf31208))
+  ([7137685](https://github.com/seanthimons/specmill/tree/71376859b6f5e05406ef91f9f2193e08e3a0c6be))
 
 Full set of changes:
 [`v0.2.0...v0.2.1`](https://github.com/seanthimons/specmill/compare/v0.2.0...v0.2.1)
@@ -84,7 +99,7 @@ Full set of changes:
 
 - keep non-transport errors from req_perform distinct from connection
   failures (#275)
-  ([604926e](https://github.com/seanthimons/specmill/tree/604926eebb369cf280b1a1d926696441221c24ad))
+  ([f2ac5de](https://github.com/seanthimons/specmill/tree/f2ac5dea5a35bad710dc2a3eadcdddb90ab9883d))
 
 Full set of changes:
 [`v0.1.64...v0.1.65`](https://github.com/seanthimons/specmill/compare/v0.1.64...v0.1.65)
@@ -95,54 +110,54 @@ Full set of changes:
 
 - declare yaml and withr with testthat and vcr in new clients’ Suggests
   (#262)
-  ([a3bb951](https://github.com/seanthimons/specmill/tree/a3bb951437962ca9f141df1cb3bc90b5ac0fb46d))
+  ([165aedf](https://github.com/seanthimons/specmill/tree/165aedfc335deb5734eaae2eba9fffb653b527f8))
 - keep env-bound arguments out of recordings and harden recording scans
   found in the AQS trial (#262)
-  ([7b4e6d1](https://github.com/seanthimons/specmill/tree/7b4e6d1014dca8742335a37e53a8ecc1f26f5063))
+  ([9641566](https://github.com/seanthimons/specmill/tree/964156626bf850f60166e07d046473042c842cab))
 - report verification layers and scenarios affected by changes since
   recording (#261)
-  ([c2b3b0b](https://github.com/seanthimons/specmill/tree/c2b3b0b57278b2a8f180af1cbc4938858c6f7214))
+  ([9ce0345](https://github.com/seanthimons/specmill/tree/9ce034583ee20371cb0f92b88d3004da7d14c937))
 - propose scenarios and docs example stubs, and review recordings
   against response schemas (#273)
-  ([153f9c5](https://github.com/seanthimons/specmill/tree/153f9c5b30d5799c29eb618c6a76f1ea98e54a4f))
+  ([b685200](https://github.com/seanthimons/specmill/tree/b685200aedc6eb6f7379a5c1301871d95eb4be59))
 - resolve scenario inputs from reviewed docs examples and schema
   examples (#272)
-  ([f365e20](https://github.com/seanthimons/specmill/tree/f365e20408bb6caafbcc0df62a71001f4921452e))
+  ([ef75bad](https://github.com/seanthimons/specmill/tree/ef75badf4cbc29c0a9e00db280d6b6455c22791d))
 - generate reviewed hook cases and wrapper integrations (#260)
-  ([2c0c74b](https://github.com/seanthimons/specmill/tree/2c0c74b58a0f4e8ce20f74e8315b863141229446))
+  ([61267bb](https://github.com/seanthimons/specmill/tree/61267bbad3ba87f886372a8c7f6c5d856a9f833c))
 - require approval for write recordings and scan new recordings for
   leaked values (#259)
-  ([de54c27](https://github.com/seanthimons/specmill/tree/de54c27612b2f799075960a251dc19a61f67fb66))
+  ([d2cd7cf](https://github.com/seanthimons/specmill/tree/d2cd7cf6fa878f71a1e9062ee26607a40ccb2ab8))
 - generate cassette scenario tests that replay reviewed recordings
   offline (#258)
-  ([cab30be](https://github.com/seanthimons/specmill/tree/cab30beb72ae17dbe07bb19ac2a8d2d896fbaf76))
+  ([7d676a7](https://github.com/seanthimons/specmill/tree/7d676a73e11cd70fd619e99f05dd2ab75ae4107a))
 - declare reviewed cassette scenarios, contract gaps and unrecorded
   routes (#257)
-  ([68c2e65](https://github.com/seanthimons/specmill/tree/68c2e65d040751d9cb8c80358c0dc3aa60b25cc6))
+  ([9281a58](https://github.com/seanthimons/specmill/tree/9281a58cbdda33052cf666b2aa690157eceeddf0))
 
 #### Build
 
 - require vcr 2.0.0 or later in new clients’ Suggests (#262)
-  ([6069f1b](https://github.com/seanthimons/specmill/tree/6069f1b0db22bd0925bc9a607f4f0d340d06edfa))
+  ([99a7b10](https://github.com/seanthimons/specmill/tree/99a7b10799a2595df7ec2e924b0f0d5e2e187137))
 
 #### Tests
 
 - certify offline replay of a generated Swagger 2 client and refuse
   multipart scenarios (#262)
-  ([f8cd826](https://github.com/seanthimons/specmill/tree/f8cd826cd3d203c9aff0dc0184caaa3939dbbaf7))
+  ([eb319fa](https://github.com/seanthimons/specmill/tree/eb319fa221e2ab76c21db32964cb3c37435f2a85))
 
 #### Docs
 
 - note the vcr 2.0.0 minimum for clients created before it was declared
   (#262)
-  ([cd97930](https://github.com/seanthimons/specmill/tree/cd97930da74ae8a438a210d6575b942ed0e6cd1e))
+  ([e303c03](https://github.com/seanthimons/specmill/tree/e303c039acb18536939b63aaa465efab25da65a0))
 
 #### Other changes
 
 - update maintainer email in the catalogue fixture (#274)
-  ([f200c67](https://github.com/seanthimons/specmill/tree/f200c67cefae7d7ae8354ed52b12c661ce48fc5c))
+  ([68ba993](https://github.com/seanthimons/specmill/tree/68ba993beaedc4f460f1c458dc5890eae5d1feaa))
 - update maintainer email (#274)
-  ([a3505ca](https://github.com/seanthimons/specmill/tree/a3505ca6ff2ccb365c33de8eab0da34edb240f4c))
+  ([68c9861](https://github.com/seanthimons/specmill/tree/68c9861d1da58e33ee2881fd8a7586ca08b37da2))
 
 Full set of changes:
 [`v0.1.63...v0.1.64`](https://github.com/seanthimons/specmill/compare/v0.1.63...v0.1.64)
@@ -153,7 +168,7 @@ Full set of changes:
 
 - configure_client keeps the first reviewed name when groups wrap one
   route twice (#270)
-  ([0ff8f8f](https://github.com/seanthimons/specmill/tree/0ff8f8f0e5c6dd4b799d4bad9945e69c36d0a3b4))
+  ([fc0ca9f](https://github.com/seanthimons/specmill/tree/fc0ca9fba3d8a8568a073de4daa442befa996e32))
 
 Full set of changes:
 [`v0.1.62...v0.1.63`](https://github.com/seanthimons/specmill/compare/v0.1.62...v0.1.63)
@@ -164,7 +179,7 @@ Full set of changes:
 
 - opt-in absent_overrides = ‘warn’ skips overrides for operations
   missing from the schema (#266)
-  ([fe5381f](https://github.com/seanthimons/specmill/tree/fe5381fe2f0192efdac39efc33097bbd2c1fb224))
+  ([1c639be](https://github.com/seanthimons/specmill/tree/1c639be69f9bd9bdee494aacc25b4ff90e2be5d2))
 
 Full set of changes:
 [`v0.1.61.9000...v0.1.62`](https://github.com/seanthimons/specmill/compare/v0.1.61.9000...v0.1.62)
@@ -174,9 +189,9 @@ Full set of changes:
 #### Docs
 
 - explain adapting inconsistent API authentication (#264)
-  ([f90bd28](https://github.com/seanthimons/specmill/tree/f90bd28df9fb36609e17b8efbdf51f8d6105ca72))
+  ([bebdebe](https://github.com/seanthimons/specmill/tree/bebdebe45e4a7258515c0ac8505ac617663a7b05))
 - research query credential policy and maintenance tradeoffs (#264)
-  ([a489487](https://github.com/seanthimons/specmill/tree/a489487eb76196decc630f981c0b0a3ae1b2bb7b))
+  ([92d4e96](https://github.com/seanthimons/specmill/tree/92d4e96ba7a2f1a4263e50e1a715e0511cb0fc67))
 
 Full set of changes:
 [`v0.1.61...v0.1.61.9000`](https://github.com/seanthimons/specmill/compare/v0.1.61...v0.1.61.9000)
@@ -186,12 +201,12 @@ Full set of changes:
 #### Bug fixes
 
 - dispatch site builds after package publication
-  ([64c5c01](https://github.com/seanthimons/specmill/tree/64c5c0129f961ec09cce8db5fd7686aedeb85248))
+  ([81d80dd](https://github.com/seanthimons/specmill/tree/81d80dd50baca3bef1854308f4ad9807f909ea75))
 
 #### Docs
 
 - refresh installation and current client workflows
-  ([37ebc39](https://github.com/seanthimons/specmill/tree/37ebc39a43f23e5746a9b61b70f60c8535f6fb2f))
+  ([bceb2db](https://github.com/seanthimons/specmill/tree/bceb2db591e05eb0d8befa2492813af40c44cf75))
 
 Full set of changes:
 [`v0.1.60...v0.1.61`](https://github.com/seanthimons/specmill/compare/v0.1.60...v0.1.61)
@@ -201,7 +216,7 @@ Full set of changes:
 #### New features
 
 - allow docs.parameters to document the request body argument (#221)
-  ([6ad5c12](https://github.com/seanthimons/specmill/tree/6ad5c12c8c716ae1d60864834c797e7306a9431e))
+  ([907bed5](https://github.com/seanthimons/specmill/tree/907bed5d9b05c3802e368ad392c8eeb408411be7))
 
 Full set of changes:
 [`v0.1.59...v0.1.60`](https://github.com/seanthimons/specmill/compare/v0.1.59...v0.1.60)
@@ -211,7 +226,7 @@ Full set of changes:
 #### Bug fixes
 
 - handle titles and manual test scaffolding
-  ([4153703](https://github.com/seanthimons/specmill/tree/41537031c51c8730ffe86cdc438f05df010d3910))
+  ([4aa799c](https://github.com/seanthimons/specmill/tree/4aa799ce66dfe1895f3057b6b68483be5c7620e3))
 
 Full set of changes:
 [`v0.1.58...v0.1.59`](https://github.com/seanthimons/specmill/compare/v0.1.58...v0.1.59)
@@ -222,7 +237,7 @@ Full set of changes:
 
 - resolve path-name doubling, owned-file splits and coverage service
   exclusion (#212, #213, #214)
-  ([745941f](https://github.com/seanthimons/specmill/tree/745941fa5af2707c4881a2557e0aded3abeaf5d3))
+  ([d2c2c70](https://github.com/seanthimons/specmill/tree/d2c2c7042acd647534b0622a667c3e97ba14b3e9))
 
 Full set of changes:
 [`v0.1.57...v0.1.58`](https://github.com/seanthimons/specmill/compare/v0.1.57...v0.1.58)
@@ -233,37 +248,37 @@ Full set of changes:
 
 - accept readable YAML or JSON contracts_file keyed by METHOD /path
   (#207)
-  ([f863ae2](https://github.com/seanthimons/specmill/tree/f863ae2a14bceac7326d05314fa4d72ce779707b))
+  ([aa19caf](https://github.com/seanthimons/specmill/tree/aa19cafe1eab32509337dec2522933d0439fbe66))
 - add route-derived names with naming = ‘path’ and reported collision
   resolution (#206)
-  ([7580693](https://github.com/seanthimons/specmill/tree/7580693d711dccef5ba0ab5e6bdce1cfd648c03f))
+  ([aad2edc](https://github.com/seanthimons/specmill/tree/aad2edc8151d6a7e8cb4acd5d33dcb5fad04d87c))
 - add regeneration_report for a read-only clean-regeneration and
   hand-built inventory (#201, #197)
-  ([4353445](https://github.com/seanthimons/specmill/tree/43534451adf67519b0454c564d7b1c68784af9f3))
+  ([e8ccf39](https://github.com/seanthimons/specmill/tree/e8ccf39df812f6009de377f27a2b06cdc9a1fce2))
 - accept a manifest file path to prune stale entries that own no
   operations (#203)
-  ([3c0c9cd](https://github.com/seanthimons/specmill/tree/3c0c9cd5ed787f1926e4776716dda89fd833f09b))
+  ([e207ac7](https://github.com/seanthimons/specmill/tree/e207ac7eb6ff1bb93a9037549d0ee62da815c85c))
 
 #### Bug fixes
 
 - find prune fixtures when run from tests/ under R CMD check
-  ([0e88e0b](https://github.com/seanthimons/specmill/tree/0e88e0b29a814193974c82d734f7f0832e9c2abe))
+  ([f9be47e](https://github.com/seanthimons/specmill/tree/f9be47ee97e9b70e57a244f1494bf022ad6ad3b0))
 - expect every path-parameter contradiction in the correction test
-  ([6e8a460](https://github.com/seanthimons/specmill/tree/6e8a4604240dbe24b7e227cf385b00d95e37d045))
+  ([340cc0a](https://github.com/seanthimons/specmill/tree/340cc0a096538c9d2937092797b6f455ed5f2ff9))
 - expect every path-parameter contradiction in the capability audit
-  ([22b2626](https://github.com/seanthimons/specmill/tree/22b2626f73471a3eff39f73e7b39d47477a913ed))
+  ([536033b](https://github.com/seanthimons/specmill/tree/536033bdf9742251b637e1c81ed11e879f029cd2))
 - report all path parameter name contradictions
-  ([2955571](https://github.com/seanthimons/specmill/tree/29555713c29cc461664211ea7b30eaab4c143ad4))
+  ([8950b82](https://github.com/seanthimons/specmill/tree/8950b82bb13f4469365e7f14aef6f98f6ee7c285))
 
 #### Docs
 
 - refresh audit header, print per-finding output, assert plan diagnostic
   codes (#208)
-  ([fed2064](https://github.com/seanthimons/specmill/tree/fed2064a32bcde355f03de47eb2f9c264e8e2933))
+  ([7e0f433](https://github.com/seanthimons/specmill/tree/7e0f433aaeb57e39ead13bd5a28d5d3cabef2b46))
 - document upstream schema publication gate and AMOS findings
-  ([1043ff8](https://github.com/seanthimons/specmill/tree/1043ff8191223a139bfa512b0aff89e5e4f2ee09))
+  ([91ee6f6](https://github.com/seanthimons/specmill/tree/91ee6f6d1fef626e86bf163d12a7ccd8311eed9d))
 - name the manifest-recorded owner service in prune IDs
-  ([bb70c50](https://github.com/seanthimons/specmill/tree/bb70c501ca9de257d7822ae9a6332c3ea50a752e))
+  ([072d142](https://github.com/seanthimons/specmill/tree/072d14260fab13bed0cba3c451a7af915c48c7b8))
 
 Full set of changes:
 [`v0.1.56...v0.1.57`](https://github.com/seanthimons/specmill/compare/v0.1.56...v0.1.57)
@@ -274,23 +289,23 @@ Full set of changes:
 
 - opt-in removal of retired operation outputs and purge of owned output
   (#196)
-  ([89fade3](https://github.com/seanthimons/specmill/tree/89fade3bdb33c06c70b3237ceac8bc08ea180e24))
+  ([4a106aa](https://github.com/seanthimons/specmill/tree/4a106aa79ae7d50a33fb30b9439e1daefdf92844))
 
 #### Tests
 
 - cover retired-service and deferral-ID prune; clarify prune scope in
   docs (#196)
-  ([b071f2c](https://github.com/seanthimons/specmill/tree/b071f2c1280d4bfd665415b2e06fd14fcc3d09a8))
+  ([7516143](https://github.com/seanthimons/specmill/tree/75161434f3c4a0d5c66a873821c3c7d7417f10d8))
 
 #### Docs
 
 - add worked deferral and exclusion vignette
-  ([77e3075](https://github.com/seanthimons/specmill/tree/77e30750575e992bd959e3e8fd6c32c4d6ab2f56))
+  ([840267e](https://github.com/seanthimons/specmill/tree/840267e99873ba49656f1c47308b04b4517c34ce))
 
 #### Other changes
 
 - merge deferral vignette (#199) into prune branch
-  ([fb89b00](https://github.com/seanthimons/specmill/tree/fb89b00f039156913f3a14d0fd7a7655af4c4155))
+  ([f75ad34](https://github.com/seanthimons/specmill/tree/f75ad34baed34a9fcadd935b53bec08046cdb1b4))
 
 Full set of changes:
 [`v0.1.55...v0.1.56`](https://github.com/seanthimons/specmill/compare/v0.1.55...v0.1.56)
@@ -300,7 +315,7 @@ Full set of changes:
 #### New features
 
 - validate minimum, maximum and items on extra_parameters (#194)
-  ([81b97c7](https://github.com/seanthimons/specmill/tree/81b97c73136f3c958e5f992380aae7c85d5e2cb0))
+  ([079613c](https://github.com/seanthimons/specmill/tree/079613c7f15abfddef764bb04bf3acad7b28ea3f))
 
 Full set of changes:
 [`v0.1.54...v0.1.55`](https://github.com/seanthimons/specmill/compare/v0.1.54...v0.1.55)
@@ -310,7 +325,7 @@ Full set of changes:
 #### Bug fixes
 
 - count unclaimed claims from services on the same server (#192)
-  ([a9298c8](https://github.com/seanthimons/specmill/tree/a9298c89a95ec1f6f8f6b5cbb9ffee5bb48a1e9c))
+  ([2b120fa](https://github.com/seanthimons/specmill/tree/2b120fa0770cef7ec224ec2762740339909a9ea5))
 
 Full set of changes:
 [`v0.1.53...v0.1.54`](https://github.com/seanthimons/specmill/compare/v0.1.53...v0.1.54)
@@ -320,7 +335,7 @@ Full set of changes:
 #### New features
 
 - method-qualified exclusions and unclaimed services (#189, #190)
-  ([a005ddf](https://github.com/seanthimons/specmill/tree/a005ddf1440e865f232e2234d1afb013f8c408e8))
+  ([0b7c7a7](https://github.com/seanthimons/specmill/tree/0b7c7a7d35c5761d15c70e118a2a8bd0226b719c))
 
 Full set of changes:
 [`v0.1.52...v0.1.53`](https://github.com/seanthimons/specmill/compare/v0.1.52...v0.1.53)
@@ -330,18 +345,18 @@ Full set of changes:
 #### New features
 
 - defer one enrolled contract revision until its schema changes
-  ([5656ae5](https://github.com/seanthimons/specmill/tree/5656ae5732afb83f2d06a3e246801d885c8134ac))
+  ([1d9163f](https://github.com/seanthimons/specmill/tree/1d9163fbc09433725361a0b6771e9aec98d2d773))
 - report added and removed endpoints with affected functions
-  ([764060b](https://github.com/seanthimons/specmill/tree/764060b167fd749129a5db383f61cd964f5361ca))
+  ([28dad03](https://github.com/seanthimons/specmill/tree/28dad03a8b439daa88db460dfe4079b8d96df555))
 - warn when checked schemas differ from last apply
-  ([ba30566](https://github.com/seanthimons/specmill/tree/ba30566dc10cc8beaaebdf1a61c4fa7bd0d7c36b))
+  ([75c661c](https://github.com/seanthimons/specmill/tree/75c661cc88eb9539da932315499bb3e9ef005a61))
 
 #### Docs
 
 - explain contract deferrals and schema drift
-  ([0218621](https://github.com/seanthimons/specmill/tree/02186218f85e3d28fc7cd69ee0db77c897086bd2))
+  ([ba3e8f4](https://github.com/seanthimons/specmill/tree/ba3e8f49051f976467d3f9193d2d4fa67a655d28))
 - document contract-change deferral in README and troubleshooting
-  ([9b8372e](https://github.com/seanthimons/specmill/tree/9b8372eee50fc80511de7577c22e2d7d741d3591))
+  ([70fe5e6](https://github.com/seanthimons/specmill/tree/70fe5e63c56ee7383e2dacf34e8cb6e54f5760a8))
 
 Full set of changes:
 [`v0.1.51...v0.1.52`](https://github.com/seanthimons/specmill/compare/v0.1.51...v0.1.52)
@@ -351,12 +366,12 @@ Full set of changes:
 #### Bug fixes
 
 - store project-relative response source paths (#186)
-  ([201c55d](https://github.com/seanthimons/specmill/tree/201c55d5b3e96cc791adc1f4a272c37c2d8cb6ac))
+  ([96ea5a8](https://github.com/seanthimons/specmill/tree/96ea5a8caaffcb35abe57b2064341cc690327cce))
 
 #### Tests
 
 - compare source identities independently of schema order (#186)
-  ([ecf9299](https://github.com/seanthimons/specmill/tree/ecf929957110b4dda91b9c015bb34a0955b6b655))
+  ([6d3f9f0](https://github.com/seanthimons/specmill/tree/6d3f9f082c5e50d44a0cdff631ae2875e5bc756b))
 
 Full set of changes:
 [`v0.1.50...v0.1.51`](https://github.com/seanthimons/specmill/compare/v0.1.50...v0.1.51)
@@ -391,25 +406,25 @@ Full set of changes:
 #### New features
 
 - split reviewed explicit client inputs (#181)
-  ([a58aff2](https://github.com/seanthimons/specmill/tree/a58aff2e0ffd2d5f39f50000723f962892da0e4d))
+  ([4c332e1](https://github.com/seanthimons/specmill/tree/4c332e1c4be6f424f25ef859c6f3139ac5cf0a3f))
 - preserve reviewed session cache lifecycles (#174)
-  ([72fe575](https://github.com/seanthimons/specmill/tree/72fe575bc7943d0d9d53051c25fcbcb0d2da7cfe))
+  ([ece9732](https://github.com/seanthimons/specmill/tree/ece9732d82d5fba6762041e7429e2102d1514522))
 
 #### Bug fixes
 
 - reconcile reviewed shared schema contracts (#61)
-  ([a715a3b](https://github.com/seanthimons/specmill/tree/a715a3bc38f383e8643d36c7642b5ca09c19ce4e))
+  ([6351745](https://github.com/seanthimons/specmill/tree/63517454b244630663dca1a4c983a56dd19c9fb4))
 
 #### Tests
 
 - publish ready server ports atomically (#177)
-  ([b4bc9b8](https://github.com/seanthimons/specmill/tree/b4bc9b84344b8f58b3d8f95d1b99899e6a734fb1))
+  ([15ac3d3](https://github.com/seanthimons/specmill/tree/15ac3d3260b8225728cf86ca33ea8c58e98a3ec2))
 - publish ready server ports atomically (#177)
-  ([ac4bca3](https://github.com/seanthimons/specmill/tree/ac4bca3de576e55e2ba956c9428e14813dd802e6))
+  ([585da27](https://github.com/seanthimons/specmill/tree/585da27da150638b99e50134a262825e4cb7e389))
 - validate reviewed response fixtures and filtering (#61)
-  ([72d357a](https://github.com/seanthimons/specmill/tree/72d357a3f1d3a4fe59ffa97ca6daf10c8754d5b3))
+  ([140d826](https://github.com/seanthimons/specmill/tree/140d82641223f05d47ab837813e4f4f547189b50))
 - expect schema boolean query encoding (#177)
-  ([0e17d61](https://github.com/seanthimons/specmill/tree/0e17d61a3706afb2e65c1e8ab20b2a337642abbe))
+  ([b23330d](https://github.com/seanthimons/specmill/tree/b23330de7ee0cf08092e8b59cb4a788973fedd1b))
 
 Full set of changes:
 [`v0.1.44...v0.1.45`](https://github.com/seanthimons/specmill/compare/v0.1.44...v0.1.45)
@@ -419,7 +434,7 @@ Full set of changes:
 #### Bug fixes
 
 - preserve hook controls and dynamic page limits (#173)
-  ([1c3e8a3](https://github.com/seanthimons/specmill/tree/1c3e8a34c41eba5d2a20cc46f8bc2e39abb6d18c))
+  ([b8d15b4](https://github.com/seanthimons/specmill/tree/b8d15b4d614e0fccf1cde2a7a4b330c48c2f7053))
 
 Full set of changes:
 [`v0.1.43...v0.1.44`](https://github.com/seanthimons/specmill/compare/v0.1.43...v0.1.44)
@@ -429,17 +444,17 @@ Full set of changes:
 #### New features
 
 - preserve facade hooks around native body offsets (#173)
-  ([4d8aa6d](https://github.com/seanthimons/specmill/tree/4d8aa6d6fb193986aae3a2f5ab87044824586069))
+  ([ae62c1f](https://github.com/seanthimons/specmill/tree/ae62c1f081fe6b28976fc5bca2e2dbcd27414b8a))
 
 #### Bug fixes
 
 - encode declared free-form scalar fields (#178)
-  ([15a82b2](https://github.com/seanthimons/specmill/tree/15a82b262bf07258c901812462af5cf615b0b37a))
+  ([ec43b6e](https://github.com/seanthimons/specmill/tree/ec43b6ee627fa312955cd472d9521b64df0854f1))
 
 #### Tests
 
 - expect native boolean query encoding (#177)
-  ([03e43c8](https://github.com/seanthimons/specmill/tree/03e43c8800e6c8adb96c9454115a6f24b2981c29))
+  ([f6c9304](https://github.com/seanthimons/specmill/tree/f6c9304ff58af44ce0351f0a9aef3118ae3ee6ee))
 
 Full set of changes:
 [`v0.1.42...v0.1.43`](https://github.com/seanthimons/specmill/compare/v0.1.42...v0.1.43)
@@ -449,30 +464,30 @@ Full set of changes:
 #### New features
 
 - select initial hook params independently (#173)
-  ([2280dc9](https://github.com/seanthimons/specmill/tree/2280dc9ec346ee61dec8e3d23f6efb521708b1e4))
+  ([bf15fa5](https://github.com/seanthimons/specmill/tree/bf15fa595478dba498a0dc4943b52ffaff91b669))
 - configure shared native request throttling (#175)
-  ([1079ba7](https://github.com/seanthimons/specmill/tree/1079ba7f1e701ebe3293ee1eead57334f1010dd5))
+  ([1e627d7](https://github.com/seanthimons/specmill/tree/1e627d73c5c60d1bca4e6d5ba0fa20f9438fc9ae))
 - format unbatched results with client callbacks (#157)
-  ([0dd5d30](https://github.com/seanthimons/specmill/tree/0dd5d3041c0c9d3de438b7e09dd1e0b9cd0c9cc3))
+  ([0a64366](https://github.com/seanthimons/specmill/tree/0a643669ecd9d84847d20852ac37ac323365d1e1))
 - validate full inputs before permissive fan out (#166)
-  ([16928dc](https://github.com/seanthimons/specmill/tree/16928dc49804d8149bbf8e126a3bd02c8a68de75))
+  ([b7586c1](https://github.com/seanthimons/specmill/tree/b7586c13067b73f160b6c499d8ce460b1c9c758b))
 
 #### Bug fixes
 
 - encode native scalar query booleans (#177)
-  ([a656ce4](https://github.com/seanthimons/specmill/tree/a656ce446fd2f4fe28184e3cad69da02e209ef26))
+  ([26596e7](https://github.com/seanthimons/specmill/tree/26596e77831fc98e78b87b760bf93d5e22ff1524))
 - reconcile restored desired output hashes (#170)
-  ([6b04d89](https://github.com/seanthimons/specmill/tree/6b04d89a39617fcb829adcb24ab8a88285febca5))
+  ([a0b5c19](https://github.com/seanthimons/specmill/tree/a0b5c19f711586b71fdb5f2812db794f78e1d774))
 
 #### Tests
 
 - retain formatter in visibility regression
-  ([520d448](https://github.com/seanthimons/specmill/tree/520d448b60614bd4036909f6485e121d95d98ce6))
+  ([56358d1](https://github.com/seanthimons/specmill/tree/56358d169134794570e1108af33fafc3ec06c5f5))
 
 #### Docs
 
 - retain unresolved production similarity list (#165)
-  ([13c6fbb](https://github.com/seanthimons/specmill/tree/13c6fbb3b68aa6d4b696c7f72d8cffc63f97da4a))
+  ([3a346c1](https://github.com/seanthimons/specmill/tree/3a346c1fed5f7a9d22c93f112a81db731156ad34))
 
 Full set of changes:
 [`v0.1.41...v0.1.42`](https://github.com/seanthimons/specmill/compare/v0.1.41...v0.1.42)
@@ -482,7 +497,7 @@ Full set of changes:
 #### CI
 
 - build documentation after publication or on demand
-  ([0a4bd66](https://github.com/seanthimons/specmill/tree/0a4bd66f03bc847875f06573341a98b7c4613bec))
+  ([d0c096c](https://github.com/seanthimons/specmill/tree/d0c096c8aca04f1c4729cf8ca782de8bf5da4b61))
 
 Full set of changes:
 [`v0.1.40...v0.1.41`](https://github.com/seanthimons/specmill/compare/v0.1.40...v0.1.41)
@@ -492,17 +507,17 @@ Full set of changes:
 #### New features
 
 - run post response once after final formatting (#162)
-  ([b79412f](https://github.com/seanthimons/specmill/tree/b79412fd330ddad452ff1a31c22917ba6fa543eb))
+  ([4bbe804](https://github.com/seanthimons/specmill/tree/4bbe80405f4463951fbdb50d16f16cee92f78e60))
 
 #### CI
 
 - exclude verified historical schema hashes
-  ([d6f89b9](https://github.com/seanthimons/specmill/tree/d6f89b9a56adb5d718095e340127cb1bc39527c3))
+  ([8110b6e](https://github.com/seanthimons/specmill/tree/8110b6e304a031f9c0c2810c0cd292666393498a))
 
 #### Docs
 
 - describe manual platform checks
-  ([77346ab](https://github.com/seanthimons/specmill/tree/77346ab132688bf0824df4f24c68e20c6ecf0386))
+  ([9c6057f](https://github.com/seanthimons/specmill/tree/9c6057f5a112cd0f5db53702482a4eeb9259adb1))
 
 Full set of changes:
 [`v0.1.39...v0.1.40`](https://github.com/seanthimons/specmill/compare/v0.1.39...v0.1.40)
@@ -512,16 +527,16 @@ Full set of changes:
 #### New features
 
 - expose the generated response decoder (#156)
-  ([da88138](https://github.com/seanthimons/specmill/tree/da88138c0b2b25d7dda1a0ce45f668ba51ace20e))
+  ([202bad7](https://github.com/seanthimons/specmill/tree/202bad70a8fd4029efafdaa2b0ba4b29e0e3058a))
 - preserve private initial and selected post params (#158)
-  ([c93a8c9](https://github.com/seanthimons/specmill/tree/c93a8c96f0818c8d1e74bfc5d74ac971e7f20f88))
+  ([494890f](https://github.com/seanthimons/specmill/tree/494890f5f4ad85825497e38a7a0853fd0d864d2c))
 - preserve typed request errors when selected (#156)
-  ([e77e862](https://github.com/seanthimons/specmill/tree/e77e862da77c7e2f35dc49e6085715ed6863f1bb))
+  ([9bd95ff](https://github.com/seanthimons/specmill/tree/9bd95ffdb210a8f74735a3e3990193b19ad70141))
 
 #### CI
 
 - run platform package checks only on demand
-  ([b236c84](https://github.com/seanthimons/specmill/tree/b236c84cafa75ce9c71a97495b99087fd0dd9450))
+  ([9e4d2e9](https://github.com/seanthimons/specmill/tree/9e4d2e9c5236fec3c939b6f46d19e99cfd9d1dc6))
 
 Full set of changes:
 [`v0.1.38...v0.1.39`](https://github.com/seanthimons/specmill/compare/v0.1.38...v0.1.39)
@@ -531,7 +546,7 @@ Full set of changes:
 #### New features
 
 - preserve final client formatting conditions (#154)
-  ([2cadcc9](https://github.com/seanthimons/specmill/tree/2cadcc9e2ed0e01a21d97717242215d12704b365))
+  ([f84f525](https://github.com/seanthimons/specmill/tree/f84f525e168a5871ad0f0d5a482689dd492432bb))
 
 Full set of changes:
 [`v0.1.37...v0.1.38`](https://github.com/seanthimons/specmill/compare/v0.1.37...v0.1.38)
@@ -541,9 +556,9 @@ Full set of changes:
 #### Other changes
 
 - finalize released pagination integration (#152)
-  ([8332063](https://github.com/seanthimons/specmill/tree/83320639ce4b7fb3162bd2d4b92717cd60e333d9))
+  ([2d3a784](https://github.com/seanthimons/specmill/tree/2d3a784389e0e89040ffc0e58dc3ef1af56db5f1))
 - integrate reviewed generator policies (#152)
-  ([cf86737](https://github.com/seanthimons/specmill/tree/cf86737aa4d60cd7977a326c8c8c00af93955a4f))
+  ([09e8eb9](https://github.com/seanthimons/specmill/tree/09e8eb9d3bf483ebac3ff02e3832b9cbe3e89d38))
 
 Full set of changes:
 [`v0.1.36...v0.1.37`](https://github.com/seanthimons/specmill/compare/v0.1.36...v0.1.37)
@@ -553,7 +568,7 @@ Full set of changes:
 #### Other changes
 
 - integrate released client policies (#149)
-  ([d8ef8ba](https://github.com/seanthimons/specmill/tree/d8ef8bab73df161c720e328ac301c0c1d7f64516))
+  ([a630ec9](https://github.com/seanthimons/specmill/tree/a630ec954448293ce2a0dfa420b5f49b4891828f))
 
 Full set of changes:
 [`v0.1.35...v0.1.36`](https://github.com/seanthimons/specmill/compare/v0.1.35...v0.1.36)
@@ -563,7 +578,7 @@ Full set of changes:
 #### Other changes
 
 - integrate released error and warning policies (#147)
-  ([78b060d](https://github.com/seanthimons/specmill/tree/78b060d5d7905ff16306b0c13547a506b171a198))
+  ([9977a2f](https://github.com/seanthimons/specmill/tree/9977a2fbba66d14caca423a10af95722fce7b251))
 
 Full set of changes:
 [`v0.1.34...v0.1.35`](https://github.com/seanthimons/specmill/compare/v0.1.34...v0.1.35)
@@ -573,16 +588,16 @@ Full set of changes:
 #### Bug fixes
 
 - resolve reviewed callbacks outside generated locals (#149)
-  ([05dd31c](https://github.com/seanthimons/specmill/tree/05dd31c8ab5990c07b8bbd1c9fc4d683a7b62b0c))
+  ([2db1912](https://github.com/seanthimons/specmill/tree/2db19121955a370f5455c8b9f70790c8b935799a))
 - resolve warning formatters outside generated locals (#145)
-  ([1043728](https://github.com/seanthimons/specmill/tree/104372855c3072cd64e59a9b9748dbe03bc3fe8b))
+  ([b7bb10f](https://github.com/seanthimons/specmill/tree/b7bb10f3a5d1494f39ca7859e0fdaf7d2b691ed5))
 
 #### Other changes
 
 - integrate released batch and line policies (#147)
-  ([10e9ea7](https://github.com/seanthimons/specmill/tree/10e9ea782ad26b7927c4529349b092d6bc4d0ea4))
+  ([bcf8c12](https://github.com/seanthimons/specmill/tree/bcf8c1267597983401adc87f8319a41b53ded372))
 - integrate released metadata and line policies (#145)
-  ([f3f47d1](https://github.com/seanthimons/specmill/tree/f3f47d111f412e5e57989c11eb8731f1d24bd034))
+  ([c44cc13](https://github.com/seanthimons/specmill/tree/c44cc13f99b0444e53b507db65519e17ebc04e0f))
 
 Full set of changes:
 [`v0.1.33...v0.1.34`](https://github.com/seanthimons/specmill/compare/v0.1.33...v0.1.34)
@@ -592,7 +607,7 @@ Full set of changes:
 #### New features
 
 - preserve reviewed dropped-request warnings (#145)
-  ([802acb4](https://github.com/seanthimons/specmill/tree/802acb40592fa708ef3f0ee6458e0c6551539186))
+  ([f0e0714](https://github.com/seanthimons/specmill/tree/f0e0714b9cd4cefff369a7b75217aec08763cbef))
 
 Full set of changes:
 [`v0.1.32...v0.1.33`](https://github.com/seanthimons/specmill/compare/v0.1.32...v0.1.33)
@@ -612,16 +627,16 @@ Full set of changes:
 #### Bug fixes
 
 - forget explicitly retired missing outputs (#152)
-  ([26ebea1](https://github.com/seanthimons/specmill/tree/26ebea1d3328fd16dfaac14e89d94e07f1a1be91))
+  ([2a53eec](https://github.com/seanthimons/specmill/tree/2a53eec09818e05dfd5c0259c15f7091f4942332))
 
 #### Other changes
 
 - integrate reviewed visibility and response policies (#147)
-  ([40ea774](https://github.com/seanthimons/specmill/tree/40ea774ae0e3dbc11394a3851ba593c0452cbf17))
+  ([f665ad8](https://github.com/seanthimons/specmill/tree/f665ad868575d0c039618cc91e1d4ca12d465c13))
 - integrate reviewed return visibility policies (#145)
-  ([e860b21](https://github.com/seanthimons/specmill/tree/e860b21cd0c33a8b170618cc22de5cc2e46b5a98))
+  ([bb57db8](https://github.com/seanthimons/specmill/tree/bb57db8a74d49d045f0fa1e7c453c28fc8ec0732))
 - integrate reviewed visibility and response policies (#142)
-  ([91ba6d7](https://github.com/seanthimons/specmill/tree/91ba6d703f383edf8bbadc1e572571bb4f61c61c))
+  ([af33b32](https://github.com/seanthimons/specmill/tree/af33b32585a3f5fc4e0f81cd2862745038b41480))
 
 Full set of changes:
 [`v0.1.29...v0.1.30`](https://github.com/seanthimons/specmill/compare/v0.1.29...v0.1.30)
@@ -631,21 +646,21 @@ Full set of changes:
 #### New features
 
 - generate reviewed cursor pagination wrappers (#149)
-  ([a83a7a5](https://github.com/seanthimons/specmill/tree/a83a7a5106f6c6af58d4afa2350016248c9eec4a))
+  ([68e41e2](https://github.com/seanthimons/specmill/tree/68e41e2c71b11db9e84e853bcf102924431eef98))
 
 #### Bug fixes
 
 - continue across reviewed empty result pages (#149)
-  ([2fe01e3](https://github.com/seanthimons/specmill/tree/2fe01e31969e66cee1ac3e9ea757ea7e27a1faec))
+  ([1a451f1](https://github.com/seanthimons/specmill/tree/1a451f1dfdfe4dc3c4e4dcd0b70483c8907f5969))
 - allow generated pagination controls in examples (#149)
-  ([3f26c10](https://github.com/seanthimons/specmill/tree/3f26c10359082390418180fdb05c2f3b663d6fb7))
+  ([d1fef8b](https://github.com/seanthimons/specmill/tree/d1fef8b41132649a23ee5d8b4bd81e06896be0b7))
 
 #### Other changes
 
 - integrate reviewed response and paging policies (#31)
-  ([b8ebc70](https://github.com/seanthimons/specmill/tree/b8ebc70836dd740d163ef51a3842a13f5b96ebc2))
+  ([6d8b62f](https://github.com/seanthimons/specmill/tree/6d8b62fc73a61cc5da7fb367978234f5e5d2b47e))
 - integrate released pagination policies (#142)
-  ([70c9b7b](https://github.com/seanthimons/specmill/tree/70c9b7b3b5b3c5ee28f92d514507cd00a8242c44))
+  ([baea339](https://github.com/seanthimons/specmill/tree/baea3390cd59bb4a599f201fbb06fe1b23a38fa7))
 
 Full set of changes:
 [`v0.1.28...v0.1.29`](https://github.com/seanthimons/specmill/compare/v0.1.28...v0.1.29)
@@ -655,12 +670,12 @@ Full set of changes:
 #### New features
 
 - defer reviewed response-only facade arguments (#147)
-  ([79b4691](https://github.com/seanthimons/specmill/tree/79b469124249bf0a0e0928478bdc8b1fc57114c3))
+  ([a2e355b](https://github.com/seanthimons/specmill/tree/a2e355bfda0d83f9d5207ee28672f32f1375538b))
 
 #### Other changes
 
 - integrate released bodyless operation baseline (#129)
-  ([33cd5b2](https://github.com/seanthimons/specmill/tree/33cd5b2ed0b84828b779d9039234409e97fe6309))
+  ([ff93785](https://github.com/seanthimons/specmill/tree/ff93785db84137d1d99d1c2b6f45e03b6b9a656e))
 
 Full set of changes:
 [`v0.1.27...v0.1.28`](https://github.com/seanthimons/specmill/compare/v0.1.27...v0.1.28)
@@ -670,20 +685,20 @@ Full set of changes:
 #### New features
 
 - select error policy by effective request count (#145)
-  ([0097d0e](https://github.com/seanthimons/specmill/tree/0097d0edc3f3af734ba102698c0f7694983066ca))
+  ([1d7f40d](https://github.com/seanthimons/specmill/tree/1d7f40dec482ec03107748322453045a0e28032a))
 - allow plain failure result attributes by policy (#142)
-  ([03a8523](https://github.com/seanthimons/specmill/tree/03a8523b1098f1a5ee22db161ccfc03e64b8cb56))
+  ([04705de](https://github.com/seanthimons/specmill/tree/04705de79d9aa1dd8e0a23910b718bc9ab2c6d8b))
 
 #### Other changes
 
 - retain reviewed responses and bodyless subsets (#26)
-  ([9ce8d92](https://github.com/seanthimons/specmill/tree/9ce8d927a8c1002c4a2a408752c3ae9e18d111c5))
+  ([cf7cb3e](https://github.com/seanthimons/specmill/tree/cf7cb3e32e29f45779ccbd2398273d92544e03fa))
 - retain visibility with bodyless operation policy (#31)
-  ([2088545](https://github.com/seanthimons/specmill/tree/2088545156f54996bf8fd5f5916411c574319a4f))
+  ([98aa781](https://github.com/seanthimons/specmill/tree/98aa781b57ae6f1d00d1e9b2372ae85311fd5a76))
 - integrate reviewed operation policies (#129)
-  ([d33561b](https://github.com/seanthimons/specmill/tree/d33561b50c37eb3ba51e8aeac9daa2adebc3edc5))
+  ([29c46ff](https://github.com/seanthimons/specmill/tree/29c46ffecbc00ac81773935581fb2be0e0c3d665))
 - integrate released reviewed path baseline (#29)
-  ([ff4e410](https://github.com/seanthimons/specmill/tree/ff4e4108fdeffc7222482ecb686c980fde8c8162))
+  ([12190c6](https://github.com/seanthimons/specmill/tree/12190c65b8b314afb938fc85b4447899b9e73928))
 
 Full set of changes:
 [`v0.1.26...v0.1.27`](https://github.com/seanthimons/specmill/compare/v0.1.26...v0.1.27)
@@ -693,18 +708,18 @@ Full set of changes:
 #### Bug fixes
 
 - retain line entries for response callbacks (#140)
-  ([8d84947](https://github.com/seanthimons/specmill/tree/8d84947149392b103ee23ba80aad29ac4b8cc731))
+  ([601896a](https://github.com/seanthimons/specmill/tree/601896ab8027f511170ca2d942057fef711a79c5))
 
 #### Other changes
 
 - combine response declarations with reviewed paths (#26)
-  ([ee3b2ca](https://github.com/seanthimons/specmill/tree/ee3b2ca4cc18046ba9c7d753d0e1b71d0e66227c))
+  ([49e74f7](https://github.com/seanthimons/specmill/tree/49e74f77883e4933eb2af4d8d511e3f1db9ee663))
 - retain visibility alongside reviewed paths (#31)
-  ([df7fd39](https://github.com/seanthimons/specmill/tree/df7fd394168528d7ab26dbaabf46ed2f9e0f6629))
+  ([ef7ed59](https://github.com/seanthimons/specmill/tree/ef7ed5987a26c69c0fc0e15df7628811346a9d2a))
 - combine reviewed paths and bodyless subsets (#29)
-  ([07d18ad](https://github.com/seanthimons/specmill/tree/07d18ad929f4c63c311e83244e1c61fe9bf2000c))
+  ([59ee8ab](https://github.com/seanthimons/specmill/tree/59ee8ab288872c52de7d327d6567ce05e6aa9523))
 - integrate released normalization baseline (#27)
-  ([4cf2f67](https://github.com/seanthimons/specmill/tree/4cf2f67da2daa61216ab86a8105f8dbebfd227a6))
+  ([2471767](https://github.com/seanthimons/specmill/tree/24717674be0b46ad4a09c6bed8b0c7959aa0ed52))
 
 Full set of changes:
 [`v0.1.25...v0.1.26`](https://github.com/seanthimons/specmill/compare/v0.1.25...v0.1.26)
@@ -714,28 +729,28 @@ Full set of changes:
 #### New features
 
 - preserve single helper return visibility by policy (#31)
-  ([920c248](https://github.com/seanthimons/specmill/tree/920c2487c70f6dc239e9272890f942f02c132f00))
+  ([8517c72](https://github.com/seanthimons/specmill/tree/8517c72ebdf81c932454f4e15f3d0895894d532b))
 - normalize selected client values before validation and iteration
   (#135)
-  ([213dd7e](https://github.com/seanthimons/specmill/tree/213dd7ee68dc1a643264db795d97aa83be5a98ef))
+  ([5209bf5](https://github.com/seanthimons/specmill/tree/5209bf5963de083bf0b85891f9e789f55829bf66))
 
 #### Bug fixes
 
 - trim trailing blanks from emitted validators (#138)
-  ([a346efb](https://github.com/seanthimons/specmill/tree/a346efbbd9213fba3130beb3276f790822a329e6))
+  ([a57431d](https://github.com/seanthimons/specmill/tree/a57431d8a74c3620b3c1456aced988374469fd26))
 
 #### Other changes
 
 - combine input normalization and return visibility (#31)
-  ([851c88a](https://github.com/seanthimons/specmill/tree/851c88a7cb5ec5f11a788fd1c655c89c236dd5a4))
+  ([8a04b82](https://github.com/seanthimons/specmill/tree/8a04b8214fa2402e30263c3f3dbc6f251aea3226))
 - retain contract corrections with input normalization (#26)
-  ([f9d4389](https://github.com/seanthimons/specmill/tree/f9d43896013c584719cfd6cc8c89325e8f372615))
+  ([4907a47](https://github.com/seanthimons/specmill/tree/4907a479876fb40ea56004d6092032b3d69ebc74))
 - retain bodyless subsets with input normalization (#29)
-  ([0dbd138](https://github.com/seanthimons/specmill/tree/0dbd138abed98585925141b430ebac0931991eb2))
+  ([1e2045f](https://github.com/seanthimons/specmill/tree/1e2045f1dc84c11082d340da0690e4b187ce02e7))
 - retain reviewed paths with input normalization (#27)
-  ([2c4ac63](https://github.com/seanthimons/specmill/tree/2c4ac63d09424fda04b35fe93f1083cfd25cb499))
+  ([f5ab279](https://github.com/seanthimons/specmill/tree/f5ab279556d6af744c1ce70dad41fe83f2e983bd))
 - integrate released batch support baseline (#135)
-  ([777551c](https://github.com/seanthimons/specmill/tree/777551c253692bb176b18e7bcb872589fface34f))
+  ([8ff3b55](https://github.com/seanthimons/specmill/tree/8ff3b55f18d5b626c206691814173b7d49f3f50b))
 
 Full set of changes:
 [`v0.1.24...v0.1.25`](https://github.com/seanthimons/specmill/compare/v0.1.24...v0.1.25)
@@ -745,21 +760,21 @@ Full set of changes:
 #### New features
 
 - review empty response declarations per operation (#26)
-  ([2031e26](https://github.com/seanthimons/specmill/tree/2031e26e32dad52b55974ef6b503dcb834e83f4b))
+  ([9656ed1](https://github.com/seanthimons/specmill/tree/9656ed15421cd0faa63b1981e184815b8792f7cd))
 
 #### Tests
 
 - account for empty environment values on Windows (#128)
-  ([61aae65](https://github.com/seanthimons/specmill/tree/61aae65572e6c470e2b8215cecf7c68faf26e8a5))
+  ([7f36b17](https://github.com/seanthimons/specmill/tree/7f36b178edae7d2498d6e8b9b32cff2a4c298776))
 
 #### Other changes
 
 - preserve reviewed corrections with security policy (#26)
-  ([1b3be43](https://github.com/seanthimons/specmill/tree/1b3be43c36af4e6b385e159de95d06b2b87de9fa))
+  ([dbcea94](https://github.com/seanthimons/specmill/tree/dbcea940d3dfc3e954b899854bed1ed9f2df41d5))
 - integrate released security policy (#29)
-  ([0f91f01](https://github.com/seanthimons/specmill/tree/0f91f016e2ce4b39fe47d17b770b2cb2c11264a6))
+  ([4754d4d](https://github.com/seanthimons/specmill/tree/4754d4d22f24c2d82166014963ead29f14c79828))
 - integrate released security corrections (#27)
-  ([f0460a3](https://github.com/seanthimons/specmill/tree/f0460a3c154584f04759edf8a5feacba2b804e98))
+  ([d7b3f83](https://github.com/seanthimons/specmill/tree/d7b3f834fbe883f661f51177d4091290121e9bd9))
 
 Full set of changes:
 [`v0.1.23...v0.1.24`](https://github.com/seanthimons/specmill/compare/v0.1.23...v0.1.24)
@@ -769,20 +784,20 @@ Full set of changes:
 #### New features
 
 - declare reviewed missing Swagger JSON media (#26)
-  ([e72308c](https://github.com/seanthimons/specmill/tree/e72308ccafd13f7496612e25ee3a37fe85fa02b5))
+  ([d528d21](https://github.com/seanthimons/specmill/tree/d528d21023a44c75aa938dbdc252f3d2cc8d7c31))
 - allow plain result attributes by policy (#129)
-  ([e7c625a](https://github.com/seanthimons/specmill/tree/e7c625ad1b2509586bd5fa646602021d264f295a))
+  ([a233d3c](https://github.com/seanthimons/specmill/tree/a233d3cdf95a05a99ea6f445877e8f13d290b3bf))
 - support reviewed bodyless GET subsets (#29)
-  ([884f0b5](https://github.com/seanthimons/specmill/tree/884f0b5d47ca30f1725a8002bbe2b514eaa816ae))
+  ([e8dbec5](https://github.com/seanthimons/specmill/tree/e8dbec55c2f4d1fb9e2947aa3bf6253bdf15c592))
 - support reviewed path declarations (#27)
-  ([9ca9db1](https://github.com/seanthimons/specmill/tree/9ca9db18101ba2a43f128691ef05960cf35e1030))
+  ([17243ff](https://github.com/seanthimons/specmill/tree/17243ffdaab6c957d2107d0224d7bd505101445b))
 - resolve reviewed batch limits at call time (#128)
-  ([7374c5e](https://github.com/seanthimons/specmill/tree/7374c5ee3a6182499c3e7b5537aa37c63cc5201f))
+  ([e007d3a](https://github.com/seanthimons/specmill/tree/e007d3a83ccf236d42b190adde724965a6b58017))
 
 #### Other changes
 
 - integrate security correction before batch release
-  ([bfd4e0d](https://github.com/seanthimons/specmill/tree/bfd4e0d319767b0ba7a001b85ef1da357272905f))
+  ([3f90763](https://github.com/seanthimons/specmill/tree/3f9076333c71960e4ab062c43935941c5d9b6724))
 
 Full set of changes:
 [`v0.1.22...v0.1.23`](https://github.com/seanthimons/specmill/compare/v0.1.22...v0.1.23)
@@ -792,12 +807,12 @@ Full set of changes:
 #### New features
 
 - allow reviewed operation security corrections (#108)
-  ([12e8a3a](https://github.com/seanthimons/specmill/tree/12e8a3a5fea572195cecee238975df3bb90fe6e1))
+  ([78e1a36](https://github.com/seanthimons/specmill/tree/78e1a3653ebcdab75fb2b2082e11232b2d530e12))
 
 #### Other changes
 
 - integrate released transport changes
-  ([de91644](https://github.com/seanthimons/specmill/tree/de9164436d5df368c5cbd1c816f5e3b5414ba64d))
+  ([697baef](https://github.com/seanthimons/specmill/tree/697baefe8aaee929f73c9f9f1c3158e73ab62bbc))
 
 Full set of changes:
 [`v0.1.21...v0.1.22`](https://github.com/seanthimons/specmill/compare/v0.1.21...v0.1.22)
@@ -807,14 +822,14 @@ Full set of changes:
 #### New features
 
 - correct reviewed text media and split line batches (#125)
-  ([39ad4a4](https://github.com/seanthimons/specmill/tree/39ad4a4dc6b2d4e233e69ff6ea465f346e145952))
+  ([6f492e7](https://github.com/seanthimons/specmill/tree/6f492e760b12143705d4695b26ff40bd0d752aa3))
 - allow request bodies in parameter_order (#123)
-  ([a176f15](https://github.com/seanthimons/specmill/tree/a176f15d6e96fdd3e8f37336411b8adfb69b5962))
+  ([259c931](https://github.com/seanthimons/specmill/tree/259c9313b76492fb07c950162c1df9523c078ddd))
 
 #### Bug fixes
 
 - render line body examples as character vectors (#125)
-  ([48080bf](https://github.com/seanthimons/specmill/tree/48080bfd147cb8919d1b28d07d6a41c898a2ff08))
+  ([add4df5](https://github.com/seanthimons/specmill/tree/add4df55699d63138c5662b3c5076a13811f6b40))
 
 Full set of changes:
 [`v0.1.20...v0.1.21`](https://github.com/seanthimons/specmill/compare/v0.1.20...v0.1.21)
@@ -825,7 +840,7 @@ Full set of changes:
 
 - let the batching option lower a split wrapper’s chunk size at runtime
   (#121)
-  ([e552fae](https://github.com/seanthimons/specmill/tree/e552faeca998c604654e2cf1190e0f5b4aa0ca31))
+  ([3a81aa0](https://github.com/seanthimons/specmill/tree/3a81aa04b9e45c7e1959a8e7ee859af3b0b7d449))
 
 Full set of changes:
 [`v0.1.19...v0.1.20`](https://github.com/seanthimons/specmill/compare/v0.1.19...v0.1.20)
@@ -836,7 +851,7 @@ Full set of changes:
 
 - cover post_combine on paged fan-out and the ignored legacy flag
   warning (#119)
-  ([8d5c672](https://github.com/seanthimons/specmill/tree/8d5c6721f53149b9212537b661d78fda5a3ad6f9))
+  ([259f03e](https://github.com/seanthimons/specmill/tree/259f03eb93acfb200dc48e62058bedeb6f45a789))
 
 Full set of changes:
 [`v0.1.18...v0.1.19`](https://github.com/seanthimons/specmill/compare/v0.1.18...v0.1.19)
@@ -846,31 +861,31 @@ Full set of changes:
 #### New features
 
 - page each item inside batch.fan_out and batch.split (#111)
-  ([b80469d](https://github.com/seanthimons/specmill/tree/b80469d04738bee9f5e6ad2171e3848a0310db97))
+  ([1233904](https://github.com/seanthimons/specmill/tree/12339045c3a2c932f04be9d3a98eccefdddbda52))
 - allow request_controls.timeout of Inf for no limit and name timeout
   failures (#110)
-  ([aa61bcd](https://github.com/seanthimons/specmill/tree/aa61bcdb1a89d4b7c0aa11cafbe7e40163b0f983))
+  ([2ee2016](https://github.com/seanthimons/specmill/tree/2ee2016bf24a0ad807d06b189ebc224319abf236))
 - add empty result and stop on rejected credentials
-  ([d392646](https://github.com/seanthimons/specmill/tree/d392646f9f71c93367e2fb9ae74d11fee47ad2e0))
+  ([6ab331c](https://github.com/seanthimons/specmill/tree/6ab331c9e7e659ad66f4b1a31b853ac59c1ba00e))
 - warn when a schema leaves security off some operations while others
   declare it (#108)
-  ([8ebfdbb](https://github.com/seanthimons/specmill/tree/8ebfdbbee05e96f1a837d0ec0317444315d8176b))
+  ([630386d](https://github.com/seanthimons/specmill/tree/630386d68b11c9ae9a42ae3566da87bac5a7408b))
 
 #### Bug fixes
 
 - point lock errors at the guide, warn on ignored legacy flags, order
   update workflow (#114, #115, #116)
-  ([7b6ef16](https://github.com/seanthimons/specmill/tree/7b6ef16622251cc5347db6eecdef312e55d84f0a))
+  ([345c3e6](https://github.com/seanthimons/specmill/tree/345c3e69c086b3c0b854a694e77f85a2b79073e7))
 - warn about unsecured operations across tag services of one schema
   (#112)
-  ([5091919](https://github.com/seanthimons/specmill/tree/50919196c94630757943b4717b8fca523e426f2f))
+  ([c13aeed](https://github.com/seanthimons/specmill/tree/c13aeed010e6f1b7ea738c2164019f2d8c11c735))
 
 #### Docs
 
 - add a typical workflow diagram with command and recovery tables
-  ([b161cf1](https://github.com/seanthimons/specmill/tree/b161cf1ef88b35cd2ae2e4083253a5f1cb817562))
+  ([f5b7cf0](https://github.com/seanthimons/specmill/tree/f5b7cf057e9d1ef994e583c94161a3834b0ec748))
 - run every generated contract test after apply (#113)
-  ([6b2d3e9](https://github.com/seanthimons/specmill/tree/6b2d3e905272544f7ed6152eef89e6b55aeb5844))
+  ([ed3335f](https://github.com/seanthimons/specmill/tree/ed3335f1c92484f3594f5a00aaa2fa6c4a982540))
 
 Full set of changes:
 [`v0.1.17...v0.1.18`](https://github.com/seanthimons/specmill/compare/v0.1.17...v0.1.18)
@@ -880,49 +895,49 @@ Full set of changes:
 #### New features
 
 - let api_request_table() take a client’s own table builder (#100)
-  ([af23a19](https://github.com/seanthimons/specmill/tree/af23a19e868ad20a8099f97a03ec6e05f654d12b))
+  ([0e9daa1](https://github.com/seanthimons/specmill/tree/0e9daa1b16fd106ae7abb40930173fc7d76e4f63))
 - let generated operations opt into paging from YAML (#101)
-  ([d39eb37](https://github.com/seanthimons/specmill/tree/d39eb375613b88c2b41dead8bf08a09facae85dc))
+  ([19f8c04](https://github.com/seanthimons/specmill/tree/19f8c0427f29678a2af978ca929862d87ec3ebaf))
 - measure coverage against schema operations with denominator: schema
   (#102)
-  ([7ffec90](https://github.com/seanthimons/specmill/tree/7ffec908b13bb8bba3af7e1be9c5069b2f5c2146))
+  ([b42ab7a](https://github.com/seanthimons/specmill/tree/b42ab7ae2b090ac6cc9df20d9bc84bab1611f241))
 
 #### Bug fixes
 
 - follow a renamed body argument in contract inputs and validation
   messages (#105, #106)
-  ([7f83003](https://github.com/seanthimons/specmill/tree/7f8300392b5709995234ac8e9bc5dcc34960fad8))
+  ([80104bd](https://github.com/seanthimons/specmill/tree/80104bdf66af213a66fe4f9486483e5a6b7481ad))
 - count an operation once per method and path within a group (#102)
-  ([4f8ac09](https://github.com/seanthimons/specmill/tree/4f8ac093815a57dab58cb8fd746f2d6258b14368))
+  ([0fcbd19](https://github.com/seanthimons/specmill/tree/0fcbd1903dafa3ac96d90e78917721100baf8b51))
 - normalize the root for relative schema paths, and name duplicate
   runtime definitions
-  ([5bb4167](https://github.com/seanthimons/specmill/tree/5bb416745886880879e93d0bd91647bf44ae0cac))
+  ([a7617ff](https://github.com/seanthimons/specmill/tree/a7617ffc90eeb07209a49793d956d15f4dffe238))
 - keep tables typed once when a policy tags the pages it returns (#100,
   #101)
-  ([5fec487](https://github.com/seanthimons/specmill/tree/5fec487ea2876abb4530b04039e86b98edc66d67))
+  ([2dcb633](https://github.com/seanthimons/specmill/tree/2dcb6334f1889588e4f4f2ba1920020a576c4864))
 - recover column types once over all requests and add a post_combine
   hook stage (#100)
-  ([4cf7b64](https://github.com/seanthimons/specmill/tree/4cf7b644126638a81232bd66458d9ea0db6ceadf))
+  ([bf509d4](https://github.com/seanthimons/specmill/tree/bf509d4e68f8d145ae1b9d0d0481f3ae1a9beadd))
 - name the wrapper’s real body argument in docs and fixtures (#99)
-  ([bf470a0](https://github.com/seanthimons/specmill/tree/bf470a06041527448c894e2f6dd820fc21bfe4ce))
+  ([0897ec5](https://github.com/seanthimons/specmill/tree/0897ec5566c6c7bc8f05eaa56915a226d5e2dfa1))
 - stop on call-level errors when dropping failures
-  ([36a1fd9](https://github.com/seanthimons/specmill/tree/36a1fd98c2278ed0dc11a7c1da346c229e49348f))
+  ([e70b48e](https://github.com/seanthimons/specmill/tree/e70b48ee7f9e3cf8808eb892668dcffd55b673b5))
 
 #### Docs
 
 - note that paged endpoints pass a lone filter as context query
-  ([5f3eb6d](https://github.com/seanthimons/specmill/tree/5f3eb6de3c21c8d40d683a523ffc1cf69bf9182c))
+  ([4270307](https://github.com/seanthimons/specmill/tree/427030735e919952292ba9ac62c46bdddc3d9740))
 
 #### Style
 
 - format and lint the files changed by the batching, body-name and
   coverage work
-  ([a02fd82](https://github.com/seanthimons/specmill/tree/a02fd82a69480d816515c886d1e6070e06419185))
+  ([db84478](https://github.com/seanthimons/specmill/tree/db844784f55b277af638fa192dfeaf5f56f9dd40))
 
 #### Other changes
 
 - capture public EPA CAMD and Water Quality Portal specs
-  ([b6b14a6](https://github.com/seanthimons/specmill/tree/b6b14a6d2ed457a65c75f994c6b781a57738a4be))
+  ([7f9b2be](https://github.com/seanthimons/specmill/tree/7f9b2be6bf22fce7516b537676c74b0818a875cb))
 
 Full set of changes:
 [`v0.1.16...v0.1.17`](https://github.com/seanthimons/specmill/compare/v0.1.16...v0.1.17)
@@ -932,11 +947,11 @@ Full set of changes:
 #### Bug fixes
 
 - infer the type of untyped enum schemas from their values (#95)
-  ([ace1259](https://github.com/seanthimons/specmill/tree/ace12597f7ef343574509dc67ae3b716d0ae05d5))
+  ([65576fa](https://github.com/seanthimons/specmill/tree/65576fa109a834f0f9e338c7034a530497e6b608))
 - drop a helper’s leading dot from its option names (#94)
-  ([6877163](https://github.com/seanthimons/specmill/tree/687716394e618b18d32d29a806fad2055dc4e34c))
+  ([ca9973a](https://github.com/seanthimons/specmill/tree/ca9973ad1ae8323933b91af92a87b5d9c0ac9061))
 - ignore role lists on API-key and bearer security requirements (#90)
-  ([a283973](https://github.com/seanthimons/specmill/tree/a28397307e5cae8f55843b7dc47e6f95444e3a4c))
+  ([cec431f](https://github.com/seanthimons/specmill/tree/cec431fe9d9fa4e606940d1f8630e899d1e5cfe8))
 
 Full set of changes:
 [`v0.1.15...v0.1.16`](https://github.com/seanthimons/specmill/compare/v0.1.15...v0.1.16)
@@ -946,7 +961,7 @@ Full set of changes:
 #### Docs
 
 - explain reviewing invalid parameter defaults
-  ([2f9e372](https://github.com/seanthimons/specmill/tree/2f9e3722e95caf9aff2f5b90bfb3b212bdb77d9e))
+  ([d499b66](https://github.com/seanthimons/specmill/tree/d499b662567c34f70a74d543f8d76d81806aa6eb))
 
 Full set of changes:
 [`v0.1.14...v0.1.15`](https://github.com/seanthimons/specmill/compare/v0.1.14...v0.1.15)
@@ -956,24 +971,24 @@ Full set of changes:
 #### New features
 
 - parse oneOf, anyOf and allOf parameter schemas (#84)
-  ([ec32b03](https://github.com/seanthimons/specmill/tree/ec32b03dbec717dca3075bbd7d7791e7b3f548ee))
+  ([e605bd9](https://github.com/seanthimons/specmill/tree/e605bd90d206c22fec5a3620e41c62af6807d466))
 
 #### Bug fixes
 
 - keep schema defaults as written for review (#84)
-  ([d8b2e1b](https://github.com/seanthimons/specmill/tree/d8b2e1b3fa4faeebbd6a307655257e55fa285b85))
+  ([330c011](https://github.com/seanthimons/specmill/tree/330c011815ef513bf995ff1a80ce5bfb2ef6a23c))
 - omit empty query defaults the request check rejects (#84)
-  ([c8e2f27](https://github.com/seanthimons/specmill/tree/c8e2f274a339bb476bf7b1501faff88aa794b092))
+  ([bee22e7](https://github.com/seanthimons/specmill/tree/bee22e75e492f6d3e330b10a3f6429daf642fd76))
 
 #### Style
 
 - simplify the empty default check
-  ([e13c25e](https://github.com/seanthimons/specmill/tree/e13c25e270a0c5272274b52da65440c7d8721956))
+  ([1e1df2e](https://github.com/seanthimons/specmill/tree/1e1df2e49b613a37fd5668df0fe69d695a4a4c3d))
 
 #### Other changes
 
 - merge nullable query defaults into composed parameters (#91)
-  ([b8faa2b](https://github.com/seanthimons/specmill/tree/b8faa2baaf256045a2d3dbb16fdc857440d3f514))
+  ([3ea6a06](https://github.com/seanthimons/specmill/tree/3ea6a06630c5c2f961170691d1ac695f1f8c80b4))
 
 Full set of changes:
 [`v0.1.13...v0.1.14`](https://github.com/seanthimons/specmill/compare/v0.1.13...v0.1.14)
@@ -984,16 +999,11 @@ Full set of changes:
 
 - fan out vector inputs and split array bodies into max_items chunks
   (#81)
-  ([eae7769](https://github.com/seanthimons/specmill/tree/eae7769f82ba58be9d3d528967ed26458c65c78a))
+  ([4bcf937](https://github.com/seanthimons/specmill/tree/4bcf9379fae8329410d521fb72524ca601026e38))
 - support nullable query scalars and validate parameter defaults
-  ([3d8fbdc](https://github.com/seanthimons/specmill/tree/3d8fbdc4b3dfc02f4302bf687013f4a0478bc4d3))
+  ([dd48fbd](https://github.com/seanthimons/specmill/tree/dd48fbdb00aba8a3f1f35339c15dce28db3cc7d4))
 - attribute the request input in policy context (#83)
-  ([bf05d98](https://github.com/seanthimons/specmill/tree/bf05d98966e625d24bb14d6679c80bbc62a42d66))
-
-#### Other changes
-
-- add repository agent instructions
-  ([ad4d044](https://github.com/seanthimons/specmill/tree/ad4d0443f3c2f6ac67cad3e6a296a23bcdd37e3d))
+  ([9739f2e](https://github.com/seanthimons/specmill/tree/9739f2ebeebfd371f9ed19d729231ae679614b7b))
 
 Full set of changes:
 [`v0.1.12...v0.1.13`](https://github.com/seanthimons/specmill/compare/v0.1.12...v0.1.13)
@@ -1003,22 +1013,22 @@ Full set of changes:
 #### Breaking changes
 
 - emit shared request validators once per client
-  ([302a28d](https://github.com/seanthimons/specmill/tree/302a28dbfb9e394ae3fedefe04639c3fc571bff0))
+  ([993c8f8](https://github.com/seanthimons/specmill/tree/993c8f849464f81a65c3c98596d4abdb5c47e723))
 
 #### New features
 
 - resolve per-service base URLs through a client server resolver
-  ([2a5fb07](https://github.com/seanthimons/specmill/tree/2a5fb0764fca4fd443084adaeeb8b71dae806cb2))
+  ([6fb33fb](https://github.com/seanthimons/specmill/tree/6fb33fb01ffd6dc510ec9b44326cd2695c13131a))
 
 #### Bug fixes
 
 - accept atomic vectors for JSON array bodies
-  ([1933a3f](https://github.com/seanthimons/specmill/tree/1933a3f6a1bbe663d237a82a23e9772436434ee2))
+  ([a72bf5e](https://github.com/seanthimons/specmill/tree/a72bf5e44ac259a7e76eb2dbe2a2dbad7ebdcd18))
 
 #### Docs
 
 - source shared validators in the offline wrapper example
-  ([1400893](https://github.com/seanthimons/specmill/tree/1400893bdeae98f8827bae0a08334c530313c755))
+  ([0590a90](https://github.com/seanthimons/specmill/tree/0590a9086f9273ab9ef1ab12f58dc893e36fe737))
 
 Full set of changes:
 [`v0.1.11...v0.1.12`](https://github.com/seanthimons/specmill/compare/v0.1.11...v0.1.12)
@@ -1028,35 +1038,35 @@ Full set of changes:
 #### Breaking changes
 
 - validate schemas offline against official OpenAPI schemas
-  ([059d2f5](https://github.com/seanthimons/specmill/tree/059d2f5b853b969108bf0e96c6289bef158521c1))
+  ([5d1f78a](https://github.com/seanthimons/specmill/tree/5d1f78a5eed3da4ebc08adf30d30c69a893333de))
 
 #### New features
 
 - attribute shared definition errors to the operations that reference
   them
-  ([2462a00](https://github.com/seanthimons/specmill/tree/2462a00d93fcc4779d29b01a27742c8a43a8cea8))
+  ([cf3fbfd](https://github.com/seanthimons/specmill/tree/cf3fbfdccb2689e5ee3d85b2c456da6e3f702dbd))
 
 #### Bug fixes
 
 - report only the selected oneOf branch for Swagger 2.0 and OpenAPI 3.0
-  ([6e9f26f](https://github.com/seanthimons/specmill/tree/6e9f26fb06e2e767a282453eaed876a807c55cbf))
+  ([f0d4bb9](https://github.com/seanthimons/specmill/tree/f0d4bb960cb3da9a38058ab598c89c136e771367))
 - report Swagger 2.0 parameter errors for their declared location only
-  ([82837dd](https://github.com/seanthimons/specmill/tree/82837dd18ef11c33a14d5df4d21e1578fd751fc7))
+  ([4d366a8](https://github.com/seanthimons/specmill/tree/4d366a8872753899b4aec2e1707609f64f268f8b))
 
 #### Build
 
 - import jsonvalidate to satisfy the dependency check
-  ([6594dab](https://github.com/seanthimons/specmill/tree/6594dab37fd61f848e1bb0f695eac0b8e693e1b0))
+  ([9004350](https://github.com/seanthimons/specmill/tree/9004350f45d0a2c3388d40e9f259d7d34c18f064))
 
 #### Docs
 
 - describe local schema validation
-  ([0958a83](https://github.com/seanthimons/specmill/tree/0958a8307dd972412f01cac279608f0786f569cc))
+  ([a70c8a9](https://github.com/seanthimons/specmill/tree/a70c8a97d078ec955b7afb4314e7b4ad75a4dc1a))
 
 #### Other changes
 
 - remove hosted validator audit scripts
-  ([4b0a1a7](https://github.com/seanthimons/specmill/tree/4b0a1a720414beafc12f7dfe9e7c3703caeaaeb9))
+  ([b1526a6](https://github.com/seanthimons/specmill/tree/b1526a6e99c042bbf856155ed41a3345d2ee82d7))
 
 Full set of changes:
 [`v0.1.11...v0.1.11`](https://github.com/seanthimons/specmill/compare/v0.1.11...v0.1.11)
@@ -1066,26 +1076,26 @@ Full set of changes:
 #### New features
 
 - require cached Swagger schema validation before generation
-  ([4dec895](https://github.com/seanthimons/specmill/tree/4dec895edba077e8acc3a8711a2b60cadc41d3fe))
+  ([af678ff](https://github.com/seanthimons/specmill/tree/af678ffe99c394724e70bfe230f96a39a401bedb))
 
 #### Bug fixes
 
 - enforce schema checks on declared hook routes
-  ([fa6317b](https://github.com/seanthimons/specmill/tree/fa6317bdfc356dfc81c6a50affb941007af11990))
+  ([8a15c2c](https://github.com/seanthimons/specmill/tree/8a15c2ca0f7d38caa43066bcc5e97b746568581a))
 
 #### Tests
 
 - normalize cache paths in Windows assertions
-  ([c3b420a](https://github.com/seanthimons/specmill/tree/c3b420acfba5b0875a3b4bf75b9df675d108c0b7))
+  ([f4a26fc](https://github.com/seanthimons/specmill/tree/f4a26fceff692f27bd32a8067b8ffc1ff7fdbdf1))
 
 #### Docs
 
 - add schema validator to the reference index
-  ([1267261](https://github.com/seanthimons/specmill/tree/12672613f35eb81ed3f8b353b24e98b47713d0c6))
+  ([9082246](https://github.com/seanthimons/specmill/tree/9082246c56355a89d36515c76220ca5676c4e09b))
 - widen the workflow article and fit desktop charts
-  ([8a1ba5f](https://github.com/seanthimons/specmill/tree/8a1ba5fe35cdcff5b02602b90617c7df08966715))
+  ([4808bb9](https://github.com/seanthimons/specmill/tree/4808bb9b1e5c891c4eb9fe81504af12215b749bc))
 - add client workflow and pipeline flowcharts
-  ([7b50eeb](https://github.com/seanthimons/specmill/tree/7b50eeb953edc4ba8f887138634099bfebe4cac9))
+  ([363ea12](https://github.com/seanthimons/specmill/tree/363ea125e1eb399b2c09f89b06662ce858ed3595))
 
 Full set of changes:
 [`v0.1.9...v0.1.10`](https://github.com/seanthimons/specmill/compare/v0.1.9...v0.1.10)
@@ -1096,42 +1106,42 @@ Full set of changes:
 
 - integrate request policies and client iteration (#63, #64, #65, #66,
   #67)
-  ([40ce8aa](https://github.com/seanthimons/specmill/tree/40ce8aac66317a3721349d60a65291fda5de709b))
+  ([f1893cf](https://github.com/seanthimons/specmill/tree/f1893cf2c909728a667f19928d6803ad9fb06351))
 - emit owned batching and pagination companions (#64, #65)
-  ([a5bb28d](https://github.com/seanthimons/specmill/tree/a5bb28ddf7c613e621d5c752b604be515ab5d09a))
+  ([58b59bd](https://github.com/seanthimons/specmill/tree/58b59bdfcde29c7a20c53fc262a8cf88e1e3310a))
 - support explicit bounded iteration policies (#65)
-  ([8765c02](https://github.com/seanthimons/specmill/tree/8765c021415a3b91c394245bafa406a9060fe860))
+  ([5e66cd6](https://github.com/seanthimons/specmill/tree/5e66cd6ed870aaa7d47d92c7917e60860028f44a))
 - support explicit sequential batching policies (#64)
-  ([02706e2](https://github.com/seanthimons/specmill/tree/02706e2cec72331c6e5321fae0d4202320777723))
+  ([0d11dd1](https://github.com/seanthimons/specmill/tree/0d11dd18b95eba062c30cfe89d210effff4b85a0))
 - select client-owned retry predicates (#67)
-  ([d1cc4a7](https://github.com/seanthimons/specmill/tree/d1cc4a72f52deff4a237098f525ceeccce159fc0))
+  ([8bb01c2](https://github.com/seanthimons/specmill/tree/8bb01c25fc2d3bd1fb48e27e79335468a8094479))
 - support declared plain-text bodies (#66)
-  ([42e4726](https://github.com/seanthimons/specmill/tree/42e47264a24e56f6b5d3d65e91e582891cadd035))
+  ([fe9062a](https://github.com/seanthimons/specmill/tree/fe9062a0df27c0bf3d0b87c27332a73e35c29d7c))
 - support selected response policies and decoding (#63)
-  ([35fff37](https://github.com/seanthimons/specmill/tree/35fff373ca1ce47a0f8275a10ef01f50f5f25687))
+  ([ee6d89e](https://github.com/seanthimons/specmill/tree/ee6d89eb7cf9bdea481fa674441e9f86f91f11e9))
 - optionally guard hook-selected routes before requests (#69)
-  ([e8c1e9f](https://github.com/seanthimons/specmill/tree/e8c1e9f25f13e46deb5e925655128fbdb8809973))
+  ([4890936](https://github.com/seanthimons/specmill/tree/489093676b3821dfa2093030c4a9c3f0932038cf))
 - declare schema routes for hook-owned requests
-  ([62d7f60](https://github.com/seanthimons/specmill/tree/62d7f6059ee828d600706786e9e68907e3fa1845))
+  ([7f5e7b3](https://github.com/seanthimons/specmill/tree/7f5e7b387ddc5bed5e2e1a0a30b4aa5ca5906125))
 - exclude reviewed schema parameters per operation
-  ([638b1cd](https://github.com/seanthimons/specmill/tree/638b1cd9c03c3c882a674809b625c92faaa8dbe6))
+  ([6e66091](https://github.com/seanthimons/specmill/tree/6e660910cd5534f1eab51d5b38eb006126d230f3))
 
 #### Bug fixes
 
 - name the input location in generated validation errors
-  ([210cdfd](https://github.com/seanthimons/specmill/tree/210cdfd10bb9fe95423bb847064510122ea6263f))
+  ([240af04](https://github.com/seanthimons/specmill/tree/240af04d04d77999ae37593545004bdb769ca9e6))
 - render standalone operations without literal guards by default
-  ([576198b](https://github.com/seanthimons/specmill/tree/576198bcf945e6f338e2527177c41a3846c7fdf4))
+  ([796b42b](https://github.com/seanthimons/specmill/tree/796b42b897a22859eaa20fdc099b26a913ce0b1c))
 
 #### Docs
 
 - review general request ports and client policy boundaries
-  ([5e4f00c](https://github.com/seanthimons/specmill/tree/5e4f00ce4d3ac8383396925b01288d5a1e330084))
+  ([b6e7ee0](https://github.com/seanthimons/specmill/tree/b6e7ee0d98ac881b8b77421e97153613d949c9c7))
 
 #### Other changes
 
 - preserve route guards with response policies
-  ([86362b9](https://github.com/seanthimons/specmill/tree/86362b9e19e568b8db0c4ea7248f6e7de8196249))
+  ([b0a0899](https://github.com/seanthimons/specmill/tree/b0a0899e8167f55231c8957e847679e071d07807))
 
 Full set of changes:
 [`v0.1.8...v0.1.9`](https://github.com/seanthimons/specmill/compare/v0.1.8...v0.1.9)
@@ -1141,7 +1151,7 @@ Full set of changes:
 #### Refactorings
 
 - guard generated body literals only when a constructor is shadowed
-  ([b617713](https://github.com/seanthimons/specmill/tree/b617713825edd2825812819926372478bec4e84a))
+  ([3d3139a](https://github.com/seanthimons/specmill/tree/3d3139a90172c634536359b10e4e9c1d16b03789))
 
 Full set of changes:
 [`v0.1.7...v0.1.8`](https://github.com/seanthimons/specmill/compare/v0.1.7...v0.1.8)
@@ -1151,28 +1161,28 @@ Full set of changes:
 #### New features
 
 - propose operation mappings for hand-written wrappers
-  ([0a3dc8e](https://github.com/seanthimons/specmill/tree/0a3dc8e4e1992452b5051e9d1873a0b13b303363))
+  ([3d62927](https://github.com/seanthimons/specmill/tree/3d629271d7b550719b7d2ebe5b33540d7ecea873))
 - verify configured operations against hand-written wrappers
-  ([ec55290](https://github.com/seanthimons/specmill/tree/ec5529044232250e36284d6890b88d2edfdc12d7))
+  ([1b58ac7](https://github.com/seanthimons/specmill/tree/1b58ac755750081f41425064b3ee7fddd4fe364f))
 
 #### Bug fixes
 
 - guard literals when the client’s imports shadow a data constructor
-  ([20ddd2a](https://github.com/seanthimons/specmill/tree/20ddd2aefd60a812103de34ddede86f3d17e9566))
+  ([7274315](https://github.com/seanthimons/specmill/tree/72743150cbdcaf0b88dcd9e6999331f6a99e30e5))
 - render public defaults and examples as plain data literals
-  ([6f957c2](https://github.com/seanthimons/specmill/tree/6f957c2f207f4a8a755fba65d3fb7e35b8d38267))
+  ([707e3fc](https://github.com/seanthimons/specmill/tree/707e3fc9f4bd5b86fe9db9bf8c5ace42f1946dcb))
 - render whole-number defaults for number parameters as doubles
-  ([896f1a7](https://github.com/seanthimons/specmill/tree/896f1a7842b48e62df1bffc2f1e4a0ed2c8d589a))
+  ([bd2a1d9](https://github.com/seanthimons/specmill/tree/bd2a1d94f7a8b84eb15f4f33487050b42db6d3ba))
 
 #### CI
 
 - cut a patch release on every merge to main
-  ([074f176](https://github.com/seanthimons/specmill/tree/074f176b2c0d134f3ba66bfb0da1c4e4be87a14f))
+  ([5d7e998](https://github.com/seanthimons/specmill/tree/5d7e998cfb44417bd456e67ce155d04208185469))
 
 #### Docs
 
 - use propose_mappings and verify_adoption in the adoption guide
-  ([135dbaf](https://github.com/seanthimons/specmill/tree/135dbaf0db0f05997f7fd8533149567d7e131dd8))
+  ([810f9a7](https://github.com/seanthimons/specmill/tree/810f9a7a7c653143273f6ae2c227da6646a04644))
 
 Full set of changes:
 [`v0.1.6...v0.1.7`](https://github.com/seanthimons/specmill/compare/v0.1.6...v0.1.7)
@@ -1182,7 +1192,7 @@ Full set of changes:
 #### Bug fixes
 
 - keep manifest-owned stable wrappers generated
-  ([f3fca33](https://github.com/seanthimons/specmill/tree/f3fca3340c9ed063302320f99ec4d2e30d4bab7b))
+  ([2946ce1](https://github.com/seanthimons/specmill/tree/2946ce1f563e347b3cc80d6086cf41bc93f9f695))
 
 Full set of changes:
 [`v0.1.5...v0.1.6`](https://github.com/seanthimons/specmill/compare/v0.1.5...v0.1.6)
@@ -1192,219 +1202,219 @@ Full set of changes:
 #### New features
 
 - scaffold client-owned hooks and document their lifecycle
-  ([a25bfdd](https://github.com/seanthimons/specmill/tree/a25bfddfd65f9eaee295b02ff34bbed0636a924c))
+  ([86c7cec](https://github.com/seanthimons/specmill/tree/86c7cec75cc5569819890c9d79491037e551847b))
 - add package-prefixed client session controls
-  ([5909653](https://github.com/seanthimons/specmill/tree/5909653596b7fd1039b8568249fc82ae3437f719))
+  ([62248ec](https://github.com/seanthimons/specmill/tree/62248eca90aae38622cf5fc0e1cd71ae6fac2cda))
 - compare client-owned helpers and retain lifecycle-protected files
-  ([2a9720a](https://github.com/seanthimons/specmill/tree/2a9720a1e459c7965cf4e00e0539017e440b5fd8))
+  ([036bd17](https://github.com/seanthimons/specmill/tree/036bd171834dfd59df17d19caa5adb95ab92cf65))
 - add configurable function name casing
-  ([c11f0e1](https://github.com/seanthimons/specmill/tree/c11f0e100a996f920108581fab05ab6900f9459e))
+  ([014a597](https://github.com/seanthimons/specmill/tree/014a597e131cf195d28b79dd8821cc96af9b484d))
 - support finite recursive bodies and refresh schema fixtures
-  ([c30e66f](https://github.com/seanthimons/specmill/tree/c30e66ff56b06a867d6a9374e1b1a4841cca0657))
+  ([eae918c](https://github.com/seanthimons/specmill/tree/eae918c2615c174846648bea5b4a44eaa15e51d5))
 - add bounded cursor and link pagination
-  ([fac8098](https://github.com/seanthimons/specmill/tree/fac80985fcf330fddf0ca2644749ffc2ca49e39c))
+  ([5fb9a09](https://github.com/seanthimons/specmill/tree/5fb9a09445b133434afb3945631547fe8db02764))
 - expose request timeouts servers and safe retries
-  ([d879f59](https://github.com/seanthimons/specmill/tree/d879f59477cf2ccbdc49f236673af0fd6d22ab90))
+  ([9965ee2](https://github.com/seanthimons/specmill/tree/9965ee28c80c68e25ff1ab425fdcefb8f9ddf396))
 - harden generated request runtime
-  ([ed17d1e](https://github.com/seanthimons/specmill/tree/ed17d1e74b5742897368159f8985971490cc3c81))
+  ([249d7ce](https://github.com/seanthimons/specmill/tree/249d7cebe7dad37cc3896c019adce2fa55268534))
 - add generic batched helper (#19)
-  ([5ea0884](https://github.com/seanthimons/specmill/tree/5ea08841f0fc9eb767e2dc187c0356e21cc7b4d4))
+  ([29a65b5](https://github.com/seanthimons/specmill/tree/29a65b585e5885a27529333ff01d0071769d09e9))
 - validate composed JSON request bodies (#12)
-  ([c13e865](https://github.com/seanthimons/specmill/tree/c13e865219955b96716ba2eab6aa2f847df15461))
+  ([f682ef4](https://github.com/seanthimons/specmill/tree/f682ef427ffb4f34148b90572c19371d17adb1dc))
 - add explicit bracketed query array serialization
-  ([8d47aa6](https://github.com/seanthimons/specmill/tree/8d47aa698b866fbd9d51b854d5deb4587a7e5142))
+  ([84ca521](https://github.com/seanthimons/specmill/tree/84ca52119d6ed22203d611e12f9361f9ffde17e9))
 - resolve local schema references and support form requests (#9)
-  ([e9be960](https://github.com/seanthimons/specmill/tree/e9be960621e2b0d1d69fca68841c3b87b0b75351))
+  ([8075851](https://github.com/seanthimons/specmill/tree/80758514d12a85a6a3d21a4345914ea9a2ad8215))
 - load JSON and YAML API schemas natively (#18)
-  ([bfb62ce](https://github.com/seanthimons/specmill/tree/bfb62cedcdec17f1dd60d1bb0e6d5202ab9eab49))
+  ([6dfeba4](https://github.com/seanthimons/specmill/tree/6dfeba448506a0973d26727836e9350abeb7a48e))
 - extend OpenAPI parameter serialization (#8)
-  ([c50f5ea](https://github.com/seanthimons/specmill/tree/c50f5ea8b1ad71c788a3b9215d0d6a46512e872e))
+  ([bd5b7e8](https://github.com/seanthimons/specmill/tree/bd5b7e8af696cc7cc538b9f593ca91832c8d4937))
 - support open JSON objects and unconstrained arrays (#14)
-  ([13f07bf](https://github.com/seanthimons/specmill/tree/13f07bf961f3dc14f2dd0dafa095e8d649fb0853))
+  ([af6c4e4](https://github.com/seanthimons/specmill/tree/af6c4e441c1942e84499ea061ab689fb7f4bb4d2))
 - group multi-API configuration into one file per API
-  ([2b412a6](https://github.com/seanthimons/specmill/tree/2b412a6c8c67360805bc312c7c6402a6a5e7f8a1))
+  ([aa222d1](https://github.com/seanthimons/specmill/tree/aa222d161892f41faf2fdfba26b871b7a5b05935))
 - review multiple APIs and generate isolated transports with batch
   limits
-  ([6443b36](https://github.com/seanthimons/specmill/tree/6443b361dc28c238d555f4edb875758bcbb192e6))
+  ([a4b2af5](https://github.com/seanthimons/specmill/tree/a4b2af5c658c0915606ee9573040f0ace13cca96))
 - inherit project policies and explain excluded operations
-  ([ec4fac6](https://github.com/seanthimons/specmill/tree/ec4fac6791b0110343dab3ab93d38198930d8213))
+  ([46e5ad2](https://github.com/seanthimons/specmill/tree/46e5ad2296aaddd384da6fb5586e61ff90e74a2c))
 - expose editable configuration and reconcile excluded grouped endpoints
-  ([4203a01](https://github.com/seanthimons/specmill/tree/4203a01dfa12b1688b0f97c293749b6e4323d576))
+  ([c765b10](https://github.com/seanthimons/specmill/tree/c765b10629d32743dcf2659d7258fc471e064ca3))
 - generate configured clients with transport and authentication support
   (#5)
-  ([13308cf](https://github.com/seanthimons/specmill/tree/13308cf8126c5399c7e1aab63de8df73866b7bdc))
+  ([3106e70](https://github.com/seanthimons/specmill/tree/3106e70a33ab079d17a6f67b8691e7c4c3397abb))
 - demonstrate full Petstore coverage and configurable naming (#2)
-  ([7045586](https://github.com/seanthimons/specmill/tree/7045586f6632707e8c4e909e89e7e170c74c2361))
+  ([df05d1a](https://github.com/seanthimons/specmill/tree/df05d1a8b031f92473b5920b458172ac4d82684c))
 - generate API key and bearer authentication with credential setup
-  ([5088335](https://github.com/seanthimons/specmill/tree/50883358d68b8be2f6c32f1087e7a269ebf3dcfb))
+  ([0542d63](https://github.com/seanthimons/specmill/tree/0542d631d4ed34eb2373d0da6c52ed28ca28fd87))
 - generate headers query arrays and binary uploads
-  ([1fccfda](https://github.com/seanthimons/specmill/tree/1fccfda60d762691b28ff216c8dc7d6cada1e375))
+  ([2db5bdd](https://github.com/seanthimons/specmill/tree/2db5bdd1400f96c5d8f7ee1f1500a5c973354d45))
 - select JSON bodies when alternative media types are offered
-  ([f212312](https://github.com/seanthimons/specmill/tree/f2123125ff40ac1d9d661ef8ed5becdc94c46c40))
+  ([94b2cc8](https://github.com/seanthimons/specmill/tree/94b2cc86dadcb396c3b650086e3e5966ff9a50b2))
 - scaffold editable configuration from schema tags
-  ([ee7c998](https://github.com/seanthimons/specmill/tree/ee7c9983d66383b0d519b364c562314960dded36))
+  ([30b7d7a](https://github.com/seanthimons/specmill/tree/30b7d7a94c48e70ba3519aa49b1f13c705fe43d4))
 - demonstrate full Petstore coverage and grouped naming
-  ([4aa53d8](https://github.com/seanthimons/specmill/tree/4aa53d8457e52de544ca3002c32489f172700e79))
+  ([0d8e554](https://github.com/seanthimons/specmill/tree/0d8e55412ba0c92a6fe278393e5f7a2b2ebf9257))
 
 #### Bug fixes
 
 - document client controls and include reviewed corpus evidence
-  ([a2efeea](https://github.com/seanthimons/specmill/tree/a2efeeaccdbc8c7d726acf77b76641d950c21136))
+  ([5b11bc9](https://github.com/seanthimons/specmill/tree/5b11bc91f24fdcd1df4c980217d59ceb10cdb17e))
 - clear inherited R test startup for nested builds
-  ([fb4f814](https://github.com/seanthimons/specmill/tree/fb4f8148cbbcd7af8a0f1f9b48ff224ac328c1b2))
+  ([f580113](https://github.com/seanthimons/specmill/tree/f58011329877d669f58d6b6f3bfb25109e8c9ae8))
 - reconcile corpus fixture failures and audit evidence
-  ([2469955](https://github.com/seanthimons/specmill/tree/24699558e01fb702bf1cbcdc17e30ce15f244bfd))
+  ([6a78cde](https://github.com/seanthimons/specmill/tree/6a78cdec3110318dc37e60f5706a98971dedec7e))
 - make duplicate operation names actionable (#43)
-  ([aa58c7b](https://github.com/seanthimons/specmill/tree/aa58c7bc3c1068fa8d5309947b611ab84eb37bcc))
+  ([1a4b460](https://github.com/seanthimons/specmill/tree/1a4b460d46765b5df230f9cb2169253b3500abf9))
 - use exact security lookups for Swagger schemas
-  ([aa456bf](https://github.com/seanthimons/specmill/tree/aa456bf591bc68b17cb9787cdb615261c967a493))
+  ([fed5ac5](https://github.com/seanthimons/specmill/tree/fed5ac5a9a8bd71d5f3c603365b3c590ee35c8eb))
 - stop inseparable lifecycle-protected generation changes
-  ([ab32802](https://github.com/seanthimons/specmill/tree/ab32802c631c7f0166efcde49e514184506f1010))
+  ([78340ae](https://github.com/seanthimons/specmill/tree/78340aec28ecdbf2ac66a4bd955f51762a0b506f))
 - respect enum membership for nullable fixture values
-  ([d9e1558](https://github.com/seanthimons/specmill/tree/d9e1558711c3ab9de0bd6f2434ac597ebd99b636))
+  ([ff1ba31](https://github.com/seanthimons/specmill/tree/ff1ba317eb54f62bdbd948cdddcf52f5b44cc8ca))
 - inspect explicit helper mappings without partial matching
-  ([727850b](https://github.com/seanthimons/specmill/tree/727850bd83f4efa3572814029d54fea62ca33305))
+  ([117f6a6](https://github.com/seanthimons/specmill/tree/117f6a6c557057f8666638eee5619f6e09a14a41))
 - validate selected body fixture hints without fallback
-  ([cc5b61c](https://github.com/seanthimons/specmill/tree/cc5b61cdc96715d5a595209c339ca07e64bd52d5))
+  ([b88119a](https://github.com/seanthimons/specmill/tree/b88119a88d95e5e92a3b6692e6cd399b2c8a0145))
 - preserve fixture evidence and report source contradictions
-  ([ec11e96](https://github.com/seanthimons/specmill/tree/ec11e964dc73eb13d39f39816b3eb312b793785e))
+  ([9dc9f86](https://github.com/seanthimons/specmill/tree/9dc9f863956be16186acada4ef0105f685642f3f))
 - keep generated filenames and Unicode literals portable
-  ([a9e923a](https://github.com/seanthimons/specmill/tree/a9e923a4b85d4c6b0a219eeb7b09615f116bf8df))
+  ([4e66b13](https://github.com/seanthimons/specmill/tree/4e66b132e139874f25d21a877b2d4858ffb935ef))
 - validate public schema inputs before client hooks
-  ([085e5da](https://github.com/seanthimons/specmill/tree/085e5da269bc35bb9a6b1a2d52f2c4d611c253d8))
+  ([d2e5ad2](https://github.com/seanthimons/specmill/tree/d2e5ad29da23ee631940d26bf2a76865684e3724))
 - align advertised and generated HTTP methods
-  ([4c48e1f](https://github.com/seanthimons/specmill/tree/4c48e1fb9edebd6704749ecdb7dd810cafe41bb1))
+  ([d499ab5](https://github.com/seanthimons/specmill/tree/d499ab5f1823512121d2e6fbcc9b5297ed29c347))
 - merge versioned request body semantics (#24)
-  ([3ac0fa0](https://github.com/seanthimons/specmill/tree/3ac0fa04664672132dd499d8799cf3a3240e178b))
+  ([957d810](https://github.com/seanthimons/specmill/tree/957d81059f27bd8ab251cf5fc3c9bce1457ca377))
 - respect versioned request body semantics (#24)
-  ([706a573](https://github.com/seanthimons/specmill/tree/706a57392aec7acc033ed434c6afd5dc322603d3))
+  ([8c746a8](https://github.com/seanthimons/specmill/tree/8c746a8290e69988c584630a564f8f4066ac4fe5))
 - merge request schema directionality (#22)
-  ([f1f7503](https://github.com/seanthimons/specmill/tree/f1f7503978443c68e76625f6bed3f6c1f3b35109))
+  ([88e0ec9](https://github.com/seanthimons/specmill/tree/88e0ec974acc746d3f20787d3adecbf08cac179e))
 - apply read-only request semantics (#22)
-  ([54ee5a2](https://github.com/seanthimons/specmill/tree/54ee5a282782f9ce775656d0f55a82689e28e4b8))
+  ([9404c78](https://github.com/seanthimons/specmill/tree/9404c78c97c44250e94b2940cce90b2581af48b5))
 - merge Swagger consumes handling (#21)
-  ([e75bdbf](https://github.com/seanthimons/specmill/tree/e75bdbfe850011a32349c9de0d595e5bdc2f4f10))
+  ([93ea9ef](https://github.com/seanthimons/specmill/tree/93ea9efe382ccfe5ec6779fe0ca5570c20cc191d))
 - merge parameter contract validation (#20)
-  ([773ba3c](https://github.com/seanthimons/specmill/tree/773ba3c7901b8db08fd3ed43c65f3631855f6333))
+  ([04b8c37](https://github.com/seanthimons/specmill/tree/04b8c375bcc8da6b496086bc16a3588d72e40397))
 - honor Swagger body consumes (#21)
-  ([c529051](https://github.com/seanthimons/specmill/tree/c529051242ac5c3ae14336408bbcad79ecf2a0b1))
+  ([f0ff5c0](https://github.com/seanthimons/specmill/tree/f0ff5c0098e939b0e6238f6be662be54e3d35c78))
 - validate parameter contracts (#20)
-  ([13a9b16](https://github.com/seanthimons/specmill/tree/13a9b163a39ffea701120504243b4471727e8694))
+  ([21b1f46](https://github.com/seanthimons/specmill/tree/21b1f46c8202a9323f4894cc07aeed3683330d3b))
 - preserve reviewed operation names (#17)
-  ([1ddfd30](https://github.com/seanthimons/specmill/tree/1ddfd308767ac8b8405025684de7aae4c099cda8))
+  ([b007592](https://github.com/seanthimons/specmill/tree/b0075921805298bc07ceb27a732ccde021fae697))
 - distinguish schema defects from unsupported capabilities (#15)
-  ([8ebbea7](https://github.com/seanthimons/specmill/tree/8ebbea70442726db3a9fd73eb74a751316d3eab4))
+  ([33516b6](https://github.com/seanthimons/specmill/tree/33516b61372e1f197993593c093de999fbe602c1))
 - apply shared batch limits only to applicable bodies
-  ([ee2dafc](https://github.com/seanthimons/specmill/tree/ee2dafcaacbcef37e4e5a0a1c9bd7a8752000c3b))
+  ([6e1c4f6](https://github.com/seanthimons/specmill/tree/6e1c4f6391dbbd6982fd418b8774c8694cab6e40))
 - treat blank schema tags as untagged operations
-  ([6778f1c](https://github.com/seanthimons/specmill/tree/6778f1c042277a0db27aca978fb0c0807eb5e71c))
+  ([38aa0af](https://github.com/seanthimons/specmill/tree/38aa0af94a8e21fcb6700fe4874da5d013982504))
 - preserve credential backups when environment restoration fails
-  ([57806dd](https://github.com/seanthimons/specmill/tree/57806dda3ed069419f28fd0af844d6d22724271b))
+  ([ef6679b](https://github.com/seanthimons/specmill/tree/ef6679bb5f5f505b5ccc995bdb5de099d7dcfbe4))
 - preserve ownership when renaming grouped functions
-  ([5f18f60](https://github.com/seanthimons/specmill/tree/5f18f6012c2aaaf9c7a0c84a28fb2b9ddd3d6a4a))
+  ([5dd41e3](https://github.com/seanthimons/specmill/tree/5dd41e3d70e2b73c88574d885905ec55b70f1efc))
 - rebuild the Petstore trial against the live service
-  ([fff0e08](https://github.com/seanthimons/specmill/tree/fff0e082f5a338c6ad02a4a00c3798199a195804))
+  ([fac44a9](https://github.com/seanthimons/specmill/tree/fac44a954b9a2b4f09ff96fc5cf3181bd3f6643f))
 - install the trial client in a fresh R process
-  ([5d8d71c](https://github.com/seanthimons/specmill/tree/5d8d71c8de6edd9178af2c48f523c63b2378fb10))
+  ([faf4b0f](https://github.com/seanthimons/specmill/tree/faf4b0f74b0215bc7730e67aad7b69a6c794a956))
 
 #### Tests
 
 - reproduce matching-input proving-ground rebuild and comparison
-  ([93e8d4a](https://github.com/seanthimons/specmill/tree/93e8d4a148a68ba1d2a11ce055caff4579ba94de))
+  ([73814a9](https://github.com/seanthimons/specmill/tree/73814a92eb3b9b88eed9df4c14d1423712ecbe53))
 - assert installed request methods and content types
-  ([9122950](https://github.com/seanthimons/specmill/tree/912295065fd03957b26f49550d97f30cee034b11))
+  ([f3a8f1d](https://github.com/seanthimons/specmill/tree/f3a8f1d02f1e1ca28b0f583a4e80d0693c7eabd0))
 - declare escaped query fixture value in local client schema
-  ([b411630](https://github.com/seanthimons/specmill/tree/b411630263a097c64fef3d528d40b8f922ccc11a))
+  ([a2afe75](https://github.com/seanthimons/specmill/tree/a2afe75b07d60e23170170c2458d0f88e7c53169))
 - verify installed clients and exact localhost request bytes
-  ([b053cda](https://github.com/seanthimons/specmill/tree/b053cda80e91dd33ae2e8215a41640b652da632f))
+  ([3010b81](https://github.com/seanthimons/specmill/tree/3010b81ed9b15ce6bb47157f62a7268b1abf3c90))
 - preserve valid boundary fixtures and document transport nulls
-  ([919d248](https://github.com/seanthimons/specmill/tree/919d24847bebda313c2be89d810f72a4b54f6668))
+  ([3713dc9](https://github.com/seanthimons/specmill/tree/3713dc9dd238a5752fb5d4fb175dd41f497983cb))
 - preserve custom text requests during manual helper adoption
-  ([6b470ad](https://github.com/seanthimons/specmill/tree/6b470adf0e76704871206465c374d1901a1af13a))
+  ([a6e39a1](https://github.com/seanthimons/specmill/tree/a6e39a180a09fbc70f1f43e0e6dc34f281a38f3b))
 - align retained diagnostics with request body semantics (#24)
-  ([4a74669](https://github.com/seanthimons/specmill/tree/4a74669944059923b9af49cae97c9d5ad92fbde1))
+  ([44f912e](https://github.com/seanthimons/specmill/tree/44f912ee370fb5bd433f356edeac70254072b32a))
 - reject invalid generated-client credentials (#7)
-  ([c55360d](https://github.com/seanthimons/specmill/tree/c55360d47b8e9831a3c5583fc33e51f207ffc574))
+  ([07bbce3](https://github.com/seanthimons/specmill/tree/07bbce3fff755479d631a02650604e31f35dea78))
 - verify ComptoxR request acceptance (#7)
-  ([35462b1](https://github.com/seanthimons/specmill/tree/35462b19736a230e8485af7301a4d723b5f88d69))
+  ([0201726](https://github.com/seanthimons/specmill/tree/0201726485bcaadcef210738c24bc6d93635fbe0))
 - add extended schema corpus sources
-  ([721b890](https://github.com/seanthimons/specmill/tree/721b890cb0b2169bcdd0f1d181d5781db459c013))
+  ([d253b6d](https://github.com/seanthimons/specmill/tree/d253b6d9cf66da83c54e4195fa793a68c293c0b8))
 - record composition verification and operation deltas (#12)
-  ([e248191](https://github.com/seanthimons/specmill/tree/e24819143fca860636f44de49e1f741d1ffbb654))
+  ([554ca29](https://github.com/seanthimons/specmill/tree/554ca29f7f8f70a79185cacc029fbb438a811159))
 - record native schema gap verification and operation deltas (#9)
-  ([e67fa8f](https://github.com/seanthimons/specmill/tree/e67fa8f2405138c76f10a8390180e10b8a1a79bb))
+  ([45064e0](https://github.com/seanthimons/specmill/tree/45064e0b9af4d75fb4c55ae7221c7874b087e030))
 - verify native YAML ingestion against both schema corpora (#18)
-  ([db76be3](https://github.com/seanthimons/specmill/tree/db76be33e00c603e13c170e7adfcb835d5d98d01))
+  ([9c4feeb](https://github.com/seanthimons/specmill/tree/9c4feebccf7b2fb2f7f71d12fa893ae755c863bb))
 - audit the additional schema corpus
-  ([f823a16](https://github.com/seanthimons/specmill/tree/f823a166717c6ae238fb4fcae792fd8d7ca8be5d))
+  ([7630809](https://github.com/seanthimons/specmill/tree/763080972ac608775940e58c93a775cc1fc11d4c))
 
 #### CI
 
 - allow verified schema hashes in audit ledger
-  ([212f465](https://github.com/seanthimons/specmill/tree/212f4650e298296b86c8bb7a251a7a36327f44fb))
+  ([5b4ec13](https://github.com/seanthimons/specmill/tree/5b4ec13c9aabb6c95f0525fac1b8b7c8c5839ce8))
 - pin corrected baseline R check workflow
-  ([f25fdee](https://github.com/seanthimons/specmill/tree/f25fdeea9c89a2fa6229f909db9bb45aee529def))
+  ([fb6dec3](https://github.com/seanthimons/specmill/tree/fb6dec3c28ead431504e71d8acce37bf3ebb3cfc))
 - migrate workflows to baseline callers
-  ([25827e1](https://github.com/seanthimons/specmill/tree/25827e1f0797b6c4bbb37a500c88bc2f456a1cba))
+  ([4bc5b79](https://github.com/seanthimons/specmill/tree/4bc5b792fa74b90d5fdcd8cdba1ac3ca57d0ab50))
 - exclude verified schema hash false positive from secret scan
-  ([9fcd6e0](https://github.com/seanthimons/specmill/tree/9fcd6e0bd448c89ee045c9551efa3bf116d168e1))
+  ([586ce20](https://github.com/seanthimons/specmill/tree/586ce20cf449ae5bc96fac2fdc7a04682e0e5eb9))
 - make platform checks manual during early development (#3)
-  ([91d8c63](https://github.com/seanthimons/specmill/tree/91d8c637f5b53fedd7afb08cb079a3c666e9876c))
+  ([366d65c](https://github.com/seanthimons/specmill/tree/366d65cdbc321be43374aa25ed416fc9472ba1e0))
 - add checked release artifacts and a new-schema trial (#1)
-  ([384e914](https://github.com/seanthimons/specmill/tree/384e914a255563bdbacd3a245fa1ee71b4d8d00d))
+  ([7268056](https://github.com/seanthimons/specmill/tree/72680568354a46f489fce04fbc7570a89fc306ec))
 - add checked release artifacts and a new-schema trial
-  ([1b8009a](https://github.com/seanthimons/specmill/tree/1b8009a891f3fcfe8d2d3cd05e7c3ad4ad930ebb))
+  ([48f6bfd](https://github.com/seanthimons/specmill/tree/48f6bfd5ad6f8ea1e69d4860048a37d8160a901f))
 
 #### Docs
 
 - make client guides independent of ComptoxR
-  ([23355ea](https://github.com/seanthimons/specmill/tree/23355eac94ea8ccf36447c17a72b18a7ff46055b))
+  ([fafd3eb](https://github.com/seanthimons/specmill/tree/fafd3eb698e5aec1a6e92bd6e0e69c5f2eed00bb))
 - refresh client workflows and add hex logo
-  ([13b14b8](https://github.com/seanthimons/specmill/tree/13b14b86090c207b2fe5c84eee8c15f52d7e1b82))
+  ([12289ae](https://github.com/seanthimons/specmill/tree/12289aeeec5d30458099eb5327bde2df67afa511))
 - include multi-api configuration in reference index
-  ([5d07118](https://github.com/seanthimons/specmill/tree/5d0711821f033f47921b85f35699407df6bf98d4))
+  ([0aa7e4d](https://github.com/seanthimons/specmill/tree/0aa7e4daa3ed879de15c6daf83bafff022b3a41d))
 - finalize verified issue status and preserve contract blockers
-  ([8b93d9b](https://github.com/seanthimons/specmill/tree/8b93d9b90ca98984fef3a5aae819e299150d2b60))
+  ([36421fa](https://github.com/seanthimons/specmill/tree/36421fa0f35989b009c5dab4eb9789368cdd05a8))
 - record verified issue outcomes and matching-input corpus comparison
-  ([03aa43f](https://github.com/seanthimons/specmill/tree/03aa43fae1ad57847d3a262663e8d81eb517611f))
+  ([5a6b9db](https://github.com/seanthimons/specmill/tree/5a6b9dbff2fb81df9e37a676b67b7ce897c5d634))
 - attribute new fixture failures to incompatible declared examples
-  ([0a6ba35](https://github.com/seanthimons/specmill/tree/0a6ba358badc701d0cb0dbe7f59915d6f09da43a))
+  ([73be7d9](https://github.com/seanthimons/specmill/tree/73be7d94766ac96a45d24ab25049f1d95004de4a))
 - verify individual unresolved source contracts for open issues
-  ([2fb077e](https://github.com/seanthimons/specmill/tree/2fb077ed3892f779c675fbf97238ac7343cc4996))
+  ([eba2f88](https://github.com/seanthimons/specmill/tree/eba2f88fa4401c8b2bbe1ea3a906805cc7ccea68))
 - explain function naming conventions
-  ([84125df](https://github.com/seanthimons/specmill/tree/84125df7a9af1012d62af41483dac9dfed6f8dcd))
+  ([d04a3ec](https://github.com/seanthimons/specmill/tree/d04a3ec87945286826e178e94766d3ee6a523268))
 - record unsupported resolver GET-body disposition
-  ([071267d](https://github.com/seanthimons/specmill/tree/071267df1118aa71ef68e6f68f1043887742c464))
+  ([4ada30c](https://github.com/seanthimons/specmill/tree/4ada30c7cfb7f01cfb6096a59524a63b3066c18f))
 - audit generated client capabilities (#6)
-  ([a45d73a](https://github.com/seanthimons/specmill/tree/a45d73af51596b148a9138f014cd3077f73b7889))
+  ([f37c81c](https://github.com/seanthimons/specmill/tree/f37c81cea9c892f892a36889931ca4f7c7330f51))
 - trim ComptoxR verification artifact
-  ([107e0dd](https://github.com/seanthimons/specmill/tree/107e0dda8287c7af546f9acfcaba528ba93a803b))
+  ([87584c3](https://github.com/seanthimons/specmill/tree/87584c388edf73d70a5eaaa6713103468e357e84))
 - record unresolved source contracts and audit verification (#16)
-  ([76de348](https://github.com/seanthimons/specmill/tree/76de3482aa76a3791ff16fe9bf3215de95633612))
+  ([d925661](https://github.com/seanthimons/specmill/tree/d92566126587e74e9764842abe2e59935d644102))
 - apply and record ComptoxR proving-ground selection policy
-  ([61e2ccc](https://github.com/seanthimons/specmill/tree/61e2ccc0dd9fe4d3d44de17cdd2756fe299a3b07))
+  ([3675cfb](https://github.com/seanthimons/specmill/tree/3675cfbeef38ed06f92826c1a020003c7ecb64ab))
 - crosswalk capability issues and expand implementation handoff
-  ([337d83d](https://github.com/seanthimons/specmill/tree/337d83de337f6e5a689af4aa7bbd23e9abd1eb0b))
+  ([d53b0fb](https://github.com/seanthimons/specmill/tree/d53b0fb8141c8e90e039e1ea5c0979e39d0000fa))
 - classify proving-ground schema blockers and rank coverage fixes
-  ([006885d](https://github.com/seanthimons/specmill/tree/006885d262df8d3908996c324103a5b095a547e4))
+  ([766f406](https://github.com/seanthimons/specmill/tree/766f40668bda4c2fe1c6862a1f197e5535e9ee25))
 - explain endpoint naming and family configuration
-  ([db6a828](https://github.com/seanthimons/specmill/tree/db6a828c294d8087195fac3c3b85ffb353496dc4))
+  ([925e619](https://github.com/seanthimons/specmill/tree/925e61928dca6b45d15a901e30ae2997b3c452b8))
 
 #### Style
 
 - normalize fixture evidence line endings
-  ([1446d6c](https://github.com/seanthimons/specmill/tree/1446d6c029c7ed06d11e4686802fca9cb9877a28))
+  ([1cd5d81](https://github.com/seanthimons/specmill/tree/1cd5d819778dbe10df774b3bf1675dd831078832))
 
 #### Other changes
 
 - package base proving-ground schemas for transfer
-  ([d800dc2](https://github.com/seanthimons/specmill/tree/d800dc20c9f36fc62471d9a5d1ff91b20f61d9fd))
+  ([eb6aab4](https://github.com/seanthimons/specmill/tree/eb6aab4948d0a1aeacaeb6c2123c8e49a6135273))
 - retire the Petstore build script
-  ([fba499b](https://github.com/seanthimons/specmill/tree/fba499bbe5a8922ce72f89fc6f0464d877144a74))
+  ([678b181](https://github.com/seanthimons/specmill/tree/678b18163218c98e43b56db52d35dcca7cca0437))
 - download additional testing schemas and relative references
-  ([e2f94b1](https://github.com/seanthimons/specmill/tree/e2f94b14df671497f890d37c13663a0432d6306d))
+  ([7a43db0](https://github.com/seanthimons/specmill/tree/7a43db02fe8e7b50cb7339a0092e9e14c2cb55be))
 - sync manual platform check policy
-  ([031a1ad](https://github.com/seanthimons/specmill/tree/031a1ad62d3bbe90b98a3dc7c724a87af9a877ae))
+  ([e31fe68](https://github.com/seanthimons/specmill/tree/e31fe68a30300a8da77abed12bb9aeb5b7a7e893))
 
 Full set of changes:
 [`v0.1.4...v0.1.5`](https://github.com/seanthimons/specmill/compare/v0.1.4...v0.1.5)
@@ -1414,22 +1424,22 @@ Full set of changes:
 #### Bug fixes
 
 - declare JSON runtime dependency in initialized clients
-  ([af66d3c](https://github.com/seanthimons/specmill/tree/af66d3c95d7356651539253dba4c01972972d7ef))
+  ([ecd02dc](https://github.com/seanthimons/specmill/tree/ecd02dce91a3481757caef78eaefad03900dce01))
 
 #### Refactorings
 
 - rename the generated runtime template to specmill
-  ([fce7a11](https://github.com/seanthimons/specmill/tree/fce7a11fc2afd17254c7ebf727dddbd036c32672))
+  ([9dcb075](https://github.com/seanthimons/specmill/tree/9dcb075b0df31e66603eb18dadfe5ad5fdad4bb3))
 
 #### Build
 
 - release specmill with the renamed runtime template
-  ([a35ab1e](https://github.com/seanthimons/specmill/tree/a35ab1ef1032c1044f49a1d8686dc35e9f80d4a2))
+  ([3cac81c](https://github.com/seanthimons/specmill/tree/3cac81c6da8e0aa4288c748fa8229da0a72ef025))
 
 #### Docs
 
 - record specmill migration validation
-  ([42e2374](https://github.com/seanthimons/specmill/tree/42e2374c1c15f2f3311d1987ca174eeaec694fed))
+  ([cd64de8](https://github.com/seanthimons/specmill/tree/cd64de8da1ee83b1c98219a241c255181410923b))
 
 Full set of changes:
 [`v0.1.3...v0.1.4`](https://github.com/seanthimons/specmill/compare/v0.1.3...v0.1.4)
@@ -1439,19 +1449,19 @@ Full set of changes:
 #### Breaking changes
 
 - rename package and client tooling to specmill
-  ([e876984](https://github.com/seanthimons/specmill/tree/e876984b69e06d10d09dd3b3314f20a8d749795b))
+  ([20d211d](https://github.com/seanthimons/specmill/tree/20d211d249879e0bb225f6171f0fe3fc4ebb7c4e))
 
 #### Tests
 
 - record migration parity and schema stress evidence
-  ([78ef38b](https://github.com/seanthimons/specmill/tree/78ef38b86a3b7d048a3b809384fc0d7040da8da8))
+  ([7205fab](https://github.com/seanthimons/specmill/tree/7205fab027893f25341bffb32608201a71e6f7e1))
 
 #### Docs
 
 - add client setup guides and package website
-  ([f200247](https://github.com/seanthimons/specmill/tree/f2002479df7a39a54293de3f4b99a47ef631278d))
+  ([6a4467d](https://github.com/seanthimons/specmill/tree/6a4467d89f52c2d43ac275f46e2960e6f19d37fe))
 - record completed maintenance migration gates
-  ([4adb754](https://github.com/seanthimons/specmill/tree/4adb7546ee232ed36048219f596c07d402831666))
+  ([1ffccb3](https://github.com/seanthimons/specmill/tree/1ffccb334cf0c9dcc173816c39d4e62d02d628c5))
 
 Full set of changes:
 [`v0.1.2...v0.1.3`](https://github.com/seanthimons/specmill/compare/v0.1.2...v0.1.3)
@@ -1461,9 +1471,9 @@ Full set of changes:
 #### Bug fixes
 
 - preserve portable metadata and complete alias policies
-  ([8da0f99](https://github.com/seanthimons/specmill/tree/8da0f990e650eb918a98f1851ed63926c88df46d))
+  ([2e4a3da](https://github.com/seanthimons/specmill/tree/2e4a3daaa4db86af04c6f40d59bf86c6b48cd441))
 - order generation metadata independently of locale
-  ([05df627](https://github.com/seanthimons/specmill/tree/05df627fb602b4654b69f6d617692bedcee80241))
+  ([279edd2](https://github.com/seanthimons/specmill/tree/279edd24c873fd9bde63c50b0237741e109fa7d0))
 
 Full set of changes:
 [`v0.1.1...v0.1.2`](https://github.com/seanthimons/specmill/compare/v0.1.1...v0.1.2)
@@ -1473,30 +1483,30 @@ Full set of changes:
 #### Bug fixes
 
 - format owned files without formatter skip directives
-  ([8627b81](https://github.com/seanthimons/specmill/tree/8627b8176969476a983e080b06753cf1bb679f60))
+  ([4fc6db4](https://github.com/seanthimons/specmill/tree/4fc6db48d9769230505ed73f12477144e879c844))
 
 ## specmill 0.1.0 (2026-09-09)
 
 #### New features
 
 - unify generation commands and schema coverage reports
-  ([59f21db](https://github.com/seanthimons/specmill/tree/59f21dbe40a127cd6b2509e85d2aaea7046062c3))
+  ([bf929c7](https://github.com/seanthimons/specmill/tree/bf929c7e85dc81be66f0ea61a1d2b5cf8be462e2))
 - extract readiness and public maintenance checks
-  ([e3e477a](https://github.com/seanthimons/specmill/tree/e3e477acd8cff20d1fbdc447c2bab22aec1f9d92))
+  ([4eee394](https://github.com/seanthimons/specmill/tree/4eee39418ee8b1f20443ba442b7f9e49aeb43aab))
 - preserve client layouts and verify complete fixed contracts
-  ([c21bfae](https://github.com/seanthimons/specmill/tree/c21bfaec670b05f6fe438bd03540660407eeb36b))
+  ([c31cb88](https://github.com/seanthimons/specmill/tree/c31cb88e74c717aee7b1db2b915b03d4e40e0632))
 - verify public resolver POST mapping and per-contract fixtures
-  ([014df22](https://github.com/seanthimons/specmill/tree/014df2271eff14a8da7e8eb8f99d66c35fd6f480))
+  ([1a22e80](https://github.com/seanthimons/specmill/tree/1a22e801069c7bf74ea482b6dfbd9c357688bb70))
 - retain schema limitations for explicit client request mappings
-  ([edff590](https://github.com/seanthimons/specmill/tree/edff590b2279df7ff1d764615a8b4c80ee236a60))
+  ([c40e1da](https://github.com/seanthimons/specmill/tree/c40e1da4cdc122cd75106aedf3c52be1c7564e92))
 - support ordered array request bindings and verify EPI batch mapping
-  ([9f8f7df](https://github.com/seanthimons/specmill/tree/9f8f7dfbe234d1c6dea4a0b0e096e92d0f4886ca))
+  ([68b2fee](https://github.com/seanthimons/specmill/tree/68b2fee4ee4a9c0292fbc85160dbc189d503dff9))
 - support nested payloads and explicit client interfaces
-  ([0098221](https://github.com/seanthimons/specmill/tree/0098221f4a7004cebbd3592345ada9e1caff53f7))
+  ([1c779a1](https://github.com/seanthimons/specmill/tree/1c779a1798252e11bfcd4169018f89d34b9df9f5))
 - add declarative helper mappings and documentation policy
-  ([f101c22](https://github.com/seanthimons/specmill/tree/f101c22f37db2158fa13dab33da50b667cd4ed24))
+  ([4a47f3e](https://github.com/seanthimons/specmill/tree/4a47f3ed732d0f0cdb545c5c851a8b7739552b7a))
 - add YAML generation and recoverable client initialization
-  ([96034d3](https://github.com/seanthimons/specmill/tree/96034d33767f6c95e7e00a54d77c2ad6ad584793))
+  ([1f331bf](https://github.com/seanthimons/specmill/tree/1f331bf2334cdb970e04c6cf861b66633b300b71))
 - verify reusable schema generation and isolated client contracts
   ([aae88f9](https://github.com/seanthimons/specmill/tree/aae88f99f6bd355a06d3404fd100b86620609e83))
 - extract local wrapper maintenance tools and catalogue checks
@@ -1505,40 +1515,21 @@ Full set of changes:
 #### Bug fixes
 
 - keep scoped ownership metadata deterministic
-  ([c6ff795](https://github.com/seanthimons/specmill/tree/c6ff795e3e0a03431d0513138d956c45b45e0442))
+  ([571fa8c](https://github.com/seanthimons/specmill/tree/571fa8c184254d5f38afc65f84af7a08ed23c1aa))
 - report metadata drift and validate owned output recovery
-  ([9fc002c](https://github.com/seanthimons/specmill/tree/9fc002c6004e5a01d74cdd7836e16a23be119df2))
+  ([744a755](https://github.com/seanthimons/specmill/tree/744a75595e9f467de3dc9bb65f830007d0675a1d))
 - preserve required-input validation by client hooks
-  ([e68b957](https://github.com/seanthimons/specmill/tree/e68b957cba98a404d08b6fe80d6cd4cc53915df1))
+  ([f2484fe](https://github.com/seanthimons/specmill/tree/f2484fe1225459c833bb2a4420ada221c13ac496))
 
 #### Refactorings
 
 - rename maintenance toolkit to apipak
-  ([fc574ca](https://github.com/seanthimons/specmill/tree/fc574ca5c180c75ce875ca0877f5963116d54654))
+  ([6c5cf18](https://github.com/seanthimons/specmill/tree/6c5cf18825f10da8ff4e5ca5af2f05cafbe3dd23))
 
 #### Build
 
 - exclude worktree metadata from source archives
-  ([4178b3a](https://github.com/seanthimons/specmill/tree/4178b3adaec0a350d4e0ad38ef28af1199eb4a22))
-
-#### Docs
-
-- resolve final handoff scope and verification gaps
-  ([4722e0e](https://github.com/seanthimons/specmill/tree/4722e0eb7b3c029ae1ef3112969e8073a113e747))
-- scope Natural Products work to schema validation
-  ([0349ab6](https://github.com/seanthimons/specmill/tree/0349ab6b4a2712ccd15ca6bc2b556df5ab716413))
-- record diff-based review of generated customizations
-  ([a281982](https://github.com/seanthimons/specmill/tree/a281982622231de0ae0724034c308eb86b1386aa))
-- record approved configuration and callback boundary
-  ([8b05117](https://github.com/seanthimons/specmill/tree/8b051174f5a0da06bfd6eb8006a397610eb2eaca))
-- require diagnosis of wrapper generation and endpoint failures
-  ([33e7607](https://github.com/seanthimons/specmill/tree/33e760723f51ac2ba887304bb1470e620abe9f60))
-- record production baseline planning assumption
-  ([35b0ac8](https://github.com/seanthimons/specmill/tree/35b0ac882d03a45f26287dbe667cbd273eb0f0da))
-- harden apipak handoff with reproducible audit cases
-  ([2053d3f](https://github.com/seanthimons/specmill/tree/2053d3f4dc7ce4d362f96c4bbabb8daec6d39f07))
-- record apipak generalization handoff
-  ([d367e31](https://github.com/seanthimons/specmill/tree/d367e3177cc2ba805cd125bf5849d39d58bab455))
+  ([137dee3](https://github.com/seanthimons/specmill/tree/137dee383ed98d92a2041b02493880205f34b32d))
 
 Full set of changes:
 [`d2be109...v0.1.0`](https://github.com/seanthimons/specmill/compare/d2be109...v0.1.0)
