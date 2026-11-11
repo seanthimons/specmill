@@ -59,9 +59,13 @@ multi_api_proposal <- function(
       naming_options = naming_options,
       api = api
     )
-    if ('format' %in% names(apis) && nzchar(apis$format[[i]])) {
-      resolve_importer(schema, apis$format[[i]])
-    }
+    # One lookup checks a format override and names the protocol companions.
+    source_companions <- resolve_importer(
+      schema,
+      if ('format' %in% names(apis) && nzchar(apis$format[[i]])) {
+        apis$format[[i]]
+      }
+    )$importer$companions
     project <- yaml::yaml.load(proposal$files[['specmill.yml']])
     local_auth <- project$authentication
     credentials <- if (length(local_auth)) {
@@ -80,12 +84,6 @@ multi_api_proposal <- function(
         sep = '_'
       ))
     }
-    source_companions <- resolve_importer(
-      schema,
-      if ('format' %in% names(apis) && nzchar(apis$format[[i]])) {
-        apis$format[[i]]
-      }
-    )$importer$companions
     source_file <- grep(
       importer_artifact_pattern(),
       names(proposal$files),
