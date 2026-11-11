@@ -229,7 +229,13 @@ cover local references only; a renamed source or removed operation is reported a
 
 ## 3. Add a thin sourceable command
 
-Save the following as `dev/generate.R` in a client without an existing command:
+New clients receive `dev/generate.R` during initialization. Source it and call
+`generate_main(args = '--plan')`, or use the shell commands below. Add callback
+loading to this client-owned script when your policy needs it. Regeneration
+preserves its contents.
+
+For clients created before development scripts were emitted, save the following
+as `dev/generate.R` if no command exists:
 
 ```r
 .client_root <- specmill::script_root('generate.R')

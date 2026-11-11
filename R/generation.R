@@ -1108,13 +1108,18 @@ render_operation <- function(operation, spec) {
     if (
       !is.null(pg) ||
         !is.null(request_paging) ||
-        !is.null(spec[['request']]) ||
         !is.null(spec$cache) ||
         preserve_visibility ||
         !is.null(spec$route_guard)
     ) {
       stop(
         'batch.concurrency requires native unpaged requests without cache, route_guard or preserve_visibility: ',
+        operation$id
+      )
+    }
+    if ('.prepare' %in% names(spec[['request']]$arguments)) {
+      stop(
+        'batch.concurrency reserves request.arguments..prepare: ',
         operation$id
       )
     }
@@ -2723,6 +2728,14 @@ generate_client <- function(
     function(op) length(op$response_sources),
     configured_operations
   )
+  opaque_operations <- Filter(
+    function(op) !is.null(op$opaque_body),
+    configured_operations
+  )
+  attr(desired, 'opaque_bodies') <- stats::setNames(
+    lapply(opaque_operations, `[[`, 'opaque_body'),
+    vapply(opaque_operations, `[[`, character(1), 'id')
+  )
   attr(desired, 'response_sources') <- stats::setNames(
     lapply(response_sources, `[[`, 'response_sources'),
     vapply(response_sources, `[[`, character(1), 'id')
@@ -3106,6 +3119,12 @@ generate_client <- function(
       operations = configured_operations,
       drift = drift,
       diagnostics = diagnostics,
+      body_diagnostics = lapply(
+        Filter(function(op) !is.null(op$opaque_body), operations),
+        function(op) {
+          c(op[c('id', 'service', 'key', 'source')], op$opaque_body)
+        }
+      ),
       validation = validation_reports,
       server_diagnostics = do.call(
         c,
@@ -3162,6 +3181,21 @@ print.specmill_generation <- function(x, ...) {
     cat('Server selection requires an explicit override at runtime:\n')
     for (diagnostic in x$server_diagnostics) {
       cat('  ', diagnostic$key, ': ', diagnostic$reason, '\n', sep = '')
+    }
+  }
+  if (length(x$body_diagnostics)) {
+    cat('Opaque JSON bodies (schema shape is not validated locally):\n')
+    for (diagnostic in x$body_diagnostics) {
+      cat(
+        '  ',
+        diagnostic$key,
+        ': ',
+        diagnostic$reference,
+        ' ',
+        diagnostic$source_location,
+        '\n',
+        sep = ''
+      )
     }
   }
   if (length(x$diagnostics)) {

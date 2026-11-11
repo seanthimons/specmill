@@ -234,3 +234,18 @@ and the smallest local schema/policy that reproduces it. State which checks ran
 and whether any request was sent. Remove keys, tokens, private URLs, and private
 response content. Report at the
 [specmill issue tracker](https://github.com/seanthimons/specmill/issues).
+
+## Recursive frozen request schemas
+
+For a reviewed remote `application/json` request body that fails with
+`recursive_reference`, or whose `$dynamicRef`/`$dynamicAnchor` keywords are
+unsupported, use the operation-level `opaque_body` policy described in
+[configuration](configuration.html#opaque-recursive-json-request-bodies).
+It keeps the body as JSON and delegates shape checks to the server. It does not
+resolve dynamic references or enable typed recursive validation.
+
+First freeze and verify the reference. A missing mapping, missing file or hash
+mismatch must be fixed before the opaque review can apply. The policy cannot
+relax parameters or responses. Inspect `body_diagnostics` for approved bodies,
+`diagnostics` for blockers, and the reviewed validation report for the effective
+service view. Generated clients need no specmill or schema files at runtime.

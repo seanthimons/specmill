@@ -161,7 +161,25 @@ initialize_client <- function(
         fixed = TRUE
       ), fixed = TRUE),
       '.specmill/helpers/api_request.json' = scaffold$provenance,
-      '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
+      '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$\n^dev$'
+    )
+  )
+  output <- c(
+    output,
+    initialization_scripts(
+      grep('^schema/openapi[.]', names(proposal$files), value = TRUE),
+      list(
+        package = package,
+        title = title,
+        author = author,
+        license = license,
+        base_url = base_url_override,
+        naming = naming,
+        group_by = group_by,
+        name_case = name_case,
+        companions = companions,
+        naming_options = naming_options
+      )
     )
   )
   if (!existing) {

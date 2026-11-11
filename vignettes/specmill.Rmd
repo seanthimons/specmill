@@ -71,6 +71,11 @@ covers optional client-owned executor setup, examples, testing, and regeneration
 
 ## 3. Initialize the package
 
+For prompted setup in an interactive R session, run `specmill::setup_client()`.
+It asks for a local schema, destination and package metadata, previews names and
+diagnostics, and writes only after you answer `y`. Pressing Enter at confirmation
+cancels. Scripted setup uses `initialize_client()` below.
+
 Preview names, selection, and diagnostics before writing the package:
 
 ```{r configuration-preview}
@@ -109,6 +114,8 @@ Initialization writes immediately and refuses existing-file conflicts. It create
 | `.specmill/helpers/api_request.json` | Initial transport source and settings for later helper comparisons |
 | `specmill.yml` | Project version and selected service files |
 | `apis/<tag>.yml` (or `apis/default.yml` here) | Exact operation selection, editable names, helper, and generation policy |
+| `dev/init.R` | Sourceable scaffold recipe for a fresh destination, with the initial metadata and local schema paths |
+| `dev/generate.R` | Sourceable maintenance command for plan, apply and check |
 | `NAMESPACE`, `.Rbuildignore` | Package exports and exclusion of development inputs |
 | `.specmill/manifest.json` | Ownership hashes maintained by specmill |
 
@@ -130,6 +137,23 @@ configuration without initializing a package or overwriting existing YAML.
 It does not create a Git repository, README, test runner, or pkgdown site for
 the client. Those are ordinary package maintenance tasks. Do not rerun
 initialization to update a client; edit policy and regenerate instead.
+
+The development scripts are excluded from the built package and require
+specmill in the maintainer's R library. They are client-owned; regeneration
+preserves your edits. To recreate the initial scaffold, source `dev/init.R` and
+call `init_main('/path/to/new-client')`, or run
+`Rscript dev/init.R /path/to/new-client`. It refuses an existing destination.
+It uses the current schema copies with the initial naming and metadata settings;
+it does not replay later YAML or helper customizations. Use Git to reproduce
+those. For multiple APIs, the script copies each included schema into the new
+root before initialization.
+
+For routine maintenance, source `dev/generate.R` and call
+`generate_main(args = '--plan')`, or run `Rscript dev/generate.R --plan`.
+`--check` checks reproducibility; no mode flag applies changes. Review the plan
+before applying. Both scripts locate their source package from their file path,
+so they can run from another working directory. Do not rerun initialization
+against an existing client.
 
 ## 4. Inspect the schema and policy
 

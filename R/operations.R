@@ -99,6 +99,12 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
+  opaque_bodies <- Filter(Negate(is.null), policy$opaque_bodies %or% list())
+  config_fields(opaque_bodies, names(opaque_bodies), 'opaque_bodies')
+  for (review in opaque_bodies) {
+    validate_opaque_body(review)
+  }
+  policy$override_keys <- union(policy$override_keys, names(opaque_bodies))
   response_corrections <- Filter(
     Negate(is.null),
     policy$response_corrections %or% list()
@@ -170,7 +176,8 @@ read_operations <- function(files, policy = list()) {
   }
   for (file in files) {
     first_operation <- length(operations) + 1L
-    document <- read_schema_document(file)
+    document <- opaque_body_document(file, opaque_bodies, policy = policy)
+    opaque_reviews <- attr(document, 'specmill_opaque_bodies')
     source_hash <- unname(tools::md5sum(file))
     security_schemes <- lapply(
       document$components$securitySchemes %or%
@@ -984,6 +991,7 @@ read_operations <- function(files, policy = list()) {
               source_operation = op,
               response = response_operation$responses,
               response_correction = config_data(response_correction),
+              opaque_body = opaque_reviews[[key]],
               summary = op$summary %or% name
             )
           },
@@ -1237,6 +1245,12 @@ read_operations <- function(files, policy = list()) {
     operations = operations[supported],
     unsupported_operations = operations[!supported],
     diagnostics = diagnostics,
+    body_diagnostics = lapply(
+      Filter(function(op) !is.null(op$opaque_body), operations),
+      function(op) {
+        c(op[c('id', 'service', 'key', 'source')], op$opaque_body)
+      }
+    ),
     fixture_diagnostics = unlist(
       lapply(operations, fixture_diagnostics),
       recursive = FALSE

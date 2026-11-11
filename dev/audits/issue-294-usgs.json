@@ -1,0 +1,386 @@
+{
+  "issue": 294,
+  "schema_url": "https://api.waterdata.usgs.gov/ogcapi/v1/openapi?f=json",
+  "schema_sha256": "bc7007f61dc876517336f8260318a6fec946838817f06a2ca660f34ef25b8a1f",
+  "references": [
+    {
+      "url": "https://raw.githubusercontent.com/opengeospatial/ogcapi-records/master/core/openapi/parameters/sortby.yaml",
+      "file": "references/raw.githubusercontent.com/opengeospatial/ogcapi-records/master/core/openapi/parameters/sortby.yaml",
+      "sha256": "67a7c351f5b020a2256d2627dc23809254310b46049ff2936a267255babb1f6b",
+      "retrieved": "2026-11-10T21:20:12Z"
+    },
+    {
+      "url": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "file": "references/schemas.opengis.net/cql2/1.0/cql2.json",
+      "sha256": "6dce2fc3817ceda2d74c040c1464207cb45b5c2fc9be3aa7f33e2238089e2605",
+      "retrieved": "2026-11-10T21:20:12Z"
+    },
+    {
+      "url": "https://schemas.opengis.net/ogcapi/edr/1.0/openapi/parameters/locationId.yaml",
+      "file": "references/schemas.opengis.net/ogcapi/edr/1.0/openapi/parameters/locationId.yaml",
+      "sha256": "5c6c9115c6744f12ac00128de1832c22ba599f79fca04926e4c9f99fb89577cc",
+      "retrieved": "2026-11-10T21:20:12Z"
+    },
+    {
+      "url": "https://schemas.opengis.net/ogcapi/edr/1.0/openapi/parameters/parameter-name.yaml",
+      "file": "references/schemas.opengis.net/ogcapi/edr/1.0/openapi/parameters/parameter-name.yaml",
+      "sha256": "d25a3cfce68456c628e2c564a6a1c61b065371c6ff3de885608f19e92b7e5864",
+      "retrieved": "2026-11-10T21:20:12Z"
+    },
+    {
+      "url": "https://schemas.opengis.net/ogcapi/edr/1.0/openapi/schemas/coverageJSON.yaml",
+      "file": "references/schemas.opengis.net/ogcapi/edr/1.0/openapi/schemas/coverageJSON.yaml",
+      "sha256": "28bf375102cd1ebd63f6f24f5cd7d8f5710d2cf93ae96813334680644d4ec504",
+      "retrieved": "2026-11-10T21:20:12Z"
+    },
+    {
+      "url": "https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml",
+      "file": "references/schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml",
+      "sha256": "990c33cdc10f20aa0731103f506d7bf04d11bf61482f824505d0387bcc436476",
+      "retrieved": "2026-11-10T21:20:12Z"
+    },
+    {
+      "url": "https://schemas.opengis.net/ogcapi/processes/part1/1.0/openapi/schemas/exception.yaml",
+      "file": "references/schemas.opengis.net/ogcapi/processes/part1/1.0/openapi/schemas/exception.yaml",
+      "sha256": "56688e9a1a3cd27e0b6258cdae97137bc268085c5365ebb7861ff179c467094f",
+      "retrieved": "2026-11-10T21:20:12Z"
+    },
+    {
+      "url": "https://schemas.opengis.net/ogcapi/tiles/part1/1.0/openapi/ogcapi-tiles-1.yaml",
+      "file": "references/schemas.opengis.net/ogcapi/tiles/part1/1.0/openapi/ogcapi-tiles-1.yaml",
+      "sha256": "a3cff97c3ee9ad10482ba3bb22599e0ca28fc6cbad211e4a2b0eff2309730df3",
+      "retrieved": "2026-11-10T21:20:12Z"
+    }
+  ],
+  "before": {
+    "renderable": 280,
+    "inventory": 320,
+    "diagnostics": {
+      "recursive_reference": 40
+    }
+  },
+  "after": {
+    "schema_sha256": "bc7007f61dc876517336f8260318a6fec946838817f06a2ca660f34ef25b8a1f",
+    "renderable": 320,
+    "inventory": 320,
+    "blockers": 0,
+    "opaque": 40,
+    "reviewed_validation": "unsupported"
+  },
+  "reviews": {
+    "POST /collections/agency-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/altitude-datums/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/aquifer-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/aquifer-types/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/channel-measurements/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/citations/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/combined-metadata/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/combined-method-citations/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/continuous/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/coordinate-accuracy-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/coordinate-datum-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/coordinate-method-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/counties/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/countries/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/daily/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/edr/daily/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/edr/daily/locations": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/field-measurements-metadata/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/field-measurements/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/hydrologic-unit-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/latest-continuous/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/latest-daily/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/latest-field-measurements/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/medium-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/method-categories/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/method-citations/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/methods/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/monitoring-locations/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/national-aquifer-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/parameter-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/peaks/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/reliability-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/site-types/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/states/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/statistic-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/time-series-metadata/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/time-series-methods/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/time-series-revisions/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/time-zone-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    },
+    "POST /collections/topographic-codes/items": {
+      "reference": "https://schemas.opengis.net/cql2/1.0/cql2.json",
+      "reason": "Reviewed CQL2 JSON; the USGS service validates filter shapes."
+    }
+  },
+  "remaining_validation_findings": [
+    {
+      "source_location": "#/components/schemas/ChannelMeasurementsFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/CombinedMetadataFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/ContinuousFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/DailyFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/EdrDailyFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/FieldMeasurementsFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/FieldMeasurementsMetadataFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/LatestContinuousFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/LatestDailyFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/LatestFieldMeasurementsFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/MonitoringLocationsFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/PeaksFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/TimeSeriesMetadataFeature/properties/geometry/oneOf/6/properties/geometries/items",
+      "reference": "#/components/schemas/geometryGeoJSON",
+      "finding": {
+        "code": "recursive_reference",
+        "message": "Recursive reference: https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON"
+      }
+    },
+    {
+      "source_location": "#/components/schemas/tiles/properties/links/items",
+      "reference": "schemas/common-core/link.yaml",
+      "finding": {
+        "code": "external_reference",
+        "message": "Remote reference is not fetched: https://schemas.opengis.net/ogcapi/tiles/part1/1.0/openapi/schemas/common-core/link.yaml"
+      }
+    },
+    {
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/coverages/items/properties/domain",
+      "reference": "domain.yaml",
+      "finding": {
+        "code": "external_reference",
+        "message": "Remote reference is not fetched: https://schemas.opengis.net/ogcapi/edr/1.0/openapi/schemas/domain.yaml"
+      }
+    },
+    {
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/coverages/items/properties/ranges/additionalProperties",
+      "reference": "ndArray.yaml",
+      "finding": {
+        "code": "external_reference",
+        "message": "Remote reference is not fetched: https://schemas.opengis.net/ogcapi/edr/1.0/openapi/schemas/ndArray.yaml"
+      }
+    },
+    {
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/parameters/additionalProperties",
+      "reference": "parameter.yaml",
+      "finding": {
+        "code": "external_reference",
+        "message": "Remote reference is not fetched: https://schemas.opengis.net/ogcapi/edr/1.0/openapi/schemas/parameter.yaml"
+      }
+    },
+    {
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/ranges/additionalProperties",
+      "reference": "ndArray.yaml",
+      "finding": {
+        "code": "external_reference",
+        "message": "Remote reference is not fetched: https://schemas.opengis.net/ogcapi/edr/1.0/openapi/schemas/ndArray.yaml"
+      }
+    },
+    {
+      "source_location": "#/paths/~1collections~1edr~1daily~1locations~1{locId}/get/responses/200/content/application~1vnd.cov+json/schema/properties/referencing/items",
+      "reference": "referenceSystemConnection.yaml",
+      "finding": {
+        "code": "external_reference",
+        "message": "Remote reference is not fetched: https://schemas.opengis.net/ogcapi/edr/1.0/openapi/schemas/referenceSystemConnection.yaml"
+      }
+    }
+  ]
+}
