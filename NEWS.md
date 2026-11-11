@@ -1,3 +1,29 @@
+## specmill 0.2.5 (2026-11-11)
+
+#### New features
+
+- support mapped batches, setup scripts and opaque JSON bodies (#299)
+  ([565448a](https://github.com/seanthimons/specmill/tree/565448a374f51fcb00d6866b3db4d616fd77a3e3))
+- allow reviewed opaque recursive JSON request bodies (#294)
+  ([c4dbe1b](https://github.com/seanthimons/specmill/tree/c4dbe1b991c1f877f73fa2abfa1e71e9964fad57))
+- emit client development scripts and offer prompted setup (#289)
+  ([9eb8fd7](https://github.com/seanthimons/specmill/tree/9eb8fd74287b4e878cfc5d909c76d244d7238f05))
+
+#### Bug fixes
+
+- escape reviewed body references in generated documentation (#294)
+  ([4beebdb](https://github.com/seanthimons/specmill/tree/4beebdbc9cb4d904a65ec1272fdbd39a840ff92b))
+- prepare explicit request mappings for concurrent batches (#297)
+  ([2aa5782](https://github.com/seanthimons/specmill/tree/2aa5782ee3d826dbd1f4b448a8371a13b76010f7))
+
+#### Docs
+
+- distinguish USGS response recursion from unmapped dependencies (#294)
+  ([2974295](https://github.com/seanthimons/specmill/tree/29742957a084eadc86d8bc5ccf5391f7a9a73c11))
+
+Full set of changes:
+[`v0.2.4...v0.2.5`](https://github.com/seanthimons/specmill/compare/v0.2.4...v0.2.5)
+
 ## specmill 0.2.4 (2026-11-10)
 
 #### Build
