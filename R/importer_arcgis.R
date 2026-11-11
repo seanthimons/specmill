@@ -594,43 +594,27 @@ importer_arcgis <- function(path, policy = list()) {
 }
 
 arcgis_records <- function(files, view) {
-  if (length(files) != 1L) {
-    cli::cli_abort('Use one ArcGIS service capture per service configuration')
-  }
-  ir <- importer_arcgis(files)$ir
-  ir_request_records(ir, view)
+  ir_source_records(files, view, importer_arcgis, 'ArcGIS service capture')
 }
 
 arcgis_configuration_source <- function(path) {
-  ir <- importer_arcgis(path)$ir
-  list(
-    operations = function(visit, report) {
-      for (op in ir$operations) {
-        visit(list(
-          key = op$key,
-          path = op$binding$path,
-          method = tolower(op$binding$method),
-          name = op$name,
-          tags = list(
-            if (op$binding$path == '/identify') {
-              'service'
-            } else {
-              paste0(
-                'layer_',
-                strsplit(op$binding$path, '/', fixed = TRUE)[[1L]][[2L]]
-              )
-            }
+  ir_configuration_source(
+    importer_arcgis(path)$ir,
+    path,
+    format = 'arcgis-rest',
+    artifact = 'schema/arcgis.json',
+    tags = function(op) {
+      list(
+        if (op$binding$path == '/identify') {
+          'service'
+        } else {
+          paste0(
+            'layer_',
+            strsplit(op$binding$path, '/', fixed = TRUE)[[1L]][[2L]]
           )
-        ))
-      }
-      for (diagnostic in ir$diagnostics) {
-        report('SERVICE', diagnostic$code, diagnostic$reason)
-      }
+        }
+      )
     },
-    artifact = function() {
-      list(file = 'schema/arcgis.json', text = file_text(path))
-    },
-    security_declared = function() TRUE,
     authentication = function(package) {
       list(
         arcgis_token = paste0(
@@ -639,76 +623,38 @@ arcgis_configuration_source <- function(path) {
         )
       )
     },
-    decorate = function(files, parsed) {
-      for (name in names(files)[startsWith(names(files), 'apis/')]) {
-        service <- yaml::yaml.load(
-          files[[name]],
-          handlers = list(seq = function(x) x),
-          eval.expr = FALSE
-        )
-        service$format <- 'arcgis-rest'
-        service$defaults$response_policy <- 'api_request_arcgis_response'
-        for (op in ir$operations) {
-          if (
-            !op$key %in% unlist(service$selection$include, use.names = FALSE) ||
-              is.null(op$pagination)
-          ) {
-            next
-          }
-          service$operations[[op$key]]$pagination <- list(
-            mode = 'offset',
-            parameter = op$pagination$offset_parameter,
-            size_parameter = op$pagination$limit_parameter,
-            page_size = op$pagination$max_page_size,
-            start = 0L,
-            completed = if (op$native_name == 'queryRelatedRecords') {
-              'api_request_arcgis_related_completed'
-            } else {
-              'api_request_arcgis_completed'
-            },
-            items = if (op$native_name == 'query') {
-              'api_request_arcgis_features'
-            } else {
-              'api_request_arcgis_related'
-            },
-            stop_on_empty = FALSE
-          )
-        }
-        files[[name]] <- sub('\n$', '', yaml::as.yaml(service))
+    pagination = function(op) {
+      if (is.null(op$pagination)) {
+        return(NULL)
       }
-      files
-    }
+      list(
+        mode = 'offset',
+        parameter = op$pagination$offset_parameter,
+        size_parameter = op$pagination$limit_parameter,
+        page_size = op$pagination$max_page_size,
+        start = 0L,
+        completed = if (op$native_name == 'queryRelatedRecords') {
+          'api_request_arcgis_related_completed'
+        } else {
+          'api_request_arcgis_completed'
+        },
+        items = if (op$native_name == 'query') {
+          'api_request_arcgis_features'
+        } else {
+          'api_request_arcgis_related'
+        },
+        stop_on_empty = FALSE
+      )
+    },
+    response_policy = 'api_request_arcgis_response'
   )
 }
 
 arcgis_validation_report <- function(path) {
-  report <- list(
-    source = normalizePath(path, winslash = '/', mustWork = TRUE),
-    source_sha256 = digest::digest(file = path, algo = 'sha256'),
-    schema_version = '',
-    validator = 'specmill ArcGIS capture/IR validation 1',
-    status = 'invalid',
-    reason = '',
-    operations = list(),
-    findings = list()
+  ir_validation_report(
+    path,
+    importer_arcgis,
+    'specmill ArcGIS capture/IR validation 1',
+    'arcgis_capture'
   )
-  result <- tryCatch(importer_arcgis(path), error = identity)
-  if (inherits(result, 'error')) {
-    report$reason <- conditionMessage(result)
-    report$findings <- list(list(
-      scope = 'document',
-      level = 'error',
-      code = 'arcgis_capture',
-      classification = 'schema_defect',
-      message = report$reason,
-      keys = list()
-    ))
-    return(report)
-  }
-  report$schema_version <- result$ir$sources[[1L]]$format_version
-  report$status <- 'valid'
-  report$operations <- lapply(result$ir$operations, function(op) {
-    list(key = op$key, method = op$binding$method, path = op$binding$path)
-  })
-  report
 }

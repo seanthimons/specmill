@@ -15,9 +15,9 @@ registry validates the IR before returning it. Importers own policy interpretati
 and must retain source diagnostics; reviewed OpenAPI requests use the existing
 lazy review context.
 
-OpenAPI, Swagger and `arcgis-rest` are registered. ArcGIS uses reviewed local
-captures; directory discovery expands only local service-capture paths and
-retains source diagnostics. Configuration and validation callbacks provide
+OpenAPI, Swagger, `arcgis-rest` and `google-discovery` are registered. ArcGIS
+uses reviewed local captures; directory discovery expands only local
+service-capture paths and retains source diagnostics. Configuration and validation callbacks provide
 format-specific metadata without native keys in catalogue/generation modules.
 
 OpenAPI and Swagger are separate detected formats sharing importer version `1`
@@ -82,3 +82,26 @@ discovery, configuration metadata and capture/IR validation. Initialization
 includes client-owned ArcGIS protocol callbacks and pagination companions.
 See [supplied-case verification](../audits/arcgis/README.md) for the reviewed
 service set, offline acceptance and bounded live evidence.
+
+## Retained sources and companions
+
+Each entry names its `artifact` stem and its `companions`. An importer retains
+its source as `schema/<artifact>.<extension>`, and `importer_artifact_pattern()`
+is the one pattern that single-API and multi-API setup use to find it, so the
+generated `dev/init.R` works for every registered format. Protocol companions
+(`arcgis`, `discovery`) add client-owned callbacks from
+`inst/templates/<companion>.R`, renamed per helper in multi-API clients.
+
+## Google API Discovery integration
+
+`R/importer_discovery.R` reads a local `discovery#restDescription` document and
+emits IR directly: methods from nested resources, path and query parameters,
+named schemas as source types, an `api_key` scheme for the `key` system
+parameter and an `oauth2` scheme for declared scopes. A `pageToken` query
+parameter with a `nextPageToken` response member becomes a cursor paging hint,
+which initialization writes as editable policy using the `discovery` companion
+callback. Reported, not generated: media upload, reserved-expansion paths
+without an equivalent `flatPath`, and page tokens carried in a request body.
+`tests/importer-discovery.R` covers this against a synthetic document and a
+localhost server.
+

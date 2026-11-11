@@ -72,7 +72,7 @@ importer_registry_acceptance <- function() {
     metadata$importer_version == 'test-1',
     identical(
       names(internal('importer_registry')()),
-      c('openapi', 'swagger', 'arcgis-rest')
+      c('openapi', 'swagger', 'arcgis-rest', 'google-discovery')
     )
   )
   fail(
@@ -161,8 +161,40 @@ importer_registry_acceptance <- function() {
     manifest$importers[[1L]]$source_format == 'openapi',
     manifest$importers[[1L]]$importer_version == '1'
   )
+  # Every importer retains its source under a name the setup scripts can find.
+  fixtures <- if (dir.exists('tests/fixtures')) 'tests/fixtures' else 'fixtures'
+  samples <- list(
+    openapi = source,
+    'arcgis-rest' = file.path(fixtures, 'arcgis/conductivity.json'),
+    'google-discovery' = file.path(fixtures, 'discovery/monitoring.json')
+  )
+  entries <- internal('importer_registry')()
+  pattern <- internal('importer_artifact_pattern')()
+  stopifnot(
+    setequal(c(names(samples), 'swagger'), names(entries)),
+    all(vapply(
+      entries,
+      function(entry) {
+        is.character(entry$artifact) &&
+          length(entry$artifact) == 1L &&
+          is.character(entry$companions)
+      },
+      logical(1)
+    ))
+  )
+  for (format in names(samples)) {
+    selected <- internal('resolve_importer')(samples[[format]])
+    artifact <- internal('importer_configuration_source')(
+      samples[[format]]
+    )$artifact()$file
+    stopifnot(
+      selected$format == format,
+      grepl(pattern, artifact),
+      startsWith(artifact, paste0('schema/', entries[[format]]$artifact, '.'))
+    )
+  }
   cat(
-    'Importer registry: confidence, overrides, known/unknown formats, IR validation, catalogue persistence and provenance passed.\n'
+    'Importer registry: confidence, overrides, known/unknown formats, IR validation, catalogue persistence, provenance and retained-source names passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

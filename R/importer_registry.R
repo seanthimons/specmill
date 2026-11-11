@@ -6,6 +6,8 @@ importer_registry <- function() {
       version = '1',
       detect = function(path, document) openapi_detect(document, format),
       family = 'openapi',
+      artifact = 'openapi',
+      companions = character(),
       check = function(path) openapi_assert_format(path, format),
       import = openapi_import_description,
       catalogue = openapi_catalogue_source,
@@ -20,14 +22,40 @@ importer_registry <- function() {
       version = '1',
       detect = arcgis_detect,
       family = 'arcgis-rest',
+      artifact = 'arcgis',
+      companions = c('pagination', 'arcgis'),
       import = importer_arcgis,
       records = arcgis_records,
       references = function(path) character(),
       discover = arcgis_discover,
       configuration = arcgis_configuration_source,
       validate = arcgis_validation_report
+    ),
+    'google-discovery' = list(
+      version = '1',
+      detect = discovery_detect,
+      family = 'google-discovery',
+      artifact = 'discovery',
+      companions = c('pagination', 'discovery'),
+      import = importer_discovery,
+      records = discovery_records,
+      references = function(path) character(),
+      configuration = discovery_configuration_source,
+      validate = discovery_validation_report
     )
   )
+}
+
+# Importers retain their source as schema/<artifact>.<extension>. Setup scripts
+# and multi-API initialization find it through this one pattern.
+importer_artifact_pattern <- function(registry = importer_registry()) {
+  stems <- unique(vapply(registry, `[[`, character(1), 'artifact'))
+  paste0('^schema/(', paste(stems, collapse = '|'), ')[.]')
+}
+
+# Protocol companions carry client-owned callbacks named api_request_<name>_*.
+importer_protocol_companions <- function(companions) {
+  setdiff(companions, c('batching', 'pagination'))
 }
 
 importer_document <- function(path) {
@@ -274,13 +302,13 @@ importer_configuration_source <- function(path) {
 
 importer_initialization_source <- function(path) {
   selected <- resolve_importer(path)
-  if (selected$format != 'arcgis-rest') {
+  if (identical(selected$importer$family, 'openapi')) {
     return(openapi_initialization_source(path))
   }
   source <- importer_catalogue_source(path, basename(path))
   list(
     server = function() source$server(''),
-    companions = c('pagination', 'arcgis')
+    companions = selected$importer$companions
   )
 }
 

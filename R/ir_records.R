@@ -1,11 +1,46 @@
 # Transitional JSON Schema views for the existing renderer (#279). Source-format
 # interpretation stays in importers; this bridge reads only neutral IR types.
-ir_request_schema <- function(type) {
+ir_scalar_schema <- function(type) {
+  format <- switch(
+    type$name,
+    bytes = if (identical(type$encoding, 'raw')) 'binary' else 'byte',
+    date = 'date',
+    datetime = 'date-time',
+    time = 'time',
+    duration = 'duration',
+    uuid = 'uuid',
+    uri = 'uri',
+    NULL
+  )
+  c(
+    list(
+      type = switch(
+        type$name,
+        boolean = 'boolean',
+        integer = 'integer',
+        float = 'number',
+        decimal = 'number',
+        null = 'null',
+        'string'
+      )
+    ),
+    if (!is.null(format)) list(format = format)
+  )
+}
+
+# `types` holds the named types of the operation's source. A named type that
+# refers back to itself cannot be expanded, so it stays an open object.
+ir_request_schema <- function(type, types = list(), seen = character()) {
+  nested <- function(child) ir_request_schema(child, types, seen)
   schema <- switch(
     type$kind,
-    scalar = list(
-      type = switch(type$name, float = 'number', decimal = 'number', type$name)
-    ),
+    ref = if (is.null(types[[type$name]]) || type$name %in% seen) {
+      list(type = 'object')
+    } else {
+      ir_request_schema(types[[type$name]], types, c(seen, type$name))
+    },
+    any = list(),
+    scalar = ir_scalar_schema(type),
     enum = list(
       type = if (type$base == 'float') 'number' else type$base,
       enum = lapply(type$values, `[[`, 'value')
@@ -13,7 +48,7 @@ ir_request_schema <- function(type) {
     record = list(
       type = 'object',
       properties = stats::setNames(
-        lapply(type$fields, function(field) ir_request_schema(field$type)),
+        lapply(type$fields, function(field) nested(field$type)),
         vapply(type$fields, `[[`, character(1), 'name')
       ),
       required = unname(lapply(
@@ -22,20 +57,26 @@ ir_request_schema <- function(type) {
         'name'
       ))
     ),
-    list = list(type = 'array', items = ir_request_schema(type$items)),
+    list = list(type = 'array', items = nested(type$items)),
     map = list(
       type = 'object',
-      additionalProperties = ir_request_schema(type$value)
+      additionalProperties = nested(type$value)
     ),
     cli::cli_abort(
       'Unsupported request type in IR compatibility bridge: {type$kind}'
     )
   )
-  for (name in intersect(
-    c('default', 'minimum', 'maximum', 'minLength', 'maxLength', 'description'),
-    names(type)
-  )) {
-    schema[name] <- type[name]
+  keywords <- c(
+    default = 'default',
+    minimum = 'minimum',
+    maximum = 'maximum',
+    min_length = 'minLength',
+    max_length = 'maxLength',
+    pattern = 'pattern',
+    description = 'description'
+  )
+  for (name in intersect(names(keywords), names(type))) {
+    schema[keywords[[name]]] <- type[name]
   }
   schema
 }
@@ -90,7 +131,7 @@ ir_request_records <- function(ir, view) {
         name = p$name,
         location = p$location,
         required = p$required,
-        schema = ir_request_schema(p$type),
+        schema = ir_request_schema(p$type, source$types),
         allow_empty = FALSE,
         style = p$style %or% 'form',
         explode = p$explode %or% TRUE,
@@ -111,7 +152,11 @@ ir_request_records <- function(ir, view) {
     parameters <- Filter(function(p) !p$name %in% excluded, parameters)
     query <- Filter(function(p) p$location == 'query', parameters)
     path <- Filter(function(p) p$location == 'path', parameters)
-    body <- if (is.null(op$body)) NULL else ir_request_schema(op$body$type)
+    body <- if (is.null(op$body)) {
+      NULL
+    } else {
+      ir_request_schema(op$body$type, source$types)
+    }
     record <- list(
       key = op$key,
       id = review$id,
@@ -182,8 +227,12 @@ client_operation_authentication <- function(operation, envvars) {
   lapply(operation$security %or% list(), function(requirement) {
     lapply(names(requirement), function(id) {
       scheme <- operation$ir_auth_schemes[[id]]
-      if (is.null(scheme) || !scheme$kind %in% c('session_token', 'api_key')) {
-        cli::cli_abort('Unsupported IR authentication scheme: {id}')
+      if (is.null(scheme)) {
+        cli::cli_abort('Undefined IR authentication scheme: {id}')
+      }
+      # The client reports an unsupported alternative only when no other applies.
+      if (!scheme$kind %in% c('session_token', 'api_key')) {
+        return(list(scheme = id, type = scheme$kind))
       }
       envvar <- config_string(
         envvars[[id]],
@@ -201,4 +250,108 @@ client_operation_authentication <- function(operation, envvars) {
       )
     })
   })
+}
+
+# Compatibility records for importers that emit IR directly from one document.
+ir_source_records <- function(files, view, import, label) {
+  if (length(files) != 1L) {
+    cli::cli_abort('Use one {label} per service configuration')
+  }
+  ir_request_records(import(files)$ir, view)
+}
+
+# Configuration metadata for importers that emit IR directly. `tags` groups an
+# operation, `pagination` returns reviewed paging policy for an operation or
+# NULL, and `diagnostic_key` names what an import diagnostic is reported against.
+ir_configuration_source <- function(
+  ir,
+  path,
+  format,
+  artifact,
+  tags,
+  authentication,
+  pagination,
+  security_declared = TRUE,
+  response_policy = NULL,
+  diagnostic_key = function(diagnostic) 'SERVICE'
+) {
+  list(
+    operations = function(visit, report) {
+      for (op in ir$operations) {
+        visit(list(
+          key = op$key,
+          path = op$binding$path,
+          method = tolower(op$binding$method),
+          name = op$name,
+          tags = tags(op)
+        ))
+      }
+      for (diagnostic in ir$diagnostics) {
+        report(diagnostic_key(diagnostic), diagnostic$code, diagnostic$reason)
+      }
+    },
+    artifact = function() list(file = artifact, text = file_text(path)),
+    security_declared = function() security_declared,
+    authentication = authentication,
+    decorate = function(files, parsed) {
+      for (name in names(files)[startsWith(names(files), 'apis/')]) {
+        service <- yaml::yaml.load(
+          files[[name]],
+          handlers = list(seq = function(x) x),
+          eval.expr = FALSE
+        )
+        service$format <- format
+        if (!is.null(response_policy)) {
+          service$defaults$response_policy <- response_policy
+        }
+        for (op in ir$operations) {
+          if (
+            !op$key %in% unlist(service$selection$include, use.names = FALSE)
+          ) {
+            next
+          }
+          paging <- pagination(op)
+          if (!is.null(paging)) {
+            service$operations[[op$key]]$pagination <- paging
+          }
+        }
+        files[[name]] <- sub('\n$', '', yaml::as.yaml(service))
+      }
+      files
+    }
+  )
+}
+
+# Source validation for importers that emit IR directly: the document is valid
+# when it imports and the IR passes its contract.
+ir_validation_report <- function(path, import, validator, code) {
+  report <- list(
+    source = normalizePath(path, winslash = '/', mustWork = TRUE),
+    source_sha256 = digest::digest(file = path, algo = 'sha256'),
+    schema_version = '',
+    validator = validator,
+    status = 'invalid',
+    reason = '',
+    operations = list(),
+    findings = list()
+  )
+  result <- tryCatch(import(path), error = identity)
+  if (inherits(result, 'error')) {
+    report$reason <- conditionMessage(result)
+    report$findings <- list(list(
+      scope = 'document',
+      level = 'error',
+      code = code,
+      classification = 'schema_defect',
+      message = report$reason,
+      keys = list()
+    ))
+    return(report)
+  }
+  report$schema_version <- result$ir$sources[[1L]]$format_version
+  report$status <- 'valid'
+  report$operations <- lapply(result$ir$operations, function(op) {
+    list(key = op$key, method = op$binding$method, path = op$binding$path)
+  })
+  report
 }

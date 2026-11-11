@@ -177,7 +177,7 @@ initialize_client <- function(
   output <- c(
     output,
     initialization_scripts(
-      grep('^schema/(openapi|arcgis)[.]', names(proposal$files), value = TRUE),
+      grep(importer_artifact_pattern(), names(proposal$files), value = TRUE),
       list(
         package = package,
         title = title,

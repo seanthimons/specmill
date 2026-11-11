@@ -80,8 +80,14 @@ multi_api_proposal <- function(
         sep = '_'
       ))
     }
+    source_companions <- resolve_importer(
+      schema,
+      if ('format' %in% names(apis) && nzchar(apis$format[[i]])) {
+        apis$format[[i]]
+      }
+    )$importer$companions
     source_file <- grep(
-      '^schema/(openapi|arcgis)\\.',
+      importer_artifact_pattern(),
       names(proposal$files),
       value = TRUE
     )
@@ -93,16 +99,7 @@ multi_api_proposal <- function(
       apis$base_url[[i]],
       apis$base_url[[i]],
       dry_run_env(package),
-      union(
-        companions,
-        if (
-          'source_format' %in%
-            names(apis) &&
-            apis$source_format[[i]] == 'arcgis-rest'
-        ) {
-          c('pagination', 'arcgis')
-        }
-      )
+      union(companions, source_companions)
     )
     helpers[[paste0('R/', helper, '.R')]] <- scaffold$code
     helpers[[paste0(
@@ -147,12 +144,14 @@ multi_api_proposal <- function(
           fixed = TRUE
         )
       }
-      text <- gsub(
-        'api_request_arcgis_',
-        paste0(helper, '_arcgis_'),
-        text,
-        fixed = TRUE
-      )
+      for (protocol in importer_protocol_companions(source_companions)) {
+        text <- gsub(
+          paste0('api_request_', protocol, '_'),
+          paste0(helper, '_', protocol, '_'),
+          text,
+          fixed = TRUE
+        )
+      }
       group <- yaml::yaml.load(text, handlers = list(seq = function(x) x))
       group$id <- NULL
       group$schemas <- NULL

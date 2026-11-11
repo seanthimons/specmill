@@ -2889,3 +2889,47 @@ requires it. The IR uses a `session_token` query scheme and records a captured
 from their configured environment variable. Token acquisition and renewal stay
 client-owned; imports never sign in or persist credentials. OpenAPI-specific
 source corrections do not apply to ArcGIS captures.
+
+## Google API Discovery documents
+
+A Google API Discovery document (`kind: "discovery#restDescription"`) is read
+from a local, reviewed file. Download the document for the API version you use,
+review it, and pass it to `initialize_client()`. Nothing is fetched at
+generation time. Use `format: google-discovery` to override detection in API
+configuration if needed.
+
+```{r discovery-workflow, eval=FALSE}
+specmill::initialize_client(
+  '/path/to/new/client', 'airquality-v1.json', package = 'myairquality',
+  title = 'My air quality client',
+  author = list(given = 'Your', family = 'Name', email = 'you@example.org'),
+  license = 'MIT'
+)
+```
+
+Each method becomes one operation named after its method id, with the service
+name removed. Path and query parameters come from the method. The request body
+and response come from the named schemas the method refers to. System
+parameters that apply to every method, such as `alt`, `fields` and
+`prettyPrint`, are not added as arguments.
+
+Initialization writes cursor paging policy for a method that takes a
+`pageToken` query parameter and returns `nextPageToken`. The generated wrapper
+follows the token through a client-owned callback; `all_pages = FALSE` returns
+one page. When the token travels in the request body, initialization reports
+`body_page_token` and leaves paging to reviewed policy.
+
+The API key is sent as the `key` query parameter from the environment variable
+named in `specmill.yml`. OAuth scopes are recorded, but sign-in and token
+refresh are not generated. 64-bit integers, durations and field masks stay
+strings, as the API sends them. Three cases are reported instead of generated:
+
+- Media upload (`media_upload_unsupported`): only the metadata request is
+  available.
+- A path that uses reserved expansion (`{+name}`) without an equivalent
+  `flatPath` (`reserved_expansion`): the method is left out.
+- A page token carried in the request body (`body_page_token`): the method is
+  generated without paging.
+
+OpenAPI-specific source corrections do not apply to Discovery documents.
+
