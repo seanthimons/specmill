@@ -839,6 +839,56 @@ projection. Projection failures propagate; successful stores precede the final
 projection. Dry-run request objects bypass cache stores and projections.
 The generated client keeps this lifecycle and needs no specmill runtime.
 
+**Response cache.** `response_cache` saves the decoded result of a request so
+that a repeated call does not reach the service again. It needs the `cache`
+companion (`companions = 'cache'` at initialization, which adds `cachem` and
+`rlang` to the client's Imports).
+
+~~~yaml
+# specmill.yml or a service file
+defaults:
+  response_cache:
+    store: memory   # or disk
+    max_age: 3600   # seconds; without it entries are kept until cleared
+operations:
+  POST /search:
+    response_cache: {store: disk}   # inherits max_age: 3600
+  POST /lookup:
+    response_cache: {store: memory, max_age: null}   # kept until cleared
+  GET /status:
+    response_cache: null
+~~~
+
+Under `defaults` it applies to GET operations and GraphQL queries. Any other
+operation is cached only when it names the setting itself, and `null` opts an
+operation out. Each block names its own `store`; a `max_age` it does not name
+is inherited, and `max_age: null` removes an inherited one. `memory` lasts for
+the R session; `disk` keeps entries in the user's cache directory for the
+package (`tools::R_user_dir()`), where they are unencrypted response data. Disk
+entries outlive an upgrade of the client, so clear the store after a release
+that changes how a response is decoded.
+
+Each request is stored under a key made from the operation, every request
+input (path, query, body, headers and server) and the package's request and
+response-policy options. A paged wrapper therefore caches page by page. The key also holds a hash of each credential in use, so two
+credentials never share an entry and no credential is written to the store.
+Errors and dry-run requests are never stored. Neither is a result in which a
+response policy returns the raw response, in a list or as an attribute, such as
+`list(response = response, result = decode())`: its URL and headers can carry a
+credential.
+
+Set `options(<package>.response_cache = FALSE)` to bypass the cache for a
+session. The client's internal `<helper>_cache_clear()` function, called as
+`<package>:::api_request_cache_clear()`, empties the memory and disk stores of
+that helper. Generated request and replay tests switch the cache off themselves.
+
+The setting cannot be combined with an explicit `request` mapping, `route_guard`,
+`preserve_visibility`, `batch.concurrency` or a server resolver. An operation
+that names it together with one of these is an error; an operation that only
+inherits it is generated without caching and named in a warning, which
+`response_cache: null` on that operation silences. An existing implementation
+always has a request mapping, so it is never cached.
+
 **Final client formatting.** A generated operation may select `result_formatter`
 for a single response or for combined fan-out, split or paginated responses:
 

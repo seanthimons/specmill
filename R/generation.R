@@ -935,7 +935,18 @@ render_operation <- function(operation, spec) {
   request <- paste0(
     '  result <- ',
     helper,
-    '(method = ',
+    if (!is.null(operation$response_cache)) {
+      # The cache companion keys on every helper argument and then calls it.
+      paste0(
+        '_cached(.operation = ',
+        r_literal(operation$id),
+        ', .settings = ',
+        r_literal(operation$response_cache),
+        ', method = '
+      )
+    } else {
+      '(method = '
+    },
     r_literal(operation$method),
     ', path = ',
     r_literal(operation$path),
@@ -1951,6 +1962,10 @@ generate_client <- function(
           '_pages',
           '_build',
           '_batched',
+          '_cached',
+          '_cache_clear',
+          '_cache_dir',
+          '_cache_store',
           '_paginated',
           '_pagination_token',
           '_paginated_links'
@@ -1964,13 +1979,15 @@ generate_client <- function(
   ) {
     stop('Operation collides with a client companion; supply a name override')
   }
-  # The batch flag is an environment, so it never appears among function definitions.
+  # The batch flag and the cache stores are environments, so they never appear
+  # among function definitions.
   if (
     any(
       operation_names %in%
-        paste0(
+        outer(
           vapply(services, function(x) x$helper %or% '', character(1)),
-          '_batch_state'
+          c('_batch_state', '_cache_state'),
+          paste0
         )
     )
   ) {
@@ -2003,12 +2020,27 @@ generate_client <- function(
   portable_sources <- list()
   previous <- baseline$files %or% list()
   testing_entries <- list()
+  uncached <- list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
     for (op in parsed[[i]]$operations) {
       configured <- configure_operation(op, service)
       op <- configured$operation
+      if (
+        !is.null(op$response_cache) &&
+          !paste0(configured$spec$helper, '_cached') %in%
+            names(runtime_definitions)
+      ) {
+        stop(
+          'response_cache needs the cache companion in the client request helper: ',
+          paste0(configured$spec$helper, '_cached'),
+          ' is missing'
+        )
+      }
+      if (!is.null(op$uncached_by)) {
+        uncached[[op$id]] <- op$uncached_by
+      }
       if (
         !is.null(op$response_policy) &&
           (!op$response_policy %in% names(runtime_definitions) ||
@@ -2614,6 +2646,14 @@ generate_client <- function(
         )
       }
     }
+  }
+  if (length(uncached)) {
+    # An inherited response_cache never blocks generation, so say what it skipped.
+    warning(
+      'response_cache from defaults was not applied to ',
+      paste0(names(uncached), ' (', unlist(uncached), ')', collapse = '; '),
+      call. = FALSE
+    )
   }
   absorb_retries()
   if (!is.null(config) && 'tests' %in% artifacts) {

@@ -1,3 +1,19 @@
+# Generated tests check the request itself, so a stored response must not
+# answer it. Only operations with a response cache need the switch.
+test_cache_off <- function(operation, package) {
+  if (is.null(operation$response_cache)) {
+    return(NULL)
+  }
+  paste0(
+    '  withr::local_options(list(',
+    r_literal(paste0(
+      tolower(sub('_DRY_RUN$', '', dry_run_env(package))),
+      '.response_cache'
+    )),
+    ' = FALSE))'
+  )
+}
+
 render_contract <- function(operation, spec, contract) {
   if ('calls' %in% names(contract)) {
     return(render_fixed_contract(operation, spec, contract))
@@ -68,6 +84,7 @@ render_contract <- function(operation, spec, contract) {
         r_literal(spec$package),
         ')'
       ),
+      test_cache_off(operation, spec$package),
       paste0(
         '  result <- ',
         spec$package,
@@ -248,6 +265,7 @@ render_fixed_contract <- function(operation, spec, contract) {
         r_literal(spec$package),
         ')'
       ),
+      test_cache_off(operation, spec$package),
       paste0(
         '  result <- do.call(',
         spec$package,
