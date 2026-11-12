@@ -839,6 +839,61 @@ projection. Projection failures propagate; successful stores precede the final
 projection. Dry-run request objects bypass cache stores and projections.
 The generated client keeps this lifecycle and needs no specmill runtime.
 
+[**Response cache.**]{#response-cache} `response_cache` saves the decoded result
+of a request so that a repeated call does not reach the service again. It is
+separate from the session `cache` above: it needs no callbacks, stores whole
+decoded results and can keep them on disk. It needs the `cache` companion
+(`companions = 'cache'` at initialization, which adds `cachem` and `rlang` to
+the client's Imports).
+
+~~~yaml
+# specmill.yml or a service file
+defaults:
+  response_cache:
+    store: memory   # or disk
+    max_age: 3600   # seconds; without it entries are kept until cleared
+operations:
+  POST /search:
+    response_cache: {store: disk}   # inherits max_age: 3600
+  POST /lookup:
+    response_cache: {store: memory, max_age: null}   # kept until cleared
+  GET /status:
+    response_cache: null
+~~~
+
+Under `defaults` it applies to GET operations and GraphQL queries. Any other
+operation is cached only when it names the setting itself, and `null` opts an
+operation out. Each block names its own `store`; a `max_age` it does not name
+is inherited, and `max_age: null` removes an inherited one. `memory` lasts for
+the R session; `disk` keeps entries in the user's cache directory for the
+package (`tools::R_user_dir()`), where they are unencrypted response data. Disk
+entries outlive an upgrade of the client, so clear the store after a release
+that changes how a response is decoded.
+
+Each request is stored under a key made from the operation, every request
+input (path, query, body, headers and server) and the package's request and
+response-policy options. A paged wrapper therefore caches page by page. The key also holds a hash of each credential in use, so two
+credentials never share an entry and no credential is written to the store.
+Errors and dry-run requests are never stored. Neither is a result in which a
+response policy returns the raw response, in a list or as an attribute, such as
+`list(response = response, result = decode())`: its URL and headers can carry a
+credential.
+
+Set `options(<package>.response_cache = FALSE)` to bypass the cache for a
+session. The client's internal `<helper>_cache_clear()` function, called as
+`<package>:::api_request_cache_clear()`, empties the memory and disk stores of
+that helper. Generated request and replay tests switch the cache off themselves.
+
+The setting cannot be combined with an explicit `request` mapping, `route_guard`,
+`preserve_visibility`, `batch.concurrency` or a server resolver. An operation
+that names it together with one of these is an error; an operation that only
+inherits it is generated without caching and named in a warning, which
+`response_cache: null` on that operation silences. An existing implementation
+always has a request mapping, so it is never cached.
+
+A `disk` store is shared with worker processes and a `memory` store is not; see
+[calling a wrapper without blocking Shiny](non-blocking.html#the-response-cache).
+
 **Final client formatting.** A generated operation may select `result_formatter`
 for a single response or for combined fan-out, split or paginated responses:
 
@@ -866,6 +921,48 @@ The named function must exist in the client and cannot name a generated wrapper.
 It is resolved outside generated local variables. For paged wrappers, manual
 `all_pages = FALSE` and a prepared dry-run request bypass final formatting, as
 they bypass `post_combine`. No formatter is selected by default.
+
+[**Stable result order.**]{#stable-result-order} Some services return the same
+records with their fields or rows in a different order from one call to the
+next. `result_order` gives a wrapper's table a reviewed order. Without it a
+wrapper returns the order the service sent.
+
+~~~yaml
+operations:
+  POST /bioactivity/search:
+    batch: {split: true, max_items: 200}
+    result_formatter: as_table
+    result_order:
+      rows: [dtxsid, aeid]
+      columns: [dtxsid, aeid]
+~~~
+
+`rows` sorts the rows by the named columns, first to last, ascending, with
+missing values last. Rows equal on every key keep the order in which they were
+received, so name keys that identify a record. Character keys sort in C-locale
+byte order (uppercase before lowercase), factors by level, and dates and times
+by value. `columns` puts the named columns first, in that order; the remaining
+columns follow in name order, also C-locale. Give either field or both. No key
+or column order is taken from the schema.
+
+The order is applied once, to the value the wrapper returns: after the requests
+are combined and after `post_combine`, `result_formatter` and a combined
+post-response hook. A single page from `all_pages = FALSE` and a result that a
+pre-request hook supplies when it skips the request are ordered too. Inputs and
+the order in which requests are sent do not change, so sequential and parallel
+batches return the same table. Every row is kept, duplicates included, and the
+table keeps its class and its other attributes, such as `failed`.
+
+Only a data frame with rows is ordered. A dry-run request, `NULL`, a table
+without rows and a list of records are returned as they are; build a table in a
+response policy or `result_formatter` when records need an order. A table that
+lacks a named column, has a list column as a row key or repeats a column name
+is an error naming the wrapper. Nothing is guessed. A data.table is an error
+too: it keeps its own sort key, so convert it to a data frame or tibble first.
+
+The setting belongs under an individual generated operation. It cannot be
+combined with `preserve_visibility` or the session `cache`. The ordering is
+written into the generated wrapper, so the request helper does not change.
 
 **What is returned.** The per-request results are combined, whatever the number
 of inputs, so `f('A')` and `f(c('A', 'B'))` return the same type:
@@ -2300,6 +2397,7 @@ Wrappers make a single request unless you opt in: `batch.fan_out` or
 `pagination` fetches every page
 ([Fetch every page in one call](#fetch-every-page-in-one-call)). Emission requires no specmill runtime dependency. Pagination adds digest
 to a new client's Imports; an existing DESCRIPTION must declare it first.
+A third companion, `cache`, is described under [response cache](#response-cache).
 
 Use a shared policy list in retained client code, or the package/helper-scoped
 options `<package>.<helper>.batching`, `<package>.<helper>.pagination`, and
@@ -2726,6 +2824,42 @@ return values also abort. For exact HTTP wording, an existing client response
 policy can raise a structured error containing the reviewed status or route; the
 formatter can read those fields without parsing an error message. Result metadata
 and the `batch.empty` constructor remain separate policies.
+
+`batch.fallback_warning: true` changes what `NULL` from the formatter means.
+Instead of suppressing the warning, the wrapper emits the default text,
+`Request for <items> failed: <message>`, which names every item of the dropped
+request. A nonempty string from the formatter is still emitted once, unchanged.
+Use it when a formatter words some failures, such as HTTP errors, and must not
+hide the others, such as a timeout:
+
+~~~yaml
+operations:
+  POST /bulk:
+    batch:
+      split: true
+      max_items: 100
+      on_error: {single: stop, multiple: drop}
+      warning: http_warning
+      fallback_warning: true
+~~~
+
+The setting belongs under operations and requires a `batch.warning` function;
+it is an error without one or with `batch.warning: false`. The fallback text is
+written into the generated wrapper, so the request helper does not change.
+Sequential and parallel batches warn alike.
+
+To make a wrapper that drops failures silently report them, change one thing at
+a time and review each as a change to what callers observe:
+
+1. Remove `batch.metadata: false`, so the result's `failed` attribute names
+   every dropped request.
+2. If the formatter returns `NULL` for some failures, add
+   `batch.fallback_warning: true`, so those still warn. If the wrapper is
+   silent because of `batch.warning: false`, remove that line instead: the
+   default warnings return, and the fallback applies only to a formatter
+   function.
+3. Regenerate, then compare warnings and attributes for a failing call before
+   releasing the client.
 
 
 ### Plain batch result attributes

@@ -65,7 +65,8 @@ importer_artifact_pattern <- function(registry = importer_registry()) {
   paste0('^schema/(', paste(stems, collapse = '|'), ')[.]')
 }
 
-# Protocol companions carry client-owned callbacks named api_request_<name>_*.
+# Template companions add client-owned functions from inst/templates/<name>.R,
+# named api_request_<name>_* for protocol callbacks.
 importer_protocol_companions <- function(companions) {
   setdiff(companions, c('batching', 'pagination'))
 }

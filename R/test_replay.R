@@ -277,6 +277,7 @@ render_scenario_test <- function(
         if (!is.null(scenario$record_write)) ', write_approved = TRUE',
         ')'
       ),
+      test_cache_off(op, spec$package),
       if (length(environment)) {
         paste0(
           '  withr::local_envvar(',

@@ -50,6 +50,7 @@ validate_settings <- function(
       'post_on_skip',
       'preserve_visibility',
       'result_formatter',
+      'result_order',
       'post_state',
       'private_params',
       'post_result_null',
@@ -81,10 +82,29 @@ validate_settings <- function(
       'specialization',
       'fields',
       'query_document',
-      'graphql_path'
+      'graphql_path',
+      'response_cache'
     ),
     label
   )
+  if (!is.null(settings$response_cache)) {
+    cache <- settings$response_cache
+    config_fields(cache, c('store', 'max_age'), paste(label, 'response_cache'))
+    store <- config_string(cache$store, paste(label, 'response_cache.store'))
+    if (!store %in% c('memory', 'disk')) {
+      stop(label, ': response_cache.store must be memory or disk')
+    }
+    age <- cache$max_age
+    if (
+      !is.null(age) &&
+        (!is.numeric(age) || length(age) != 1L || !is.finite(age) || age <= 0)
+    ) {
+      stop(
+        label,
+        ': response_cache.max_age must be a positive number of seconds'
+      )
+    }
+  }
   if (!is.null(settings$opaque_body)) {
     validate_opaque_body(settings$opaque_body)
   }
@@ -151,6 +171,9 @@ validate_settings <- function(
     if (identical(settings$implementation, 'existing')) {
       stop('result_formatter requires a generated implementation')
     }
+  }
+  if ('result_order' %in% names(settings)) {
+    validate_result_order(settings, label)
   }
   for (field in c('post_response_scope', 'post_params_source')) {
     if (is.null(settings[[field]])) {
@@ -447,7 +470,8 @@ validate_settings <- function(
         'on_error',
         'empty',
         'metadata',
-        'warning'
+        'warning',
+        'fallback_warning'
       ),
       'batch'
     )
@@ -469,6 +493,14 @@ validate_settings <- function(
     }
     if (!is.null(settings$batch$warning) && !isFALSE(settings$batch$warning)) {
       config_string(settings$batch$warning, 'batch.warning')
+    }
+    # Not named warning_*: `$warning` would partially match it.
+    if (
+      !is.null(settings$batch$fallback_warning) &&
+        !isTRUE(settings$batch$fallback_warning) &&
+        !isFALSE(settings$batch$fallback_warning)
+    ) {
+      stop('batch.fallback_warning must be true or false')
     }
     if (!is.null(settings$batch$empty)) {
       config_string(settings$batch$empty, 'batch.empty')
@@ -1101,6 +1133,48 @@ configure_operation <- function(operation, service) {
     )
   }
   operation$request_controls <- config_data(settings$request_controls)
+  cache <- settings$response_cache
+  if (!is.null(cache)) {
+    # Defaults cover reads; any other operation has to name the setting itself.
+    named <- 'response_cache' %in% names(service$operations[[operation$key]])
+    read <- identical(operation$method, 'GET') ||
+      identical(operation$ir_operation$binding$operation_type, 'query')
+    # The cache wraps the generated helper call. A request mapping (which every
+    # existing implementation carries) or route guard replaces that call, a
+    # parallel batch rewrites it, a cache hit would lose preserved visibility,
+    # and the key cannot see a resolved server.
+    blocker <- if (!is.null(settings[['request']])) {
+      'an explicit request mapping'
+    } else if (
+      !is.null(settings$route_guard) && !identical(settings$route_guard, FALSE)
+    ) {
+      'route_guard'
+    } else if (isTRUE(settings$preserve_visibility)) {
+      'preserve_visibility'
+    } else if (!is.null(settings$batch$concurrency)) {
+      'batch.concurrency'
+    } else if (!is.null(operation$server_resolver)) {
+      'a server resolver'
+    }
+    if (named && !is.null(blocker)) {
+      stop(
+        'response_cache cannot be combined with ',
+        blocker,
+        ': ',
+        operation$id
+      )
+    }
+    if (is.null(blocker) && (named || read)) {
+      # `max_age: null` on an operation removes an inherited lifetime.
+      operation$response_cache <- config_data(Filter(
+        Negate(is.null),
+        cache[intersect(c('store', 'max_age'), names(cache))]
+      ))
+    } else if (read) {
+      # Not a name that `operation$response_cache` could partially match.
+      operation$uncached_by <- blocker
+    }
+  }
   operation$body_name <- settings[['body']]$name
   operation$body_description <- settings[['body']]$description
   operation$parameters <- parameters

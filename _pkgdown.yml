@@ -14,6 +14,7 @@ articles:
   - existing-clients
   - batched-wrappers
   - paged-wrappers
+  - non-blocking
 - title: Maintain a client
   navbar: Maintain a client
   contents:

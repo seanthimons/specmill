@@ -61,7 +61,12 @@ testing_behavior <- function(entry, service) {
     pagination = paging$mode,
     batch = spec$batch,
     scope = spec$post_response_scope,
-    formatter = spec$result_formatter,
+    # Unset, result_order leaves the digests of existing groups as they were.
+    formatter = if (is.null(spec$result_order)) {
+      spec$result_formatter
+    } else {
+      list(spec$result_formatter, spec$result_order)
+    },
     hooks = lapply(service$hooks[[op$name]], unlist, use.names = FALSE),
     # Different required inputs make a different request, so a separate group.
     # Public requiredness: env-bound and defaulted inputs do not split groups.

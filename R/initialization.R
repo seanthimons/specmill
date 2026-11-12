@@ -96,7 +96,8 @@ initialize_client <- function(
           'httr2 (>= 1.3.0)',
           'jsonlite',
           'curl',
-          if ('pagination' %in% companions) 'digest'
+          if ('pagination' %in% companions) 'digest',
+          if ('cache' %in% companions) c('cachem', 'rlang')
         ),
         collapse = ', '
       ),
@@ -131,6 +132,15 @@ initialize_client <- function(
   if (existing && 'pagination' %in% companions && !'digest' %in% imports) {
     stop(
       'Existing DESCRIPTION must declare digest before adding pagination companions'
+    )
+  }
+  if (
+    existing &&
+      'cache' %in% companions &&
+      !all(c('cachem', 'rlang') %in% imports)
+  ) {
+    stop(
+      'Existing DESCRIPTION must declare cachem and rlang before adding the cache companion'
     )
   }
   scaffold <- request_helper_scaffold(

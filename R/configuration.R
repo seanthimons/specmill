@@ -486,6 +486,7 @@ load_project <- function(
         'post_response_scope',
         'post_params_source',
         'result_formatter',
+        'result_order',
         'response_correction',
         'duplicate_response',
         'request_body_correction',
@@ -512,6 +513,12 @@ load_project <- function(
     }
     if ('warning' %in% names(defaults$batch)) {
       stop(id, ': batch.warning belongs under operations, not defaults')
+    }
+    if ('fallback_warning' %in% names(defaults$batch)) {
+      stop(
+        id,
+        ': batch.fallback_warning belongs under operations, not defaults'
+      )
     }
     if ('metadata' %in% names(defaults$pagination)) {
       stop(id, ': pagination.metadata belongs under operations, not defaults')

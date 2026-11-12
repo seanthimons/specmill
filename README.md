@@ -298,6 +298,27 @@ Emission is deterministic and recorded in `.specmill/helpers/`. Regeneration
 preserves customized helpers; existing clients require reviewed manual adoption.
 See [pagination configuration](https://seanthimons.github.io/specmill/articles/configuration.html#pagination).
 
+## Response cache and non-blocking calls
+
+A client initialized with `companions = 'cache'` can answer a repeated request
+from a store instead of the service. Turn it on in reviewed YAML:
+
+```yaml
+defaults:
+  response_cache:
+    store: memory   # or disk
+    max_age: 3600   # seconds
+```
+
+Under `defaults` this covers GET operations and GraphQL queries; any other
+operation is cached only when it names the setting itself. Nothing is cached
+unless you select it. The companion adds `cachem` and `rlang` to the client's
+Imports. See [response cache](https://seanthimons.github.io/specmill/articles/configuration.html#response-cache).
+
+Generated wrappers are synchronous. To keep a Shiny app responsive during a
+long request, run the wrapper in a worker process and take a promise for its
+result; see [non-blocking calls](https://seanthimons.github.io/specmill/articles/non-blocking.html).
+
 <!-- lifecycle:start -->
 ## Typical Workflow
 
@@ -411,6 +432,9 @@ selection, routing, generation and runtime pipeline used to debug wrapper behavi
 |---|---|
 | [Runtime hooks](https://seanthimons.github.io/specmill/articles/hooks.html) | Client-owned executor setup, pre/post examples, testing, and regeneration |
 | [Configuration](https://seanthimons.github.io/specmill/articles/configuration.html) | Services, selection, public inputs, request mappings, hooks, and documentation |
+| [Batched wrappers](https://seanthimons.github.io/specmill/articles/batched-wrappers.html) | Calling a wrapper that sends one request per input or per chunk |
+| [Paging wrappers](https://seanthimons.github.io/specmill/articles/paged-wrappers.html) | Calling a wrapper that fetches every page of a result |
+| [Non-blocking calls](https://seanthimons.github.io/specmill/articles/non-blocking.html) | Running a wrapper in a worker process so a Shiny app stays responsive |
 | [Testing](https://seanthimons.github.io/specmill/articles/testing.html) | Independent fixtures, generated tests, and transport checks |
 | [Maintenance and CI](https://seanthimons.github.io/specmill/articles/maintenance.html) | Schema updates, commands, reports, and client documentation sites |
 | [Troubleshooting](https://seanthimons.github.io/specmill/articles/troubleshooting.html) | Supported schemas, protected files, adoption, and interrupted-apply recovery |

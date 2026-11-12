@@ -200,6 +200,7 @@ render_hook_integration <- function(op, spec, service, id, case, declared) {
         hook_quote(package),
         ')'
       ),
+      test_cache_off(op, package),
       if (length(case$environment)) {
         paste0(
           '  withr::local_envvar(',

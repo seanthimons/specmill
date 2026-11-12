@@ -88,6 +88,8 @@ policy,body_description,policy,,
 policy,response_policy,policy,,
 policy,server_resolver,policy,,
 policy,request_controls,policy,,
+policy,response_cache,policy,,Reviewed response cache store and lifetime
+policy,uncached_by,policy,,Why an inherited response cache was not applied
 policy,auth,policy,,Authentication wiring built from operation security
 policy,paginate,policy,,Pagination policy; the IR pagination hint never replaces it
 policy,iterate,policy,,

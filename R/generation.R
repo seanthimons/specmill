@@ -273,6 +273,12 @@ iteration_settings <- function(operation, batch, explicit) {
     if (!is.null(explicit$warning)) {
       stop('batch.warning requires batch.fan_out or batch.split: ', operation$id)
     }
+    if (!is.null(explicit$fallback_warning)) {
+      stop(
+        'batch.fallback_warning requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
     return(NULL)
   }
   on_error <- batch$on_error %or% 'stop'
@@ -282,6 +288,17 @@ iteration_settings <- function(operation, batch, explicit) {
   if (!is.null(explicit$warning) && !any(unlist(on_error) == 'drop')) {
     stop('batch.warning requires batch.on_error: drop: ', operation$id)
   }
+  # Without a formatter the default warning is already emitted, and
+  # `warning: false` asks for none, so the fallback has nothing to replace.
+  if (
+    isTRUE(batch$fallback_warning) &&
+      (is.null(batch$warning) || isFALSE(batch$warning))
+  ) {
+    stop(
+      'batch.fallback_warning requires a batch.warning function: ',
+      operation$id
+    )
+  }
   list(
     fan_out = fan_out,
     concurrency = batch$concurrency,
@@ -290,7 +307,8 @@ iteration_settings <- function(operation, batch, explicit) {
     on_error = on_error,
     empty = batch$empty,
     metadata = !isFALSE(batch$metadata),
-    warning = batch$warning
+    warning = batch$warning,
+    fallback_warning = isTRUE(batch$fallback_warning)
   )
 }
 
@@ -863,6 +881,21 @@ render_operation <- function(operation, spec) {
       'preserve_visibility requires an unbatched, unpaged wrapper without hooks'
     )
   }
+  if (!is.null(spec$result_order)) {
+    # The ordering wraps the wrapper's own result; these two return another way.
+    if (preserve_visibility || !is.null(spec$cache)) {
+      stop(
+        'result_order cannot be combined with preserve_visibility or cache: ',
+        operation$id
+      )
+    }
+    if ('.specmill_order' %in% state_parameters) {
+      stop(
+        'result_order internal name collides with a client input: ',
+        operation$id
+      )
+    }
+  }
   if (length(hooks$pre_request)) {
     lines <- c(
       lines,
@@ -935,7 +968,18 @@ render_operation <- function(operation, spec) {
   request <- paste0(
     '  result <- ',
     helper,
-    '(method = ',
+    if (!is.null(operation$response_cache)) {
+      # The cache companion keys on every helper argument and then calls it.
+      paste0(
+        '_cached(.operation = ',
+        r_literal(operation$id),
+        ', .settings = ',
+        r_literal(operation$response_cache),
+        ', method = '
+      )
+    } else {
+      '(method = '
+    },
     r_literal(operation$method),
     ', path = ',
     r_literal(operation$path),
@@ -1459,6 +1503,18 @@ render_operation <- function(operation, spec) {
             ', warning = ',
             if (isFALSE(operation$iterate$warning)) {
               'FALSE'
+            } else if (isTRUE(operation$iterate$fallback_warning)) {
+              # A formatter that returns NULL gets the text <helper>_each()
+              # uses when no formatter is set.
+              paste0(
+                'function(e, chunk) { message <- base::get(',
+                r_literal(operation$iterate$warning),
+                ', envir = base::environment(', helper, '_each), ',
+                'mode = "function", inherits = FALSE)(e, chunk); ',
+                'if (base::is.null(message)) base::paste0("Request for ", ',
+                'base::paste(base::as.character(base::unlist(chunk)), collapse = ", "), ',
+                '" failed: ", base::conditionMessage(e)) else message }'
+              )
             } else {
               paste0(
                 'base::get(', r_literal(operation$iterate$warning),
@@ -1546,6 +1602,9 @@ render_operation <- function(operation, spec) {
     )
   }
   code <- paste(c(lines, '}'), collapse = '\n')
+  if (!is.null(spec$result_order)) {
+    code <- order_wrapper_result(code, spec$result_order, operation$name)
+  }
   if (isTRUE(spec$documentation)) {
     paste(
       operation_documentation(operation, spec$docs %or% list()),
@@ -1951,6 +2010,10 @@ generate_client <- function(
           '_pages',
           '_build',
           '_batched',
+          '_cached',
+          '_cache_clear',
+          '_cache_dir',
+          '_cache_store',
           '_paginated',
           '_pagination_token',
           '_paginated_links'
@@ -1964,13 +2027,15 @@ generate_client <- function(
   ) {
     stop('Operation collides with a client companion; supply a name override')
   }
-  # The batch flag is an environment, so it never appears among function definitions.
+  # The batch flag and the cache stores are environments, so they never appear
+  # among function definitions.
   if (
     any(
       operation_names %in%
-        paste0(
+        outer(
           vapply(services, function(x) x$helper %or% '', character(1)),
-          '_batch_state'
+          c('_batch_state', '_cache_state'),
+          paste0
         )
     )
   ) {
@@ -2003,12 +2068,27 @@ generate_client <- function(
   portable_sources <- list()
   previous <- baseline$files %or% list()
   testing_entries <- list()
+  uncached <- list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
     for (op in parsed[[i]]$operations) {
       configured <- configure_operation(op, service)
       op <- configured$operation
+      if (
+        !is.null(op$response_cache) &&
+          !paste0(configured$spec$helper, '_cached') %in%
+            names(runtime_definitions)
+      ) {
+        stop(
+          'response_cache needs the cache companion in the client request helper: ',
+          paste0(configured$spec$helper, '_cached'),
+          ' is missing'
+        )
+      }
+      if (!is.null(op$uncached_by)) {
+        uncached[[op$id]] <- op$uncached_by
+      }
       if (
         !is.null(op$response_policy) &&
           (!op$response_policy %in% names(runtime_definitions) ||
@@ -2614,6 +2694,14 @@ generate_client <- function(
         )
       }
     }
+  }
+  if (length(uncached)) {
+    # An inherited response_cache never blocks generation, so say what it skipped.
+    warning(
+      'response_cache from defaults was not applied to ',
+      paste0(names(uncached), ' (', unlist(uncached), ')', collapse = '; '),
+      call. = FALSE
+    )
   }
   absorb_retries()
   if (!is.null(config) && 'tests' %in% artifacts) {

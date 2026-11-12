@@ -67,8 +67,8 @@ Tailoring belongs in reviewed YAML and client-owned R, rather than generated
 wrappers. YAML selects names, arguments, mappings, supported encodings and policy
 functions. R supplies executable hooks, response/retry functions, custom helpers,
 and explicit batching/pagination policies. New clients can select
-`companions = c('batching', 'pagination')` at initialization; existing helpers
-need manual adoption. Ordinary wrappers still make one helper call, and a `page`
+`companions = c('batching', 'pagination', 'cache')` at initialization; existing
+helpers need manual adoption. Ordinary wrappers still make one helper call, and a `page`
 argument alone does not create a loop. Emitted companions run without specmill.
 
 A successful `check` establishes output freshness, not API compatibility or
@@ -157,6 +157,10 @@ The runtime chart shows one request. YAML batching and pagination repeat that
 request flow and combine results; `post_combine` runs once after final formatting.
 See [batched wrappers](batched-wrappers.html), [paging wrappers](paged-wrappers.html),
 and [combined-result hooks](hooks.html#run-a-hook-on-the-combined-result-of-a-batched-wrapper).
+A wrapper with a [response cache](configuration.html#response-cache) can answer
+a repeated request from its store without sending it. The call still blocks the
+session until it returns; [non-blocking calls](non-blocking.html) moves it to a
+worker process.
 
 The chart shows the main flow, not every error exit. Invalid configuration,
 unreadable documents, broken document structure, collisions, incompatible
@@ -212,6 +216,8 @@ retained operation can keep its original limitation classification.
 | Timeout or retry behavior differs | Runtime request options override YAML defaults per field. Inspect `max_retries`, `retry_writes` and the selected client `retry_policy`; a predicate does not grant write replay permission. |
 | Result type or HTTP-error handling differs | Inspect actual response Content-Type, generated `response_policy` selection, helper option/default, and post hooks. A policy runs after retries, may replace decoding/status handling, and is separate from post-response hooks. |
 | One page or one oversized body is returned/rejected | Wrappers do not infer iteration. Select `batch.fan_out`, `batch.split`, or `pagination` in YAML for repeated requests, or use client-owned companions. Plain body `batch` limits only validate size. |
+| Row or column order differs between identical calls | The service returns fields or rows in a varying order, and a wrapper returns what it received. Add `result_order` with explicit row keys and leading columns to the operation; see [stable result order](configuration.html#stable-result-order). |
+| A repeated call returns an earlier result, or still reaches the service | Check the operation's `response_cache` policy and the `<package>.response_cache` option. An entry is reused only for the same inputs, credential and request options. Generation warns about operations that inherit the setting but cannot use it. `<package>:::<helper>_cache_clear()` empties the stores. |
 | Plan reports protected or retained files | Compare local content and manifest ownership; use reviewed adoption or keep a manual implementation. Protected replacement/removal and retained implementation are separate concepts. |
 | Fresh output still behaves like the old client | Install/reload the generated client, then inspect its actual helper/hooks/options. `inspect_client(root)$helpers` compares helper baselines when known; generation never silently updates those files. |
 
