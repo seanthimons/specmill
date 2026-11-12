@@ -31,6 +31,7 @@ unsupported coverage. See [validation policy](configuration.html#schema-validati
 | Authentication | Generated API-key and HTTP bearer support; OAuth login/refresh and custom flows remain client-owned |
 | HTTP method | Explicitly declared; no inferred GET/POST conversion |
 | Pagination/batching | Explicit configuration or companion functions; a `page` argument alone causes one request |
+| Response caching | Opt-in `response_cache` with the `cache` companion; nothing is cached by default |
 | Response interpretation | The helper decodes the actual content type; no generated response-schema validation |
 
 See [schema loading](configuration.html#json-and-yaml-schema-files),

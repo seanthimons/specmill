@@ -299,6 +299,10 @@ an explicit generated helper argument and remains unsupported. Credentials,
 pagination, batching, and service-specific validation belong in the client.
 Optional `paginated()` companions support explicitly configured page/offset
 and cursor retrieval, with `paginated_links()` for next links; see [pagination configuration](configuration.html#pagination).
+An optional `cache` companion lets reviewed operations answer a repeated request
+from a memory or disk store; see [response cache](configuration.html#response-cache).
+Wrappers are synchronous; [non-blocking calls](non-blocking.html) shows how to
+run one in a worker process from a Shiny app.
 New helpers expose timeout, URL override, and bounded safe retries through one
 package-scoped R option; see the [request controls guide](https://github.com/seanthimons/specmill#generated-client-request-controls).
 Existing client-owned helpers require an explicit update to adopt these controls.

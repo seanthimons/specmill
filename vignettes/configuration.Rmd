@@ -2355,6 +2355,7 @@ Wrappers make a single request unless you opt in: `batch.fan_out` or
 `pagination` fetches every page
 ([Fetch every page in one call](#fetch-every-page-in-one-call)). Emission requires no specmill runtime dependency. Pagination adds digest
 to a new client's Imports; an existing DESCRIPTION must declare it first.
+A third companion, `cache`, is described under [response cache](#response-cache).
 
 Use a shared policy list in retained client code, or the package/helper-scoped
 options `<package>.<helper>.batching`, `<package>.<helper>.pagination`, and
