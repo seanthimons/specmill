@@ -486,6 +486,7 @@ load_project <- function(
         'post_response_scope',
         'post_params_source',
         'result_formatter',
+        'result_order',
         'response_correction',
         'duplicate_response',
         'request_body_correction',

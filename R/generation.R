@@ -881,6 +881,21 @@ render_operation <- function(operation, spec) {
       'preserve_visibility requires an unbatched, unpaged wrapper without hooks'
     )
   }
+  if (!is.null(spec$result_order)) {
+    # The ordering wraps the wrapper's own result; these two return another way.
+    if (preserve_visibility || !is.null(spec$cache)) {
+      stop(
+        'result_order cannot be combined with preserve_visibility or cache: ',
+        operation$id
+      )
+    }
+    if ('.specmill_order' %in% state_parameters) {
+      stop(
+        'result_order internal name collides with a client input: ',
+        operation$id
+      )
+    }
+  }
   if (length(hooks$pre_request)) {
     lines <- c(
       lines,
@@ -1587,6 +1602,9 @@ render_operation <- function(operation, spec) {
     )
   }
   code <- paste(c(lines, '}'), collapse = '\n')
+  if (!is.null(spec$result_order)) {
+    code <- order_wrapper_result(code, spec$result_order, operation$name)
+  }
   if (isTRUE(spec$documentation)) {
     paste(
       operation_documentation(operation, spec$docs %or% list()),

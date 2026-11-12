@@ -922,6 +922,48 @@ It is resolved outside generated local variables. For paged wrappers, manual
 `all_pages = FALSE` and a prepared dry-run request bypass final formatting, as
 they bypass `post_combine`. No formatter is selected by default.
 
+[**Stable result order.**]{#stable-result-order} Some services return the same
+records with their fields or rows in a different order from one call to the
+next. `result_order` gives a wrapper's table a reviewed order. Without it a
+wrapper returns the order the service sent.
+
+~~~yaml
+operations:
+  POST /bioactivity/search:
+    batch: {split: true, max_items: 200}
+    result_formatter: as_table
+    result_order:
+      rows: [dtxsid, aeid]
+      columns: [dtxsid, aeid]
+~~~
+
+`rows` sorts the rows by the named columns, first to last, ascending, with
+missing values last. Rows equal on every key keep the order in which they were
+received, so name keys that identify a record. Character keys sort in C-locale
+byte order (uppercase before lowercase), factors by level, and dates and times
+by value. `columns` puts the named columns first, in that order; the remaining
+columns follow in name order, also C-locale. Give either field or both. No key
+or column order is taken from the schema.
+
+The order is applied once, to the value the wrapper returns: after the requests
+are combined and after `post_combine`, `result_formatter` and a combined
+post-response hook. A single page from `all_pages = FALSE` and a result that a
+pre-request hook supplies when it skips the request are ordered too. Inputs and
+the order in which requests are sent do not change, so sequential and parallel
+batches return the same table. Every row is kept, duplicates included, and the
+table keeps its class and its other attributes, such as `failed`.
+
+Only a data frame with rows is ordered. A dry-run request, `NULL`, a table
+without rows and a list of records are returned as they are; build a table in a
+response policy or `result_formatter` when records need an order. A table that
+lacks a named column, has a list column as a row key or repeats a column name
+is an error naming the wrapper. Nothing is guessed. A data.table is an error
+too: it keeps its own sort key, so convert it to a data frame or tibble first.
+
+The setting belongs under an individual generated operation. It cannot be
+combined with `preserve_visibility` or the session `cache`. The ordering is
+written into the generated wrapper, so the request helper does not change.
+
 **What is returned.** The per-request results are combined, whatever the number
 of inputs, so `f('A')` and `f(c('A', 'B'))` return the same type:
 

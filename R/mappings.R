@@ -50,6 +50,7 @@ validate_settings <- function(
       'post_on_skip',
       'preserve_visibility',
       'result_formatter',
+      'result_order',
       'post_state',
       'private_params',
       'post_result_null',
@@ -170,6 +171,9 @@ validate_settings <- function(
     if (identical(settings$implementation, 'existing')) {
       stop('result_formatter requires a generated implementation')
     }
+  }
+  if ('result_order' %in% names(settings)) {
+    validate_result_order(settings, label)
   }
   for (field in c('post_response_scope', 'post_params_source')) {
     if (is.null(settings[[field]])) {
