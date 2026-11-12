@@ -1,7 +1,7 @@
 \name{validate_schema}
 \alias{validate_schema}
 \title{Validate a local API schema against its OpenAPI specification}
-\description{Check a local JSON or YAML document against the official Swagger 2.0, OpenAPI 3.0 or OpenAPI 3.1 JSON Schema. Validation runs locally; nothing is uploaded.}
+\description{Check a local JSON or YAML document against the official Swagger 2.0, OpenAPI 3.0, 3.1 or 3.2 JSON Schema. Validation runs locally; nothing is uploaded.}
 \usage{
 validate_schema(file)
 }
@@ -12,8 +12,8 @@ validate_schema(file)
 \details{
 The document is checked with the ajv build shipped in \pkg{jsonvalidate}, run
 through \pkg{V8}, against the OpenAPI Initiative schemas bundled in
-\code{inst/validation}. OAS 3.1 Schema Objects are checked against the default
-OAS 3.1 JSON Schema 2020-12 dialect; a document declaring another
+\code{inst/validation}. OAS 3.1 and 3.2 Schema Objects are checked against the
+default JSON Schema 2020-12 dialect of their version; a document declaring another
 \code{jsonSchemaDialect} is still checked against the default one.
 
 Structural checks catch wrong types, missing required fields, unknown fields and

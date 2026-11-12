@@ -1,24 +1,9 @@
-schema_operation_keys <- function(document) {
-  unlist(
-    lapply(names(document$paths), function(path) {
-      item <- local_ref(document$paths[[path]], document)
-      methods <- intersect(
-        names(item),
-        c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace')
-      )
-      if (length(methods)) paste(toupper(methods), path) else character()
-    }),
-    use.names = FALSE
-  ) %or%
-    character()
-}
-
 generation_schema_inventory <- function(files, labels) {
   stats::setNames(
     lapply(files, function(file) {
       # Reporting must not replace the schema validation diagnostics.
       keys <- tryCatch(
-        schema_operation_keys(read_schema_document(file)),
+        importer_operation_keys(file),
         error = function(e) NULL
       )
       if (is.null(keys)) {
@@ -66,16 +51,16 @@ generation_schema_changes <- function(
     )
     unselected <- Filter(
       function(key) {
-        method <- sub(' .*', '', key)
-        path <- substring(key, nchar(method) + 2L)
         !any(vapply(
           members,
           function(service) {
+            policy <- service[['policy']] %or% list()
+            route <- operation_key_route(key, policy)
             !length(operation_selection_reason(
               key,
-              path,
-              method,
-              service[['policy']] %or% list()
+              route$path,
+              route$method,
+              policy
             ))
           },
           logical(1)

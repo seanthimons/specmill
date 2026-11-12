@@ -24,6 +24,17 @@ schema_validation_operations <- function(document) {
         )
       )
     }
+    for (extra in openapi_extra_operations(
+      document$paths[[path]],
+      path,
+      document$openapi
+    )) {
+      operations[[length(operations) + 1L]] <- c(
+        extra[c('key', 'method')],
+        list(path = path),
+        extra['source_location']
+      )
+    }
   }
   operations
 }
@@ -43,7 +54,10 @@ schema_validation_references <- function(document, operations) {
   }
   lapply(operations, function(operation) {
     item <- document$paths[[operation$path]]
-    queue <- refs(list(item[[tolower(operation$method)]], item$parameters))
+    queue <- refs(list(
+      json_pointer(document, operation$source_location),
+      item$parameters
+    ))
     seen <- character()
     while (length(queue)) {
       ref <- queue[[1L]]
@@ -80,8 +94,14 @@ schema_validation_findings <- function(errors, operations, document) {
         operations
       )
       if (length(parts) >= 3L) {
+        # An operation owns the errors at or below its own location.
         by_method <- Filter(
-          function(op) identical(tolower(op$method), parts[[3L]]),
+          function(op) {
+            startsWith(
+              paste0('#', pointer, '/'),
+              paste0(op$source_location, '/')
+            )
+          },
           matched
         )
         if (length(by_method)) matched <- by_method
@@ -127,13 +147,23 @@ schema_validator <- function() {
       collapse = '\n'
     )
   }
-  # The bundled ajv mis-resolves OAS 3.1's dynamic dialect binding and rejects
-  # valid Schema Objects, so bind the default dialect statically.
-  oas31 <- gsub(
-    '"$dynamicRef": "#meta"',
-    '"$ref": "https://spec.openapis.org/oas/3.1/dialect/base"',
-    read('openapi-3.1.json'),
-    fixed = TRUE
+  # The bundled ajv mis-resolves the dynamic dialect binding of OAS 3.1 and 3.2
+  # and rejects valid Schema Objects, so bind the default dialect statically.
+  bound <- function(name, dialect) {
+    gsub(
+      '"$dynamicRef": "#meta"',
+      paste0('"$ref": "', dialect, '"'),
+      read(name),
+      fixed = TRUE
+    )
+  }
+  oas31 <- bound(
+    'openapi-3.1.json',
+    'https://spec.openapis.org/oas/3.1/dialect/base'
+  )
+  oas32 <- bound(
+    'openapi-3.2.json',
+    'https://spec.openapis.org/oas/3.2/dialect/2026-02-26'
   )
   v8 <- V8::v8()
   # ponytail: reuses the ajv build shipped with jsonvalidate; vendor ajv if
@@ -144,6 +174,9 @@ schema_validator <- function() {
   v8$assign('oas31', V8::JS(oas31))
   v8$assign('dialect31', V8::JS(read('openapi-3.1-dialect.json')))
   v8$assign('meta31', V8::JS(read('openapi-3.1-meta.json')))
+  v8$assign('oas32', V8::JS(oas32))
+  v8$assign('dialect32', V8::JS(read('openapi-3.2-dialect.json')))
+  v8$assign('meta32', V8::JS(read('openapi-3.2-meta.json')))
   v8$source(system.file(
     'validation',
     'validate.js',
@@ -155,6 +188,10 @@ schema_validator <- function() {
 }
 
 validate_schema <- function(file) {
+  selected <- tryCatch(resolve_importer(file), error = function(e) NULL)
+  if (!is.null(selected) && is.function(selected$importer$validate)) {
+    return(selected$importer$validate(file))
+  }
   schema_validation_report(file)
 }
 
@@ -204,15 +241,10 @@ schema_validation_report <- function(file, document = NULL) {
   }
   report$operations <- operations
   version <- document$openapi %or% document$swagger %or% ''
-  if (
-    !is.character(version) ||
-      length(version) != 1L ||
-      is.na(version) ||
-      !grepl('^(2[.]0$|3[.][01][.])', version)
-  ) {
+  if (!openapi_supported_version(version)) {
     return(result(
       'unsupported',
-      'Validation covers Swagger 2.0 and OpenAPI 3.0 and 3.1 only.'
+      'Validation covers Swagger 2.0 and OpenAPI 3.0, 3.1 and 3.2 only.'
     ))
   }
   report$schema_version <- version
@@ -456,6 +488,24 @@ validated_service_operations <- function(service, reports) {
     )
     for (operation in report$operations) {
       if (!operation$key %in% keys) {
+        next
+      }
+      # QUERY and additionalOperations entries keep the reader's own record:
+      # they are never generated, so a defect in one blocks nothing.
+      if (
+        !full &&
+          !operation$method %in%
+            c(
+              'GET',
+              'POST',
+              'PUT',
+              'PATCH',
+              'DELETE',
+              'HEAD',
+              'OPTIONS',
+              'TRACE'
+            )
+      ) {
         next
       }
       operation$id <- paste(id, operation$key)

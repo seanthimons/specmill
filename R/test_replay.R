@@ -538,7 +538,10 @@ replay_outputs <- function(
       )
       owners[[file]] <- declared_test_owner('scenario', service$id, id)
       if (length(authentication)) {
-        for (requirement in operation_authentication(op, authentication)) {
+        for (requirement in client_operation_authentication(
+          op,
+          authentication
+        )) {
           for (scheme in requirement) {
             if (identical(scheme$location, 'query')) {
               query[[scheme$name]] <- scheme$envvar

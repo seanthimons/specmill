@@ -1,0 +1,242 @@
+{
+  "kind": "discovery#restDescription",
+  "discoveryVersion": "v1",
+  "id": "monitoring:v1",
+  "name": "monitoring",
+  "version": "v1",
+  "revision": "20260101",
+  "title": "Sample Monitoring API",
+  "description": "Synthetic Discovery document for importer tests.",
+  "protocol": "rest",
+  "rootUrl": "https://monitoring.example.test/",
+  "servicePath": "",
+  "batchPath": "batch",
+  "parameters": {
+    "key": {
+      "type": "string",
+      "description": "API key.",
+      "location": "query"
+    },
+    "alt": {
+      "type": "string",
+      "description": "Data format for response.",
+      "default": "json",
+      "enum": ["json", "media"],
+      "enumDescriptions": ["Responses with Content-Type of application/json", "Media download"],
+      "location": "query"
+    },
+    "fields": {
+      "type": "string",
+      "description": "Selector specifying which fields to include in a partial response.",
+      "location": "query"
+    },
+    "prettyPrint": {
+      "type": "boolean",
+      "description": "Returns response with indentations and line breaks.",
+      "default": "true",
+      "location": "query"
+    }
+  },
+  "auth": {
+    "oauth2": {
+      "scopes": {
+        "https://auth.example.test/monitoring.read": {
+          "description": "Read monitoring data."
+        }
+      }
+    }
+  },
+  "schemas": {
+    "LatLng": {
+      "id": "LatLng",
+      "type": "object",
+      "description": "A latitude and longitude pair.",
+      "properties": {
+        "latitude": {"type": "number", "format": "double", "description": "Latitude in degrees."},
+        "longitude": {"type": "number", "format": "double", "description": "Longitude in degrees."}
+      }
+    },
+    "Reading": {
+      "id": "Reading",
+      "type": "object",
+      "properties": {
+        "station": {"type": "string", "description": "Station identifier."},
+        "value": {"type": "number", "format": "float"},
+        "takenAt": {"type": "string", "format": "google-datetime"},
+        "sampleCount": {"type": "string", "format": "int64"},
+        "averagingPeriod": {"type": "string", "format": "google-duration"},
+        "rawSignal": {"type": "string", "format": "byte"},
+        "labels": {"type": "object", "additionalProperties": {"type": "string"}},
+        "quality": {
+          "type": "string",
+          "enum": ["QUALITY_UNSPECIFIED", "VALIDATED", "PRELIMINARY"],
+          "enumDescriptions": ["Unknown quality.", "Reviewed data.", "Unreviewed data."]
+        },
+        "revision": {"type": "integer", "format": "int32", "readOnly": true}
+      }
+    },
+    "Station": {
+      "id": "Station",
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "location": {"$ref": "LatLng"},
+        "parent": {"$ref": "Station", "description": "The station this one reports to."}
+      }
+    },
+    "ListReadingsResponse": {
+      "id": "ListReadingsResponse",
+      "type": "object",
+      "properties": {
+        "regionCode": {"type": "string"},
+        "readings": {"type": "array", "items": {"$ref": "Reading"}},
+        "nextPageToken": {"type": "string", "description": "Token for the next page."}
+      }
+    },
+    "LookupReadingsRequest": {
+      "id": "LookupReadingsRequest",
+      "type": "object",
+      "properties": {
+        "location": {"$ref": "LatLng", "required": true, "description": "Where to look."},
+        "pollutants": {"type": "array", "items": {"type": "string"}},
+        "includeHistory": {"type": "boolean"},
+        "station": {"$ref": "Station"}
+      }
+    },
+    "LookupReadingsResponse": {
+      "id": "LookupReadingsResponse",
+      "type": "object",
+      "properties": {
+        "readings": {"type": "array", "items": {"$ref": "Reading"}}
+      }
+    },
+    "LookupHistoryRequest": {
+      "id": "LookupHistoryRequest",
+      "type": "object",
+      "properties": {
+        "location": {"$ref": "LatLng"},
+        "pageToken": {"type": "string"}
+      }
+    },
+    "LookupHistoryResponse": {
+      "id": "LookupHistoryResponse",
+      "type": "object",
+      "properties": {
+        "readings": {"type": "array", "items": {"$ref": "Reading"}},
+        "nextPageToken": {"type": "string"}
+      }
+    }
+  },
+  "resources": {
+    "readings": {
+      "methods": {
+        "list": {
+          "id": "monitoring.readings.list",
+          "path": "v1/readings:list",
+          "flatPath": "v1/readings:list",
+          "httpMethod": "GET",
+          "description": "Lists readings near a location. Results are paged.",
+          "parameters": {
+            "pageToken": {"type": "string", "location": "query", "description": "A page token from a previous call."},
+            "location.longitude": {"type": "number", "format": "double", "location": "query"},
+            "pageSize": {"type": "integer", "format": "int32", "location": "query", "default": "2", "minimum": "1", "maximum": "100"},
+            "location.latitude": {"type": "number", "format": "double", "location": "query"},
+            "since": {"type": "string", "format": "google-datetime", "location": "query"},
+            "quality": {
+              "type": "string",
+              "description": "Quality levels to include.",
+              "repeated": true,
+              "enum": ["VALIDATED", "PRELIMINARY"],
+              "enumDescriptions": ["Reviewed data.", "Unreviewed data."],
+              "location": "query"
+            },
+            "validatedOnly": {"type": "boolean", "location": "query", "default": "false"}
+          },
+          "parameterOrder": [],
+          "response": {"$ref": "ListReadingsResponse"},
+          "scopes": ["https://auth.example.test/monitoring.read"]
+        },
+        "lookup": {
+          "id": "monitoring.readings.lookup",
+          "path": "v1/readings:lookup",
+          "flatPath": "v1/readings:lookup",
+          "httpMethod": "POST",
+          "description": "Looks up current readings for a location.",
+          "parameters": {},
+          "parameterOrder": [],
+          "request": {"$ref": "LookupReadingsRequest"},
+          "response": {"$ref": "LookupReadingsResponse"},
+          "scopes": ["https://auth.example.test/monitoring.read"]
+        }
+      }
+    },
+    "history": {
+      "methods": {
+        "lookup": {
+          "id": "monitoring.history.lookup",
+          "path": "v1/history:lookup",
+          "flatPath": "v1/history:lookup",
+          "httpMethod": "POST",
+          "description": "Looks up past readings. The page token travels in the body.",
+          "parameters": {},
+          "parameterOrder": [],
+          "request": {"$ref": "LookupHistoryRequest"},
+          "response": {"$ref": "LookupHistoryResponse"},
+          "scopes": ["https://auth.example.test/monitoring.read"]
+        }
+      }
+    },
+    "stations": {
+      "methods": {
+        "get": {
+          "id": "monitoring.stations.get",
+          "path": "v1/stations/{stationId}",
+          "flatPath": "v1/stations/{stationId}",
+          "httpMethod": "GET",
+          "description": "Gets one station.",
+          "parameters": {
+            "stationId": {"type": "string", "location": "path", "required": true},
+            "view": {"type": "string", "location": "query", "enum": ["BASIC", "FULL"], "enumDescriptions": ["Names only.", "All fields."]}
+          },
+          "parameterOrder": ["stationId"],
+          "response": {"$ref": "Station"},
+          "scopes": ["https://auth.example.test/monitoring.read"]
+        },
+        "attach": {
+          "id": "monitoring.stations.attach",
+          "path": "v1/stations/{stationId}/attachments",
+          "flatPath": "v1/stations/{stationId}/attachments",
+          "httpMethod": "POST",
+          "description": "Attaches a file to a station.",
+          "parameters": {
+            "stationId": {"type": "string", "location": "path", "required": true}
+          },
+          "parameterOrder": ["stationId"],
+          "supportsMediaUpload": true,
+          "mediaUpload": {"accept": ["*/*"], "protocols": {"simple": {"multipart": true, "path": "/upload/v1/stations/{stationId}/attachments"}}},
+          "response": {"$ref": "Station"},
+          "scopes": ["https://auth.example.test/monitoring.read"]
+        }
+      },
+      "resources": {
+        "networks": {
+          "methods": {
+            "get": {
+              "id": "monitoring.stations.networks.get",
+              "path": "v1/{+name}",
+              "flatPath": "v1/stations/{stationsId}/networks/{networksId}",
+              "httpMethod": "GET",
+              "description": "Gets a network by resource name.",
+              "parameters": {
+                "name": {"type": "string", "location": "path", "required": true, "pattern": "^stations/[^/]+/networks/[^/]+$"}
+              },
+              "parameterOrder": ["name"],
+              "response": {"$ref": "Station"},
+              "scopes": ["https://auth.example.test/monitoring.read"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

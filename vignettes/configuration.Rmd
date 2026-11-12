@@ -145,7 +145,7 @@ opaque in that view; unrelated validation failures still block generation.
 ### Schema validation
 
 Generation requires validation by default. Each schema is checked locally
-against the official Swagger 2.0, OpenAPI 3.0 or OpenAPI 3.1 JSON Schema;
+against the official Swagger 2.0, OpenAPI 3.0, 3.1 or 3.2 JSON Schema;
 nothing is uploaded. `validate_schema()` returns a standalone report. Explicit
 `validation: false` bypasses the gate and should be a reviewed project decision:
 
@@ -1617,7 +1617,7 @@ still read the logical entries through `params` without splitting the wire text.
 
 ### Parameter serialization
 
-OpenAPI 3.0 and 3.1 support the following flat parameter shapes. Arrays contain
+OpenAPI 3.0, 3.1 and 3.2 support the following flat parameter shapes. Arrays contain
 strings, integers, numbers, or booleans; objects contain scalar properties or
 scalar-valued maps. Use unnamed vectors/lists for arrays and named lists for
 objects. Nested arrays/objects and unconstrained array items have no supported
@@ -2805,3 +2805,218 @@ Declared alternative routes compare the configured server resolver, key,
 relative base path and recorded absolute fallback. A common resolver can join
 relative OpenAPI and hostless Swagger routes with the same base path; different
 resolver settings or fallback URLs remain errors.
+
+## Schema formats
+
+Schemas are detected by registered importers. OpenAPI 3.0, 3.1 and 3.2, Swagger
+2.0, reviewed ArcGIS REST captures, Google API Discovery documents and saved
+GraphQL introspection results are currently implemented. Other recognized descriptions report their format
+and the supported importer list; recognition alone does not enable generation.
+Use an API-level or flat-service `format: openapi` or `format: swagger` to
+override detection. API groups inherit that setting. Omit it to detect each
+source automatically.
+
+For a catalogue, supply a `format` column in `configure_apis()`'s `choices`
+data frame or maintain `format:` in `specmill-apis.yml`; a blank catalogue
+format means automatic detection. Format selection happens before the review
+table is built. Detected `source_format` and `importer_version` are read-only
+metadata, also recorded per schema in generated ownership provenance. Importer
+registration is internal until the extension contract stabilizes.
+
+## OpenAPI 3.2
+
+An OpenAPI 3.2 document is validated against the official 3.2 schema and read
+like OpenAPI 3.1: its Schema Objects follow JSON Schema 2020-12. A Media Type
+Object given by reference (`#/components/mediaTypes/...`) is resolved. Four
+constructs that only 3.2 defines are not generated:
+
+- A `query` operation is listed as excluded with code `query_method`.
+- An `additionalOperations` entry is listed as excluded with code
+  `additional_operation`. Neither needs policy, and neither blocks generation.
+- A parameter with `in: querystring` makes its operation unsupported
+  (`querystring_parameter`).
+- A request body that uses `itemSchema` makes its operation unsupported
+  (`sequential_media`).
+
+Exclude an unsupported operation in selection policy to generate the rest.
+Sequential request media types such as `application/jsonl` are reported as
+unsupported body media, as before. Tag `parent`, `kind` and `summary`, `$self`
+and the other descriptive additions are not used; operations are still grouped
+by tag name, and references still resolve against the local file.
+
+## ArcGIS local captures
+
+ArcGIS imports use reviewed local JSON captures rather than fetching metadata at
+runtime. In a checkout, `source('dev/capture_arcgis.R')` provides the development
+capture utility. Give it public directory or FeatureServer/MapServer URLs and a
+new or empty output directory. It follows metadata listings once, records source
+URLs and hashes, and writes one service capture per supported service plus a
+directory index. It records inaccessible directories and unsupported service
+types as diagnostics. Review the files before using them as generation inputs.
+
+```{r arcgis-capture-workflow, eval=FALSE}
+source('dev/capture_arcgis.R')
+root <- '/path/to/new/client'
+capture_arcgis(c(
+  'https://echogeo.epa.gov/arcgis/rest/services',
+  'https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/National_Measured_Conductivity/FeatureServer'
+), output = root)
+apis <- specmill::configure_apis(
+  root, schemas = file.path(root, 'directory.json'), review = FALSE
+)
+# Review apis and its source_diagnostics attribute before initialization.
+specmill::initialize_client(
+  root, apis, package = 'myarcgis', title = 'My ArcGIS client',
+  author = list(given = 'Your', family = 'Name', email = 'you@example.org'),
+  license = 'MIT'
+)
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+```
+
+Service captures contain `arcgis_capture_version: "1"`, `kind: "service"`, a
+reviewed service `url`, its native `document`, and `layers` entries containing
+their own `url` and native `document`. Tables are included in that layer list.
+Every advertised leaf layer/table must have a local capture; missing captures
+fail instead of silently reducing the API. Directory captures have
+`kind: "directory"` and `services`, a list of relative service-capture paths.
+Use `format: arcgis-rest` to override detection in API configuration if needed.
+
+Query parameters include `where`, `outFields` and `returnGeometry`. Offset and
+page-size arguments are emitted only when the layer advertises pagination.
+Initialization writes explicit offset paging policy using `resultOffset`,
+`resultRecordCount`, the captured record limit, and client-owned callbacks for
+`exceededTransferLimit`. The caller's page-size argument sets both the requested
+size and offset stride, including after renaming the argument. Empty pages do
+not end traversal when the server says more records remain. Page caps still
+limit requests. Paged query wrappers return feature records; `all_pages = FALSE`
+returns one page of those records. Nonpaging wrappers retain the response
+envelope and do not accept paging controls.
+
+MapServer captures can emit service-level `identify`; relationships expose
+`queryRelatedRecords`. Some related-record endpoints omit the transfer-limit
+flag even for a full requested page. Their generated completion callback probes
+after a full page when the flag is absent and preserves related groups across
+pages. Explicit server flags take precedence. FeatureServer edit wrappers require declared editing
+capabilities. Their form body accepts JSON text for `adds`/`updates` and a
+comma-separated ID string for `deletes`; values are not guessed or coerced into
+geometry objects. No edit requests are made by import or generation. Root
+ArcGIS error payloads raise even with HTTP 200, without copying potentially
+sensitive server messages into errors. Callers must inspect per-edit results
+for partial edit failures.
+
+Token-capable server metadata does not imply that every service is protected.
+Set `requires_token: true` in a reviewed service capture only when that service
+requires it. The IR uses a `session_token` query scheme and records a captured
+`generateToken` endpoint/flow when available. Generated clients read the token
+from their configured environment variable. Token acquisition and renewal stay
+client-owned; imports never sign in or persist credentials. OpenAPI-specific
+source corrections do not apply to ArcGIS captures.
+
+## Google API Discovery documents
+
+A Google API Discovery document (`kind: "discovery#restDescription"`) is read
+from a local, reviewed file. Download the document for the API version you use,
+review it, and pass it to `initialize_client()`. Nothing is fetched at
+generation time. Use `format: google-discovery` to override detection in API
+configuration if needed.
+
+```{r discovery-workflow, eval=FALSE}
+specmill::initialize_client(
+  '/path/to/new/client', 'airquality-v1.json', package = 'myairquality',
+  title = 'My air quality client',
+  author = list(given = 'Your', family = 'Name', email = 'you@example.org'),
+  license = 'MIT'
+)
+```
+
+Each method becomes one operation named after its method id, with the service
+name removed. Path and query parameters come from the method. The request body
+and response come from the named schemas the method refers to. System
+parameters that apply to every method, such as `alt`, `fields` and
+`prettyPrint`, are not added as arguments.
+
+Initialization writes cursor paging policy for a method that takes a
+`pageToken` query parameter and returns `nextPageToken`. The generated wrapper
+follows the token through a client-owned callback; `all_pages = FALSE` returns
+one page. When the token travels in the request body, initialization reports
+`body_page_token` and leaves paging to reviewed policy.
+
+The API key is sent as the `key` query parameter from the environment variable
+named in `specmill.yml`. OAuth scopes are recorded, but sign-in and token
+refresh are not generated. 64-bit integers, durations and field masks stay
+strings, as the API sends them. Three cases are reported instead of generated:
+
+- Media upload (`media_upload_unsupported`): only the metadata request is
+  available.
+- A path that uses reserved expansion (`{+name}`) without an equivalent
+  `flatPath` (`reserved_expansion`): the method is left out.
+- A page token carried in the request body (`body_page_token`): the method is
+  generated without paging.
+
+OpenAPI-specific source corrections do not apply to Discovery documents.
+
+## GraphQL introspection results
+
+A GraphQL service is described by a saved introspection result: the JSON answer
+to the standard introspection query, kept as a local reviewed file. Schema
+language (`.graphql`) files are not read yet. Introspection names no server, so
+pass `base_url`: the endpoint URL without its last path segment. Requests go to
+`<base_url>/graphql`; set `graphql_path` under the service `defaults` when the
+last segment differs.
+
+```{r graphql-workflow, eval=FALSE}
+specmill::initialize_client(
+  '/path/to/new/client', 'introspection.json', package = 'mygraph',
+  title = 'My GraphQL client', base_url = 'https://api.example.org/api/v4',
+  author = list(given = 'Your', family = 'Name', email = 'you@example.org'),
+  license = 'MIT'
+)
+```
+
+Each root query and mutation field becomes one operation with the key
+`query <field>` or `mutation <field>`, grouped into `query` and `mutation`
+services. Field arguments become wrapper arguments and are sent as GraphQL
+variables, never written into the query text. An omitted optional argument is
+not sent. Argument values are not validated locally; the service checks them.
+An argument's default is copied into the query as the introspection result
+prints it. If a service prints defaults in a form that is not valid GraphQL,
+set `query_document` for that operation.
+
+A wrapper requests the fields listed for its operation. Initialization writes a
+default list: the scalar and enum fields of the return type, one level deep,
+leaving out deprecated fields and fields that take required arguments. Edit the
+list and regenerate:
+
+```yaml
+operations:
+  query station:
+    fields:
+    - id
+    - name
+    - location:
+      - latitude
+      - region: [code]
+```
+
+A name is a scalar or enum field; a one-key map selects fields of an object.
+`__typename` is always available. Generation reports `graphql_selection` when a
+listed field is not in the schema, an object field has no nested list, or a
+field takes required arguments, and `selection_required` when a return type has
+no scalar fields and nothing is listed. Those operations are not generated
+until the list is reviewed or the operation is excluded. For anything a field
+list cannot express, such as fragments, selections on unions and interfaces, or
+arguments on nested fields, set `query_document` to a complete reviewed query.
+Its variables must keep the argument names.
+
+Every request is a JSON POST. The client-owned `api_request_graphql_response`
+callback raises `specmill_call_error` whenever the response has an `errors`
+entry, also with HTTP 200 and partial data. The server's messages are attached
+to the condition as `errors` and kept out of its message, because they can echo
+variable values. Otherwise the wrapper returns the value of the root field;
+`NULL` when the service answers null.
+
+Not generated in this version: subscriptions (reported as
+`subscriptions_unsupported`), automatic pagination, authentication (introspection
+declares none) and recorded test scenarios for GraphQL operations. Queries are
+sent with POST, so automatic retries apply only when `retry_writes` is enabled.
+

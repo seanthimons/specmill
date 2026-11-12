@@ -1,0 +1,125 @@
+{
+  "arcgis_capture_version": "1",
+  "kind": "directory",
+  "url": "https://echogeo.epa.gov/arcgis/rest/services",
+  "directories": [
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services",
+      "sha256": "d74e2f44e621808e72bf40b1df304cb8e083070a3c254cebdeb0749bc4c4a4bd",
+      "document": {
+        "folders": [
+          "ECHO",
+          "ECHOGov",
+          "monitor",
+          "Utilities",
+          "WQI"
+        ],
+        "services": [
+          {
+            "name": "SampleWorldCities",
+            "type": "MapServer"
+          }
+        ],
+        "currentVersion": 12.1
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO",
+      "sha256": "0dfb69697336a5e41173b141c18e24af89241b166381616c225f6a7d40bedb8b",
+      "document": {
+        "folders": [],
+        "services": [
+          {
+            "name": "ECHO/Facilities",
+            "type": "MapServer"
+          },
+          {
+            "name": "ECHO/FacilityFinderStateStormWater",
+            "type": "MapServer"
+          },
+          {
+            "name": "ECHO/getFacilities",
+            "type": "GPServer"
+          }
+        ],
+        "currentVersion": 12.1
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/monitor",
+      "sha256": "49dd149a239ce572db2dc4e1417d1660134776dcef8ad8d0a7555d2196194465",
+      "document": {
+        "folders": [],
+        "services": [
+          {
+            "name": "monitor/ncc_arcgis_check2",
+            "type": "MapServer"
+          },
+          {
+            "name": "monitor/ncc_arcgis_checks",
+            "type": "MapServer"
+          }
+        ],
+        "currentVersion": 12.1
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/Utilities",
+      "sha256": "4fb75a8d34e293b2166f7f285fa0d1cab1caac0594a4e4515535ffa29347fcc4",
+      "document": {
+        "folders": [],
+        "services": [
+          {
+            "name": "Utilities/RasterUtilities",
+            "type": "GPServer"
+          },
+          {
+            "name": "Utilities/Symbols",
+            "type": "SymbolServer"
+          }
+        ],
+        "currentVersion": 12.1
+      }
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/WQI",
+      "sha256": "0594b4e05d5bf218700ea2dc9a5132537f732594db5de09cce513c974cf580e4",
+      "document": {
+        "folders": [],
+        "services": [
+          {
+            "name": "WQI/WQI_stations_with_data",
+            "type": "MapServer"
+          }
+        ],
+        "currentVersion": 12.1
+      }
+    }
+  ],
+  "services": [
+    "services/sampleworldcities-mapserver.json",
+    "services/echo-facilities-mapserver.json",
+    "services/echo-facilityfinderstatestormwater-mapserver.json",
+    "services/monitor-ncc_arcgis_check2-mapserver.json",
+    "services/monitor-ncc_arcgis_checks-mapserver.json",
+    "services/wqi-wqi_stations_with_data-mapserver.json"
+  ],
+  "diagnostics": [
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHO/getFacilities/GPServer",
+      "reason": "Unsupported ArcGIS service type: GPServer"
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/Utilities/RasterUtilities/GPServer",
+      "reason": "Unsupported ArcGIS service type: GPServer"
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/Utilities/Symbols/SymbolServer",
+      "reason": "Unsupported ArcGIS service type: SymbolServer"
+    },
+    {
+      "url": "https://echogeo.epa.gov/arcgis/rest/services/ECHOGov",
+      "reason": "Metadata endpoint returned HTML instead of a JSON directory"
+    }
+  ]
+}

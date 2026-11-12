@@ -35,27 +35,10 @@ testing_project <- function(root, config, callbacks) {
   )
 }
 
-# The first successful response and its JSON schema, if any.
 testing_success_response <- function(op) {
   codes <- grep('^2', names(op$response %or% list()), value = TRUE)
   response <- if (length(codes)) op$response[[sort(codes)[[1L]]]]
   testing_response_schema(response)
-}
-
-testing_response_schema <- function(response) {
-  if (is.null(response)) {
-    return(list(media = NULL, schema = NULL))
-  }
-  if (!is.null(response$content)) {
-    media <- names(response$content)
-    json <- grep('^application/json|[+]json', media, value = TRUE)
-    return(list(
-      media = sort(media),
-      schema = if (length(json)) response$content[[json[[1L]]]]$schema
-    ))
-  }
-  # Swagger 2 keeps the schema directly on the response.
-  list(media = NULL, schema = response$schema)
 }
 
 testing_behavior <- function(entry, service) {
@@ -366,23 +349,6 @@ response_schema_clean <- function(node) {
   node
 }
 
-# OpenAPI 3.0 marks nullable values with a keyword JSON Schema lacks.
-openapi_nullable <- function(node) {
-  if (!is.list(node)) {
-    return(node)
-  }
-  node <- lapply(node, openapi_nullable)
-  if (isTRUE(node$nullable)) {
-    if (!is.null(node$type)) {
-      node$type <- unique(c(unlist(node$type), 'null'))
-    }
-    if (!is.null(node$enum)) {
-      node$enum <- c(node$enum, list(NULL))
-    }
-  }
-  node
-}
-
 testing_path_matches <- function(uri, template) {
   path <- sub('[?#].*$', '', sub('^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+', '', uri))
   pattern <- gsub('([][{}()+*^$|\\\\.?])', '\\\\\\1', template, perl = TRUE)
@@ -421,95 +387,13 @@ json_pointer <- function(document, ref) {
   target
 }
 
-review_interaction <- function(interaction, op, documents) {
-  request <- interaction$request
-  response <- interaction$response
-  if (
-    !identical(toupper(request$method %or% ''), op$method) ||
-      !testing_path_matches(request$uri %or% '', op$path)
-  ) {
-    return(NULL)
-  }
-  status <- response$status
-  status <- as.character(if (is.list(status)) status$status_code else status)
-  body <- recorded_body(response$body)
-  if (!is.character(body) || length(body) != 1L) {
-    return(list(status = 'unchecked', reason = 'response body is not text'))
-  }
-  document <- documents(op$source)
-  candidates <- c(status, paste0(substr(status, 1L, 1L), 'XX'), 'default')
-  found <- intersect(candidates, names(op$response %or% list()))
-  declared <- if (length(found)) op$response[[found[[1L]]]]
-  # Shared responses are references into the document.
-  for (i in seq_len(5L)) {
-    ref <- declared[['$ref']]
-    if (!is.character(ref) || !startsWith(ref, '#/')) {
-      break
-    }
-    declared <- json_pointer(document, ref)
-  }
-  schema <- testing_response_schema(declared)$schema
-  if (is.null(schema)) {
-    return(list(status = 'unchecked', reason = 'no JSON response schema'))
-  }
-  dialect <- if (grepl('^3[.]1', document$openapi %or% '')) '2020' else '04'
-  root <- list(allOf = list(schema))
-  if (!is.null(document$components$schemas)) {
-    root$components <- list(schemas = document$components$schemas)
-  }
-  if (!is.null(document$definitions)) {
-    root$definitions <- document$definitions
-  }
-  root <- response_schema_clean(root)
-  if (grepl('^3[.]0', document$openapi %or% '')) {
-    root <- openapi_nullable(root)
-  }
-  result <- response_validator()$call(
-    'validate_response',
-    V8::JS(jsonlite::toJSON(
-      root,
-      auto_unbox = TRUE,
-      null = 'null',
-      digits = NA
-    )),
-    body,
-    dialect
-  )
-  switch(
-    result$status,
-    agrees = list(status = 'agrees'),
-    disagrees = list(
-      status = 'disagrees',
-      errors = paste0(
-        ifelse(nzchar(result$errors$path), result$errors$path, '/'),
-        ' ',
-        result$errors$message
-      )
-    ),
-    unparsed = list(status = 'unchecked', reason = 'response body is not JSON'),
-    list(
-      status = 'unchecked',
-      reason = paste('response schema does not compile:', result$errors$message)
-    )
-  )
-}
-
 review_recordings <- function(
   root,
   config = 'specmill.yml',
   callbacks = new.env(parent = emptyenv())
 ) {
   loaded <- testing_project(root, config, callbacks)
-  cache <- new.env(parent = emptyenv())
-  documents <- function(source) {
-    if (is.null(cache[[source]])) {
-      cache[[source]] <- read_schema_document(
-        source,
-        resolve_references = FALSE
-      )
-    }
-    cache[[source]]
-  }
+  documents <- openapi_response_documents()
   report <- list()
   for (x in loaded$services) {
     service <- x$service

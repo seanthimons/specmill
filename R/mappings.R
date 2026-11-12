@@ -78,12 +78,24 @@ validate_settings <- function(
       'exclude_parameters',
       'routes',
       'route_guard',
-      'specialization'
+      'specialization',
+      'fields',
+      'query_document',
+      'graphql_path'
     ),
     label
   )
   if (!is.null(settings$opaque_body)) {
     validate_opaque_body(settings$opaque_body)
+  }
+  if (!is.null(settings$query_document)) {
+    config_string(settings$query_document, paste(label, 'query_document'))
+  }
+  if (!is.null(settings$graphql_path)) {
+    config_string(settings$graphql_path, paste(label, 'graphql_path'))
+    if (!grepl('^/[^[:space:]?#]*$', settings$graphql_path)) {
+      stop(label, ': graphql_path must be a URL path starting with /')
+    }
   }
   if ('defer_inputs' %in% names(settings)) {
     deferred <- settings$defer_inputs
@@ -542,6 +554,8 @@ validate_settings <- function(
       c(
         'mode',
         'parameter',
+        'size_parameter',
+        'page_size',
         'start',
         'completed',
         'max_pages',
@@ -566,11 +580,32 @@ validate_settings <- function(
     }
     if (!is.null(pagination[['mode']])) {
       config_string(pagination[['mode']], 'pagination.mode')
-      if (!pagination[['mode']] %in% c('page', 'cursor')) {
+      if (!pagination[['mode']] %in% c('page', 'offset', 'cursor')) {
         stop(
-          'pagination.mode must be page or cursor; offset paging is not available for generated wrappers yet'
+          'pagination.mode must be page, offset or cursor'
         )
       }
+    }
+    if (identical(pagination$mode, 'offset')) {
+      config_string(pagination$size_parameter, 'pagination.size_parameter')
+      size <- pagination$page_size
+      if (
+        !is.numeric(size) ||
+          length(size) != 1L ||
+          !is.finite(size) ||
+          size < 1 ||
+          size != trunc(size) ||
+          size > .Machine$integer.max
+      ) {
+        stop('pagination.page_size must be a positive integer')
+      }
+      if (identical(pagination$parameter, pagination$size_parameter)) {
+        stop('Pagination offset and size parameters must differ')
+      }
+    } else if (
+      !is.null(pagination$size_parameter) || !is.null(pagination$page_size)
+    ) {
+      stop('pagination.size_parameter and page_size require offset mode')
     }
     if (!is.null(pagination[['parameter']])) {
       config_string(pagination[['parameter']], 'pagination.parameter')
@@ -729,7 +764,9 @@ validate_settings <- function(
         }
       }
       for (bound in intersect(c('minimum', 'maximum'), names(parameter))) {
-        if (!is.numeric(parameter[[bound]]) || length(parameter[[bound]]) != 1L) {
+        if (
+          !is.numeric(parameter[[bound]]) || length(parameter[[bound]]) != 1L
+        ) {
           stop(bound, ' must be a single number')
         }
       }
@@ -754,7 +791,8 @@ validate_settings <- function(
       !is.null(name) &&
         (!identical(make.names(name), name) ||
           grepl('^(\\.\\.([0-9]+|\\.)|\\.\\.\\.)$', name) ||
-          name %in% c('params', 'state', 'result', 'send', 'fetch', 'chunk', 'changed'))
+          name %in%
+            c('params', 'state', 'result', 'send', 'fetch', 'chunk', 'changed'))
     ) {
       stop(
         label,
@@ -838,6 +876,15 @@ configure_operation <- function(operation, service) {
     service$defaults %or% list(),
     service$operations[[operation$key]] %or% list()
   )
+  if (
+    is.null(operation$graphql) &&
+      any(c('fields', 'query_document', 'graphql_path') %in% names(settings))
+  ) {
+    stop(
+      'fields, query_document and graphql_path apply to GraphQL operations only: ',
+      operation$id
+    )
+  }
   validate_settings(
     settings,
     operation$id,

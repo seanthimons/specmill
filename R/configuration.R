@@ -2,7 +2,7 @@ config_fields <- function(x, allowed, label) {
   if (
     !is.list(x) ||
       inherits(x, 'specmill_sequence') ||
-      (length(x) && (is.null(names(x)) || any(!nzchar(names(x)))))
+      (length(x) && (is.null(names(x)) || !all(nzchar(names(x)))))
   ) {
     stop(label, ' must be a map')
   }
@@ -74,23 +74,6 @@ read_config_yaml <- function(path) {
   )
 }
 
-# Declared server URLs of a schema, compared as written (no resolution).
-schema_servers <- function(file) {
-  document <- read_schema_document(file, resolve_references = FALSE)
-  urls <- if (identical(document$swagger, '2.0')) {
-    paste0(document$host %or% '', document$basePath %or% '/')
-  } else {
-    vapply(
-      document$servers %or% list(),
-      function(server) as.character(server$url %or% ''),
-      character(1)
-    )
-  }
-  urls <- sub('(?<=.)/+$', '', urls, perl = TRUE)
-  urls[!nzchar(urls)] <- '/'
-  if (!length(urls)) '/' else urls
-}
-
 config_data <- function(x) if (is.list(x)) lapply(x, config_data) else x
 
 # Fixed contracts are keyed by wrapper name (RDS, legacy) or by `METHOD /path`,
@@ -99,13 +82,22 @@ fixed_contract <- function(service, operation) {
   by_name <- service$contracts[[operation$name]]
   by_route <- service$contracts[[operation$key]]
   if (!is.null(by_name) && !is.null(by_route)) {
-    stop('Duplicate fixed contract for ', operation$key, ' and ', operation$name)
+    stop(
+      'Duplicate fixed contract for ',
+      operation$key,
+      ' and ',
+      operation$name
+    )
   }
   by_name %or% by_route
 }
 
 read_service_operations <- function(service) {
-  parsed <- read_operations(service$files, service[['policy']] %or% list())
+  parsed <- read_operations(
+    service$files,
+    service[['policy']] %or% list(),
+    service[['format']]
+  )
   mapped <- character()
   retained <- character()
   known <- vapply(
@@ -230,8 +222,8 @@ load_project <- function(
     c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
   }
   if (
-    any(
-      !project_methods %in%
+    !all(
+      project_methods %in%
         c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
     )
   ) {
@@ -335,6 +327,7 @@ load_project <- function(
         'id',
         'authentication',
         'schemas',
+        'format',
         'selection',
         'helper',
         'names',
@@ -381,7 +374,7 @@ load_project <- function(
         function(x) project_path(root, x),
         character(1)
       )
-      if (any(!file.exists(schema_files))) stop(id, ': missing schema file')
+      if (!all(file.exists(schema_files))) stop(id, ': missing schema file')
     }
     if ('patterns' %in% names(service$schemas)) {
       patterns <- config_sequence(service$schemas$patterns, 'schema patterns')
@@ -409,13 +402,14 @@ load_project <- function(
     if (!length(schema_files)) {
       stop(id, ': no schemas selected')
     }
+    format <- service[['format']]
+    if (!is.null(format)) {
+      config_string(format, paste(id, 'format'))
+    }
     reference_inputs <- unlist(
       lapply(schema_files, function(path) {
-        names(attr(
-          read_schema_document(path),
-          'specmill_reference_dependencies'
-        )) %or%
-          character()
+        selected <- resolve_importer(path, format)
+        selected$importer$references(path)
       }),
       use.names = FALSE
     )
@@ -450,8 +444,8 @@ load_project <- function(
       c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
     }
     if (
-      any(
-        !methods %in%
+      !all(
+        methods %in%
           c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
       )
     ) {
@@ -496,6 +490,8 @@ load_project <- function(
         'duplicate_response',
         'request_body_correction',
         'opaque_body',
+        'fields',
+        'query_document',
         'path_parameters_correction',
         'normalize_inputs',
         'validate_inputs',
@@ -602,7 +598,7 @@ load_project <- function(
       )
       if (
         !length(deferral_codes) ||
-          any(!grepl('^[a-z][a-z0-9_]*$', deferral_codes)) ||
+          !all(grepl('^[a-z][a-z0-9_]*$', deferral_codes)) ||
           'unclassified_error' %in% deferral_codes
       ) {
         stop(id, ': automatic deferral needs specific diagnostic codes')
@@ -627,7 +623,9 @@ load_project <- function(
       relative <- config_string(service$contracts_file, 'contracts_file')
       fixture_path <- project_path(root, relative)
       if (!grepl('^tests/testthat/.+\\.(rds|ya?ml|json)$', relative)) {
-        stop('contracts_file must be an RDS, YAML or JSON fixture inside tests/testthat/')
+        stop(
+          'contracts_file must be an RDS, YAML or JSON fixture inside tests/testthat/'
+        )
       }
       fixed <- if (grepl('\\.rds$', relative)) {
         readRDS(fixture_path)
@@ -636,7 +634,9 @@ load_project <- function(
         yaml::yaml.load_file(
           fixture_path,
           eval.expr = FALSE,
-          handlers = list(expr = function(...) stop('Executable YAML tags are forbidden'))
+          handlers = list(expr = function(...) {
+            stop('Executable YAML tags are forbidden')
+          })
         )
       }
       config_fields(fixed, names(fixed), 'fixed contracts')
@@ -653,6 +653,7 @@ load_project <- function(
       id = id,
       authentication = service$authentication,
       files = schema_files,
+      format = format,
       helper = helper,
       hooks = hooks,
       hook_config = service$hook_config,
@@ -690,6 +691,9 @@ load_project <- function(
           x$response_correction
         }),
         opaque_bodies = lapply(overrides, function(x) x$opaque_body),
+        graphql_path = defaults$graphql_path,
+        graphql_fields = lapply(overrides, function(x) x[['fields']]),
+        graphql_documents = lapply(overrides, function(x) x$query_document),
         request_body_corrections = lapply(overrides, function(x) {
           x$request_body_correction
         }),
@@ -734,7 +738,7 @@ load_project <- function(
     any(vapply(services, function(x) isTRUE(x$policy$unclaimed), logical(1)))
   ) {
     lapply(services, function(x) {
-      unique(unlist(lapply(x$files, schema_servers), use.names = FALSE))
+      unique(unlist(lapply(x$files, importer_servers), use.names = FALSE))
     })
   }
   for (i in seq_along(services)) {
@@ -779,7 +783,11 @@ load_project <- function(
     ) {
       next
     }
-    parsed <- read_operations(service$files, service[['policy']])
+    parsed <- read_operations(
+      service$files,
+      service[['policy']],
+      service[['format']]
+    )
     for (operation in Filter(
       function(x) x$status != 'excluded',
       parsed$inventory
@@ -821,6 +829,8 @@ load_project <- function(
           'response_corrections',
           'request_body_corrections',
           'opaque_bodies',
+          'graphql_fields',
+          'graphql_documents',
           'path_parameters_corrections',
           'text_encoding_overrides',
           'query_array_style_overrides',
@@ -831,18 +841,21 @@ load_project <- function(
             route_key
           )]
         }
-        target <- tryCatch(read_operations(file, policy), error = function(e) {
-          stop(
-            service$id,
-            ': unknown or unparseable route: ',
-            basename(file),
-            ' ',
-            route_key,
-            '; ',
-            conditionMessage(e),
-            call. = FALSE
-          )
-        })
+        target <- tryCatch(
+          read_operations(file, policy, service[['format']]),
+          error = function(e) {
+            stop(
+              service$id,
+              ': unknown or unparseable route: ',
+              basename(file),
+              ' ',
+              route_key,
+              '; ',
+              conditionMessage(e),
+              call. = FALSE
+            )
+          }
+        )
         records <- c(target$operations, target$unsupported_operations)
         if (length(records) != 1L) {
           stop(

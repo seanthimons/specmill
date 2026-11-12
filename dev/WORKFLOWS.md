@@ -68,7 +68,7 @@ GitHub release descriptions use the generated NEWS section.
 
 Many generation fixtures explicitly set `validation = FALSE` or
 `validation: false`. `tests/schema-validation.R` exercises required validation
-for Swagger 2.0, OpenAPI 3.0 and 3.1, YAML input and operation/document blocking. Run it with the workspace package loaded or installed.
+for Swagger 2.0, OpenAPI 3.0, 3.1 and 3.2, YAML input and operation/document blocking. Run it with the workspace package loaded or installed.
 
 `audit_testing_specs()` writes `DIAGNOSTICS.md` alongside its CSV results when
 `report = TRUE`, including native runs. The report identifies blocked operations,

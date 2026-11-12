@@ -2,14 +2,15 @@
 \alias{read_operations}
 \alias{compare_operations}
 \title{Read and compare local schema operations}
-\description{Extract operation records from local OpenAPI 3.0/3.1 or Swagger 2.0 JSON or YAML schemas and compare their input contracts.}
+\description{Extract operation records from local OpenAPI 3.0, 3.1 or 3.2 or Swagger 2.0 JSON or YAML schemas, or reviewed ArcGIS service captures and compare their input contracts.}
 \usage{
-read_operations(files, policy = list())
+read_operations(files, policy = list(), format = NULL)
 compare_operations(old, new)
 }
 \arguments{
 \item{files}{Local JSON, YAML, or YML schema paths.}
-\item{policy}{A list with optional service identity, methods allowlist, include allowlist of exact METHOD /path keys, path exclude regexes, names keyed by METHOD /path, and override_keys for declared operation settings. When include is supplied, an operation must match it as well as the method and path filters; an empty include selects nothing. Unknown included keys are errors.}
+\item{policy}{A list with optional service identity, methods allowlist, include allowlist of exact METHOD /path keys, path exclude regexes, names keyed by METHOD /path, and override_keys for declared operation settings. When include is supplied, an operation must match it as well as the method and path filters; an empty include selects nothing. Unknown included keys are errors. For GraphQL introspection results, keys are \code{query <field>} or \code{mutation <field>}, and the policy may also carry \code{graphql_fields} and \code{graphql_documents} keyed by operation and a \code{graphql_path}.}
+\item{format}{Optional registered source format override: \code{openapi}, \code{swagger}, \code{arcgis-rest}, \code{google-discovery}, or \code{graphql}. NULL detects the format from content.}
 \item{old}{Results from \code{read_operations}.}
 \item{new}{Results from \code{read_operations}.}
 }

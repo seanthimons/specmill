@@ -78,7 +78,7 @@ schema_validation_acceptance <- function() {
     vapply(report$findings, `[[`, character(1), 'scope')
   }
 
-  for (version in c('2.0', '3.0.3', '3.1.0')) {
+  for (version in c('2.0', '3.0.3', '3.1.0', '3.2.0')) {
     make_schema(version = version)
     passed <- validate()
     stopifnot(
@@ -182,9 +182,11 @@ schema_validation_acceptance <- function() {
   stopifnot(all(scopes(validate()) == 'document'))
   stopifnot(length(validate()$findings) == 1L)
   # OAS 3.1 Schema Objects are checked against the JSON Schema 2020-12 dialect.
-  make_schema('schema_object', '3.1.0')
-  stopifnot(validate()$status == 'invalid')
-  make_schema(version = '3.2.0')
+  for (version in c('3.1.0', '3.2.0')) {
+    make_schema('schema_object', version)
+    stopifnot(validate()$status == 'invalid')
+  }
+  make_schema(version = '3.3.0')
   stopifnot(validate()$status == 'unsupported')
 
   document <- make_schema()
@@ -352,7 +354,7 @@ schema_validation_acceptance <- function() {
   )
   error(specmill::load_project(root))
   cat(
-    'Schema validation: Swagger 2.0, OpenAPI 3.0 and 3.1 findings, YAML and generation gate passed.\n'
+    'Schema validation: Swagger 2.0, OpenAPI 3.0, 3.1 and 3.2 findings, YAML and generation gate passed.\n'
   )
 }
 if (sys.nframe() == 0L) {
