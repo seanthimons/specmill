@@ -1,9 +1,26 @@
+## specmill 0.3.1 (2026-11-12)
+
+#### New features
+
+- response cache, non-blocking calls, result order and warning fallback
+  (#301-#304) (#305)
+  ([5bce207](https://github.com/seanthimons/specmill/tree/5bce207f3358b1537727f20f917a68a5eb69d5de))
+
+Full set of changes:
+[`v0.3.0...v0.3.1`](https://github.com/seanthimons/specmill/compare/v0.3.0...v0.3.1)
+
 ## specmill 0.3.0 (2026-11-12)
 
 #### New features
 
 - support non-OpenAPI schema sources for Milestone 2 (#282)
   ([516f4e0](https://github.com/seanthimons/specmill/tree/516f4e03f2d6491e66b90c5b0a4f6e4b5b0bd5c7))
+- order a wrapper’s result by reviewed row keys and columns (#303)
+  ([fffba05](https://github.com/seanthimons/specmill/tree/fffba05732ed44983ee039746c334e9a1de2369e))
+- fall back to the default warning when a formatter returns NULL (#304)
+  ([cd55b21](https://github.com/seanthimons/specmill/tree/cd55b21c18e31c0fb7452068002192883f5b47df))
+- cache responses in memory or on disk by reviewed policy (#301)
+  ([79b4cc9](https://github.com/seanthimons/specmill/tree/79b4cc974b45de338279375686bc8d055288c9ea))
 - generate clients from saved GraphQL introspection results (#244, #245)
   ([8b43b0e](https://github.com/seanthimons/specmill/tree/8b43b0e59b74266285ce55c789855a4f88004679))
 - read and validate OpenAPI 3.2 documents (#242)
@@ -19,6 +36,11 @@
 - define a versioned, format-neutral API intermediate representation
   (#228)
   ([8512629](https://github.com/seanthimons/specmill/tree/8512629111e6b48d9a2912806b5174fa7dd1229c))
+
+#### Bug fixes
+
+- do not cache a raw response held in a data frame (#301)
+  ([28b9a0b](https://github.com/seanthimons/specmill/tree/28b9a0b4c053cc3a47f1c9a45f47c1ac3bab2bc6))
 
 #### Refactorings
 
@@ -37,6 +59,14 @@
   ([4393463](https://github.com/seanthimons/specmill/tree/43934633609c1cb7c3f5a617409aae08ec69fae8))
 - capture golden output before the OpenAPI importer refactor (#229)
   ([738cdac](https://github.com/seanthimons/specmill/tree/738cdac76cb304cc1391d71c948202b7f5437652))
+
+#### Docs
+
+- show the response cache and non-blocking calls in the user guides
+  (#301, #302)
+  ([e6d2c04](https://github.com/seanthimons/specmill/tree/e6d2c04e58507c23a9b0291e5b4eb0f86db0e83e))
+- call generated wrappers without blocking Shiny (#302)
+  ([b6446a6](https://github.com/seanthimons/specmill/tree/b6446a621a78795dee8364f863c8a0ae0526bc68))
 
 #### Other changes
 
