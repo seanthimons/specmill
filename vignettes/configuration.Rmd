@@ -839,10 +839,12 @@ projection. Projection failures propagate; successful stores precede the final
 projection. Dry-run request objects bypass cache stores and projections.
 The generated client keeps this lifecycle and needs no specmill runtime.
 
-**Response cache.** `response_cache` saves the decoded result of a request so
-that a repeated call does not reach the service again. It needs the `cache`
-companion (`companions = 'cache'` at initialization, which adds `cachem` and
-`rlang` to the client's Imports).
+[**Response cache.**]{#response-cache} `response_cache` saves the decoded result
+of a request so that a repeated call does not reach the service again. It is
+separate from the session `cache` above: it needs no callbacks, stores whole
+decoded results and can keep them on disk. It needs the `cache` companion
+(`companions = 'cache'` at initialization, which adds `cachem` and `rlang` to
+the client's Imports).
 
 ~~~yaml
 # specmill.yml or a service file
@@ -888,6 +890,9 @@ that names it together with one of these is an error; an operation that only
 inherits it is generated without caching and named in a warning, which
 `response_cache: null` on that operation silences. An existing implementation
 always has a request mapping, so it is never cached.
+
+A `disk` store is shared with worker processes and a `memory` store is not; see
+[calling a wrapper without blocking Shiny](non-blocking.html#the-response-cache).
 
 **Final client formatting.** A generated operation may select `result_formatter`
 for a single response or for combined fan-out, split or paginated responses:

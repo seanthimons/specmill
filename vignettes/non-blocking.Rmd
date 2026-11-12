@@ -1,0 +1,115 @@
+---
+title: "Call a wrapper without blocking Shiny"
+description: "Run a generated wrapper in a worker process so a long request does not hold the R session, and what the worker needs to do it."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Call a wrapper without blocking Shiny}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', eval = FALSE)
+```
+
+A generated wrapper returns when the service has answered. Until then the R
+session does nothing else, so a Shiny app that calls a slow wrapper stops
+responding to every user. This guide is for the person calling a wrapper from
+such an app. It needs no change to the client: the call runs in a second R
+process, a worker, and the session gets a promise for the result. The examples
+use a hypothetical client package `myclient` with a wrapper `get_items()`, and
+[mirai](https://mirai.r-lib.org) for the workers.
+
+## The recipe
+
+Start the workers once, when the app starts:
+
+```{r daemons}
+mirai::daemons(2)
+```
+
+Wrap the call in `mirai::mirai()` and pass its inputs by name. It returns at
+once, and promises treats the returned object as a promise:
+
+```{r promise}
+task <- mirai::mirai(myclient::get_items(category = category), category = 'books')
+promises::then(task, function(items) message(length(items), ' items'))
+```
+
+In Shiny, give the same call to an `ExtendedTask`. The task reports whether it
+is running, and the app stays responsive in the meantime:
+
+```{r extended-task}
+server <- function(input, output, session) {
+  items <- shiny::ExtendedTask$new(function(category) {
+    mirai::mirai(myclient::get_items(category = category), category = category)
+  })
+  shiny::observeEvent(input$search, items$invoke(input$category))
+  output$status <- shiny::renderText(items$status())
+  output$table <- shiny::renderTable(items$result())
+}
+```
+
+A wrapper that fetches every page or sends a batch runs whole inside the
+worker; the promise resolves once, with the combined result.
+
+## What a worker needs
+
+A worker is a new R process. It shares nothing with the session except what it
+is sent and what it finds on the machine.
+
+- **The client package, installed.** Call the wrapper as `myclient::get_items()`
+  so the worker loads the package from its library. A package loaded with
+  `pkgload::load_all()` exists only in the session.
+- **Credentials.** A worker started on the same machine inherits the environment
+  variables that exist when `mirai::daemons()` runs. Set credentials in the
+  deployment environment or `.Renviron`, before the workers start. A variable set
+  later with `Sys.setenv()` reaches only the session.
+- **Options.** `options()` set in the session, such as
+  `options(myclient.request = ...)` or `options(myclient.dry_run = TRUE)`, do
+  not reach a worker. Set them there as well:
+
+```{r everywhere}
+mirai::everywhere(
+  options(myclient.request = request),
+  request = getOption('myclient.request')
+)
+```
+
+## The response cache
+
+A client with a [response cache](configuration.html#response-cache)
+keeps a `disk` store in the user's cache directory, so the session and every
+worker read and write the same entries, provided they run as the same user and
+resolve the same cache directory (`tools::R_user_dir()`). A `memory` store belongs to one process: each
+worker has its own, and the session does not see what a worker stored.
+
+An entry is shared only when the key matches. The key includes a hash of the
+credential and the package's request and response-policy options, so a worker that lacks an
+option the session has set stores its results under a different key.
+
+## Errors
+
+When the wrapper fails in the worker, the promise is rejected with an error
+that carries the wrapper's message. The class of the original condition does
+not cross the process boundary, so a handler has to match on the message.
+`promises::then(task, onRejected = ...)` receives the error, and an
+`ExtendedTask` raises it again from `task$result()`, which Shiny shows as an
+output error.
+
+## Limits
+
+- A worker runs one call at a time. Further calls wait for a free worker, so
+  start as many workers as the app needs calls in flight.
+- The result is copied back to the session. A large result costs that copy in
+  time and memory.
+- Do not return or log a dry-run request from a worker. It can hold
+  credentials.
+- Only mirai is tested with generated clients. Any pool whose task becomes a
+  promise fits the same recipe, for example `promises::future_promise()` with
+  the future package. mizu has not been tried here.
+
+The alternative to workers is a request helper that performs the request
+asynchronously inside the session, with `httr2::req_perform_promise()`. It
+needs no second process, but paging, batching and retries would each need a
+promise-aware version, so generated clients do not offer it.
