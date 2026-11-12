@@ -28,6 +28,7 @@ reference:
 - title: Set up and generate
   contents:
   - initialize_client
+  - setup_client
   - configure_client
   - configure_hooks
   - configure_apis
