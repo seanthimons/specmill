@@ -273,6 +273,12 @@ iteration_settings <- function(operation, batch, explicit) {
     if (!is.null(explicit$warning)) {
       stop('batch.warning requires batch.fan_out or batch.split: ', operation$id)
     }
+    if (!is.null(explicit$fallback_warning)) {
+      stop(
+        'batch.fallback_warning requires batch.fan_out or batch.split: ',
+        operation$id
+      )
+    }
     return(NULL)
   }
   on_error <- batch$on_error %or% 'stop'
@@ -282,6 +288,17 @@ iteration_settings <- function(operation, batch, explicit) {
   if (!is.null(explicit$warning) && !any(unlist(on_error) == 'drop')) {
     stop('batch.warning requires batch.on_error: drop: ', operation$id)
   }
+  # Without a formatter the default warning is already emitted, and
+  # `warning: false` asks for none, so the fallback has nothing to replace.
+  if (
+    isTRUE(batch$fallback_warning) &&
+      (is.null(batch$warning) || isFALSE(batch$warning))
+  ) {
+    stop(
+      'batch.fallback_warning requires a batch.warning function: ',
+      operation$id
+    )
+  }
   list(
     fan_out = fan_out,
     concurrency = batch$concurrency,
@@ -290,7 +307,8 @@ iteration_settings <- function(operation, batch, explicit) {
     on_error = on_error,
     empty = batch$empty,
     metadata = !isFALSE(batch$metadata),
-    warning = batch$warning
+    warning = batch$warning,
+    fallback_warning = isTRUE(batch$fallback_warning)
   )
 }
 
@@ -1470,6 +1488,18 @@ render_operation <- function(operation, spec) {
             ', warning = ',
             if (isFALSE(operation$iterate$warning)) {
               'FALSE'
+            } else if (isTRUE(operation$iterate$fallback_warning)) {
+              # A formatter that returns NULL gets the text <helper>_each()
+              # uses when no formatter is set.
+              paste0(
+                'function(e, chunk) { message <- base::get(',
+                r_literal(operation$iterate$warning),
+                ', envir = base::environment(', helper, '_each), ',
+                'mode = "function", inherits = FALSE)(e, chunk); ',
+                'if (base::is.null(message)) base::paste0("Request for ", ',
+                'base::paste(base::as.character(base::unlist(chunk)), collapse = ", "), ',
+                '" failed: ", base::conditionMessage(e)) else message }'
+              )
             } else {
               paste0(
                 'base::get(', r_literal(operation$iterate$warning),

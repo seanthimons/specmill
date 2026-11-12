@@ -2783,6 +2783,42 @@ policy can raise a structured error containing the reviewed status or route; the
 formatter can read those fields without parsing an error message. Result metadata
 and the `batch.empty` constructor remain separate policies.
 
+`batch.fallback_warning: true` changes what `NULL` from the formatter means.
+Instead of suppressing the warning, the wrapper emits the default text,
+`Request for <items> failed: <message>`, which names every item of the dropped
+request. A nonempty string from the formatter is still emitted once, unchanged.
+Use it when a formatter words some failures, such as HTTP errors, and must not
+hide the others, such as a timeout:
+
+~~~yaml
+operations:
+  POST /bulk:
+    batch:
+      split: true
+      max_items: 100
+      on_error: {single: stop, multiple: drop}
+      warning: http_warning
+      fallback_warning: true
+~~~
+
+The setting belongs under operations and requires a `batch.warning` function;
+it is an error without one or with `batch.warning: false`. The fallback text is
+written into the generated wrapper, so the request helper does not change.
+Sequential and parallel batches warn alike.
+
+To make a wrapper that drops failures silently report them, change one thing at
+a time and review each as a change to what callers observe:
+
+1. Remove `batch.metadata: false`, so the result's `failed` attribute names
+   every dropped request.
+2. If the formatter returns `NULL` for some failures, add
+   `batch.fallback_warning: true`, so those still warn. If the wrapper is
+   silent because of `batch.warning: false`, remove that line instead: the
+   default warnings return, and the fallback applies only to a formatter
+   function.
+3. Regenerate, then compare warnings and attributes for a failing call before
+   releasing the client.
+
 
 ### Plain batch result attributes
 

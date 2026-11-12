@@ -732,6 +732,170 @@ batch_iteration_acceptance <- function() {
     sys.source(file, silent)
   }
   stopifnot(!length(capture(silent$get_item(c('a', 'bad')))$warnings))
+  # batch.fallback_warning: a formatter that returns NULL gets the default
+  # warning instead of silence (#304). One item fails in transport, one over HTTP.
+  cat(
+    '\nhttp_only <- function(error, items) if (inherits(error, "client_http_error")) paste0("HTTP ", error$status, " for ", paste(items, collapse = ", ")) else NULL\n',
+    file = file.path(root, 'R/hooks.R'),
+    append = TRUE
+  )
+  outage <- function(service) {
+    yaml::write_yaml(service, service_path)
+    run()
+    env <- new.env(parent = baseenv())
+    for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+      sys.source(file, env)
+    }
+    request <- env$api_request
+    env$api_request <- function(...) {
+      sent <- list(...)
+      if ('down' %in% c(unlist(sent$path_params), unlist(sent$body))) {
+        stop('transport sentinel')
+      }
+      request(...)
+    }
+    env
+  }
+  observed <- function(call) {
+    withr::with_options(
+      list(
+        iterationclient.response_policy = function(response, context, decode) {
+          if (context$status >= 400L && context$status != 401L) {
+            stop(errorCondition(
+              'request failed',
+              status = context$status,
+              class = 'client_http_error'
+            ))
+          }
+          decode()
+        }
+      ),
+      capture(call)
+    )
+  }
+  both <- function(env) {
+    list(
+      get = observed(env$get_item(c('a', 'down', 'bad'))),
+      post = observed(env$bulk(c('a', 'down', 'bad')))
+    )
+  }
+  fallback_service <- function(...) {
+    service <- counted_service
+    for (key in c('GET /items/{id}', 'POST /bulk')) {
+      service$operations[[key]]$batch <- utils::modifyList(
+        service$operations[[key]]$batch,
+        list(...)
+      )
+    }
+    service
+  }
+  native <- both(outage(counted_service))
+  quiet <- both(outage(fallback_service(warning = 'http_only')))
+  fallback <- fallback_service(warning = 'http_only', fallback_warning = TRUE)
+  loud_client <- outage(fallback)
+  run('check')
+  loud <- both(loud_client)
+  stopifnot(
+    # No formatter: the default text names the failed request's whole chunk.
+    identical(
+      native$get$warnings,
+      c(
+        'Request for down failed: transport sentinel',
+        'Request for bad failed: request failed'
+      )
+    ),
+    identical(
+      native$post$warnings[[1L]],
+      'Request for a, down failed: transport sentinel'
+    ),
+    # Off by default: NULL from the formatter still suppresses.
+    identical(quiet$get$warnings, 'HTTP 404 for bad'),
+    identical(quiet$post$warnings, 'HTTP 500 for bad'),
+    # On: the default text for NULL, the formatter's own text once and unchanged.
+    identical(
+      loud$get$warnings,
+      c(native$get$warnings[[1L]], 'HTTP 404 for bad')
+    ),
+    identical(
+      loud$post$warnings,
+      c(native$post$warnings[[1L]], 'HTTP 500 for bad')
+    ),
+    # Results, failure metadata and the all-failed constructor are untouched.
+    identical(loud$get$value, quiet$get$value),
+    identical(loud$post$value, quiet$post$value),
+    identical(loud$get$value, native$get$value),
+    identical(names(attr(loud$get$value, 'failed')), c('down', 'bad')),
+    identical(names(attr(loud$post$value, 'failed')), c('a, down', 'bad')),
+    # One request still stops, and a call-level error still aborts unwarned.
+    identical(
+      conditionMessage(observed(loud_client$get_item('down'))$value),
+      'transport sentinel'
+    ),
+    !length(observed(loud_client$get_item('down'))$warnings),
+    inherits(
+      observed(loud_client$get_item(c('a', 'denied')))$value,
+      'specmill_call_error'
+    ),
+    !length(observed(loud_client$get_item(c('a', 'denied')))$warnings)
+  )
+  # When every request fails, the batch.empty constructor still supplies the
+  # result and each failure still warns.
+  none <- observed(loud_client$get_item(c('down', 'bad')))
+  stopifnot(
+    length(none$value) == 0L,
+    identical(names(attr(none$value, 'failed')), c('down', 'bad')),
+    identical(none$warnings, loud$get$warnings)
+  )
+  # Formatter failures and invalid return values still abort.
+  for (broken in list(
+    function(error, items) stop('formatter sentinel'),
+    function(error, items) FALSE
+  )) {
+    loud_client$http_only <- broken
+    stopifnot(inherits(
+      observed(loud_client$get_item(c('a', 'down')))$value,
+      'specmill_call_error'
+    ))
+  }
+  # Failure metadata stays an independent choice.
+  plain <- both(outage(fallback_service(
+    warning = 'http_only',
+    fallback_warning = TRUE,
+    metadata = FALSE
+  )))
+  stopifnot(
+    identical(plain$get$warnings, loud$get$warnings),
+    identical(plain$post$warnings, loud$post$warnings),
+    is.null(attr(plain$get$value, 'failed')),
+    is.null(attr(plain$post$value, 'failed'))
+  )
+  # Parallel requests warn and report exactly as sequential ones do.
+  parallel <- fallback
+  parallel$operations[['GET /items/{id}']]$batch$concurrency <- 2L
+  parallel$operations[['GET /items/{id}']]$request_controls <- list(
+    throttle = list(capacity = 100L, fill_time_s = 1)
+  )
+  together <- observed(outage(parallel)$get_item(c('a', 'down', 'bad')))
+  stopifnot(
+    identical(together$warnings, loud$get$warnings),
+    identical(together$value, loud$get$value)
+  )
+  bad <- fallback
+  bad$operations[['GET /items/{id}']]$batch$fallback_warning <- 'yes'
+  fails(bad, 'batch.fallback_warning must be true or false')
+  bad <- fallback
+  bad$operations[['GET /items/{id}']]$batch$warning <- NULL
+  fails(bad, 'batch.fallback_warning requires a batch.warning function')
+  bad$operations[['GET /items/{id}']]$batch$warning <- FALSE
+  fails(bad, 'batch.fallback_warning requires a batch.warning function')
+  bad <- fallback
+  bad$defaults$batch$fallback_warning <- TRUE
+  fails(bad, 'batch.fallback_warning belongs under operations')
+  bad <- original
+  bad$operations[['GET /items/{id}']] <- list(
+    batch = list(fallback_warning = TRUE)
+  )
+  fails(bad, 'batch.fallback_warning requires batch.fan_out or batch.split')
   for (choice in list(
     TRUE,
     1L,

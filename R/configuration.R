@@ -513,6 +513,12 @@ load_project <- function(
     if ('warning' %in% names(defaults$batch)) {
       stop(id, ': batch.warning belongs under operations, not defaults')
     }
+    if ('fallback_warning' %in% names(defaults$batch)) {
+      stop(
+        id,
+        ': batch.fallback_warning belongs under operations, not defaults'
+      )
+    }
     if ('metadata' %in% names(defaults$pagination)) {
       stop(id, ': pagination.metadata belongs under operations, not defaults')
     }

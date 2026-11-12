@@ -466,7 +466,8 @@ validate_settings <- function(
         'on_error',
         'empty',
         'metadata',
-        'warning'
+        'warning',
+        'fallback_warning'
       ),
       'batch'
     )
@@ -488,6 +489,14 @@ validate_settings <- function(
     }
     if (!is.null(settings$batch$warning) && !isFALSE(settings$batch$warning)) {
       config_string(settings$batch$warning, 'batch.warning')
+    }
+    # Not named warning_*: `$warning` would partially match it.
+    if (
+      !is.null(settings$batch$fallback_warning) &&
+        !isTRUE(settings$batch$fallback_warning) &&
+        !isFALSE(settings$batch$fallback_warning)
+    ) {
+      stop('batch.fallback_warning must be true or false')
     }
     if (!is.null(settings$batch$empty)) {
       config_string(settings$batch$empty, 'batch.empty')
