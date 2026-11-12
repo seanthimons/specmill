@@ -944,7 +944,22 @@ render_operation <- function(operation, spec) {
     ', query = ',
     refs('query'),
     ', body = ',
-    if (is.null(body_name)) {
+    if (!is.null(operation$graphql)) {
+      # Arguments travel as variables; omitted optional arguments are not sent.
+      paste0(
+        'base::c(base::list(query = ',
+        r_literal(operation$graphql$document),
+        ')',
+        if (any(vapply(params, function(p) p$location == 'argument', logical(1)))) {
+          paste0(
+            ', base::list(variables = base::Filter(base::Negate(base::is.null), ',
+            refs('argument'),
+            '))'
+          )
+        },
+        ')'
+      )
+    } else if (is.null(body_name)) {
       'NULL'
     } else if (line_body) {
       wire_body

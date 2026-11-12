@@ -78,12 +78,24 @@ validate_settings <- function(
       'exclude_parameters',
       'routes',
       'route_guard',
-      'specialization'
+      'specialization',
+      'fields',
+      'query_document',
+      'graphql_path'
     ),
     label
   )
   if (!is.null(settings$opaque_body)) {
     validate_opaque_body(settings$opaque_body)
+  }
+  if (!is.null(settings$query_document)) {
+    config_string(settings$query_document, paste(label, 'query_document'))
+  }
+  if (!is.null(settings$graphql_path)) {
+    config_string(settings$graphql_path, paste(label, 'graphql_path'))
+    if (!grepl('^/[^[:space:]?#]*$', settings$graphql_path)) {
+      stop(label, ': graphql_path must be a URL path starting with /')
+    }
   }
   if ('defer_inputs' %in% names(settings)) {
     deferred <- settings$defer_inputs
@@ -864,6 +876,15 @@ configure_operation <- function(operation, service) {
     service$defaults %or% list(),
     service$operations[[operation$key]] %or% list()
   )
+  if (
+    is.null(operation$graphql) &&
+      any(c('fields', 'query_document', 'graphql_path') %in% names(settings))
+  ) {
+    stop(
+      'fields, query_document and graphql_path apply to GraphQL operations only: ',
+      operation$id
+    )
+  }
   validate_settings(
     settings,
     operation$id,

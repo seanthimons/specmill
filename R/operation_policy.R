@@ -103,6 +103,17 @@ prepare_operation_policy <- function(policy) {
     validate_opaque_body(review)
   }
   policy$override_keys <- union(policy$override_keys, names(opaque_bodies))
+  documents <- Filter(Negate(is.null), policy$graphql_documents %or% list())
+  for (key in names(documents)) {
+    config_string(documents[[key]], paste('query_document for', key))
+  }
+  policy$override_keys <- union(
+    policy$override_keys,
+    union(
+      names(documents),
+      names(Filter(Negate(is.null), policy$graphql_fields %or% list()))
+    )
+  )
   response_corrections <- Filter(
     Negate(is.null),
     policy$response_corrections %or% list()
@@ -299,6 +310,16 @@ operation_records_result <- function(records) {
   )
 }
 
+# Request coordinates behind an operation key, as selection policy sees them.
+# GraphQL operations share one POST endpoint.
+operation_key_route <- function(key, policy) {
+  if (grepl('^(query|mutation) ', key)) {
+    return(list(method = 'POST', path = policy$graphql_path %or% '/graphql'))
+  }
+  method <- sub(' .*', '', key)
+  list(method = method, path = substring(key, nchar(method) + 2L))
+}
+
 # Resolve reviewed settings at the point native parsing needs them. Keeping the
 # setting resolver lazy preserves error precedence and leaves excluded request
 # bodies/transport declarations unevaluated. No YAML policy enters the importer.
@@ -337,6 +358,8 @@ operation_review_context <- function(policy) {
             explicit_media = !is.null(policy$body_media_overrides[[key]]),
             body_correction = policy$request_body_corrections[[key]],
             opaque_body = policy$opaque_bodies[[key]],
+            fields = policy$graphql_fields[[key]],
+            query_document = policy$graphql_documents[[key]],
             query_array_style = policy$query_array_style_overrides[[key]] %or%
               policy$query_array_style,
             cli::cli_abort('Unknown native review setting: {name}')
@@ -345,6 +368,7 @@ operation_review_context <- function(policy) {
       )
     },
     duplicates = function() policy$duplicate_response_overrides %or% list(),
-    absent_override_mode = policy$absent_override_mode
+    absent_override_mode = policy$absent_override_mode,
+    graphql_path = policy$graphql_path
   )
 }

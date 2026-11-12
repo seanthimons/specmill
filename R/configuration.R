@@ -490,6 +490,8 @@ load_project <- function(
         'duplicate_response',
         'request_body_correction',
         'opaque_body',
+        'fields',
+        'query_document',
         'path_parameters_correction',
         'normalize_inputs',
         'validate_inputs',
@@ -689,6 +691,9 @@ load_project <- function(
           x$response_correction
         }),
         opaque_bodies = lapply(overrides, function(x) x$opaque_body),
+        graphql_path = defaults$graphql_path,
+        graphql_fields = lapply(overrides, function(x) x[['fields']]),
+        graphql_documents = lapply(overrides, function(x) x$query_document),
         request_body_corrections = lapply(overrides, function(x) {
           x$request_body_correction
         }),
@@ -824,6 +829,8 @@ load_project <- function(
           'response_corrections',
           'request_body_corrections',
           'opaque_bodies',
+          'graphql_fields',
+          'graphql_documents',
           'path_parameters_corrections',
           'text_encoding_overrides',
           'query_array_style_overrides',

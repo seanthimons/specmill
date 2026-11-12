@@ -168,7 +168,7 @@ ir_request_records <- function(ir, view) {
       route = op$binding$path,
       summary = op$summary %or% op$name,
       description = op$description %or% '',
-      deprecated = FALSE,
+      deprecated = isTRUE(op$deprecated),
       parameters = parameters,
       body = body,
       body_required = isTRUE(op$body$required),
@@ -204,7 +204,7 @@ ir_request_records <- function(ir, view) {
       request_type = if (is.null(body)) 'query_only' else 'body',
       pagination_strategy = 'none',
       pagination_metadata = list(strategy = 'none'),
-      server = op$server %or% source$servers[[1L]],
+      server = op$server %or% if (length(source$servers)) source$servers[[1L]],
       server_relative = NULL,
       security = op$security,
       security_schemes = source$auth_schemes,
@@ -273,14 +273,17 @@ ir_configuration_source <- function(
   pagination,
   security_declared = TRUE,
   response_policy = NULL,
-  diagnostic_key = function(diagnostic) 'SERVICE'
+  diagnostic_key = function(diagnostic) 'SERVICE',
+  route = function(op) op$binding$path,
+  settings = function(op) list(),
+  defaults = list()
 ) {
   list(
     operations = function(visit, report) {
       for (op in ir$operations) {
         visit(list(
           key = op$key,
-          path = op$binding$path,
+          path = route(op),
           method = tolower(op$binding$method),
           name = op$name,
           tags = tags(op)
@@ -304,6 +307,7 @@ ir_configuration_source <- function(
         if (!is.null(response_policy)) {
           service$defaults$response_policy <- response_policy
         }
+        service$defaults[names(defaults)] <- defaults
         for (op in ir$operations) {
           if (
             !op$key %in% unlist(service$selection$include, use.names = FALSE)
@@ -314,6 +318,8 @@ ir_configuration_source <- function(
           if (!is.null(paging)) {
             service$operations[[op$key]]$pagination <- paging
           }
+          reviewed <- settings(op)
+          service$operations[[op$key]][names(reviewed)] <- reviewed
         }
         files[[name]] <- sub('\n$', '', yaml::as.yaml(service))
       }

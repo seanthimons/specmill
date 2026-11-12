@@ -1,0 +1,1115 @@
+{
+ "data": {
+  "__schema": {
+   "queryType": {
+    "name": "Query"
+   },
+   "mutationType": {
+    "name": "Mutation"
+   },
+   "subscriptionType": {
+    "name": "Subscription"
+   },
+   "types": [
+    {
+     "kind": "OBJECT",
+     "name": "Query",
+     "description": null,
+     "fields": [
+      {
+       "name": "version",
+       "description": "The service version.",
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "String",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "station",
+       "description": "One station by identifier. Returns null when unknown.",
+       "args": [
+        {
+         "name": "id",
+         "description": "Station identifier.",
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "ID",
+           "ofType": null
+          }
+         },
+         "defaultValue": null
+        }
+       ],
+       "type": {
+        "kind": "OBJECT",
+        "name": "Station",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "stations",
+       "description": "Stations, optionally filtered.",
+       "args": [
+        {
+         "name": "region",
+         "description": "Region code.",
+         "type": {
+          "kind": "SCALAR",
+          "name": "String",
+          "ofType": null
+         },
+         "defaultValue": null
+        },
+        {
+         "name": "limit",
+         "description": "Maximum number of stations.",
+         "type": {
+          "kind": "SCALAR",
+          "name": "Int",
+          "ofType": null
+         },
+         "defaultValue": "10"
+        },
+        {
+         "name": "offset",
+         "description": "Stations to skip.",
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "Int",
+           "ofType": null
+          }
+         },
+         "defaultValue": "0"
+        },
+        {
+         "name": "kinds",
+         "description": "Station kinds to include.",
+         "type": {
+          "kind": "LIST",
+          "name": null,
+          "ofType": {
+           "kind": "NON_NULL",
+           "name": null,
+           "ofType": {
+            "kind": "ENUM",
+            "name": "StationKind",
+            "ofType": null
+           }
+          }
+         },
+         "defaultValue": null
+        },
+        {
+         "name": "sort",
+         "description": "Field to sort by.",
+         "type": {
+          "kind": "SCALAR",
+          "name": "String",
+          "ofType": null
+         },
+         "defaultValue": "\"name\""
+        }
+       ],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "OBJECT",
+           "name": "Station",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "search",
+       "description": "Readings that match a filter.",
+       "args": [
+        {
+         "name": "filter",
+         "description": null,
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "INPUT_OBJECT",
+           "name": "ReadingFilter",
+           "ofType": null
+          }
+         },
+         "defaultValue": null
+        },
+        {
+         "name": "page",
+         "description": null,
+         "type": {
+          "kind": "INPUT_OBJECT",
+          "name": "PageInput",
+          "ofType": null
+         },
+         "defaultValue": "{index: 0, size: 25}"
+        }
+       ],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "OBJECT",
+         "name": "ReadingPage",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "latest",
+       "description": "The most recent station or reading.",
+       "args": [],
+       "type": {
+        "kind": "UNION",
+        "name": "SearchResult",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "network",
+       "description": "A station network.",
+       "args": [
+        {
+         "name": "id",
+         "description": null,
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "ID",
+           "ofType": null
+          }
+         },
+         "defaultValue": null
+        }
+       ],
+       "type": {
+        "kind": "OBJECT",
+        "name": "Network",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "oldStations",
+       "description": "All stations.",
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "OBJECT",
+           "name": "Station",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "isDeprecated": true,
+       "deprecationReason": "Use stations."
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "Mutation",
+     "description": null,
+     "fields": [
+      {
+       "name": "tagStation",
+       "description": "Adds a tag to a station.",
+       "args": [
+        {
+         "name": "id",
+         "description": null,
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "ID",
+           "ofType": null
+          }
+         },
+         "defaultValue": null
+        },
+        {
+         "name": "tag",
+         "description": null,
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "String",
+           "ofType": null
+          }
+         },
+         "defaultValue": null
+        }
+       ],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "OBJECT",
+         "name": "Station",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "station",
+       "description": "Replaces a station.",
+       "args": [
+        {
+         "name": "id",
+         "description": null,
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "ID",
+           "ofType": null
+          }
+         },
+         "defaultValue": null
+        }
+       ],
+       "type": {
+        "kind": "OBJECT",
+        "name": "Station",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "Subscription",
+     "description": null,
+     "fields": [
+      {
+       "name": "stationUpdated",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "OBJECT",
+        "name": "Station",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "INTERFACE",
+     "name": "Node",
+     "description": "Anything with an identifier.",
+     "fields": [
+      {
+       "name": "id",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "ID",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": [
+      {
+       "kind": "OBJECT",
+       "name": "Station",
+       "ofType": null
+      }
+     ]
+    },
+    {
+     "kind": "OBJECT",
+     "name": "Station",
+     "description": "A monitoring station.",
+     "fields": [
+      {
+       "name": "id",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "ID",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "name",
+       "description": "Display name.",
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "String",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "elevation",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "SCALAR",
+        "name": "Float",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "active",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "Boolean",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "kind",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "ENUM",
+         "name": "StationKind",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "sampleCount",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "SCALAR",
+        "name": "Long",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "location",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "OBJECT",
+        "name": "Location",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "readings",
+       "description": "Recent readings.",
+       "args": [
+        {
+         "name": "first",
+         "description": null,
+         "type": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "Int",
+           "ofType": null
+          }
+         },
+         "defaultValue": null
+        }
+       ],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "OBJECT",
+           "name": "Reading",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "tags",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "String",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "legacyCode",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "SCALAR",
+        "name": "String",
+        "ofType": null
+       },
+       "isDeprecated": true,
+       "deprecationReason": "Use id."
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [
+      {
+       "kind": "INTERFACE",
+       "name": "Node",
+       "ofType": null
+      }
+     ],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "Location",
+     "description": null,
+     "fields": [
+      {
+       "name": "latitude",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "Float",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "longitude",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "Float",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "region",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "OBJECT",
+        "name": "Region",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "Region",
+     "description": null,
+     "fields": [
+      {
+       "name": "code",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "String",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "name",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "SCALAR",
+        "name": "String",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "Reading",
+     "description": null,
+     "fields": [
+      {
+       "name": "value",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "Float",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "takenAt",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "DateTime",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "station",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "OBJECT",
+         "name": "Station",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "ReadingPage",
+     "description": null,
+     "fields": [
+      {
+       "name": "total",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "Int",
+         "ofType": null
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "items",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "OBJECT",
+           "name": "Reading",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "Network",
+     "description": null,
+     "fields": [
+      {
+       "name": "stations",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "OBJECT",
+           "name": "Station",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "owner",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "OBJECT",
+        "name": "Region",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "UNION",
+     "name": "SearchResult",
+     "description": null,
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": [
+      {
+       "kind": "OBJECT",
+       "name": "Station",
+       "ofType": null
+      },
+      {
+       "kind": "OBJECT",
+       "name": "Reading",
+       "ofType": null
+      }
+     ]
+    },
+    {
+     "kind": "ENUM",
+     "name": "StationKind",
+     "description": "What a station measures.",
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": [
+      {
+       "name": "AIR",
+       "description": "Air quality.",
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "WATER",
+       "description": null,
+       "isDeprecated": false,
+       "deprecationReason": null
+      },
+      {
+       "name": "SOIL",
+       "description": null,
+       "isDeprecated": true,
+       "deprecationReason": "Retired."
+      }
+     ],
+     "possibleTypes": null
+    },
+    {
+     "kind": "INPUT_OBJECT",
+     "name": "ReadingFilter",
+     "description": null,
+     "fields": null,
+     "inputFields": [
+      {
+       "name": "stationIds",
+       "description": null,
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "SCALAR",
+           "name": "ID",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "defaultValue": null
+      },
+      {
+       "name": "minValue",
+       "description": null,
+       "type": {
+        "kind": "SCALAR",
+        "name": "Float",
+        "ofType": null
+       },
+       "defaultValue": null
+      },
+      {
+       "name": "kind",
+       "description": null,
+       "type": {
+        "kind": "ENUM",
+        "name": "StationKind",
+        "ofType": null
+       },
+       "defaultValue": "AIR"
+      }
+     ],
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "INPUT_OBJECT",
+     "name": "PageInput",
+     "description": null,
+     "fields": null,
+     "inputFields": [
+      {
+       "name": "index",
+       "description": null,
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "Int",
+         "ofType": null
+        }
+       },
+       "defaultValue": null
+      },
+      {
+       "name": "size",
+       "description": null,
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "SCALAR",
+         "name": "Int",
+         "ofType": null
+        }
+       },
+       "defaultValue": null
+      }
+     ],
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "SCALAR",
+     "name": "Long",
+     "description": "A 64-bit integer.",
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "SCALAR",
+     "name": "DateTime",
+     "description": "An RFC 3339 timestamp.",
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "SCALAR",
+     "name": "String",
+     "description": null,
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "SCALAR",
+     "name": "ID",
+     "description": null,
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "SCALAR",
+     "name": "Int",
+     "description": null,
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "SCALAR",
+     "name": "Float",
+     "description": null,
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "SCALAR",
+     "name": "Boolean",
+     "description": null,
+     "fields": null,
+     "inputFields": null,
+     "interfaces": null,
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "__Schema",
+     "description": null,
+     "fields": [
+      {
+       "name": "types",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "NON_NULL",
+        "name": null,
+        "ofType": {
+         "kind": "LIST",
+         "name": null,
+         "ofType": {
+          "kind": "NON_NULL",
+          "name": null,
+          "ofType": {
+           "kind": "OBJECT",
+           "name": "__Type",
+           "ofType": null
+          }
+         }
+        }
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    },
+    {
+     "kind": "OBJECT",
+     "name": "__Type",
+     "description": null,
+     "fields": [
+      {
+       "name": "name",
+       "description": null,
+       "args": [],
+       "type": {
+        "kind": "SCALAR",
+        "name": "String",
+        "ofType": null
+       },
+       "isDeprecated": false,
+       "deprecationReason": null
+      }
+     ],
+     "inputFields": null,
+     "interfaces": [],
+     "enumValues": null,
+     "possibleTypes": null
+    }
+   ],
+   "directives": []
+  }
+ }
+}

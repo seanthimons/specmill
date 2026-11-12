@@ -20,6 +20,7 @@ operation,request_body_correction,policy,,Reviewed correction layered over the i
 operation,path_parameters_correction,policy,,Reviewed correction layered over the importer output
 operation,response_correction,policy,,Reviewed correction layered over the importer output
 operation,opaque_body,policy,,Reviewed opaque request body applied to the source document before import
+operation,graphql,derived,operations[].binding,Query document rendered from the GraphQL binding and the reviewed field selection
 operation,security,neutral,operations[].security,Effective requirements; operation overrides document
 operation,security_schemes,neutral,sources[].auth_schemes,Per source; OpenAPI components.securitySchemes or securityDefinitions
 operation,source,neutral,sources[].file,Referenced by operations[].source

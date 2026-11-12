@@ -51,6 +51,12 @@ initialize_client <- function(
   if (is.null(base_url)) {
     base_url <- source$server()
   }
+  if (isTRUE(source$base_url_required) && !nzchar(base_url %or% '')) {
+    stop(
+      'The schema names no server; supply base_url. For GraphQL, use the ',
+      'endpoint URL without its last path segment'
+    )
+  }
   description <- file.path(root, 'DESCRIPTION')
   existing <- file.exists(description)
   if (existing) {

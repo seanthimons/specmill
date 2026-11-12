@@ -138,14 +138,20 @@ validate_companions <- function(companions) {
     !is.character(companions) ||
       anyNA(companions) ||
       anyDuplicated(companions) ||
-      !all(companions %in% c('batching', 'pagination', 'arcgis', 'discovery'))
+      !all(
+        companions %in%
+          c('batching', 'pagination', 'arcgis', 'discovery', 'graphql')
+      )
   ) {
     stop(
-      'companions must select batching, pagination, arcgis and/or discovery without duplicates'
+      'companions must select batching, pagination, arcgis, discovery and/or graphql without duplicates'
     )
   }
   # Selection order does not change the emitted baseline.
-  intersect(c('batching', 'pagination', 'arcgis', 'discovery'), companions)
+  intersect(
+    c('batching', 'pagination', 'arcgis', 'discovery', 'graphql'),
+    companions
+  )
 }
 
 request_helper_template <- function(companions = character()) {

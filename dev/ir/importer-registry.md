@@ -15,7 +15,8 @@ registry validates the IR before returning it. Importers own policy interpretati
 and must retain source diagnostics; reviewed OpenAPI requests use the existing
 lazy review context.
 
-OpenAPI, Swagger, `arcgis-rest` and `google-discovery` are registered. ArcGIS
+OpenAPI, Swagger, `arcgis-rest`, `google-discovery` and `graphql` are
+registered. ArcGIS
 uses reviewed local captures; directory discovery expands only local
 service-capture paths and retains source diagnostics. Configuration and validation callbacks provide
 format-specific metadata without native keys in catalogue/generation modules.
@@ -105,4 +106,20 @@ callback. Reported, not generated: media upload, reserved-expansion paths
 without an equivalent `flatPath`, and page tokens carried in a request body.
 `tests/importer-discovery.R` covers this against a synthetic document and a
 localhost server.
+
+## GraphQL integration
+
+`R/importer_graphql.R` reads a saved introspection result and emits IR with the
+`graphql` paradigm: one operation per root query and mutation field, keyed
+`query <field>` or `mutation <field>`, with arguments at location `argument` and
+every named type as a source type. The binding also carries `method: POST` and
+the endpoint `path`, so the compatibility bridge needs no GraphQL-specific
+record shape. `graphql_records()` renders each operation's query document from
+the reviewed `fields` list (or uses a reviewed `query_document`) and attaches it
+to the record; the wrapper renderer sends it with the arguments as variables.
+Selection problems are operation diagnostics, never guesses. The `graphql`
+companion supplies the response callback. Schema-language files, pagination,
+authentication and testing scenarios are not covered yet; operation keys that
+are not `METHOD /path` are handled where selection reads them
+(`operation_key_route()`), and the wider key audit in #231 remains open.
 

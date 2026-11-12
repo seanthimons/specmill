@@ -42,6 +42,18 @@ importer_registry <- function() {
       references = function(path) character(),
       configuration = discovery_configuration_source,
       validate = discovery_validation_report
+    ),
+    graphql = list(
+      version = '1',
+      detect = graphql_detect,
+      family = 'graphql',
+      artifact = 'graphql',
+      companions = 'graphql',
+      import = importer_graphql,
+      records = graphql_records,
+      references = function(path) character(),
+      configuration = graphql_configuration_source,
+      validate = graphql_validation_report
     )
   )
 }
@@ -308,7 +320,9 @@ importer_initialization_source <- function(path) {
   source <- importer_catalogue_source(path, basename(path))
   list(
     server = function() source$server(''),
-    companions = selected$importer$companions
+    companions = selected$importer$companions,
+    # A source that names no server, such as GraphQL introspection, needs one.
+    base_url_required = TRUE
   )
 }
 

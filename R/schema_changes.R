@@ -51,16 +51,16 @@ generation_schema_changes <- function(
     )
     unselected <- Filter(
       function(key) {
-        method <- sub(' .*', '', key)
-        path <- substring(key, nchar(method) + 2L)
         !any(vapply(
           members,
           function(service) {
+            policy <- service[['policy']] %or% list()
+            route <- operation_key_route(key, policy)
             !length(operation_selection_reason(
               key,
-              path,
-              method,
-              service[['policy']] %or% list()
+              route$path,
+              route$method,
+              policy
             ))
           },
           logical(1)

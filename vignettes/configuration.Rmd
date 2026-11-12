@@ -2809,8 +2809,8 @@ resolver settings or fallback URLs remain errors.
 ## Schema formats
 
 Schemas are detected by registered importers. OpenAPI 3.0, 3.1 and 3.2, Swagger
-2.0, reviewed ArcGIS REST captures and Google API Discovery documents are
-currently implemented. Other recognized descriptions report their format
+2.0, reviewed ArcGIS REST captures, Google API Discovery documents and saved
+GraphQL introspection results are currently implemented. Other recognized descriptions report their format
 and the supported importer list; recognition alone does not enable generation.
 Use an API-level or flat-service `format: openapi` or `format: swagger` to
 override detection. API groups inherit that setting. Omit it to detect each
@@ -2954,4 +2954,69 @@ strings, as the API sends them. Three cases are reported instead of generated:
   generated without paging.
 
 OpenAPI-specific source corrections do not apply to Discovery documents.
+
+## GraphQL introspection results
+
+A GraphQL service is described by a saved introspection result: the JSON answer
+to the standard introspection query, kept as a local reviewed file. Schema
+language (`.graphql`) files are not read yet. Introspection names no server, so
+pass `base_url`: the endpoint URL without its last path segment. Requests go to
+`<base_url>/graphql`; set `graphql_path` under the service `defaults` when the
+last segment differs.
+
+```{r graphql-workflow, eval=FALSE}
+specmill::initialize_client(
+  '/path/to/new/client', 'introspection.json', package = 'mygraph',
+  title = 'My GraphQL client', base_url = 'https://api.example.org/api/v4',
+  author = list(given = 'Your', family = 'Name', email = 'you@example.org'),
+  license = 'MIT'
+)
+```
+
+Each root query and mutation field becomes one operation with the key
+`query <field>` or `mutation <field>`, grouped into `query` and `mutation`
+services. Field arguments become wrapper arguments and are sent as GraphQL
+variables, never written into the query text. An omitted optional argument is
+not sent. Argument values are not validated locally; the service checks them.
+An argument's default is copied into the query as the introspection result
+prints it. If a service prints defaults in a form that is not valid GraphQL,
+set `query_document` for that operation.
+
+A wrapper requests the fields listed for its operation. Initialization writes a
+default list: the scalar and enum fields of the return type, one level deep,
+leaving out deprecated fields and fields that take required arguments. Edit the
+list and regenerate:
+
+```yaml
+operations:
+  query station:
+    fields:
+    - id
+    - name
+    - location:
+      - latitude
+      - region: [code]
+```
+
+A name is a scalar or enum field; a one-key map selects fields of an object.
+`__typename` is always available. Generation reports `graphql_selection` when a
+listed field is not in the schema, an object field has no nested list, or a
+field takes required arguments, and `selection_required` when a return type has
+no scalar fields and nothing is listed. Those operations are not generated
+until the list is reviewed or the operation is excluded. For anything a field
+list cannot express, such as fragments, selections on unions and interfaces, or
+arguments on nested fields, set `query_document` to a complete reviewed query.
+Its variables must keep the argument names.
+
+Every request is a JSON POST. The client-owned `api_request_graphql_response`
+callback raises `specmill_call_error` whenever the response has an `errors`
+entry, also with HTTP 200 and partial data. The server's messages are attached
+to the condition as `errors` and kept out of its message, because they can echo
+variable values. Otherwise the wrapper returns the value of the root field;
+`NULL` when the service answers null.
+
+Not generated in this version: subscriptions (reported as
+`subscriptions_unsupported`), automatic pagination, authentication (introspection
+declares none) and recorded test scenarios for GraphQL operations. Queries are
+sent with POST, so automatic retries apply only when `retry_writes` is enabled.
 

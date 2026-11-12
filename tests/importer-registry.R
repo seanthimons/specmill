@@ -72,7 +72,7 @@ importer_registry_acceptance <- function() {
     metadata$importer_version == 'test-1',
     identical(
       names(internal('importer_registry')()),
-      c('openapi', 'swagger', 'arcgis-rest', 'google-discovery')
+      c('openapi', 'swagger', 'arcgis-rest', 'google-discovery', 'graphql')
     )
   )
   fail(
@@ -166,7 +166,8 @@ importer_registry_acceptance <- function() {
   samples <- list(
     openapi = source,
     'arcgis-rest' = file.path(fixtures, 'arcgis/conductivity.json'),
-    'google-discovery' = file.path(fixtures, 'discovery/monitoring.json')
+    'google-discovery' = file.path(fixtures, 'discovery/monitoring.json'),
+    graphql = file.path(fixtures, 'graphql/monitoring.json')
   )
   entries <- internal('importer_registry')()
   pattern <- internal('importer_artifact_pattern')()
