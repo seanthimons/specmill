@@ -1,3 +1,53 @@
+## specmill 0.3.0 (2026-11-12)
+
+#### New features
+
+- support non-OpenAPI schema sources for Milestone 2 (#282)
+  ([516f4e0](https://github.com/seanthimons/specmill/tree/516f4e03f2d6491e66b90c5b0a4f6e4b5b0bd5c7))
+- generate clients from saved GraphQL introspection results (#244, #245)
+  ([8b43b0e](https://github.com/seanthimons/specmill/tree/8b43b0e59b74266285ce55c789855a4f88004679))
+- read and validate OpenAPI 3.2 documents (#242)
+  ([d1e5b3a](https://github.com/seanthimons/specmill/tree/d1e5b3a15c28a54cd68756a63496584c24714a5a))
+- generate clients from Google API Discovery documents (#239)
+  ([af37723](https://github.com/seanthimons/specmill/tree/af37723bf8e77314126324ea09ffe8ed642b99b9))
+- generate ArcGIS clients from reviewed local captures (#269)
+  ([6815fea](https://github.com/seanthimons/specmill/tree/6815feab52f26d0714ea4c49356de0d8f7b1b98c))
+- add importer registry and schema format overrides (#230)
+  ([86292b5](https://github.com/seanthimons/specmill/tree/86292b55f7c5760b3e1290a18117cffb000404b9))
+- add an OpenAPI importer for the API intermediate representation (#229)
+  ([fbd31c0](https://github.com/seanthimons/specmill/tree/fbd31c0d827a3928ab2d68b1ef4170d6e71f309d))
+- define a versioned, format-neutral API intermediate representation
+  (#228)
+  ([8512629](https://github.com/seanthimons/specmill/tree/8512629111e6b48d9a2912806b5174fa7dd1229c))
+
+#### Refactorings
+
+- resolve each multi-API schema format once (#230)
+  ([516f55d](https://github.com/seanthimons/specmill/tree/516f55df028ff082e0d14f384f1be904deac28e3))
+- confine native schema readers to the OpenAPI importer (#229)
+  ([a08f94a](https://github.com/seanthimons/specmill/tree/a08f94a9991441928cafcd7d76a50dc107085478))
+- route reviewed requests through the API IR (#229)
+  ([bc14178](https://github.com/seanthimons/specmill/tree/bc141787195653ec52155a92d20a9595e5bd9bc3))
+- isolate operation selection and naming policy (#229)
+  ([679aff1](https://github.com/seanthimons/specmill/tree/679aff145bf333ebe0a2dba41072acca3946f6b2))
+
+#### Tests
+
+- freeze referenced-contract provenance before reader migration (#229)
+  ([4393463](https://github.com/seanthimons/specmill/tree/43934633609c1cb7c3f5a617409aae08ec69fae8))
+- capture golden output before the OpenAPI importer refactor (#229)
+  ([738cdac](https://github.com/seanthimons/specmill/tree/738cdac76cb304cc1391d71c948202b7f5437652))
+
+#### Other changes
+
+- record golden manifest digests as verified false positives (#229)
+  ([1203032](https://github.com/seanthimons/specmill/tree/12030320397cad0fca1ef5170f0d6a66569d4a7b))
+- add desktop directory icon metadata
+  ([54f8f19](https://github.com/seanthimons/specmill/tree/54f8f1943e1943a25167df6c713d31fb9de9f546))
+
+Full set of changes:
+[`v0.2.5...v0.3.0`](https://github.com/seanthimons/specmill/compare/v0.2.5...v0.3.0)
+
 ## specmill 0.2.5 (2026-11-11)
 
 #### New features
