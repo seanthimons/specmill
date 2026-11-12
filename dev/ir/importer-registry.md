@@ -21,8 +21,9 @@ service-capture paths and retains source diagnostics. Configuration and validati
 format-specific metadata without native keys in catalogue/generation modules.
 
 OpenAPI and Swagger are separate detected formats sharing importer version `1`
-and the same normalization family. Their existing 3.0/3.1 and 2.0 generation
-limits remain. A registry entry may also provide catalogue metadata, reference
+and the same normalization family. Their existing 3.0, 3.1 and 2.0 generation
+limits remain, and OpenAPI 3.2 is read as 3.1 with its new constructs listed
+or diagnosed. A registry entry may also provide catalogue metadata, reference
 inputs, and a compatibility-record reader. Without a catalogue callback, service
 title and server choices come from validated IR. Compatible readers in one family
 may merge sources; unrelated families cannot be merged in one service.

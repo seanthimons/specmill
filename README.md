@@ -418,10 +418,11 @@ selection, routing, generation and runtime pipeline used to debug wrapper behavi
 
 Generation uses local JSON or YAML schemas and reports unsupported operations explicitly.
 Generation requires each schema to conform to the official Swagger 2.0,
-OpenAPI 3.0 or OpenAPI 3.1 JSON Schema. Validation runs locally and uploads
+OpenAPI 3.0, 3.1 or 3.2 JSON Schema. Validation runs locally and uploads
 nothing. Inspect `plan$validation` and `plan$diagnostics`; apply and check refuse
-selected-operation and document validation blockers. OAS 3.1 Schema Objects are
-checked against the default JSON Schema 2020-12 dialect. Schemas with external
+selected-operation and document validation blockers. OAS 3.1 and 3.2 Schema
+Objects are checked against the default JSON Schema 2020-12 dialect of their
+version. Schemas with external
 references must be bundled into one document first.
 
 Use `specmill::validate_schema(path)` for a standalone report. Located errors

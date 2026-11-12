@@ -145,7 +145,7 @@ opaque in that view; unrelated validation failures still block generation.
 ### Schema validation
 
 Generation requires validation by default. Each schema is checked locally
-against the official Swagger 2.0, OpenAPI 3.0 or OpenAPI 3.1 JSON Schema;
+against the official Swagger 2.0, OpenAPI 3.0, 3.1 or 3.2 JSON Schema;
 nothing is uploaded. `validate_schema()` returns a standalone report. Explicit
 `validation: false` bypasses the gate and should be a reviewed project decision:
 
@@ -1617,7 +1617,7 @@ still read the logical entries through `params` without splitting the wire text.
 
 ### Parameter serialization
 
-OpenAPI 3.0 and 3.1 support the following flat parameter shapes. Arrays contain
+OpenAPI 3.0, 3.1 and 3.2 support the following flat parameter shapes. Arrays contain
 strings, integers, numbers, or booleans; objects contain scalar properties or
 scalar-valued maps. Use unnamed vectors/lists for arrays and named lists for
 objects. Nested arrays/objects and unconstrained array items have no supported
@@ -2808,8 +2808,9 @@ resolver settings or fallback URLs remain errors.
 
 ## Schema formats
 
-Schemas are detected by registered importers. OpenAPI 3.0/3.1 and Swagger 2.0
-and reviewed ArcGIS REST captures are currently implemented. Other recognized descriptions report their format
+Schemas are detected by registered importers. OpenAPI 3.0, 3.1 and 3.2, Swagger
+2.0, reviewed ArcGIS REST captures and Google API Discovery documents are
+currently implemented. Other recognized descriptions report their format
 and the supported importer list; recognition alone does not enable generation.
 Use an API-level or flat-service `format: openapi` or `format: swagger` to
 override detection. API groups inherit that setting. Omit it to detect each
@@ -2821,6 +2822,27 @@ format means automatic detection. Format selection happens before the review
 table is built. Detected `source_format` and `importer_version` are read-only
 metadata, also recorded per schema in generated ownership provenance. Importer
 registration is internal until the extension contract stabilizes.
+
+## OpenAPI 3.2
+
+An OpenAPI 3.2 document is validated against the official 3.2 schema and read
+like OpenAPI 3.1: its Schema Objects follow JSON Schema 2020-12. A Media Type
+Object given by reference (`#/components/mediaTypes/...`) is resolved. Four
+constructs that only 3.2 defines are not generated:
+
+- A `query` operation is listed as excluded with code `query_method`.
+- An `additionalOperations` entry is listed as excluded with code
+  `additional_operation`. Neither needs policy, and neither blocks generation.
+- A parameter with `in: querystring` makes its operation unsupported
+  (`querystring_parameter`).
+- A request body that uses `itemSchema` makes its operation unsupported
+  (`sequential_media`).
+
+Exclude an unsupported operation in selection policy to generate the rest.
+Sequential request media types such as `application/jsonl` are reported as
+unsupported body media, as before. Tag `parent`, `kind` and `summary`, `$self`
+and the other descriptive additions are not used; operations are still grouped
+by tag name, and references still resolve against the local file.
 
 ## ArcGIS local captures
 

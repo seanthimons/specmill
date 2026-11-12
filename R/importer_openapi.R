@@ -2,6 +2,102 @@
 # shared with read_operations() during the staged migration (#229). Policy
 # resolves explicit native reviews before the IR view is built; importer_openapi()
 # accepts no policy. Compatibility JSON Schema fragments follow in #279.
+# Swagger 2.0 and OpenAPI 3.0, 3.1 and 3.2 are read. OpenAPI 3.1 and 3.2 Schema
+# Objects follow JSON Schema 2020-12; earlier versions use their own subset.
+openapi_supported_version <- function(version) {
+  is.character(version) &&
+    length(version) == 1L &&
+    !is.na(version) &&
+    grepl('^(3\\.[012]\\.|2\\.0$)', version)
+}
+
+openapi_schema_2020 <- function(version) {
+  grepl('^3[.][12][.]', version %or% '')
+}
+
+openapi_version_32 <- function(version) {
+  grepl('^3[.]2[.]', version %or% '')
+}
+
+# OpenAPI 3.2 allows a Media Type Object by reference. Readers of request and
+# response content expect the object itself, so referenced media types are
+# resolved in place.
+openapi_inline_content <- function(node, document, at) {
+  if (!is.list(node) || !is.list(node[['content']])) {
+    return(node)
+  }
+  for (media in names(node$content)) {
+    object <- node$content[[media]]
+    if (is.list(object) && !is.null(object[['$ref']])) {
+      node$content[[media]] <- local_ref(
+        object,
+        document,
+        source_location = schema_location(
+          schema_location(at, 'content'),
+          media
+        )
+      )
+    }
+  }
+  node
+}
+
+openapi_inline_media <- function(operation, document, at, version) {
+  if (!openapi_version_32(version)) {
+    return(operation)
+  }
+  if (!is.null(operation[['requestBody']])) {
+    operation$requestBody <- openapi_inline_content(
+      operation$requestBody,
+      document,
+      schema_location(at, 'requestBody')
+    )
+  }
+  for (status in names(operation[['responses']])) {
+    operation$responses[[status]] <- openapi_inline_content(
+      operation$responses[[status]],
+      document,
+      schema_location(schema_location(at, 'responses'), status)
+    )
+  }
+  operation
+}
+
+# OpenAPI 3.2 path items may declare a QUERY operation and operations for any
+# other method under additionalOperations, keyed by the method as it is sent.
+openapi_extra_operations <- function(item, path, version) {
+  if (!openapi_version_32(version) || !is.list(item)) {
+    return(list())
+  }
+  at <- schema_location('#/paths', path)
+  additional <- item[['additionalOperations']]
+  c(
+    if (!is.null(item[['query']])) {
+      list(list(
+        key = paste('QUERY', path),
+        method = 'QUERY',
+        code = 'query_method',
+        reason = 'OpenAPI 3.2 QUERY operations are not generated.',
+        source_location = schema_location(at, 'query')
+      ))
+    },
+    if (is.list(additional)) {
+      lapply(names(additional), function(method) {
+        list(
+          key = paste(method, path),
+          method = method,
+          code = 'additional_operation',
+          reason = 'OpenAPI 3.2 additionalOperations entries are not generated.',
+          source_location = schema_location(
+            schema_location(at, 'additionalOperations'),
+            method
+          )
+        )
+      })
+    }
+  )
+}
+
 # Shared native source reader. Keeping this step ahead of selection preserves
 # the existing document errors while operation validation remains selection-aware.
 openapi_read_source <- function(file, document = read_schema_document(file)) {
@@ -14,7 +110,7 @@ openapi_read_source <- function(file, document = read_schema_document(file)) {
     document = document
   )
   version <- document$openapi %or% document$swagger
-  if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
+  if (!openapi_supported_version(version)) {
     stop('Unsupported schema version in ', file, call. = FALSE)
   }
   if (!is.list(document$paths) || is.null(names(document$paths))) {
@@ -75,7 +171,7 @@ openapi_ir_type <- function(schema, context, at = '#', depth = 0L) {
   type <- unlist(schema$type, use.names = FALSE)
   if (
     isTRUE(schema$nullable) &&
-      !startsWith(context$version, '3.1') ||
+      !openapi_schema_2020(context$version) ||
       'null' %in% type && length(type) > 1L
   ) {
     annotations$nullable <- TRUE
@@ -113,7 +209,7 @@ openapi_ir_type <- function(schema, context, at = '#', depth = 0L) {
       list(kind = 'ref', name = target)
     }
     siblings <- schema[setdiff(names(schema), c('$ref', names(names_map)))]
-    if (startsWith(context$version, '3.1') && length(siblings)) {
+    if (openapi_schema_2020(context$version) && length(siblings)) {
       base <- list(
         kind = 'intersection',
         members = list(base, descend(siblings, at))
@@ -565,11 +661,21 @@ openapi_ir_responses <- function(responses, context, at, produces = NULL) {
     lapply(names(responses), function(status) {
       pointer <- schema_location(at, status)
       response <- tryCatch(
-        local_ref(
-          responses[[status]],
-          context$document,
-          source_location = pointer
-        ),
+        {
+          resolved <- local_ref(
+            responses[[status]],
+            context$document,
+            source_location = pointer
+          )
+          if (openapi_version_32(context$version)) {
+            resolved <- openapi_inline_content(
+              resolved,
+              context$document,
+              pointer
+            )
+          }
+          resolved
+        },
         specmill_schema_problem = identity
       )
       if (inherits(response, 'specmill_schema_problem')) {
@@ -914,6 +1020,27 @@ openapi_read_records <- function(files, view) {
         next
       }
       document$paths[[path]] <- item
+      for (extra in openapi_extra_operations(item, path, version)) {
+        # Project policy selects among the eight standard methods, so these
+        # operations are listed with their own reason and never generated.
+        inventory[[length(inventory) + 1L]] <- c(
+          list(
+            id = paste(view$service, extra$key),
+            key = extra$key,
+            service = view$service,
+            method = extra$method,
+            path = path,
+            source = file,
+            source_hash = source_hash,
+            status = 'excluded'
+          ),
+          extra[c('reason', 'code', 'source_location')],
+          list(
+            classification = 'capability_gap',
+            guidance = 'Call this operation from client-owned code; generation covers the eight standard HTTP methods.'
+          )
+        )
+      }
       for (method in intersect(
         names(item),
         c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace')
@@ -971,6 +1098,12 @@ openapi_read_records <- function(files, view) {
               item[[method]],
               document,
               source_location = operation_location
+            )
+            op <- openapi_inline_media(
+              op,
+              document,
+              operation_location,
+              version
             )
             response_correction <- review$setting('response_correction')
             response_operation <- response_corrected_operation(
@@ -1235,7 +1368,8 @@ openapi_read_records <- function(files, view) {
                 'request_body_method',
                 'review_required',
                 paste(
-                  'OAS 3.1',
+                  'OAS',
+                  substr(version, 1L, 3L),
                   toupper(method),
                   'request body requires an explicit operation body_media review'
                 ),
@@ -1243,7 +1377,9 @@ openapi_read_records <- function(files, view) {
               )
             } else if (undefined_body_method) {
               warning(
-                'OAS 3.1 ',
+                'OAS ',
+                substr(version, 1L, 3L),
+                ' ',
                 toupper(method),
                 ' request body has undefined interoperability semantics',
                 call. = FALSE
@@ -1362,6 +1498,9 @@ openapi_read_records <- function(files, view) {
             } else if (!is.null(body)) {
               source_location <- body_location
               body <- local_ref(body, document, source_location = body_location)
+              if (openapi_version_32(version)) {
+                body <- openapi_inline_content(body, document, body_location)
+              }
               body_required <- isTRUE(body$required)
               body_media <- request_body_media(
                 names(body$content),
@@ -1370,19 +1509,26 @@ openapi_read_records <- function(files, view) {
                 correction = media_correction
               )
               schema_media <- media_correction$from %or% body_media
-              body_encoding <- body$content[[schema_media]]$encoding %or% list()
-              body_example <- body$content[[schema_media]][intersect(
-                'example',
-                names(body$content[[schema_media]])
-              )]
-              body_location <- schema_location(
-                schema_location(
-                  schema_location(body_location, 'content'),
-                  schema_media
-                ),
-                'schema'
+              media_location <- schema_location(
+                schema_location(body_location, 'content'),
+                schema_media
               )
-              body <- body$content[[schema_media]]$schema
+              media_object <- body$content[[schema_media]]
+              if (!is.null(media_object[['itemSchema']])) {
+                schema_problem(
+                  'sequential_media',
+                  'capability_gap',
+                  'OpenAPI 3.2 sequential request bodies (itemSchema) are not generated',
+                  media_location
+                )
+              }
+              body_encoding <- media_object$encoding %or% list()
+              body_example <- media_object[intersect(
+                'example',
+                names(media_object)
+              )]
+              body_location <- schema_location(media_location, 'schema')
+              body <- media_object$schema
             }
             if (
               !is.null(media_correction) &&
@@ -1399,6 +1545,14 @@ openapi_read_records <- function(files, view) {
               p <- params[[i]]
               source_location <<- parameter_locations[[i]]
               location <- p[['in']]
+              if (identical(location, 'querystring')) {
+                schema_problem(
+                  'querystring_parameter',
+                  'capability_gap',
+                  'OpenAPI 3.2 querystring parameters are not generated',
+                  source_location
+                )
+              }
               if (
                 length(location) != 1L ||
                   !location %in%
@@ -3621,7 +3775,7 @@ input_schema <- function(
     if (
       is.logical(schema) &&
         length(schema) == 1L &&
-        startsWith(document$openapi %or% '', '3.1')
+        openapi_schema_2020(document$openapi)
     ) {
       fail(
         'boolean_schema',
@@ -3689,7 +3843,7 @@ input_schema <- function(
     if (
       !length(type) ||
         anyDuplicated(type) ||
-        (!startsWith(version, '3.1') &&
+        (!openapi_schema_2020(version) &&
           (length(type) != 1L || 'null' %in% type))
     ) {
       fail(
@@ -3701,7 +3855,7 @@ input_schema <- function(
     schema$type <- type
   }
   # OpenAPI 3.1 uses JSON Schema null types; nullable is not an assertion.
-  if (startsWith(version, '3.1')) {
+  if (openapi_schema_2020(version)) {
     schema$nullable <- NULL
   }
   # An untyped enum takes the one scalar type its values share (#95).
@@ -3729,7 +3883,8 @@ input_schema <- function(
       kinds <- 'number'
     }
     if (length(kinds) == 1L && !is.na(kinds)) {
-      nullable <- length(present) < length(values) && startsWith(version, '3.1')
+      nullable <- length(present) < length(values) &&
+        openapi_schema_2020(version)
       schema$type <- c(kinds, if (nullable) 'null')
     }
   }
@@ -3952,7 +4107,7 @@ local_ref <- function(
   siblings <- node[setdiff(names(node), '$ref')]
   if (
     schema_context &&
-      startsWith(document$openapi %or% '', '3.1') &&
+      openapi_schema_2020(document$openapi) &&
       length(siblings)
   ) {
     annotations <- names(siblings) %in%
@@ -4089,7 +4244,7 @@ supported_body <- function(
         c('uniqueItems', 'nullable') ||
         (field %in%
           c('exclusiveMinimum', 'exclusiveMaximum') &&
-          !startsWith(document$openapi %or% '', '3.1'))
+          !openapi_schema_2020(document$openapi))
       valid <- if (boolean) {
         is.logical(value) && length(value) == 1L && !is.na(value)
       } else if (field == 'pattern') {
@@ -4915,17 +5070,25 @@ provenance_documents <- function() {
 
 
 # Native implementation retained for the compatibility context: testing_response_schema.
-testing_response_schema <- function(response) {
+testing_response_schema <- function(response, document = NULL) {
   if (is.null(response)) {
     return(list(media = NULL, schema = NULL))
   }
   if (!is.null(response$content)) {
     media <- names(response$content)
     json <- grep('^application/json|[+]json', media, value = TRUE)
-    return(list(
-      media = sort(media),
-      schema = if (length(json)) response$content[[json[[1L]]]]$schema
-    ))
+    declared <- if (length(json)) response$content[[json[[1L]]]]
+    # OpenAPI 3.2 allows a Media Type Object by reference.
+    ref <- declared[['$ref']]
+    if (
+      !is.null(document) &&
+        openapi_version_32(document$openapi) &&
+        is.character(ref) &&
+        startsWith(ref, '#/')
+    ) {
+      declared <- json_pointer(document, ref)
+    }
+    return(list(media = sort(media), schema = declared$schema))
   }
   # Swagger 2 keeps the schema directly on the response.
   list(media = NULL, schema = response$schema)
@@ -4978,11 +5141,11 @@ review_interaction <- function(interaction, op, documents) {
     }
     declared <- json_pointer(document, ref)
   }
-  schema <- testing_response_schema(declared)$schema
+  schema <- testing_response_schema(declared, document)$schema
   if (is.null(schema)) {
     return(list(status = 'unchecked', reason = 'no JSON response schema'))
   }
-  dialect <- if (grepl('^3[.]1', document$openapi %or% '')) '2020' else '04'
+  dialect <- if (openapi_schema_2020(document$openapi)) '2020' else '04'
   root <- list(allOf = list(schema))
   if (!is.null(document$components$schemas)) {
     root$components <- list(schemas = document$components$schemas)
@@ -5048,7 +5211,7 @@ schema_servers <- function(file) {
 openapi_configuration_source <- function(schema) {
   document <- read_schema_document(schema)
   version <- document$openapi %or% document$swagger
-  if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
+  if (!openapi_supported_version(version)) {
     stop('Unsupported schema version')
   }
   if (!is.list(document$paths) || is.null(names(document$paths))) {
@@ -5169,7 +5332,7 @@ openapi_configuration_source <- function(schema) {
 openapi_catalogue_source <- function(path, label) {
   document <- read_schema_document(path)
   version <- document$openapi %or% document$swagger %or% ''
-  if (!grepl('^(3\\.[01]\\.|2\\.0$)', version) || is.null(document$paths)) {
+  if (!openapi_supported_version(version) || is.null(document$paths)) {
     stop('Not a supported API schema: ', label)
   }
   list(

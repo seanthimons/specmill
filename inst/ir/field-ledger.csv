@@ -24,7 +24,7 @@ operation,security,neutral,operations[].security,Effective requirements; operati
 operation,security_schemes,neutral,sources[].auth_schemes,Per source; OpenAPI components.securitySchemes or securityDefinitions
 operation,source,neutral,sources[].file,Referenced by operations[].source
 operation,source_hash,neutral,sources[].hash,md5 today; the IR names the algorithm
-operation,schema_version,neutral,sources[].format_version,Value is OpenAPI-specific ('2.0' '3.0.x' '3.1.x')
+operation,schema_version,neutral,sources[].format_version,Value is OpenAPI-specific ('2.0' '3.0.x' '3.1.x' '3.2.x')
 operation,transport_diagnostics,neutral,operations[].transport_diagnostics,Non-empty marks the operation unsupported
 operation,source_operation,openapi_only,operations[].native,Raw OpenAPI operation object; generators must stop reading it in #229
 operation,response,neutral,operations[].responses,Raw responses map today; status-keyed list in the IR

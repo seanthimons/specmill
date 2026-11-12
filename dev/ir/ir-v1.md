@@ -19,8 +19,8 @@ contract is documented in [importer-registry.md](importer-registry.md).
 
 ## OpenAPI importer migration
 
-`importer_openapi(files)` accepts distinct local OpenAPI 3.0/3.1 or Swagger 2
-files and no policy argument. It emits source-scoped types, authentication,
+`importer_openapi(files)` accepts distinct local OpenAPI 3.0, 3.1 or 3.2 or
+Swagger 2 files and no policy argument. It emits source-scoped types, authentication,
 servers and normalized operation metadata. Identical duplicate operations merge
 using the existing contract checks. Unsupported request operations retain their
 transport diagnostics. Native source loading retains the existing version/path

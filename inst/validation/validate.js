@@ -1,5 +1,6 @@
 // Validates OpenAPI documents with the ajv build shipped in jsonvalidate.
-// Expects the globals swagger20, oas30, oas31, dialect31 and meta31.
+// Expects the globals swagger20, oas30, oas31, dialect31, meta31, oas32,
+// dialect32 and meta32.
 var options = {allErrors: true, strict: false, logger: false, verbose: true};
 
 function draft04(schema) {
@@ -144,13 +145,36 @@ addFormats(ajv2020);
 ajv2020.addFormat("media-range", true);
 ajv2020.addSchema(dialect31);
 ajv2020.addSchema(meta31);
+ajv2020.addSchema(dialect32);
+ajv2020.addSchema(meta32);
+
+// The bundled ajv rejects an array with no matching item when minContains is 0
+// and maxContains is set. State the upper bound as a negated lower bound.
+function bound_contains(node) {
+  if (Array.isArray(node)) {
+    node.forEach(bound_contains);
+    return;
+  }
+  if (!node || typeof node !== "object") return;
+  Object.keys(node).forEach(function (key) { bound_contains(node[key]); });
+  if (node.contains && node.minContains === 0 &&
+    typeof node.maxContains === "number") {
+    node.allOf = (node.allOf || []).concat([{not: {
+      contains: node.contains, minContains: node.maxContains + 1}}]);
+    delete node.contains;
+    delete node.minContains;
+    delete node.maxContains;
+  }
+}
+bound_contains(oas32);
 
 // The official schema decides validity; the rewritten one only explains it.
-// OAS 3.1 already selects branches with if/then.
+// OAS 3.1 and 3.2 already select branches with if/then.
 var validators = {
   "2.0": [draft04(swagger20), diagnostic(swagger20)],
   "3.0": [draft04(oas30), diagnostic(oas30)],
-  "3.1": [ajv2020.compile(oas31)]
+  "3.1": [ajv2020.compile(oas31)],
+  "3.2": [ajv2020.compile(oas32)]
 };
 
 function clean(errors) {

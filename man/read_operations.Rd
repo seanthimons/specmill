@@ -2,7 +2,7 @@
 \alias{read_operations}
 \alias{compare_operations}
 \title{Read and compare local schema operations}
-\description{Extract operation records from local OpenAPI 3.0/3.1 or Swagger 2.0 JSON or YAML schemas, or reviewed ArcGIS service captures and compare their input contracts.}
+\description{Extract operation records from local OpenAPI 3.0, 3.1 or 3.2 or Swagger 2.0 JSON or YAML schemas, or reviewed ArcGIS service captures and compare their input contracts.}
 \usage{
 read_operations(files, policy = list(), format = NULL)
 compare_operations(old, new)
