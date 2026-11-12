@@ -42,7 +42,7 @@ api_request_cached <- function(.operation, .settings, ...) {
   policy <- if ('response_policy' %in% base::names(arguments)) arguments[['response_policy']] else base::getOption(base::paste0(option_prefix, '.response_policy'))
   raw <- function(x) {
     base::inherits(x, base::c('httr2_request', 'httr2_response')) ||
-      (base::is.list(x) && !base::is.data.frame(x) && base::any(base::vapply(x, raw, base::logical(1)))) ||
+      (base::is.list(x) && base::any(base::vapply(x, raw, base::logical(1)))) ||
       base::any(base::vapply(base::unname(base::attributes(x)), raw, base::logical(1)))
   }
   if (!base::inherits(result, 'httr2_request') && (base::is.null(policy) || !raw(result))) store$set(key, base::list(value = result))

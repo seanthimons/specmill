@@ -314,6 +314,19 @@ response_cache_acceptance <- function() {
       with_key('alpha', env$list_items(q = 'attribute'))
     )
   )
+  # And for one held in a list-column of a data frame.
+  framed <- function(response, context, decode) {
+    frame <- data.frame(n = decode()$n)
+    frame$response <- list(response)
+    frame
+  }
+  in_frame <- withr::with_options(
+    list(cacheclient.response_policy = framed),
+    list(
+      with_key('alpha', env$list_items(q = 'frame')),
+      with_key('alpha', env$list_items(q = 'frame'))
+    )
+  )
   # A malformed request option still gets the helper's own error.
   malformed <- withr::with_options(
     list(cacheclient.request = 'not a list'),
@@ -322,6 +335,8 @@ response_cache_acceptance <- function() {
   stopifnot(
     attached[[1L]]$n == 8L,
     attached[[2L]]$n == 9L,
+    in_frame[[1L]]$n == 10L,
+    in_frame[[2L]]$n == 11L,
     inherits(malformed, 'specmill_call_error'),
     bypassed$n == 4L,
     inherits(dry, 'httr2_request'),
@@ -364,7 +379,7 @@ response_cache_acceptance <- function() {
   stopifnot(
     !dir.exists(cache_dir),
     with_key('alpha', env$on_disk(q = 'a'))$n == 2L,
-    with_key('alpha', env$list_items(q = 'a'))$n == first$n + 9L
+    with_key('alpha', env$list_items(q = 'a'))$n == first$n + 11L
   )
   check <- generate(root, 'check')
   stopifnot(all(vapply(
