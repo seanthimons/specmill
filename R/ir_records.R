@@ -166,7 +166,7 @@ ir_request_records <- function(ir, view) {
       method = op$binding$method,
       path = op$binding$path,
       route = op$binding$path,
-      summary = op$summary %or% op$name,
+      summary = summary_text(op$summary, op$description, op$name),
       description = op$description %or% '',
       deprecated = isTRUE(op$deprecated),
       parameters = parameters,

@@ -34,6 +34,7 @@ reference:
   - configure_apis
   - load_project
   - generate_client
+  - petstore_example
 - title: Inspect and verify
   contents:
   - inspect_client

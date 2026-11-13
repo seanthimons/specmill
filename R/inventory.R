@@ -22,7 +22,7 @@
 #'   false positives when an endpoint is used in a different file (e.g., a wrapper function).
 #' @return A list with two elements:
 #'   \describe{\item{hits}{data.frame of each match with file, line, text, etc.}\item{summary}{summary data.frame per endpoint.}}
-#' @export
+#' @noRd
 find_endpoint_usages_base <- function(
   endpoints,
   pkg_dir = ".",

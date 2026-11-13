@@ -67,7 +67,7 @@ GitHub release descriptions use the generated NEWS section.
 ## Corpus diagnostics
 
 Many generation fixtures explicitly set `validation = FALSE` or
-`validation: false`. `tests/schema-validation.R` exercises required validation
+`validation: false`. `tests/testthat/test-schema-validation.R` exercises required validation
 for Swagger 2.0, OpenAPI 3.0, 3.1 and 3.2, YAML input and operation/document blocking. Run it with the workspace package loaded or installed.
 
 `audit_testing_specs()` writes `DIAGNOSTICS.md` alongside its CSV results when
@@ -99,15 +99,18 @@ whose release events cannot start another
 workflow. The caller therefore uses `workflow_dispatch`, which GitHub permits
 with that token, to start the automatic documentation build.
 
-Specmill has manually maintained help pages. Automatic roxygen regeneration,
-rolling releases, and ComptoxR's database/schema schedules remain excluded.
+Help pages and NAMESPACE are generated from roxygen comments in `R/` with
+`devtools::document()`, and the regenerated files are committed with the source
+change. CI does not regenerate them. Rolling releases and ComptoxR's
+database/schema schedules remain excluded.
 
 ## Try a different schema
 
 For the full 19-endpoint configuration demonstration, including pet/store/user
 names, parameter renaming, grouped source and help, explicit mappings, and
-retained client functions, see [petstore/README.md](petstore/README.md).
-Run source('dev/build_petstore.R') and build_petstore() for that example.
+retained client functions, see
+[inst/examples/petstore/README.md](../inst/examples/petstore/README.md).
+Build it with `specmill::petstore_example(path)`.
 The three-operation smoke trial below remains a smaller separate example.
 
 The Petstore trial downloads the [live service's schema](https://petstore3.swagger.io/api/v3/openapi.json),

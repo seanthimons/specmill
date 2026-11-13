@@ -258,6 +258,18 @@ propose_service <- function(root, x, definitions) {
   )
 }
 
+#' Propose cassette scenarios and missing docs examples
+#'
+#' Group selected read operations by behavior and propose one cassette scenario per group, plus docs example stubs for inputs no example supplies. Nothing is declared, and nothing is written into the project unless `file` names a new review file.
+#'
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param file Optional new path, relative to root and outside \file{tests/}, \file{apis/}, \file{R/}, \file{man/} and \file{inst/}, where the proposal YAML is written for review. Existing files are never overwritten.
+#' @return Invisibly, a list with `services` (per service: proposed `scenarios`, `operations` holding `docs.examples` stubs, `writes` not proposed, and `blocked` routes with reasons) and `yaml`, the same proposal as reviewable text.
+#' @details Operations are grouped by source schema file, success response media and schema, request body media, pagination, batching, post-response scope, result formatter and hook chains. Routes already covered by a declared scenario, or declared unrecorded, are skipped. Each group's scenario uses the first member whose inputs resolve from an existing docs example or the schema; it lists the whole group as `represents`. When no member resolves, the proposal adds one docs example entry with `null` for each missing input after the operation's effective examples, and points the scenario at it. A scenario using an unfilled entry stays blocked. State-changing operations are listed but never proposed, because recording them needs `record_write`. Proposals are checked like declarations but are not declarations: they never count as coverage until reviewed and copied into the service testing file and `docs.examples`.
+#' @seealso \code{\link{review_recordings}}, [Step-by-step guide](https://seanthimons.github.io/specmill/articles/testing.html).
+#' @export
 propose_testing <- function(
   root,
   config = 'specmill.yml',
@@ -392,6 +404,17 @@ json_pointer <- function(document, ref) {
   target
 }
 
+#' Check recorded responses against the OpenAPI response schema
+#'
+#' Validate each declared scenario's recorded response bodies against the response schema its operation declares, and report the result for review. No file is changed.
+#'
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @return A list keyed by service ID, then scenario ID. Each entry holds the `route`, the `cassette` path and a `status`: `agrees`, `disagrees` with `errors` (instance paths and messages, never recorded values, although a path can name a key from the recorded body), or `unchecked` with a `reason`. `placeholders` lists any testing filter placeholders found in the recording.
+#' @details Only interactions whose method and path match the scenario's operation are checked. The schema for the recorded status is used, then its \code{2XX}-style range, then `default`; OpenAPI 3 uses the JSON media type and Swagger 2 the response schema; shared responses (\code{$ref} into the document's responses) are followed. Bodies vcr kept as base64 (raw or gzip) are decoded first. Internal references resolve against the schema document's component schemas or definitions; examples, defaults and \code{x-} extensions are ignored. OpenAPI 3.0 and Swagger 2 validate as JSON Schema draft 4, with `nullable` honored, and OpenAPI 3.1 as draft 2020-12. A disagreement means review the recording or the schema; it never marks either as correct, and it never re-records. Values replaced by testing filters read as placeholders and can disagree.
+#' @seealso \code{\link{propose_testing}}, [Step-by-step guide](https://seanthimons.github.io/specmill/articles/testing.html).
+#' @export
 review_recordings <- function(
   root,
   config = 'specmill.yml',

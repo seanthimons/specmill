@@ -11,6 +11,7 @@
 #' @param path Path to the R source file.
 #' @return Logical; TRUE if a protected lifecycle is found, FALSE otherwise.
 #' @keywords internal
+#' @noRd
 has_protected_lifecycle <- function(path) {
   lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) {
     character()
@@ -55,7 +56,7 @@ has_protected_lifecycle <- function(path) {
 #' # Check for skipped or failed files
 #' result %>% filter(action %in% c("skipped", "error"))
 #' }
-#' @export
+#' @noRd
 scaffold_files <- function(
   data,
   path_col = "file",

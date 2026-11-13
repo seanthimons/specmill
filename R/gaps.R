@@ -1,3 +1,5 @@
+#' @rdname coverage_report
+#' @export
 test_gap_report <- function(
   root,
   policy,

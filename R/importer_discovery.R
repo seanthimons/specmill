@@ -339,9 +339,6 @@ importer_discovery <- function(path, policy = list()) {
         list(list(oauth2 = as.list(unlist(method$scopes, use.names = FALSE))))
       }
     )
-    # The first sentence of the first line serves as the summary.
-    summary <- strsplit(method$description %or% '', '\n', fixed = TRUE)[[1L]]
-    summary <- sub('^([^.]*[.]).*$', '\\1', c(summary, '')[[1L]])
     op <- list(
       key = key,
       id = paste(service$id, key),
@@ -351,7 +348,8 @@ importer_discovery <- function(path, policy = list()) {
         sub(paste0('^', name, '[.]'), '', id)
       ),
       native_name = id,
-      summary = if (nzchar(summary)) summary else id,
+      # The first sentence of the first line serves as the summary.
+      summary = summary_text(NULL, method$description, id),
       paradigm = 'rest',
       source = source_id,
       binding = list(method = verb, path = route),

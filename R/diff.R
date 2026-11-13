@@ -386,6 +386,9 @@ diff_schemas <- function(
   results
 }
 
+#' @rdname schema_diff
+#' @param diff_results Versioned-schema report records. Changed contracts require review and are conservatively counted in the breaking-change lane; parsing errors stop comparison.
+#' @export
 format_diff_markdown <- function(diff_results) {
   if (length(diff_results) == 0) {
     return("No endpoint-level changes detected.")
@@ -532,6 +535,8 @@ format_diff_markdown <- function(diff_results) {
   paste(md, collapse = "\n")
 }
 
+#' @rdname schema_diff
+#' @export
 count_diff_changes <- function(diff_results) {
   breaking <- 0L
   nonbreaking <- 0L

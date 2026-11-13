@@ -16,3 +16,4 @@
 ^\.docs-lib$
 ^artifacts$
 ^dev$
+^\.directory$

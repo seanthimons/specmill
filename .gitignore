@@ -14,6 +14,8 @@ artifacts/
 # root dot-directory and root markdown file; required files are opted in below.
 /.*/
 /*.md
+# KDE folder settings (local icon); keep the local file untracked.
+/.directory
 !/.github/
 !/README.md
 !/NEWS.md

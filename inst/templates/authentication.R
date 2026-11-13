@@ -104,14 +104,267 @@ set_api_token <- function(token, scheme = NULL, persist = FALSE,
   invisible(NULL)
 }
 
+# OAuth 2.0 authorization code with PKCE. Tokens are kept for the session and
+# in a per-user cache file (mode 0600) under tools::R_user_dir(), never in the
+# package or project. Requests never open a browser; api_login() does.
+api_oauth_tokens <- new.env(parent = emptyenv())
+
+api_oauth_stop <- function(...) {
+  stop(errorCondition(paste0(...), class = 'specmill_call_error', call = NULL))
+}
+
+api_oauth_setting <- function(credential) {
+  settings <- AUTH_OAUTH
+  if (is.null(credential) && length(settings) == 1L) {
+    credential <- names(settings)[[1L]]
+  }
+  if (
+    !is.character(credential) ||
+      length(credential) != 1L ||
+      is.na(credential) ||
+      !credential %in% names(settings)
+  ) {
+    api_oauth_stop(
+      'Choose a configured OAuth credential: ',
+      paste(names(settings), collapse = ', ')
+    )
+  }
+  c(list(credential = credential), settings[[credential]])
+}
+
+api_oauth_file <- function(credential) {
+  package <- environmentName(topenv(environment(api_oauth_file)))
+  file.path(
+    tools::R_user_dir(package, 'cache'),
+    paste0('oauth-', credential, '.rds')
+  )
+}
+
+api_oauth_read <- function(credential) {
+  stored <- api_oauth_tokens[[credential]]
+  if (is.null(stored) && !isTRUE(api_oauth_tokens[['.replay']])) {
+    path <- api_oauth_file(credential)
+    if (file.exists(path)) {
+      stored <- tryCatch(readRDS(path), error = function(e) NULL)
+      if (!is.null(stored)) assign(credential, stored, envir = api_oauth_tokens)
+    }
+  }
+  stored
+}
+
+api_oauth_write <- function(credential, stored) {
+  assign(credential, stored, envir = api_oauth_tokens)
+  path <- api_oauth_file(credential)
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE, mode = '0700')
+  staged <- tempfile('.oauth-', tmpdir = dirname(path))
+  on.exit(unlink(staged), add = TRUE)
+  file.create(staged)
+  Sys.chmod(staged, '0600')
+  saveRDS(stored, staged)
+  if (!file.rename(staged, path)) api_oauth_stop('Cannot save the OAuth token')
+  invisible(NULL)
+}
+
+api_oauth_forget <- function(credential) {
+  if (exists(credential, envir = api_oauth_tokens, inherits = FALSE)) {
+    rm(list = credential, envir = api_oauth_tokens)
+  }
+  unlink(api_oauth_file(credential))
+}
+
+api_oauth_url <- function(url, label) {
+  if (
+    !is.character(url) ||
+      length(url) != 1L ||
+      is.na(url) ||
+      !grepl('^https?://[^/?#@]+(/[^#]*)?$', url)
+  ) {
+    api_oauth_stop('OAuth ', label, ' must be an absolute HTTP(S) URL')
+  }
+  url
+}
+
+api_oauth_origin <- function(url) sub('^(https?://[^/?#]+).*$', '\\1', url)
+
+# Current OAuth token values, so recordings can be scanned for them.
+api_oauth_secrets <- function() {
+  values <- unlist(lapply(names(AUTH_OAUTH), function(credential) {
+    token <- api_oauth_read(credential)$token
+    c(token$access_token, token$refresh_token)
+  }))
+  as.character(values)
+}
+
+# Why a stored OAuth token cannot serve this requirement entry, or NULL.
+# A token is offered only to allowed origins and with every required scope.
+api_oauth_problem <- function(scheme, url) {
+  credential <- scheme$scheme
+  stored <- api_oauth_read(credential)
+  if (is.null(stored)) {
+    return(paste0('sign in with api_login("', credential, '")'))
+  }
+  origin <- api_oauth_origin(url)
+  if (!isTRUE(stored$replay) && !origin %in% stored$origins) {
+    return(paste0(
+      'the ', credential, ' token is not sent to ', origin,
+      '; to allow it, sign in with api_login("', credential,
+      '", origin = "', origin, '")'
+    ))
+  }
+  granted <- stored$token$scope
+  granted <- if (is.character(granted) && length(granted) == 1L && nzchar(granted)) {
+    strsplit(trimws(granted), '[[:space:]]+')[[1L]]
+  } else {
+    stored$scopes
+  }
+  missing <- setdiff(unlist(scheme$scopes), granted)
+  if (length(missing)) {
+    return(paste0(
+      'the ', credential, ' sign-in lacks scope ',
+      paste(missing, collapse = ', '),
+      '; sign in again with api_login("', credential, '")'
+    ))
+  }
+  NULL
+}
+
+# Refresh a stored token that expires within `margin` seconds. Only the
+# provider's refusal ends the sign-in; network errors leave it in place.
+api_oauth_refresh <- function(credential, stored, margin) {
+  token <- stored$token
+  expires <- token$expires_at
+  if (is.null(expires) || expires > as.numeric(Sys.time()) + margin) {
+    return(stored)
+  }
+  expired <- function() {
+    api_oauth_forget(credential)
+    api_oauth_stop(
+      'The ', credential, ' sign-in expired; sign in again with api_login("',
+      credential, '")'
+    )
+  }
+  if (is.null(token$refresh_token)) expired()
+  client_id <- Sys.getenv(stored$client_id, unset = '')
+  if (!nzchar(trimws(client_id))) {
+    api_oauth_stop(
+      'Set ', stored$client_id, ' to the OAuth client ID to refresh the ',
+      credential, ' sign-in'
+    )
+  }
+  client <- httr2::oauth_client(
+    id = client_id,
+    token_url = stored$token_url,
+    auth = 'body'
+  )
+  refreshed <- tryCatch(
+    withCallingHandlers(
+      httr2::oauth_flow_refresh(client, refresh_token = token$refresh_token),
+      # A rotated refresh token is saved below.
+      warning = function(w) {
+        if (grepl('Refresh token has changed', conditionMessage(w), fixed = TRUE)) {
+          invokeRestart('muffleWarning')
+        }
+      }
+    ),
+    httr2_oauth = function(e) NULL
+  )
+  if (is.null(refreshed)) expired()
+  if (is.null(refreshed$refresh_token)) {
+    refreshed$refresh_token <- token$refresh_token
+  }
+  stored$token <- refreshed
+  api_oauth_write(credential, stored)
+  stored
+}
+
+# The access token for one requirement entry, refreshed when it is about to
+# expire.
+api_oauth_bearer <- function(scheme, url) {
+  problem <- api_oauth_problem(scheme, url)
+  if (!is.null(problem)) api_oauth_stop('OAuth: ', problem)
+  stored <- api_oauth_refresh(scheme$scheme, api_oauth_read(scheme$scheme), 30)
+  stored$token$access_token
+}
+
+# OAuth credentials with a stored token; recordings list them as used.
+api_oauth_signed_in <- function() {
+  names(AUTH_OAUTH)[vapply(
+    names(AUTH_OAUTH),
+    function(credential) !is.null(api_oauth_read(credential)),
+    logical(1)
+  )]
+}
+
+# Replayed tests: a dummy token for each OAuth credential the recording used,
+# and none for the others. While replaying, the token cache is not read.
+# Returns a function that restores the session.
+api_oauth_replay <- function(credentials) {
+  credentials <- intersect(credentials, names(AUTH_OAUTH))
+  previous <- lapply(
+    stats::setNames(names(AUTH_OAUTH), names(AUTH_OAUTH)),
+    function(name) api_oauth_tokens[[name]]
+  )
+  assign('.replay', TRUE, envir = api_oauth_tokens)
+  for (name in names(AUTH_OAUTH)) {
+    if (exists(name, envir = api_oauth_tokens, inherits = FALSE)) {
+      rm(list = name, envir = api_oauth_tokens)
+    }
+  }
+  for (name in credentials) {
+    setting <- AUTH_OAUTH[[name]]
+    scopes <- unlist(setting$scopes)
+    assign(
+      name,
+      list(
+        token = list(
+          access_token = 'replay-dummy',
+          token_type = 'bearer',
+          scope = paste(scopes, collapse = ' ')
+        ),
+        token_url = setting$token_url,
+        client_id = setting$client_id,
+        scopes = scopes,
+        replay = TRUE
+      ),
+      envir = api_oauth_tokens
+    )
+  }
+  function() {
+    rm(list = '.replay', envir = api_oauth_tokens)
+    for (name in names(previous)) {
+      if (exists(name, envir = api_oauth_tokens, inherits = FALSE)) {
+        rm(list = name, envir = api_oauth_tokens)
+      }
+      if (!is.null(previous[[name]])) {
+        assign(name, previous[[name]], envir = api_oauth_tokens)
+      }
+    }
+  }
+}
+
+# Recording: refresh tokens that would expire during the scenario before the
+# cassette opens, so no token request is recorded.
+api_oauth_prepare_recording <- function() {
+  for (credential in names(AUTH_OAUTH)) {
+    stored <- api_oauth_read(credential)
+    if (!is.null(stored)) api_oauth_refresh(credential, stored, 600)
+  }
+  invisible(NULL)
+}
+
 api_auth <- function(request, requirements) {
   if (!length(requirements) || any(vapply(requirements, function(x) !length(x), logical(1)))) return(request)
   available <- function(scheme) {
+    if (identical(scheme$type, 'oauth2_code')) return(is.null(api_oauth_problem(scheme, request$url)))
     scheme$type %in% c('apiKey', 'bearer') && nzchar(trimws(Sys.getenv(scheme$envvar, unset = '')))
   }
   for (requirement in requirements) {
     if (!all(vapply(requirement, available, logical(1)))) next
     for (scheme in requirement) {
+      if (scheme$type == 'oauth2_code') {
+        request <- httr2::req_auth_bearer_token(request, api_oauth_bearer(scheme, request$url))
+        next
+      }
       token <- api_token(scheme$scheme)
       if (scheme$type == 'bearer') {
         request <- httr2::req_auth_bearer_token(request, token)
@@ -130,7 +383,9 @@ api_auth <- function(request, requirements) {
   }
   choices <- vapply(requirements, function(requirement) paste(vapply(requirement, function(scheme) {
     if (scheme$type %in% c('apiKey', 'bearer')) paste0(scheme$scheme, ' (', scheme$envvar, ')')
-    else paste0(scheme$scheme, ' [', scheme$type, ' authentication is not implemented; OAuth login/refresh is deferred]')
+    else if (scheme$type == 'oauth2_code') paste0(scheme$scheme, ' (', if (is.null(problem <- api_oauth_problem(scheme, request$url))) 'signed in' else problem, ')')
+    else if (scheme$type == 'oauth2') paste0(scheme$scheme, ' [only the OAuth authorization-code flow with a reviewed oauth credential is supported]')
+    else paste0(scheme$scheme, ' [', scheme$type, ' authentication is not implemented]')
   }, character(1)), collapse = ' + '), character(1))
   settable <- unique(unlist(lapply(requirements, function(requirement) {
     vapply(

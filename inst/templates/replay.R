@@ -229,9 +229,11 @@ replay_cassette <- function(
         call. = FALSE
       )
     }
+    prepare <- get0('api_oauth_prepare_recording', mode = 'function')
+    if (!is.null(prepare)) prepare()
     present <- replay_credentials[nzchar(Sys.getenv(replay_credentials))]
     secrets <- unique(unlist(
-      lapply(Sys.getenv(present), replay_secret_forms),
+      lapply(c(Sys.getenv(present), replay_oauth_secrets()), replay_secret_forms),
       use.names = FALSE
     ))
     filters <- unlist(
@@ -252,7 +254,7 @@ replay_cassette <- function(
     }
     if (fresh) {
       dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-      writeLines(present, used_file)
+      writeLines(c(present, replay_oauth_signed_in()), used_file)
       signature <- testthat::test_path(
         '_signatures',
         service,
@@ -264,7 +266,11 @@ replay_cassette <- function(
           service,
           scenario,
           c(cassette, used_file, signature),
-          secrets,
+          # OAuth tokens can change while recording (refresh); scan both.
+          unique(c(
+            secrets,
+            unlist(lapply(replay_oauth_secrets(), replay_secret_forms))
+          )),
           extra$patterns,
           c('Set-Cookie', extra$response_headers),
           provenance,
@@ -289,11 +295,12 @@ replay_cassette <- function(
     }
     # Replay never sees real credentials: a dummy stands in for each one the
     # recording used, and the rest are unset so authentication cannot change.
-    used <- if (file.exists(used_file)) {
-      intersect(readLines(used_file, warn = FALSE), replay_credentials)
+    listed <- if (file.exists(used_file)) {
+      readLines(used_file, warn = FALSE)
     } else {
       character()
     }
+    used <- intersect(listed, replay_credentials)
     if (length(replay_credentials)) {
       values <- stats::setNames(
         rep(NA_character_, length(replay_credentials)),
@@ -301,6 +308,11 @@ replay_cassette <- function(
       )
       values[used] <- 'replay-dummy'
       withr::local_envvar(values, .local_envir = frame)
+    }
+    stub <- get0('api_oauth_replay', mode = 'function')
+    if (!is.null(stub)) {
+      restore <- stub(listed)
+      withr::defer(restore(), envir = frame)
     }
     filters <- if (length(used)) {
       stats::setNames(
@@ -381,3 +393,16 @@ replay_expect_signature <- function(result, service, scenario) {
   }
   invisible(actual)
 }
+
+# OAuth credentials signed in when the client generates OAuth login.
+replay_oauth_signed_in <- function() {
+  signed_in <- get0('api_oauth_signed_in', mode = 'function')
+  if (is.null(signed_in)) character() else signed_in()
+}
+
+# Current OAuth token values when the client generates OAuth login.
+replay_oauth_secrets <- function() {
+  values <- get0('api_oauth_secrets', mode = 'function')
+  if (is.null(values)) character() else values()
+}
+

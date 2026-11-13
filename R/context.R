@@ -27,6 +27,23 @@ utils::globalVariables(c(
   'supported_methods',
   'tg_config'
 ))
+#' Bind legacy maintenance tools to a client context
+#'
+#' Install an extracted compatibility function group into an explicit client
+#' policy environment.
+#'
+#' @param group Installed compatibility function group.
+#' @param envir Explicit client context receiving installed functions.
+#' @return The supplied environment invisibly, with bound functions added. Unknown groups or a non-environment target raise an error.
+#' @details This is for existing endpoint-table integrations, not new project
+#'   setup. Groups include schema, paths, inventory, scaffold, test_inventory,
+#'   test_scaffold, test_validation, test_helpers, ast, runner, parser, drift,
+#'   diff, and readiness. The client supplies required selection, rendering,
+#'   fixture, and reporting policy. For readiness use asNamespace("specmill") as
+#'   the parent and initialize audit_policy with the bound read_audit_policy()
+#'   helper. Other groups also install supporting dependency exports where absent.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/troubleshooting.html).
+#' @export
 bind_tools <- function(group, envir) {
   stopifnot(is.environment(envir), group %in% names(tool_groups))
   for (package in if (group != 'readiness') {
@@ -52,6 +69,25 @@ bind_tools <- function(group, envir) {
 }
 
 `%or%` <- function(x, y) if (is.null(x)) y else x
+
+# Operation title text: a nonblank summary, else the first sentence of the
+# description's first line, else the fallback (usually the function name).
+# Help titles drop a final period, so text that is only a period is blank.
+summary_text <- function(summary, description, fallback) {
+  usable <- function(x) {
+    is.character(x) &&
+      length(x) == 1L &&
+      !is.na(x) &&
+      nzchar(trimws(sub('[.]\\s*$', '', x)))
+  }
+  if (usable(summary)) {
+    return(summary)
+  }
+  lines <- if (is.character(description)) description else ''
+  first <- strsplit(c(lines, '')[[1L]], '\n', fixed = TRUE)[[1L]]
+  first <- trimws(sub('^([^.]*[.]).*$', '\\1', c(first, '')[[1L]]))
+  if (usable(first)) first else fallback
+}
 
 # Per-package dry-run environment variable name, e.g. requestclient -> REQUESTCLIENT_DRY_RUN.
 dry_run_env <- function(package) {

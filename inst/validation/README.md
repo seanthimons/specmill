@@ -32,7 +32,8 @@ an array when no item matches. `validate.js` restates the rule as
 `not: {contains, minContains: 2}`, which accepts and rejects the same arrays.
 
 To update, download the sources above, compare hashes, and rerun
-`Rscript tests/schema-validation.R` and `Rscript tests/openapi-32.R`.
+`tests/testthat/test-schema-validation.R` and `tests/testthat/test-openapi-32.R`
+(`testthat::test_file()`).
 
 ## Error reporting
 

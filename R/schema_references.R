@@ -440,6 +440,38 @@ resolve_schema_references <- function(document, path) {
   resolved
 }
 
+#' Download and record reviewed copies of remote schema references
+#'
+#' Explicitly download remote \code{$ref} target documents and record them in `specmill-references.yml` beside a local schema, so parsing and generation resolve them offline.
+#'
+#' @param schema Existing local JSON or YAML schema. The lock file is written beside it.
+#' @param urls HTTP(S) document URLs, without fragments, queries, dot segments or a trailing slash.
+#' @param refresh Replace an entry whose upstream bytes changed. Leave `FALSE` until you have reviewed the change.
+#' @return Invisibly, a data frame with `url`, `file`, `sha256` and `status`: `added`, `refreshed`, `restored` (local copy rewritten to the recorded bytes) or `unchanged`.
+#' @details
+#' This is the only specmill function that fetches schema dependencies. Parsing,
+#' validation, generation and generated clients stay offline.
+#'
+#' New files are stored under \code{references/<host>/<path>} inside the lock
+#' directory. Existing entries keep their `file`. Each download must parse as
+#' YAML when its file ends in `.yaml` or `.yml`, and as JSON otherwise.
+#' All URLs are downloaded and checked before any file or the lock changes; an
+#' unchanged re-run leaves the lock untouched. Rewriting the lock drops YAML comments written
+#' by hand.
+#'
+#' Nested references are not followed. After freezing, `read_operations()`
+#' reports any remaining unmapped URL as `external_reference`; review it and
+#' freeze it too. Review downloaded content before committing it.
+#' @examples
+#' \dontrun{
+#' freeze_references(
+#'   "schema/openapi.json",
+#'   "https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/ogcapi-features-1.yaml"
+#' )
+#' read_operations("schema/openapi.json")$diagnostics
+#' }
+#' @seealso `read_operations`, `validate_schema`
+#' @export
 freeze_references <- function(schema, urls, refresh = FALSE) {
   config_string(schema, 'schema')
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)

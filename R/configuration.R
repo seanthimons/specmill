@@ -184,6 +184,18 @@ read_service_operations <- function(service) {
   parsed
 }
 
+#' Load and validate a YAML project
+#'
+#' Resolve local schemas and service policies from an explicit client root without generating output.
+#'
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root. Defaults to specmill.yml.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param absent_overrides `"error"` (default) or `"warn"`; see \code{\link{generate_client}}.
+#' @return A list containing named services, input file paths, normalized root, package name, and optional formatter policy. Each service contains resolved schema files and validated generation policy.
+#' @details Paths inside project and service YAML resolve against root. Services require unique IDs, local schema selectors, and a client helper name. Unknown fields, invalid types, unsafe paths, executable YAML tags, unresolved callbacks, and invalid selectors fail. callback_files are fingerprinted inputs, not sourced scripts.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/configuration.html).
+#' @export
 load_project <- function(
   root,
   config = 'specmill.yml',
@@ -260,7 +272,12 @@ load_project <- function(
       names(project$authentication),
       'authentication'
     )
-    for (envvar in project$authentication) {
+    for (credential in names(project$authentication)) {
+      envvar <- project$authentication[[credential]]
+      if (is.list(envvar)) {
+        validate_oauth_credential(envvar, credential)
+        next
+      }
       config_string(envvar, 'credential environment variable')
       if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', envvar)) {
         stop('Invalid credential environment variable')
@@ -363,9 +380,18 @@ load_project <- function(
     }
     config_fields(
       service$schemas,
-      c('files', 'patterns', 'exclude'),
+      c('files', 'patterns', 'exclude', 'origin'),
       paste(id, 'schemas')
     )
+    # Reviewed download origin: resolves relative schema servers only.
+    origin <- service$schemas$origin
+    if (!is.null(origin) && !valid_server_url(origin)) {
+      stop(
+        id,
+        ': schemas origin must be an absolute HTTP(S) URL without ',
+        'credentials, query, or fragment'
+      )
+    }
     schema_files <- character()
     if ('files' %in% names(service$schemas)) {
       literal <- config_sequence(service$schemas$files, 'schema files')
@@ -667,6 +693,7 @@ load_project <- function(
       hook_callback = hook_callback,
       policy = list(
         service = id,
+        origin = origin,
         methods = intersect(
           intersect(project_methods, entry$methods %or% project_methods),
           methods
@@ -745,7 +772,11 @@ load_project <- function(
     any(vapply(services, function(x) isTRUE(x$policy$unclaimed), logical(1)))
   ) {
     lapply(services, function(x) {
-      unique(unlist(lapply(x$files, importer_servers), use.names = FALSE))
+      urls <- unique(unlist(
+        lapply(x$files, importer_servers),
+        use.names = FALSE
+      ))
+      origin_servers(urls, x$policy$origin)
     })
   }
   for (i in seq_along(services)) {
@@ -964,4 +995,62 @@ load_project <- function(
     authentication = project$authentication,
     validation = schema_validation_policy(project$validation %or% TRUE)
   )
+}
+
+# Resolve rooted relative server URLs against a reviewed origin, matching
+# effective_server(), so services compare the hosts they actually call.
+origin_servers <- function(urls, origin) {
+  if (is.null(origin) || !requireNamespace('httr2', quietly = TRUE)) {
+    return(urls)
+  }
+  vapply(
+    urls,
+    function(url) {
+      if (!startsWith(url, '/')) {
+        return(url)
+      }
+      resolved <- httr2::url_build(httr2::url_parse(url, base_url = origin))
+      sub('(?<=.)/+$', '', resolved, perl = TRUE)
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+}
+
+# A reviewed OAuth credential: environment-variable and function names only,
+# never a client secret or token value.
+validate_oauth_credential <- function(credential, label) {
+  config_fields(credential, 'oauth', paste(label, 'authentication'))
+  oauth <- credential$oauth
+  config_fields(
+    oauth,
+    c('client_id', 'redirect_uri', 'scopes', 'discovery'),
+    paste(label, 'oauth')
+  )
+  client_id <- config_string(oauth$client_id, paste(label, 'oauth client_id'))
+  if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', client_id)) {
+    stop(label, ': oauth client_id must name an environment variable')
+  }
+  if (!is.null(oauth$redirect_uri)) {
+    redirect <- config_string(oauth$redirect_uri, paste(label, 'redirect_uri'))
+    loopback <- '^http://(localhost|127[.]0[.]0[.]1|\\[::1\\]):[0-9]+(/[^?#]*)?$'
+    if (!grepl(loopback, redirect)) {
+      stop(
+        label,
+        ': oauth redirect_uri must be a loopback http URL with a port'
+      )
+    }
+  }
+  if (!is.null(oauth$scopes)) {
+    for (scope in config_sequence(oauth$scopes, paste(label, 'oauth scopes'))) {
+      config_string(scope, paste(label, 'oauth scope'))
+    }
+  }
+  if (!is.null(oauth$discovery)) {
+    discovery <- config_string(oauth$discovery, paste(label, 'oauth discovery'))
+    if (!identical(make.names(discovery), discovery)) {
+      stop(label, ': oauth discovery must be an R function name')
+    }
+  }
+  invisible(credential)
 }

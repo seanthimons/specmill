@@ -99,12 +99,27 @@ package tests continue to cover recorded request and response review.
 
 ## Registry provenance addition (#230)
 
-The reference manifest remains unchanged. The registry intentionally adds an
+The reference manifest is unchanged apart from the reviewed #4 rows described
+below. The registry intentionally adds an
 `importers` object to seven generated ownership manifests. The current gate in
 `dev/check_registry_output.R` requires exactly those seven differences, validates
 the new fields, and removes only that object from the original serialized bytes
 to recover each reference hash. All wrappers, helpers, schemas, documentation,
-operation records and other metadata still match the reference.
+operation records and other metadata still match the reference, apart from the
+#4 rows below.
 
 `check_golden_output()` remains the strict pre-registry comparison and therefore
 reports the seven intended ownership-provenance additions on newer revisions.
+
+## OAuth authorization-code update (#4)
+
+Generated OAuth sign-in (#4) intentionally changes two files in the four
+fixtures that declare security (`openapi3-petstore`, `openapi31-classifier`,
+`swagger2-json`, `swagger2-yaml`). `R/api_auth.R` gains the internal OAuth
+helpers and rewords the unsupported-OAuth message, and the `specmill.yml`
+authentication comment no longer calls OAuth deferred. Only those eight rows were
+re-recorded. Their ownership manifests record the two file hashes, so the four
+pre-registry manifest hashes were updated to the new manifests with the
+`importers` object removed, as `check_registry_output()` computes them. Every
+other row keeps its reviewed reference hash, and both
+`check_registry_output()` and `check_ir_provenance()` pass.

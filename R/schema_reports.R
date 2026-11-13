@@ -23,6 +23,20 @@ schema_report_files <- function(
   files
 }
 
+#' Compare schema snapshots and format a change report
+#'
+#' Compare explicitly selected schema files and method/path operations, including reachable local references.
+#'
+#' @details Use the same file naming and selection policy for both schema snapshots. Changed canonical contracts require review and are conservatively counted in the breaking-change lane. Malformed input stops comparison. Policy changes should be reviewed separately from schema changes; these reports do not prove upstream runtime compatibility.
+#' @param old_dir Existing directory containing the previous schema snapshot.
+#' @param new_dir Existing directory containing the candidate schema snapshot, using matching basenames.
+#' @param pattern Regular expression selecting filenames; defaults to JSON, YAML, and YML files.
+#' @param stage_priority Optional ordered suffix priority for files such as `service-prod.json` and `service-dev.json`. The first matching stage per service is selected. NULL disables stage selection.
+#' @param exclude_pattern Optional case-insensitive filename exclusion regex, applied after selection by pattern.
+#' @param policies Operation selection policies keyed by schema basename.
+#' @return schema_diff() returns changed schema records containing schema_file plus added, removed, and modified tables. format_diff_markdown() returns report text. count_diff_changes() returns change counts, including the conservative breaking-change count.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/maintenance.html).
+#' @export
 schema_diff <- function(
   old_dir,
   new_dir,

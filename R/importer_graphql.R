@@ -337,14 +337,12 @@ importer_graphql <- function(path, policy = list()) {
     } else {
       field$name
     }
-    summary <- strsplit(field$description %or% '', '\n', fixed = TRUE)[[1L]]
-    summary <- sub('^([^.]*[.]).*$', '\\1', c(summary, '')[[1L]])
     op <- list(
       key = root$key,
       id = paste(service$id, root$key),
       name = name,
       native_name = field$name,
-      summary = if (nzchar(summary)) summary else root$key,
+      summary = summary_text(NULL, field$description, root$key),
       tags = list(root$operation_type),
       paradigm = 'graphql',
       source = source_id,
