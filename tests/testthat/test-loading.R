@@ -23,7 +23,8 @@ loading_acceptance <- function() {
   }
   previous_options <- options()
   previous_search <- search()
-  requireNamespace('specmill', quietly = TRUE)
+  # Checks the installed copy: callr starts a fresh process without load_all().
+  stopifnot(requireNamespace('specmill', quietly = TRUE))
   stopifnot(
     identical(previous_options, options()),
     identical(previous_search, search()),
