@@ -1828,7 +1828,7 @@ openapi_read_records <- function(files, view) {
               response = response_operation$responses,
               response_correction = config_data(response_correction),
               opaque_body = opaque_reviews[[key]],
-              summary = op$summary %or% name
+              summary = summary_text(op$summary, op$description, name)
             )
           },
           error = function(e) {
