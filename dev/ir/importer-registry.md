@@ -53,7 +53,8 @@ are unchanged.
 
 ## Verification
 
-Install the package, then run `Rscript tests/importer-registry.R`. This covers
+Install the package, then run
+`testthat::test_file('tests/testthat/test-importer-registry.R')`. This covers
 confidence ties, explicit selection, invalid detectors/IR, independent registry
 values, known and unknown formats, catalogue persistence, API configuration and
 saved generation provenance. The source-boundary gate permits the registry's
@@ -104,7 +105,7 @@ parameter with a `nextPageToken` response member becomes a cursor paging hint,
 which initialization writes as editable policy using the `discovery` companion
 callback. Reported, not generated: media upload, reserved-expansion paths
 without an equivalent `flatPath`, and page tokens carried in a request body.
-`tests/importer-discovery.R` covers this against a synthetic document and a
+`tests/testthat/test-importer-discovery.R` covers this against a synthetic document and a
 localhost server.
 
 ## GraphQL integration

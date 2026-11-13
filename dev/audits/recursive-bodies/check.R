@@ -24,7 +24,7 @@ local({
   )
   operations <- Filter(function(op) op$key %in% keys, parsed$operations)
   stopifnot(length(operations) == 4L)
-  source('tests/native-transport.R')
+  source('tests/testthat/helper-native-transport.R')
   native_transport_acceptance(function(runtime, root) {
     for (op in operations) {
       eval(

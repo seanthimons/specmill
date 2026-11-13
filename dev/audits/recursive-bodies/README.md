@@ -26,18 +26,18 @@ All supplied body content is checked before schema validation, including
 unconstrained fields. Limits are 32 levels below the root, 20,000 value nodes,
 and 20,000 schema visits. Environments fail explicitly; cyclic lists hit the
 depth limit with a possible-cycle error. Values are never truncated.
-`tests/nested-bodies.R` covers nested constraints, required recursion, limits,
+`tests/testthat/test-nested-bodies.R` covers nested constraints, required recursion, limits,
 an environment cycle, reference guards, request direction, and default fixtures.
 
 Reproduce from the repository root:
 
 ```sh
 R CMD INSTALL .
-Rscript tests/nested-bodies.R
+Rscript -e "testthat::test_file('tests/testthat/test-nested-bodies.R')"
 Rscript dev/audits/recursive-bodies/check.R
 # Or audit an already extracted historical schema:
 Rscript dev/audits/recursive-bodies/check.R /path/to/standardizer.json
 ```
 
-The audit reuses `tests/native-transport.R` and also runs its existing transport
+The audit reuses `tests/testthat/helper-native-transport.R` and also runs its existing transport
 checks, including the 10,000-field JSON object regression.

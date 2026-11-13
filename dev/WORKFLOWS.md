@@ -67,7 +67,7 @@ GitHub release descriptions use the generated NEWS section.
 ## Corpus diagnostics
 
 Many generation fixtures explicitly set `validation = FALSE` or
-`validation: false`. `tests/schema-validation.R` exercises required validation
+`validation: false`. `tests/testthat/test-schema-validation.R` exercises required validation
 for Swagger 2.0, OpenAPI 3.0, 3.1 and 3.2, YAML input and operation/document blocking. Run it with the workspace package loaded or installed.
 
 `audit_testing_specs()` writes `DIAGNOSTICS.md` alongside its CSV results when

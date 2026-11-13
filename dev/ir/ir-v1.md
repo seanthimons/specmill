@@ -15,7 +15,7 @@ contract is documented in [importer-registry.md](importer-registry.md).
 | Field ledger | `inst/ir/field-ledger.csv` |
 | Examples (GraphQL, ArcGIS, type mappings) | `inst/ir/examples/` |
 | Validator | `validate_ir()` in `R/ir.R` (internal) |
-| Checks | `tests/ir.R` |
+| Checks | `tests/testthat/test-ir.R` |
 
 ## OpenAPI importer migration
 
@@ -65,9 +65,9 @@ exceptions. JSON Schema fragment consumers remain tracked in #279. The
 432-artifact output baseline and 102 referenced-contract provenance digests
 protect this boundary. The importer and registry remain internal while the public extension contract settles.
 
-`Rscript tests/ir-compatibility.R` verifies exact R-record parity, neutral-field
+`tests/testthat/test-ir-compatibility.R` verifies exact R-record parity, neutral-field
 projection, lazy reviews, source snapshots and invalid unused metadata.
-`Rscript tests/importer-accessors.R` additionally checks metadata callback order,
+`tests/testthat/test-importer-accessors.R` additionally checks metadata callback order,
 cached snapshots, deferred server inspection and explicit client parser context.
 
 The type mapper traverses structural slots only and preserves source spelling
@@ -80,7 +80,7 @@ warning about the later R representation. Defaults, examples and explicit null
 values remain data. The current scalar mapping preserves bounds, width,
 nullability and binary encoding where represented in the v1 contract.
 
-`Rscript tests/importer-openapi.R` checks the installed package, including the
+`testthat::test_file('tests/testthat/test-importer-openapi.R')` checks the installed package, including the
 shipped corpus, YAML/JSON inputs, recursion, source-scoped duplicate merging,
 transport diagnostics and literal data that resembles schema keywords. The
 standalone generation golden gate is documented in
@@ -265,7 +265,7 @@ Dependency questions (`bit64`, `hms`) belong to
 `inst/ir/field-ledger.csv` classifies each field of the operation record,
 parameter record, policy additions, return list and diagnostics as `neutral`,
 `openapi_only`, `derived`, `policy`, `diagnostic` or `call_context`, with its IR
-path. `tests/ir.R` fails when a real record carries a field the ledger lacks, or
+path. `tests/testthat/test-ir.R` fails when a real record carries a field the ledger lacks, or
 when a ledger path does not exist in the schema.
 
 | Class | Meaning |

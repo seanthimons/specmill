@@ -1,0 +1,280 @@
+configuration_acceptance <- function() {
+  root <- tempfile('yaml-client-')
+  dir.create(root)
+  fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
+  stopifnot(all(file.copy(
+    list.files(fixture, full.names = TRUE),
+    root,
+    recursive = TRUE
+  )))
+  writeLines(
+    c('config_version: 1', 'validation: false', 'services: [catalogue.yml]'),
+    file.path(root, 'specmill.yml')
+  )
+  service <- c(
+    'id: catalogue',
+    'schemas:',
+    '  files: [schema.json]',
+    'helper: catalogue_request',
+    'selection:',
+    '  methods: [GET, POST]',
+    '  exclude: ["^/refresh$", "^/items/not-a-route$"]'
+  )
+  put <- function(lines) writeLines(lines, file.path(root, 'catalogue.yml'))
+  put(service)
+  previous <- setwd(tempdir())
+  on.exit(setwd(previous), add = TRUE)
+  hashes <- function() {
+    tools::md5sum(list.files(
+      root,
+      recursive = TRUE,
+      all.files = TRUE,
+      full.names = TRUE
+    ))
+  }
+  original <- hashes()
+  plan <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
+  stopifnot(
+    length(plan$operations) == 3L,
+    length(plan$inventory) == 4L,
+    sum(vapply(
+      plan$inventory,
+      function(x) x$status == 'excluded',
+      logical(1)
+    )) ==
+      1L,
+    identical(original, hashes()),
+    all(vapply(
+      plan$operations,
+      function(x) startsWith(x$id, 'catalogue '),
+      logical(1)
+    ))
+  )
+  fails <- function(expr, pattern = NULL) {
+    e <- tryCatch(
+      {
+        force(expr)
+        NULL
+      },
+      error = identity
+    )
+    stopifnot(inherits(e, 'error'))
+    if (!is.null(pattern)) stopifnot(grepl(pattern, conditionMessage(e)))
+  }
+  fails(specmill::generate_client(validation = FALSE, root, config = 'specmill.yml'), 'stale')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  applied <- hashes()
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  stopifnot(identical(applied, hashes()))
+  # Explicit renaming is a paired replacement; an edited original blocks it.
+  put(c(service, 'names:', '  GET /items: renamed_items'))
+  old_path <- file.path(root, 'R/list_items.R')
+  old_text <- readLines(old_path)
+  writeLines(c(old_text, '# local edit'), old_path)
+  fails(
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply'),
+    'Protected original'
+  )
+  stopifnot(!file.exists(file.path(root, 'R/renamed_items.R')))
+  writeLines(old_text, old_path)
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  stopifnot(
+    !file.exists(old_path),
+    file.exists(file.path(root, 'R/renamed_items.R'))
+  )
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'check')
+  put(c(service, 'names:', '  GET /items: list_items'))
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  put(service)
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'apply')
+  inspected <- specmill::inspect_client(root)
+  stopifnot(
+    inspected$coverage$catalogue$total == 3L,
+    inspected$coverage$catalogue$implemented == 3L,
+    inspected$coverage$catalogue$contracts == 0L,
+    !length(inspected$diagnostics),
+    identical(applied, hashes())
+  )
+  writeLines(
+    c("#' @export", 'manual_extra <- function() 1'),
+    file.path(root, 'R/manual_extra.R')
+  )
+  cat(
+    '\nexport(manual_extra)\n',
+    file = file.path(root, 'NAMESPACE'),
+    append = TRUE
+  )
+  inspected <- specmill::inspect_client(root)
+  stopifnot(
+    'manual_extra' %in% names(inspected$manual_exports),
+    inspected$coverage$catalogue$total == 3L
+  )
+  fixture_path <- file.path(root, 'tests/testthat/fixtures/fixed.rds')
+  dir.create(dirname(fixture_path), recursive = TRUE, showWarnings = FALSE)
+  fixed <- list(
+    list_items = list(
+      inputs = list(page = 2L),
+      calls = list(list(
+        helper = 'catalogue_request',
+        arguments = list(
+          method = 'GET',
+          path = '/items',
+          path_params = list(),
+          query = list(page = 2L),
+          body = NULL,
+          server = list(
+            diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override'
+          )
+        ),
+        response = tibble::tibble(count = 0L)
+      )),
+      result = tibble::tibble(count = 0L)
+    )
+  )
+  saveRDS(fixed, fixture_path)
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.rds'))
+  loaded <- specmill::load_project(root)
+  stopifnot(
+    identical(loaded$services$catalogue$contracts, fixed),
+    normalizePath(fixture_path, winslash = '/') %in% loaded$inputs
+  )
+  specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
+  # A readable fixture keyed by route survives renaming the wrapper (#207).
+  yaml_fixture <- file.path(root, 'tests/testthat/fixtures/fixed.yml')
+  writeLines(
+    c(
+      "GET /items:",
+      "  inputs: {page: 2}",
+      "  calls:",
+      "    - helper: catalogue_request",
+      "      arguments:",
+      "        method: GET",
+      "        path: /items",
+      "        query: {page: 2}",
+      "      response: {count: 0}",
+      "  result: {count: 0}"
+    ),
+    yaml_fixture
+  )
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.yml'))
+  loaded <- specmill::load_project(root)
+  stopifnot(identical(names(loaded$services$catalogue$contracts), 'GET /items'))
+  inspected <- specmill::inspect_client(root)
+  stopifnot(inspected$operations[['catalogue GET /items']]$contract_declared)
+  planned <- specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan')
+  stopifnot(
+    'tests/testthat/test-contract-list_items.R' %in%
+      vapply(planned$files, function(x) x$file, '')
+  )
+  rendered <- specmill:::render_fixed_contract(
+    list(name = 'list_items', key = 'GET /items'),
+    list(
+      package = 'yamlclient',
+      helper = 'catalogue_request',
+      contracts_file = 'tests/testthat/fixtures/fixed.yml'
+    ),
+    loaded$services$catalogue$contracts[['GET /items']]
+  )
+  stopifnot(
+    grepl('fixtures[["GET /items"]]', rendered, fixed = TRUE),
+    grepl('expect_equal', rendered, fixed = TRUE)
+  )
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.txt'))
+  fails(specmill::load_project(root), 'RDS, YAML or JSON')
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.rds'))
+  fixed$list_items$result <- function() NULL
+  saveRDS(fixed, fixture_path)
+  fails(specmill::load_project(root), 'only R data')
+  put(service)
+  fails(
+    specmill::generate_client(validation = FALSE, root, list(), config = 'specmill.yml'),
+    'exactly one'
+  )
+  invalid <- list(
+    c(service, 'unknown: true'),
+    sub('GET, POST', 'GET, INVALID', service, fixed = TRUE),
+    sub('files: [schema.json]', 'files: schema.json', service, fixed = TRUE),
+    sub(
+      'files: [schema.json]',
+      'files: [../schema.json]',
+      service,
+      fixed = TRUE
+    ),
+    c(service, 'helper: other_helper'),
+    c(service, 'prepare: missing_callback'),
+    c(service, 'names:', '  "GET /absent": missing'),
+    sub('^/refresh$', '[', service, fixed = TRUE),
+    sub(
+      'files: [schema.json]',
+      'patterns: [absent-*.json]',
+      service,
+      fixed = TRUE
+    )
+  )
+  for (lines in invalid) {
+    put(lines)
+    fails(specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'))
+  }
+  writeLines(
+    'strict_request <- function(endpoint) NULL',
+    file.path(root, 'R/strict.R')
+  )
+  put(sub(
+    'helper: catalogue_request',
+    'helper: strict_request',
+    service,
+    fixed = TRUE
+  ))
+  fails(
+    specmill::generate_client(validation = FALSE, root, config = 'specmill.yml', mode = 'plan'),
+    'Missing required helper arguments'
+  )
+  old <- options(yaml.eval.expr = TRUE)
+  on.exit(options(old), add = TRUE)
+  marker <- tempfile('yaml-execution-')
+  put(c(
+    service,
+    paste0('prepare: !expr writeLines("executed", ', deparse(marker), ')')
+  ))
+  fails(specmill::load_project(root))
+  stopifnot(!file.exists(marker))
+  # Explicit map keys override a merged default regardless of key order.
+  put(c(
+    'id: catalogue',
+    'schemas: {files: [schema.json]}',
+    'helper: catalogue_request',
+    'selection: {<<: &defaults {methods: [POST]}, methods: [GET]}'
+  ))
+  loaded <- specmill::load_project(root)
+  stopifnot(identical(loaded$services$catalogue$policy$methods, 'GET'))
+  put(service)
+  callbacks <- new.env(parent = baseenv())
+  callbacks$mutate <- function(operation) {
+    writeLines(
+      'added_during_generation <- function() NULL',
+      file.path(root, 'R/added.R')
+    )
+    operation
+  }
+  put(c(service, 'prepare: mutate'))
+  fails(
+    specmill::generate_client(
+      validation = FALSE,
+      root,
+      config = 'specmill.yml',
+      callbacks = callbacks,
+      mode = 'apply'
+    ),
+    'generation input files changed'
+  )
+  unlink(file.path(root, 'R/added.R'))
+  put(service)
+  cat(
+    'Configuration: YAML selection, original paths, aliases, strict validation, outside-root generation, read-only plans and second apply passed.\n'
+  )
+}
+test_that('YAML configuration selects, validates and regenerates clients safely', {
+  configuration_acceptance()
+  succeed()
+})

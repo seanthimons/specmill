@@ -1,0 +1,431 @@
+catalogue_acceptance <- function() {
+  fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
+  root <- tempfile('catalogue-client-')
+  dir.create(root)
+  file.copy(list.files(fixture, full.names = TRUE), root, recursive = TRUE)
+  old <- setwd(tempdir())
+  on.exit(setwd(old), add = TRUE)
+  spec <- list(
+    files = file.path(root, 'schema.json'),
+    helper = 'catalogue_request',
+    hooks = list(
+      get_item = list(
+        pre_request = 'normalize_input',
+        post_response = 'extract_output'
+      )
+    ),
+    policy_version = 'catalogue-1'
+  )
+  spec$package <- 'localcatalogue'
+  spec$response_fixture <- list(data = 'ok')
+  spec$contracts <- list(
+    get_item = list(
+      inputs = list(item_id = ' a/b ', language = 'fr'),
+      request = list(
+        method = 'GET',
+        path = '/items/{item_id}',
+        path_params = list(item_id = 'a/b'),
+        query = list(language = 'fr'),
+        body = NULL
+      ),
+      result = 'ok'
+    ),
+    create_item = list(
+      inputs = list(body = list(title = 'Example')),
+      request = list(
+        method = 'POST',
+        path = '/items',
+        path_params = list(),
+        query = list(),
+        body = list(title = 'Example')
+      ),
+      result = list(data = 'ok')
+    ),
+    refresh = list(
+      inputs = list(),
+      response_fixture = list(data = 'refresh'),
+      request = list(
+        method = 'POST',
+        path = '/refresh',
+        path_params = list(),
+        query = list(),
+        body = NULL
+      ),
+      result = list(data = 'refresh')
+    ),
+    list_items = list(
+      inputs = list(page = 2L),
+      request = list(
+        method = 'GET',
+        path = '/items',
+        path_params = list(),
+        query = list(page = 2L),
+        body = NULL
+      ),
+      result = list(data = 'ok')
+    )
+  )
+  for (name in names(spec$contracts)) {
+    spec$contracts[[name]]$request$server <- list(
+      diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override'
+    )
+  }
+  manual <- tools::md5sum(file.path(root, 'R/helper.R'))
+  first <- specmill::generate_client(validation = FALSE, root, spec, 'apply')
+  stopifnot(length(first$operations) == 4L, length(first$diagnostics) == 0L)
+  second <- specmill::generate_client(validation = FALSE, root, spec, 'apply')
+  stopifnot(
+    all(vapply(second$files, function(f) f$action == 'unchanged', logical(1))),
+    identical(manual, tools::md5sum(file.path(root, 'R/helper.R')))
+  )
+  library_dir <- tempfile('catalogue-library-')
+  dir.create(library_dir)
+  profile <- Sys.getenv('R_PROFILE_USER', unset = NA_character_)
+  on.exit(
+    if (is.na(profile)) {
+      Sys.unsetenv('R_PROFILE_USER')
+    } else {
+      Sys.setenv(R_PROFILE_USER = profile)
+    },
+    add = TRUE
+  )
+  Sys.setenv(R_PROFILE_USER = '')
+  r_tests <- Sys.getenv('R_TESTS', unset = NA_character_)
+  on.exit(
+    if (is.na(r_tests)) {
+      Sys.unsetenv('R_TESTS')
+    } else {
+      Sys.setenv(R_TESTS = r_tests)
+    },
+    add = TRUE
+  )
+  Sys.setenv(R_TESTS = '')
+  status <- system2(
+    file.path(
+      R.home('bin'),
+      if (.Platform$OS.type == 'windows') 'R.exe' else 'R'
+    ),
+    c(
+      'CMD',
+      'INSTALL',
+      paste0('--library=', shQuote(library_dir)),
+      shQuote(root)
+    )
+  )
+  stopifnot(status == 0L)
+  library('localcatalogue', lib.loc = library_dir, character.only = TRUE)
+  # Tests share one process; keep the client off later files' search path.
+  withr::defer(detach('package:localcatalogue', unload = TRUE))
+  testthat::test_dir(
+    file.path(root, 'tests/testthat'),
+    reporter = 'summary',
+    stop_on_failure = TRUE
+  )
+  # Native R fixtures preserve typed results without executable YAML expressions.
+  fixed <- list(
+    refresh = list(
+      inputs = list(),
+      calls = list(list(
+        helper = 'catalogue_request',
+        arguments = spec$contracts$refresh$request,
+        response = tibble::tibble(
+          count = 0L,
+          active = FALSE,
+          detail = list(NULL)
+        )
+      )),
+      result = tibble::tibble(count = 0L, active = FALSE, detail = list(NULL))
+    )
+  )
+  fixed$get_item <- list(
+    inputs = list(item_id = ' a/b ', language = 'fr'),
+    calls = list(
+      list(
+        helper = 'run_hook',
+        arguments = list(
+          'get_item',
+          'pre_request',
+          list(params = list(item_id = ' a/b ', language = 'fr'))
+        ),
+        response = list(params = list(item_id = 'a/b', language = 'fr'))
+      ),
+      list(
+        helper = 'catalogue_request',
+        arguments = spec$contracts$get_item$request,
+        response = list(data = 'ok')
+      ),
+      list(
+        helper = 'run_hook',
+        arguments = list(
+          'get_item',
+          'post_response',
+          list(
+            result = list(data = 'ok'),
+            params = list(item_id = 'a/b', language = 'fr')
+          )
+        ),
+        response = 'ok'
+      )
+    ),
+    result = 'ok'
+  )
+  dir.create(file.path(root, 'tests/testthat/fixtures'))
+  saveRDS(fixed, file.path(root, 'tests/testthat/fixtures/contracts.rds'))
+  sequence_spec <- spec
+  sequence_spec$contracts_file <- 'tests/testthat/fixtures/contracts.rds'
+  sequence_spec$contracts[names(fixed)] <- fixed
+  specmill::generate_client(validation = FALSE, root, sequence_spec, 'apply')
+  testthat::test_file(
+    file.path(root, 'tests/testthat/test-contract-refresh.R'),
+    stop_on_failure = TRUE
+  )
+  testthat::test_file(
+    file.path(root, 'tests/testthat/test-contract-get_item.R'),
+    stop_on_failure = TRUE
+  )
+  bad_fixed <- fixed$refresh
+  bad_fixed$result <- function() stop('not data')
+  stopifnot(inherits(
+    tryCatch(
+      getFromNamespace('validate_fixed_contract', 'specmill')(bad_fixed),
+      error = identity
+    ),
+    'error'
+  ))
+  other <- tempfile('other-catalogue-client-')
+  dir.create(other)
+  file.copy(
+    file.path(root, c('DESCRIPTION', 'NAMESPACE', 'R')),
+    other,
+    recursive = TRUE
+  )
+  description <- readLines(file.path(other, 'DESCRIPTION'))
+  writeLines(
+    sub('Package: localcatalogue', 'Package: othercatalogue', description),
+    file.path(other, 'DESCRIPTION')
+  )
+  helper_file <- file.path(other, 'R/helper.R')
+  writeLines(
+    gsub("'ok'", "'second'", readLines(helper_file), fixed = TRUE),
+    helper_file
+  )
+  stopifnot(
+    system2(
+      file.path(
+        R.home('bin'),
+        if (.Platform$OS.type == 'windows') 'R.exe' else 'R'
+      ),
+      c(
+        'CMD',
+        'INSTALL',
+        paste0('--library=', shQuote(library_dir)),
+        shQuote(other)
+      )
+    ) ==
+      0L
+  )
+  other_ns <- loadNamespace('othercatalogue', lib.loc = library_dir)
+  stopifnot(
+    identical(other_ns$get_item(' x '), 'second'),
+    identical(localcatalogue::get_item(' x '), 'ok')
+  )
+  request <- function(
+    method,
+    path,
+    path_params = list(),
+    query = list(),
+    body = NULL
+  ) {
+    list(list(
+      method = method,
+      path = path,
+      path_params = path_params,
+      query = query,
+      body = body,
+      server = list(
+        diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override'
+      )
+    ))
+  }
+  check <- function(call, expected, result) {
+    localcatalogue::clear_calls()
+    specmill::check_requests(call, expected, localcatalogue::captured, result)
+  }
+  check(
+    function() localcatalogue::get_item(' a/b ', language = 'fr'),
+    request(
+      'GET',
+      '/items/{item_id}',
+      list(item_id = 'a/b'),
+      list(language = 'fr')
+    ),
+    'ok'
+  )
+  check(
+    function() localcatalogue::create_item(list(title = 'Example', count = 2L)),
+    request('POST', '/items', body = list(title = 'Example', count = 2L)),
+    list(data = 'ok')
+  )
+  check(
+    function() localcatalogue::refresh(),
+    request('POST', '/refresh'),
+    list(data = 'ok')
+  )
+  check(
+    function() localcatalogue::list_items(page = 2L),
+    request('GET', '/items', query = list(page = 2L)),
+    list(data = 'ok')
+  )
+  fails <- function(expr) {
+    stopifnot(inherits(
+      tryCatch(
+        {
+          force(expr)
+          NULL
+        },
+        error = identity
+      ),
+      'error'
+    ))
+  }
+  fails(check(
+    function() localcatalogue::refresh(),
+    request('GET', '/refresh'),
+    list(data = 'ok')
+  ))
+  fails(localcatalogue::get_item(NULL))
+  fails(localcatalogue::create_item(list(count = 1L)))
+  fails(check(
+    function() localcatalogue::create_item(list(title = 'wrong')),
+    request('POST', '/items', body = list(title = 'expected')),
+    list(data = 'ok')
+  ))
+  testthat::with_mocked_bindings(
+    fails(check(
+      function() localcatalogue::get_item('x'),
+      request(
+        'GET',
+        '/items/{item_id}',
+        list(item_id = 'x'),
+        list(language = NULL)
+      ),
+      'ok'
+    )),
+    extract_output = function(state) stop('intentional post-response fault'),
+    .package = 'localcatalogue'
+  )
+  wire <- localcatalogue::wire_request(
+    'POST',
+    '/items/{item_id}',
+    list(item_id = 'a/b'),
+    list(language = 'en us'),
+    list(title = 'A "quoted" title')
+  )
+  stopifnot(
+    identical(
+      wire$url,
+      'https://catalogue.invalid/items/a%2Fb?language=en%20us'
+    ),
+    identical(wire$method, 'POST'),
+    identical(wire$body$data, list(title = 'A "quoted" title')),
+    identical(wire$body$type, 'json')
+  )
+  hooks_a <- new.env(parent = emptyenv())
+  hooks_a$normalize_input <- function(x) x
+  hooks_b <- new.env(parent = emptyenv())
+  hooks_b$normalize_input <- function(x) stop('other client')
+  config <- list(get_item = list(pre_request = 'normalize_input'))
+  wrappers <- list(get_item = getExportedValue('localcatalogue', 'get_item'))
+  stopifnot(
+    specmill::validate_hooks(config, wrappers, hooks_a)$valid,
+    specmill::validate_hooks(config, wrappers, hooks_b)$valid,
+    !specmill::validate_hooks(
+      config,
+      wrappers,
+      new.env(parent = emptyenv())
+    )$valid
+  )
+  document <- jsonlite::fromJSON(spec$files, simplifyVector = FALSE)
+  changed <- document
+  changed$paths[['/items']]$get$parameters[[2L]] <- list(
+    name = 'tenant',
+    'in' = 'query',
+    required = TRUE,
+    schema = list(type = 'string')
+  )
+  changed_file <- tempfile(fileext = '.json')
+  jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
+  new <- specmill::read_operations(changed_file)
+  delta <- specmill::compare_operations(
+    specmill::read_operations(spec$files),
+    new
+  )
+  stopifnot(
+    any(vapply(delta, function(d) d$status == 'breaking', logical(1))),
+    identical(names(first$operations), names(new$operations))
+  )
+  changed$components$schemas$Item$properties <- list(
+    code = list(type = 'integer')
+  )
+  changed$components$schemas$Item$required <- list('code')
+  jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
+  alternate <- specmill::read_operations(changed_file)
+  stopifnot(
+    identical(
+      names(first$operations$create_item$body$properties),
+      c('title', 'count')
+    ),
+    identical(names(alternate$operations$create_item$body$properties), 'code')
+  )
+  changed$paths[['/items']]$post$requestBody$content[[
+    'application/json'
+  ]]$schema <- list(type = 'object', additionalProperties = TRUE)
+  changed$paths[['/items']]$get$parameters[[1]]$style <- 'deepObject'
+  jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
+  spec$files <- changed_file
+  before <- tools::md5sum(file.path(root, 'R/create_item.R'))
+  unsupported <- specmill::generate_client(validation = FALSE, root, spec, 'plan')
+  fails(specmill::generate_client(validation = FALSE, root, spec, 'apply'))
+  stopifnot(
+    length(unsupported$diagnostics) == 1L,
+    unsupported$diagnostics[[1L]]$reason ==
+      'Unsupported parameter serialization',
+    identical(before, tools::md5sum(file.path(root, 'R/create_item.R')))
+  )
+  fails(specmill::apply_files(
+    root,
+    list('../escape.R' = 'x <- 1'),
+    mode = 'apply'
+  ))
+  fails(specmill::apply_files(
+    root,
+    list('R/get_item.R' = 'invalid ('),
+    mode = 'apply'
+  ))
+  protected <- specmill::apply_files(
+    root,
+    list('R/helper.R' = 'stop("overwrite")'),
+    mode = 'plan'
+  )
+  stopifnot(
+    protected[[1]]$action == 'protected',
+    identical(manual, tools::md5sum(file.path(root, 'R/helper.R')))
+  )
+  # Runtime package metadata and namespaces contain no toolkit dependency.
+  stopifnot(
+    !'specmill' %in% names(getNamespaceImports('localcatalogue')),
+    !'specmill' %in%
+      unlist(tools::package_dependencies(
+        'localcatalogue',
+        db = installed.packages(lib.loc = library_dir)
+      ))
+  )
+  cat(
+    'Catalogue: requests, four faults, wire mapping, hooks, references, diff, ownership and installed runtime passed.\n'
+  )
+  invisible(list(root = root, library = library_dir))
+}
+test_that('catalogue client acceptance', {
+  catalogue_acceptance()
+  succeed()
+})
