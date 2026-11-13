@@ -524,6 +524,11 @@ configure_client <- function(
   if (!is.null(origin) && is.data.frame(schema)) {
     stop('Record origins for multiple APIs as schemas.origin in each API file')
   }
+  if (
+    !is.null(origin) && !isTRUE(importer_initialization_source(schema)$origin)
+  ) {
+    stop('origin applies only to OpenAPI and Swagger schemas')
+  }
   naming <- match.arg(naming)
   naming_options <- validate_naming_options(naming, naming_options)
   name_case <- match.arg(name_case)

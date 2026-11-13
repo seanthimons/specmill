@@ -229,3 +229,120 @@ test_that('configure_client keeps a recorded origin on rerun', {
     'absolute HTTP\\(S\\) origin'
   )
 })
+
+test_that('origin is rejected where it cannot apply', {
+  skip_if_not_installed('httr2')
+  origin <- 'https://example.invalid/'
+  apis <- data.frame(schema = 'schema.json')
+  expect_error(
+    specmill::initialize_client(withr::local_tempdir(), apis, origin = origin),
+    'schemas.origin in each API file'
+  )
+  expect_error(
+    specmill::configure_client(withr::local_tempdir(), apis, origin = origin),
+    'schemas.origin in each API file'
+  )
+  graphql <- test_path('fixtures', 'graphql', 'monitoring.json')
+  expect_error(
+    specmill::configure_client(
+      withr::local_tempdir(),
+      graphql,
+      origin = origin
+    ),
+    'only to OpenAPI and Swagger'
+  )
+  expect_error(
+    specmill::initialize_client(
+      file.path(withr::local_tempdir(), 'gql'),
+      graphql,
+      package = 'gqltest',
+      title = 'GraphQL Test',
+      license = 'MIT + file LICENSE',
+      author = list(given = 'A', family = 'B', email = 'a@example.org'),
+      base_url = 'https://example.invalid/api',
+      origin = origin
+    ),
+    'only to OpenAPI and Swagger'
+  )
+})
+
+test_that('unclaimed services compare servers resolved through the origin', {
+  skip_if_not_installed('httr2')
+  root <- withr::local_tempdir()
+  fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
+  expect_true(all(file.copy(
+    list.files(fixture, full.names = TRUE),
+    root,
+    recursive = TRUE
+  )))
+  dir.create(file.path(root, 'schema'))
+  dir.create(file.path(root, 'apis'))
+  op <- list(responses = list(`200` = list(description = 'ok')))
+  write_schema <- function(file, server) {
+    jsonlite::write_json(
+      list(
+        openapi = '3.0.3',
+        info = list(title = 'demo', version = '1'),
+        servers = list(list(url = server)),
+        paths = list(`/items` = list(get = op), `/other` = list(get = op))
+      ),
+      file.path(root, 'schema', file),
+      auto_unbox = TRUE
+    )
+  }
+  write_schema('owner.json', 'https://example.invalid/api/v1')
+  write_schema('rest.json', '/api/v1')
+  write_config <- function(origin) {
+    yaml::write_yaml(
+      list(
+        config_version = 1L,
+        validation = FALSE,
+        services = list('apis/owner.yml', 'apis/rest.yml')
+      ),
+      file.path(root, 'specmill.yml')
+    )
+    yaml::write_yaml(
+      list(
+        id = 'owner',
+        schemas = list(files = list('schema/owner.json')),
+        helper = 'catalogue_request',
+        selection = list(include = list('GET /items')),
+        names = list(`GET /items` = 'owner_items')
+      ),
+      file.path(root, 'apis', 'owner.yml')
+    )
+    yaml::write_yaml(
+      list(
+        id = 'rest',
+        schemas = c(
+          list(files = list('schema/rest.json')),
+          if (!is.null(origin)) list(origin = origin)
+        ),
+        helper = 'catalogue_request',
+        selection = list(unclaimed = TRUE)
+      ),
+      file.path(root, 'apis', 'rest.yml')
+    )
+  }
+  keys <- function() {
+    plan <- specmill::generate_client(
+      root,
+      config = 'specmill.yml',
+      mode = 'plan',
+      validation = FALSE
+    )
+    vapply(
+      plan$operations,
+      function(o) paste(o$service, o$method, o$path),
+      character(1)
+    )
+  }
+  write_config('https://example.invalid/docs/openapi.json')
+  selected <- keys()
+  expect_true('owner GET /items' %in% selected)
+  expect_false('rest GET /items' %in% selected)
+  expect_true('rest GET /other' %in% selected)
+  # Without the origin the relative server differs, so nothing is claimed.
+  write_config(NULL)
+  expect_true('rest GET /items' %in% keys())
+})
