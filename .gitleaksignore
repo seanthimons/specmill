@@ -85,3 +85,8 @@ f823a166717c6ae238fb4fcae792fd8d7ca8be5d:dev/audits/additional-schemas/sources.c
 738cdac76cb304cc1391d71c948202b7f5437652:dev/audits/ir-golden/manifest.csv:generic-api-key:260
 738cdac76cb304cc1391d71c948202b7f5437652:dev/audits/ir-golden/manifest.csv:generic-api-key:338
 738cdac76cb304cc1391d71c948202b7f5437652:dev/audits/ir-golden/manifest.csv:generic-api-key:379
+# Re-recorded SHA-256 digests of R/api_auth.R golden artifacts for #4, not credentials.
+9a7d31f0b99be37456b308beb27f9cbfaab00b2a:dev/audits/ir-golden/manifest.csv:generic-api-key:60
+9a7d31f0b99be37456b308beb27f9cbfaab00b2a:dev/audits/ir-golden/manifest.csv:generic-api-key:126
+9a7d31f0b99be37456b308beb27f9cbfaab00b2a:dev/audits/ir-golden/manifest.csv:generic-api-key:224
+9a7d31f0b99be37456b308beb27f9cbfaab00b2a:dev/audits/ir-golden/manifest.csv:generic-api-key:253
