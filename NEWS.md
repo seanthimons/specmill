@@ -1,3 +1,66 @@
+## specmill 0.4.0 (2026-11-13)
+
+#### New features
+
+- add OAuth PKCE sign-in and reviewed schema origins (#4, #311, #310)
+  (#318)
+  ([ba71b8a](https://github.com/seanthimons/specmill/tree/ba71b8ab3008c4e9ce58f92e6e4e0f676c258964))
+- generate OAuth authorization-code sign-in with PKCE and token refresh
+  (#4)
+  ([c809a5e](https://github.com/seanthimons/specmill/tree/c809a5eecd9304da8060e09dcbea85f7ca61f306))
+- accept a reviewed source origin for relative schema servers (#311)
+  ([a4d8bb2](https://github.com/seanthimons/specmill/tree/a4d8bb224e77203ce6371946df1486786ca2dac8))
+- ship the Petstore configuration example (petstore_example())
+  ([c7b3d70](https://github.com/seanthimons/specmill/tree/c7b3d702c9484d4e8f4cebdabddf986544891d28))
+
+#### Bug fixes
+
+- replay OAuth only for credentials a recording used (#4)
+  ([2479429](https://github.com/seanthimons/specmill/tree/2479429ec356b311b77f9fa83cc6949795d367d3))
+- reject origin for non-OpenAPI schemas in configure_client (#311)
+  ([ae9f259](https://github.com/seanthimons/specmill/tree/ae9f259645264d0181490472d62b5d17eb16875a))
+- fall back from blank or missing operation summaries to the description
+  or function name (#310)
+  ([767a37e](https://github.com/seanthimons/specmill/tree/767a37e28eba300b893a21238e5991014be99c7e))
+- list setup_client in the reference index so the site builds (#309)
+  ([ebe1ec2](https://github.com/seanthimons/specmill/tree/ebe1ec278fff9bef473630013d4c91686643b2fd))
+- list setup_client in the reference index so the site builds
+  ([21f2e7b](https://github.com/seanthimons/specmill/tree/21f2e7b6c87141f8521a2591e8944d2b58a11599))
+
+#### Build
+
+- require R 4.4.0 for base %||%
+  ([22f214a](https://github.com/seanthimons/specmill/tree/22f214a6f3ee31676b2d130a8a3c5d546d03e9e8))
+
+#### Tests
+
+- record the intended OAuth changes in the golden baseline (#4)
+  ([9a7d31f](https://github.com/seanthimons/specmill/tree/9a7d31f0b99be37456b308beb27f9cbfaab00b2a))
+- fail when the installed package cannot load
+  ([116410a](https://github.com/seanthimons/specmill/tree/116410ac7bf3d636c5018ef219cdbb7e5b7d53a3))
+- move acceptance scripts into a testthat suite
+  ([7ce28f9](https://github.com/seanthimons/specmill/tree/7ce28f9627f214753b2621ca0a57f16a5d45cd7c))
+
+#### CI
+
+- allowlist re-recorded golden digests flagged by gitleaks (#4)
+  ([529e9a2](https://github.com/seanthimons/specmill/tree/529e9a2b8bce8685cdf6a1a9bd5199042ff183b6))
+
+#### Docs
+
+- generate help pages and NAMESPACE with roxygen
+  ([72c59fa](https://github.com/seanthimons/specmill/tree/72c59fa116b7eedd441881bd3d46c9a17a6c4014))
+
+#### Other changes
+
+- stop tracking the local .directory file
+  ([e22c791](https://github.com/seanthimons/specmill/tree/e22c791e13289fbc9676e51b39c77100139eb9d0))
+- update local desktop icon path
+  ([312c08a](https://github.com/seanthimons/specmill/tree/312c08abdb24c4d37406b85105352421ecf5574d))
+
+Full set of changes:
+[`v0.3.1...v0.4.0`](https://github.com/seanthimons/specmill/compare/v0.3.1...v0.4.0)
+
 ## specmill 0.3.1 (2026-11-12)
 
 #### New features
