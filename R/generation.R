@@ -1046,7 +1046,7 @@ render_operation <- function(operation, spec) {
       paste0(', server_resolver = ', r_literal(operation$server_resolver))
     },
     if ('auth' %in% transport_arguments(operation)) {
-      paste0(', auth = ', r_literal(operation$auth))
+      paste0(', auth = ', r_literal(oauth_wrapper_auth(operation$auth)))
     },
     if ('headers' %in% transport_arguments(operation)) {
       paste0(', headers = ', refs('header'))
@@ -2079,7 +2079,14 @@ generate_client <- function(
     use.names = FALSE
   )
   if (!is.null(authentication)) {
-    if (any(operation_names %in% c('api_auth', 'api_token', 'set_api_token'))) {
+    helpers <- c('api_auth', 'api_token', 'set_api_token')
+    if (any(vapply(authentication, is.list, logical(1)))) {
+      helpers <- c(helpers, 'api_login', 'api_logout')
+    }
+    if (
+      any(operation_names %in% helpers) ||
+        any(startsWith(operation_names, 'api_oauth_'))
+    ) {
       stop('Operation collides with authentication helper')
     }
   }
@@ -2959,9 +2966,23 @@ generate_client <- function(
       package = 'specmill',
       mustWork = TRUE
     ))
+    oauth <- oauth_settings(authentication, configured_operations)
+    if (length(oauth)) {
+      # Sign-in functions are exported only when a credential uses OAuth.
+      template <- paste(
+        template,
+        file_text(system.file(
+          'templates/oauth.R',
+          package = 'specmill',
+          mustWork = TRUE
+        )),
+        sep = '\n'
+      )
+    }
+    template <- gsub('AUTH_OAUTH', r_literal(oauth), template, fixed = TRUE)
     desired[['R/api_auth.R']] <- gsub(
       'AUTH_ENVVARS',
-      r_literal(authentication),
+      r_literal(Filter(is.character, authentication)),
       template,
       fixed = TRUE
     )
@@ -3538,3 +3559,75 @@ check_requests <- function(call, expected, capture, result) {
   stopifnot(identical(capture(), expected), identical(actual, result))
   invisible(TRUE)
 }
+
+# Wrappers name the OAuth credential and its required scopes; endpoints live
+# once in AUTH_OAUTH.
+oauth_wrapper_auth <- function(auth) {
+  lapply(auth, function(requirement) {
+    lapply(requirement, function(scheme) {
+      scheme$flow <- NULL
+      scheme
+    })
+  })
+}
+
+# Generated OAuth settings per reviewed credential: endpoints from the schema,
+# every scope an operation requires plus reviewed extras, and the origins of
+# the servers its operations call (tokens are sent nowhere else).
+oauth_settings <- function(authentication, operations) {
+  credentials <- names(Filter(is.list, authentication))
+  settings <- lapply(credentials, function(credential) {
+    oauth <- authentication[[credential]]$oauth
+    uses <- list()
+    origins <- character()
+    for (op in operations) {
+      used <- FALSE
+      for (requirement in op$auth) {
+        for (scheme in requirement) {
+          if (
+            identical(scheme$type, 'oauth2_code') &&
+              identical(scheme$scheme, credential)
+          ) {
+            uses[[length(uses) + 1L]] <- scheme
+            used <- TRUE
+          }
+        }
+      }
+      url <- op$server$url
+      if (used && is.character(url) && length(url) == 1L) {
+        origins <- c(origins, sub('^(https?://[^/]+).*$', '\\1', url))
+      }
+    }
+    endpoint <- function(name) {
+      urls <- unique(unlist(lapply(uses, function(x) x$flow[[name]])))
+      if (length(urls) > 1L) {
+        stop('Operations disagree on the OAuth ', name, ' for ', credential)
+      }
+      if (!length(urls) && length(uses) && is.null(oauth$discovery)) {
+        stop(
+          'OAuth credential ',
+          credential,
+          ' needs a schema ',
+          name,
+          ' or a discovery function'
+        )
+      }
+      if (length(urls)) urls else NULL
+    }
+    scopes <- unlist(c(
+      lapply(uses, function(x) unlist(x$scopes)),
+      oauth$scopes
+    ))
+    list(
+      client_id = oauth$client_id,
+      redirect_uri = oauth$redirect_uri %or% 'http://localhost:1410/',
+      auth_url = endpoint('auth_url'),
+      token_url = endpoint('token_url'),
+      scopes = sort(unique(as.character(scopes)), method = 'radix'),
+      discovery = oauth$discovery,
+      origins = sort(unique(origins), method = 'radix')
+    )
+  })
+  stats::setNames(settings, credentials)
+}
+

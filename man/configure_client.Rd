@@ -37,7 +37,7 @@ configure_client(
 \item{origin}{Optional reviewed absolute HTTP(S) URL the schema was downloaded from; written to each service YAML as \code{schemas.origin} so relative servers resolve against it. When omitted, an origin already recorded in the existing service files is kept. Not for multiple APIs.}
 }
 \value{
-A list with named YAML/schema text in files, operation assignments in operations, diagnostics, and changes. Each change contains file, action (create, unchanged, conflict), before, and after. Schemas with security declarations get an authentication map from scheme names to proposed environment-variable names. It contains no tokens; names can be edited before generation. API keys and HTTP bearer tokens are supported; OAuth login and refresh are deferred.
+A list with named YAML/schema text in files, operation assignments in operations, diagnostics, and changes. Each change contains file, action (create, unchanged, conflict), before, and after. Schemas with security declarations get an authentication map from scheme names to proposed environment-variable names. It contains no tokens; names can be edited before generation. API keys and HTTP bearer tokens are supported; OAuth authorization-code sign-in needs a reviewed \code{oauth} credential (see the configuration guide).
 }
 \description{
 Discover every operation, group by its first tag, and propose project and service YAML without generating endpoint functions.

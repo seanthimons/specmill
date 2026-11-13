@@ -229,9 +229,11 @@ replay_cassette <- function(
         call. = FALSE
       )
     }
+    prepare <- get0('api_oauth_prepare_recording', mode = 'function')
+    if (!is.null(prepare)) prepare()
     present <- replay_credentials[nzchar(Sys.getenv(replay_credentials))]
     secrets <- unique(unlist(
-      lapply(Sys.getenv(present), replay_secret_forms),
+      lapply(c(Sys.getenv(present), replay_oauth_secrets()), replay_secret_forms),
       use.names = FALSE
     ))
     filters <- unlist(
@@ -264,7 +266,11 @@ replay_cassette <- function(
           service,
           scenario,
           c(cassette, used_file, signature),
-          secrets,
+          # OAuth tokens can change while recording (refresh); scan both.
+          unique(c(
+            secrets,
+            unlist(lapply(replay_oauth_secrets(), replay_secret_forms))
+          )),
           extra$patterns,
           c('Set-Cookie', extra$response_headers),
           provenance,
@@ -302,6 +308,8 @@ replay_cassette <- function(
       values[used] <- 'replay-dummy'
       withr::local_envvar(values, .local_envir = frame)
     }
+    stub <- get0('api_oauth_replay', mode = 'function')
+    if (!is.null(stub)) stub(frame)
     filters <- if (length(used)) {
       stats::setNames(
         as.list(rep('replay-dummy', length(used))),
@@ -381,3 +389,10 @@ replay_expect_signature <- function(result, service, scenario) {
   }
   invisible(actual)
 }
+
+# Current OAuth token values when the client generates OAuth login.
+replay_oauth_secrets <- function() {
+  values <- get0('api_oauth_secrets', mode = 'function')
+  if (is.null(values)) character() else values()
+}
+

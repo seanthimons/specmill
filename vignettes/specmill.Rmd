@@ -263,7 +263,8 @@ wrappers; do not edit it. The client still needs no specmill at runtime.
 For schemas with API-key or HTTP bearer security, initialization also proposes
 an `authentication` map in `specmill.yml`. Generation creates `R/api_auth.R` with
 `set_api_token()` and `api_token()`. Configure the token at runtime; keep it out
-of YAML. Public endpoints need no token. OAuth login and refresh are deferred.
+of YAML. Public endpoints need no token. OAuth authorization-code login is
+generated for a reviewed `oauth` credential.
 See the [configuration guide](configuration.html) for setup and persistence.
 
 After configuring the actual service and any required credentials, run:

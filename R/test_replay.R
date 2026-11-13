@@ -417,7 +417,7 @@ replay_outputs <- function(
   }
   sensitive <- sort(
     unique(c(
-      unlist(authentication, use.names = FALSE),
+      unlist(Filter(is.character, authentication), use.names = FALSE),
       vapply(bound, `[[`, character(1), 'public_env')
     )),
     method = 'radix'

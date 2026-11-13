@@ -200,7 +200,7 @@ authentication_acceptance <- function() {
   )
   message <- conditionMessage(tryCatch(runtime$get_oauth(), error = identity))
   stopifnot(
-    grepl('deferred', message),
+    grepl('authorization-code flow', message, fixed = TRUE),
     !grepl('set_api_token', message, fixed = TRUE)
   )
   runtime$set_api_token('invalid-key', scheme = 'key')
@@ -266,7 +266,7 @@ authentication_acceptance <- function() {
   error <- tryCatch(runtime$get_oauth(), error = identity)
   stopifnot(
     inherits(error, 'error'),
-    grepl('deferred', conditionMessage(error)),
+    grepl('authorization-code flow', conditionMessage(error), fixed = TRUE),
     identical(before, readLines(count_file))
   )
   envfile <- file.path(workspace, '.Renviron')
@@ -369,7 +369,7 @@ authentication_acceptance <- function() {
   )
   stopifnot(inherits(error, 'error'))
   cat(
-    'Authentication: API keys and bearer tokens, server rejection, inheritance, ignored role lists, public overrides, OR/AND, deferred OAuth, missing-token preflight and safe environment persistence passed.\n'
+    'Authentication: API keys and bearer tokens, server rejection, inheritance, ignored role lists, public overrides, OR/AND, unconfigured OAuth, missing-token preflight and safe environment persistence passed.\n'
   )
 }
 test_that('authentication stores and rewrites credentials safely', {

@@ -1416,8 +1416,69 @@ leaves it off others, since the gap is read as public and is often a schema omis
 Public/anonymous requests receive no automatic credentials. Otherwise, generation
 supports API keys in headers, query parameters, or cookies and HTTP bearer tokens.
 Each alternative is an OR choice; all schemes inside one choice are required.
-Missing credentials fail before any HTTP request. OAuth login, refresh, and OpenID
-Connect are deferred; an unsupported-only requirement produces a clear runtime error.
+Missing credentials fail before any HTTP request. OAuth authorization-code
+login is generated for a reviewed credential (see below); other OAuth flows and
+OpenID Connect are not, and an unsupported-only requirement produces a clear
+runtime error.
+
+#### OAuth sign-in (authorization code with PKCE)
+
+For an `oauth2` scheme with an `authorizationCode` flow, give the project
+credential an `oauth` entry instead of an environment variable:
+
+```yaml
+authentication:
+  sfn_search_api_auth:
+    oauth:
+      client_id: SCIFINDER_CLIENT_ID      # environment variable, never the value
+      redirect_uri: http://localhost:1410/ # registered loopback URI with a port
+      scopes: [openid]                     # requested in addition to required scopes
+      discovery: scifinder_endpoints       # optional client-owned function
+```
+
+The client is public: PKCE (S256) protects the code and no client secret is
+used. Generation adds `api_login()` and `api_logout()` to `R/api_auth.R`.
+`api_login()` opens the provider's page in a browser and receives the code on
+the loopback `redirect_uri`, so it needs an interactive session and the httpuv
+package (add it to the client's Suggests). It requests every scope the
+credential's operations require, plus `scopes`. Requests never open a browser:
+an operation that needs the credential fails with advice to call `api_login()`.
+
+The token is kept for the session and in a per-user cache file (mode 0600)
+under `tools::R_user_dir(<package>, 'cache')`, never in the package or project.
+It is refreshed with its refresh token shortly before it expires. When the
+provider refuses the refresh, the cached token is removed and a new sign-in is
+required; a network error leaves it in place. The token is sent only to the
+origins of the servers the credential's operations call; `api_login(origin = )`
+allows one more, such as an institutional proxy. A token that lacks a required
+scope or is not allowed for the request's origin gives way to the operation's
+next security alternative, and fails before the request when there is none.
+`api_logout()` deletes the cached token (it does not revoke it).
+
+The authorization and token URLs come from the scheme. When a provider must be
+found at run time, name a client-owned `discovery` function. It is called as
+`fn(credential, endpoints, base_url)` with the schema's endpoints and the API
+origin, and returns a list with any of `auth_url`, `token_url` and
+`auth_params` (extra authorization parameters such as an OpenID `nonce`). For
+example, a provider found from the `Location` header of a metadata route:
+
+```r
+scifinder_endpoints <- function(credential, endpoints, base_url) {
+  request <- httr2::request(paste0(base_url, '/api/oauth2/metadata'))
+  request <- httr2::req_options(request, followlocation = FALSE)
+  sso <- httr2::resp_header(httr2::req_perform(request), 'location')
+  list(
+    auth_url = paste0(sso, '/as/authorization.oauth2'),
+    token_url = paste0(sso, '/as/token.oauth2')
+  )
+}
+```
+
+Replayed tests never see the token: they use a dummy token and do not read the
+cache. Before recording, a token that would expire within ten minutes is
+refreshed, so no token request is recorded; recordings drop the
+`Authorization` header and are scanned for the token values before they are
+kept.
 
 For a verified endpoint whose schema omits or misstates its security requirement,
 record an explicit correction under that operation:
@@ -1438,7 +1499,7 @@ inherited through defaults. An empty requirements sequence explicitly makes the
 operation public. Plans retain the correction and the original source operation;
 the archived schema is unchanged. Other operations keep their declared security.
 Credential environment-variable mappings and client-owned helper adoption still
-apply, and the correction does not add OAuth login or refresh support.
+apply.
 
 Omitting `authentication` preserves existing client-owned authentication.
 Explicit custom request mappings also retain responsibility for

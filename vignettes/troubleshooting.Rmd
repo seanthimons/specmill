@@ -28,7 +28,7 @@ unsupported coverage. See [validation policy](configuration.html#schema-validati
 | JSON bodies | Scalars, nested objects/arrays, free-form values, supported composition, and bounded local recursion |
 | Binary bodies | Raw vectors for `application/octet-stream` with a binary string schema |
 | Form bodies/uploads | Supported URL-encoded and multipart shapes, including Swagger `formData`; unsupported encodings are diagnosed |
-| Authentication | Generated API-key and HTTP bearer support; OAuth login/refresh and custom flows remain client-owned |
+| Authentication | Generated API-key, HTTP bearer and OAuth authorization-code (PKCE) support; other OAuth flows and custom flows remain client-owned |
 | HTTP method | Explicitly declared; no inferred GET/POST conversion |
 | Pagination/batching | Explicit configuration or companion functions; a `page` argument alone causes one request |
 | Response caching | Opt-in `response_cache` with the `cache` companion; nothing is cached by default |

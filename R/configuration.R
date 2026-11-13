@@ -272,7 +272,12 @@ load_project <- function(
       names(project$authentication),
       'authentication'
     )
-    for (envvar in project$authentication) {
+    for (credential in names(project$authentication)) {
+      envvar <- project$authentication[[credential]]
+      if (is.list(envvar)) {
+        validate_oauth_credential(envvar, credential)
+        next
+      }
       config_string(envvar, 'credential environment variable')
       if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', envvar)) {
         stop('Invalid credential environment variable')
@@ -1010,4 +1015,42 @@ origin_servers <- function(urls, origin) {
     character(1),
     USE.NAMES = FALSE
   )
+}
+
+# A reviewed OAuth credential: environment-variable and function names only,
+# never a client secret or token value.
+validate_oauth_credential <- function(credential, label) {
+  config_fields(credential, 'oauth', paste(label, 'authentication'))
+  oauth <- credential$oauth
+  config_fields(
+    oauth,
+    c('client_id', 'redirect_uri', 'scopes', 'discovery'),
+    paste(label, 'oauth')
+  )
+  client_id <- config_string(oauth$client_id, paste(label, 'oauth client_id'))
+  if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', client_id)) {
+    stop(label, ': oauth client_id must name an environment variable')
+  }
+  if (!is.null(oauth$redirect_uri)) {
+    redirect <- config_string(oauth$redirect_uri, paste(label, 'redirect_uri'))
+    loopback <- '^http://(localhost|127[.]0[.]0[.]1|\\[::1\\]):[0-9]+(/[^?#]*)?$'
+    if (!grepl(loopback, redirect)) {
+      stop(
+        label,
+        ': oauth redirect_uri must be a loopback http URL with a port'
+      )
+    }
+  }
+  if (!is.null(oauth$scopes)) {
+    for (scope in config_sequence(oauth$scopes, paste(label, 'oauth scopes'))) {
+      config_string(scope, paste(label, 'oauth scope'))
+    }
+  }
+  if (!is.null(oauth$discovery)) {
+    discovery <- config_string(oauth$discovery, paste(label, 'oauth discovery'))
+    if (!identical(make.names(discovery), discovery)) {
+      stop(label, ': oauth discovery must be an R function name')
+    }
+  }
+  invisible(credential)
 }

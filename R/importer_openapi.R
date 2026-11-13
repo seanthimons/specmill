@@ -4566,6 +4566,36 @@ authentication_envvars <- function(document, package) {
 }
 
 
+# An OAuth 2.0 authorization-code requirement for a reviewed oauth credential.
+# Endpoints travel in `flow` until generation collects them into AUTH_OAUTH.
+# Other flows stay unsupported and fail before any request (#314, #315).
+oauth_code_requirement <- function(id, scheme, scopes) {
+  flow <- scheme$flows$authorizationCode
+  if (!is.list(flow)) {
+    return(list(scheme = id, type = 'oauth2'))
+  }
+  endpoint <- function(name) {
+    url <- flow[[name]]
+    if (!is.null(url) && !valid_server_url(url)) {
+      stop('Invalid OAuth ', name, ' for ', id)
+    }
+    url
+  }
+  scopes <- unlist(scopes, use.names = FALSE)
+  if (!is.null(scopes) && (!is.character(scopes) || anyNA(scopes))) {
+    stop('OAuth scopes must be strings: ', id)
+  }
+  list(
+    scheme = id,
+    type = 'oauth2_code',
+    scopes = as.list(scopes %or% character()),
+    flow = list(
+      auth_url = endpoint('authorizationUrl'),
+      token_url = endpoint('tokenUrl')
+    )
+  )
+}
+
 # Native implementation retained for the compatibility context: operation_authentication.
 operation_authentication <- function(operation, envvars) {
   requirements <- operation$security %or% list()
@@ -4585,6 +4615,9 @@ operation_authentication <- function(operation, envvars) {
         stop('Undefined security scheme: ', id)
       }
       type <- scheme$type
+      if (identical(type, 'oauth2') && is.list(envvars[[id]])) {
+        return(oauth_code_requirement(id, scheme, requirement[[id]]))
+      }
       supported <- identical(type, 'apiKey') ||
         (identical(type, 'http') && identical(tolower(scheme$scheme), 'bearer'))
       if (!supported) {
