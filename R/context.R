@@ -27,6 +27,23 @@ utils::globalVariables(c(
   'supported_methods',
   'tg_config'
 ))
+#' Bind legacy maintenance tools to a client context
+#'
+#' Install an extracted compatibility function group into an explicit client
+#' policy environment.
+#'
+#' @param group Installed compatibility function group.
+#' @param envir Explicit client context receiving installed functions.
+#' @return The supplied environment invisibly, with bound functions added. Unknown groups or a non-environment target raise an error.
+#' @details This is for existing endpoint-table integrations, not new project
+#'   setup. Groups include schema, paths, inventory, scaffold, test_inventory,
+#'   test_scaffold, test_validation, test_helpers, ast, runner, parser, drift,
+#'   diff, and readiness. The client supplies required selection, rendering,
+#'   fixture, and reporting policy. For readiness use asNamespace("specmill") as
+#'   the parent and initialize audit_policy with the bound read_audit_policy()
+#'   helper. Other groups also install supporting dependency exports where absent.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/troubleshooting.html).
+#' @export
 bind_tools <- function(group, envir) {
   stopifnot(is.environment(envir), group %in% names(tool_groups))
   for (package in if (group != 'readiness') {

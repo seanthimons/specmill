@@ -1,3 +1,21 @@
+#' Check credential presence without exposing its value
+#'
+#' Detect missing or placeholder credential strings without logging the value or
+#' sending a request.
+#'
+#' @param value Credential string to inspect, usually read from an environment variable. Its value is never logged.
+#' @param name Display label used in status messages.
+#' @param abort Whether preflight should raise an error for invalid input. FALSE emits a warning instead.
+#' @param guidance Character vector of client-owned credential setup instructions.
+#' @return credential_status() returns valid and reason. credential_preflight() returns TRUE/FALSE invisibly and emits a success message, warning, or error according to status and abort.
+#' @details These checks do not establish service authorization or key validity.
+#'   guidance contains client-owned setup instructions. With abort = FALSE,
+#'   preflight warns and returns FALSE instead of raising an error.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/maintenance.html).
+#' @examples
+#' credential_status('', 'service key')
+#' credential_status('your_key', 'service key')
+#' @export
 credential_status <- function(value, name = 'credential') {
   value <- trimws(value %or% '')
   if (length(value) != 1L || is.na(value) || !nzchar(value)) {
@@ -13,6 +31,8 @@ credential_status <- function(value, name = 'credential') {
   list(valid = TRUE, reason = 'ok')
 }
 
+#' @rdname credential_status
+#' @export
 credential_preflight <- function(
   value,
   name = 'credential',
@@ -34,6 +54,9 @@ credential_preflight <- function(
   invisible(FALSE)
 }
 
+#' @rdname generation_command
+#' @param script Maintenance script basename, located from source frames or the Rscript command line.
+#' @export
 script_root <- function(script) {
   candidates <- c(
     sub('^--file=', '', grep('^--file=', commandArgs(FALSE), value = TRUE)),
@@ -65,6 +88,23 @@ script_root <- function(script) {
   root
 }
 
+#' Check client public-release boundaries
+#'
+#' Check client-defined host, artifact, export, and schema restrictions without
+#' loading the client.
+#'
+#' @param policy Public-boundary policy list or explicit YAML filename; see details for accepted fields.
+#' @param schema_names Selected public operation names; NULL skips membership checks for built artifacts.
+#' @param root Explicit existing client root directory.
+#' @return Invisibly TRUE after printing a scan summary; raises an error when a policy restriction fails.
+#' @details Policy accepts forbidden_hosts, forbidden_files, forbidden_exports,
+#'   forbidden_schemas, and api_exports regex strings plus a manual_exports
+#'   sequence. With schema_names supplied, selected API exports must have an
+#'   approved schema or manual mapping. Source scans include untracked nonignored
+#'   files in Git projects. String policy filenames resolve against the R working
+#'   directory.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/maintenance.html).
+#' @export
 check_public_boundary <- function(root, policy, schema_names = NULL) {
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
   if (is.character(policy)) {
@@ -180,6 +220,9 @@ check_public_boundary <- function(root, policy, schema_names = NULL) {
   invisible(TRUE)
 }
 
+#' @rdname validate_hooks
+#' @param root Explicit existing client root directory.
+#' @export
 check_client_hooks <- function(root, config, hooks, callback = 'run_hook') {
   definitions <- client_definitions(root)
   wrappers <- lapply(definitions, function(definition) {
@@ -198,6 +241,30 @@ check_client_hooks <- function(root, config, hooks, callback = 'run_hook') {
   invisible(result)
 }
 
+#' Inspect implementation and fixed-contract coverage
+#'
+#' Compare selected YAML operations with client source definitions, exports, and
+#' fixed test files.
+#'
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root, or client hook configuration for hook validation.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @return A list with operations, inventory, diagnostics, manual_exports, coverage, helpers, protected_sources, and testing. Coverage is keyed by service ID and contains total selected operations, implemented exported definitions, and declared contracts with test files. For a service that declares `testing`, coverage also counts gaps, scenarios, represented routes and unrecorded routes; `testing` holds that service's checked declarations and each selected route's status; and its operations carry `gap` and `scenarios`. These are declarations, not test results.
+#' @details This is a read-only structural inspection. Unsupported selections
+#'   remain in coverage totals. Manual exports are listed separately. A present
+#'   test file is not evidence that tests ran or passed.
+#' @section Client-owned helpers:
+#'   Newly initialized helpers retain their substituted baseline and template
+#'   hash under \file{.specmill/helpers/}. The `helpers` result includes baseline,
+#'   local and proposed current source for read-only review, local/upstream change
+#'   flags, and missing explicit helper arguments. Legacy helpers have unknown
+#'   baselines. Argument compatibility does not establish behavior. Manually merge
+#'   selected improvements and run request/transport checks; inspection never
+#'   adopts or overwrites a helper. `protected_sources` lists discovered
+#'   lifecycle-protected R files. Each operation includes specialization evidence,
+#'   configured helper/mapping/hooks and ownership separately.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/testing.html).
+#' @export
 inspect_client <- function(
   root,
   config = 'specmill.yml',
@@ -371,6 +438,25 @@ inspect_client <- function(
 
 # Read-only: plan the full generation in memory, then classify every owned,
 # desired and on-disk output so a purge-and-rebuild can be reviewed first.
+#' Review what a clean regeneration would add, change or remove
+#'
+#' Plan generation in memory and compare it with the checked-in tree, the
+#' ownership manifest and unowned files, without writing anything.
+#'
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param validation Passed to `generate_client()`; `NULL` keeps its default.
+#' @return A `specmill_regeneration_report` whose `files` data frame has columns `file`, `category`, `reason`, `prune_eligible` and `owner`. Categories: `added`, `changed`, `unchanged`, `edited_conflict` and `unowned_collision` (a hand-written file at a generated path), `kept` (lifecycle badge, existing implementation, deferral or \file{NAMESPACE}), `would_remove` (owned but no longer generated; `prune_eligible` is `FALSE` when `prune` would refuse an edited file), `unowned_generated` and `hand_written`.
+#' @details Nothing is written to the working tree or manifest. The comparison is
+#'   the in-memory plan against the current disk, not a purge followed by a
+#'   rebuild: deferrals, existing implementations, adopted hashes and lifecycle
+#'   badges keep their current placement, and the plan reads current sources. Plan
+#'   mode still stops on an unresolved recovery journal, a blocked rename, or a
+#'   hand-edited file that mixes other code into a generated file; the error names
+#'   the file.
+#' @seealso [`generate_client`], [`inspect_client`].
+#' @export
 regeneration_report <- function(
   root,
   config = 'specmill.yml',
@@ -490,6 +576,8 @@ regeneration_report <- function(
   )
 }
 
+#' @export
+#' @noRd
 print.specmill_regeneration_report <- function(x, ...) {
   files <- x$files
   counts <- table(files$category)

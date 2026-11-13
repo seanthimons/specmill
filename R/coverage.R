@@ -1,3 +1,17 @@
+#' Report implementation coverage and test gaps
+#'
+#' Inspect a configured client and prepare or write client-owned coverage badges, baselines, and fixed-contract gap reports.
+#'
+#' Both functions default to read-only plan. Coverage policy has baseline and groups; each named group has services (a regex), label, and badge path, and groups must partition configured services. A group may set denominator to schema to count every operation in the schemas its services reference (once per method and path in the group, minus the regexes in exclude) instead of only selected operations. Test-gap policy has helpers, report_dir, and readiness_report. String policy filenames are resolved against the R working directory; use explicit paths. Coverage counts declarations/files, not passing tests. Apply overwrites the report destinations and writes GitHub summary outputs; report files are not reconciled through the generated-file manifest.
+#'
+#' @param policy Client report-policy list or YAML filename. See details for required fields.
+#' @param root Explicit existing client root directory.
+#' @param mode Check or plan without writes; apply validated output.
+#' @param config Project YAML path relative to root, or client hook configuration for hook validation.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @return coverage_report() invisibly returns baseline values, outputs, badge records, and gaps (for each group with denominator schema, a data frame of schema operations without a wrapper). test_gap_report() invisibly returns timestamp, manifest_authoritative, manifest_replacement, gaps_count, gaps, and stale_protected. Apply also writes the corresponding files.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/maintenance.html).
+#' @export
 coverage_report <- function(
   root,
   policy,

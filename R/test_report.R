@@ -320,6 +320,19 @@ report_service <- function(
   )
 }
 
+#' Report verification layers and scenarios needing review
+#'
+#' Report helper contracts, cassette scenarios, represented routes, hook tests, gaps and exclusions separately for each service, with optional test results and the scenarios affected by changes since they were recorded. No file is changed.
+#'
+#' @details Declarations, generated test files and execution are distinct: a test is passed, failed or skipped only when `results` name its file. A route counts as replayed only when its own scenario test passed. A recording's provenance file holds digests of its operation schema and referenced components (own and represented routes), operation policy, request helper with companions and hook callback, hook chains and functions, and scenario declaration with resolved inputs; a digest that differs from the current one is listed in `changed` and asks for review. A recording without a provenance file, such as one made before provenance existed, is `unknown` and also asks for review; delete the cassette and record again to clear it. `test_current` is `FALSE` when the generated test is older than its inputs; regenerate before recording. While a represented route is deferred, its scenario can show as changed until the deferral ends. The report never re-records and never treats a recording as current service acceptance. Digests use deparsed function sources, so an R upgrade can change them. An invalid testing declaration stops the report.
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param results Optional testthat results, or a data frame with `file`, `failed`, `error` and `skipped` columns. Without it every generated test is reported as \code{not run}.
+#' @param check_responses When `TRUE`, also check recorded responses with \code{\link{review_recordings}}.
+#' @return A list with `services`, keyed by service ID. Each holds `summary` (counts per layer, with schema and selected denominators kept apart), `routes` (one row per route: selection, support, wrapper, contract, gap, replay status, own scenarios, whether the route has its own recording and, if not, why), `contracts`, `scenarios` (inputs, test, recording, signature, provenance status, changed components, response check, execution and review need), `hook_tests` and `hooks_without_cases`.
+#' @seealso \code{\link{inspect_client}}, \code{\link{review_recordings}}, [Step-by-step guide](https://seanthimons.github.io/specmill/articles/testing.html).
+#' @export
 testing_report <- function(
   root,
   config = 'specmill.yml',

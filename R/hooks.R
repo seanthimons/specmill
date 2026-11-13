@@ -1,3 +1,15 @@
+#' Validate client runtime hook declarations
+#'
+#' Check declared hook chains against wrapper calls, client hooks, and the configured hook executor.
+#'
+#' @details config is parsed hook policy data, not a filename. validate_hooks() takes an explicit named list of wrapper functions. check_client_hooks() parses definitions under root once and constructs the wrapper list without loading the client package. The hooks environment supplies the client hook functions. Validation is structural; behavioral hook tests remain necessary.
+#' @param config Parsed client runtime hook configuration as a named list; not a project YAML path.
+#' @param wrappers Named client functions parsed once by the caller.
+#' @param hooks Explicit environment of local hook functions.
+#' @param callback Name of the client's hook execution function.
+#' @return validate_hooks() returns valid, errors, and counts for functions, hooks, and parameters. check_client_hooks() raises an error for invalid declarations and otherwise returns that result invisibly.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/configuration.html).
+#' @export
 validate_hooks <- function(config, wrappers, hooks, callback = 'run_hook') {
   stopifnot(is.environment(hooks), is.list(wrappers))
   hook_config <- config

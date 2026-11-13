@@ -187,6 +187,43 @@ schema_validator <- function() {
   v8
 }
 
+#' Validate a local API schema against its OpenAPI specification
+#'
+#' Check a local JSON or YAML document against the official Swagger 2.0, OpenAPI 3.0, 3.1 or 3.2 JSON Schema. Validation runs locally; nothing is uploaded.
+#'
+#' @details
+#' The document is checked with the ajv build shipped in \pkg{jsonvalidate}, run
+#' through \pkg{V8}, against the OpenAPI Initiative schemas bundled in
+#' `inst/validation`. OAS 3.1 and 3.2 Schema Objects are checked against the
+#' default JSON Schema 2020-12 dialect of their version; a document declaring another
+#' `jsonSchemaDialect` is still checked against the default one.
+#'
+#' Structural checks catch wrong types, missing required fields, unknown fields and
+#' invalid keywords. They do not cover rules the specification states only in
+#' prose, such as unique operation IDs or resolvable internal references.
+#' Unparseable documents, non-object roots and duplicate keys are invalid. Other
+#' versions and schemas with external references, including local sibling files,
+#' are unsupported; bundle them into one document first. When
+#' `specmill-references.yml` sits beside the schema, the document resolved
+#' through its reviewed remote copies is validated instead, and any reference
+#' left unresolved keeps it unsupported. Reference detection is
+#' conservative: external \code{$ref} keys in example data also require review.
+#'
+#' Each finding carries a JSON pointer. Pointers under an operation block that
+#' operation; pointers under a path item block every operation on that path. Shared
+#' components and root-level errors block the whole document. The original schema
+#' is neither repaired nor replaced. Passing this check does not establish generator
+#' support or live API compatibility.
+#' @param file Existing local JSON or YAML OpenAPI document.
+#' @return A list containing `status`, `reason`, source path and SHA-256, schema version, `validator`, operation identities, and normalized `findings`. Status is `passed`, `invalid`, or `unsupported`.
+#' @examples
+#' \dontrun{
+#' report <- validate_schema("schema/openapi.json")
+#' report$status
+#' report$findings
+#' }
+#' @seealso \code{\link{generate_client}}
+#' @export
 validate_schema <- function(file) {
   selected <- tryCatch(resolve_importer(file), error = function(e) NULL)
   if (!is.null(selected) && is.function(selected$importer$validate)) {

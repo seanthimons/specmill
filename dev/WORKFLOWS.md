@@ -99,8 +99,10 @@ whose release events cannot start another
 workflow. The caller therefore uses `workflow_dispatch`, which GitHub permits
 with that token, to start the automatic documentation build.
 
-Specmill has manually maintained help pages. Automatic roxygen regeneration,
-rolling releases, and ComptoxR's database/schema schedules remain excluded.
+Help pages and NAMESPACE are generated from roxygen comments in `R/` with
+`devtools::document()`, and the regenerated files are committed with the source
+change. CI does not regenerate them. Rolling releases and ComptoxR's
+database/schema schedules remain excluded.
 
 ## Try a different schema
 

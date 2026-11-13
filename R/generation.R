@@ -312,6 +312,29 @@ iteration_settings <- function(operation, batch, explicit) {
   )
 }
 
+#' Render one wrapper as R source text
+#'
+#' Render an operation record with explicit helper, request, hook, and
+#' documentation settings.
+#'
+#' @param spec Client specification with files, helper, optional hooks and renderer.
+#' @param operation Supported operation record or named list of records.
+#' @return A single character string containing generated wrapper source and optional roxygen comments.
+#' @details This low-level function returns text only; it does not validate an
+#'   entire project, run roxygen, write files, or check ownership. Prefer
+#'   generate_client() for normal maintenance. The default helper takes method,
+#'   path, path_params, query, and body. JSON array values should remain R lists to
+#'   preserve one-element arrays. Set `operation$guard_literals <- TRUE` to wrap
+#'   literal defaults as `base::evalq(..., envir = base::baseenv())`;
+#'   generate_client() sets it only when the client's functions or imports shadow
+#'   a base data constructor such as `c` or `list`. It defaults to FALSE, which
+#'   matches generation for most clients.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/configuration.html).
+#' @examples
+#' schema <- system.file('catalogue/schema.json', package = 'specmill')
+#' op <- read_operations(schema)$operations$get_item
+#' cat(render_operation(op, list(helper = 'api_request')))
+#' @export
 render_operation <- function(operation, spec) {
   guard <- literal_state$guard
   literal_state$guard <- operation$guard_literals %or% FALSE
@@ -1616,6 +1639,79 @@ render_operation <- function(operation, spec) {
   }
 }
 
+#' Plan, generate, and check client output
+#'
+#' Generate wrappers, documentation, and supplied fixed contract tests from YAML
+#' or a legacy R-list specification.
+#'
+#' @param root Explicit existing client root directory.
+#' @param spec Client specification with files, helper, optional hooks and renderer.
+#' @param mode Check or plan without writes; apply validated output.
+#' @param config Project YAML path relative to root, or client hook configuration for hook validation.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param adopt Reviewed legacy files as a named list of relative paths and SHA-256 hashes of UTF-8/LF text without a final newline. Changed hashes fail; lifecycle and mixed-file protection still apply.
+#' @param artifacts Output kinds to reconcile. Defaults to all; thin wrapper/test commands can select their own artifacts while retaining one generation contract.
+#' @param validation `TRUE` or `FALSE`. By default, use project YAML or legacy specification `validation`, falling back to required validation. `FALSE` explicitly skips validation and is recorded in the result.
+#' @param deferrals Optional list with `enroll` (a named character vector of one-line reasons keyed by operation identity, \verb{<service id> <METHOD> <path>}) and `clear` (operation identities to retry). Enrollment is recorded on apply only; plan and check never write it. See the maintenance vignette.
+#' @param prune Optional, opt-in removal of owned output; the default preserves it. Operation identities (\verb{<service id> <METHOD> <path>}) remove that operation's R file, tests and help page (within the selected `artifacts`), regenerate `NAMESPACE` when documentation is generated, and drop its ownership records; the identity may name a service since removed from the configuration, and an enrolled deferral identity also matches the retired owner of the same route. An operation that is still generated, owns no output, or shares a file with other operations is refused. `"all"` removes every manifest-owned, unmodified output after an \verb{Are you sure? [y/N]} prompt. Edited and unowned files are never deleted. Plan and check never write. See the maintenance vignette.
+#' @param confirm Only for `prune = "all"`: `TRUE` skips the prompt (needed in non-interactive sessions), `FALSE` cancels, `NULL` (default) asks interactively and aborts when not interactive.
+#' @param absent_overrides `"error"` (default) stops when `names`, `operations`, `selection.include` or `routes` keys name an operation missing from the schema. `"warn"` lists those keys in a warning and skips them, for running a configuration against an older or staging schema without editing its YAML. See the maintenance vignette.
+#' @return A list of class `specmill_generation` with files (file/path/action records), schema_changes (changed source hashes, added endpoints, unselected additions, removed endpoints and their previous configured functions), configured operations, excluded operations with reasons, drift, diagnostics, server_diagnostics, mapping_diagnostics, retained_diagnostics, unused_hooks, inventory, retained_sources, and manifest (toolkit version, input hashes, policy versions). Printing separates selected and excluded operations and reports removals and protections. Operations outside a service's include list remain in inventory but are omitted from the excluded summary to avoid repeating other services' endpoints. File actions include write, unchanged, protected, remove, and retained. Check errors on actions other than unchanged or retained.
+#' @details Supply exactly one of spec and config. Check is the default and errors
+#'   when reconciled output is stale or protected; plan returns file actions
+#'   without modifying the client; apply reconciles verified owned output. Both
+#'   read-only modes stage candidate output. Development callbacks must be
+#'   deterministic and are resolved only in callbacks. Unsupported operations
+#'   remain diagnostics and never authorize removal. Check success does not
+#'   establish complete schema support or passing tests. Adoption accepts only
+#'   individually reviewed current hashes and does not override lifecycle or
+#'   mixed-file protection.
+#' @section Portable generated output:
+#'   Generated R, Rd and contract-test filenames are limited to 100 bytes including
+#'   the package archive prefix. Long stems receive a deterministic 16-digit
+#'   SHA-256 suffix. Public function names and help aliases stay unchanged. Short
+#'   explicit API names or output filenames remain supported. A package name too
+#'   long to leave space for a filename fails with a diagnostic.
+#'
+#'   Existing generated files move only when their manifest hashes still match;
+#'   client edits and protected lifecycle badges block a move. Repeated generation
+#'   uses the same filenames. Unicode in executable schema literals uses R escapes
+#'   that preserve the original runtime strings; documentation text remains UTF-8.
+#' @section Required schema validation:
+#'   Check mode warns before translation when a current schema differs from the
+#'   last applied manifest's input hash. The warning identifies the schema and
+#'   previous and current SHA-256 hashes. When an endpoint inventory is recorded,
+#'   it lists added and removed method/path pairs, additions outside current
+#'   selection policy, and previous configured function names affected by removals.
+#'   The same report is available in `schema_changes` and printed with a plan.
+#'   Parameter and response compatibility are not inferred. Removed endpoints do
+#'   not authorize deleting functions. Newly referenced schemas report an
+#'   unrecorded previous hash. First generation and manifests without input hashes
+#'   have no comparison baseline. Check never rebuilds functions; review plan file
+#'   actions before apply. Successful application records the new baseline. Hash
+#'   changes need not change generated functions. These warnings require calling
+#'   the generation check and are not automatically attached to package build or
+#'   check commands.
+#'
+#'   The manifest stores the endpoint inventory and configured function names with
+#'   its existing hashes. Older manifests need a reviewed apply to record this
+#'   inventory. Until then, a changed schema reports that endpoint comparison is
+#'   unavailable. Schema files removed from configuration or renamed are not paired
+#'   automatically. Check and plan never update this baseline.
+#'
+#'   Every source schema is checked with [`validate_schema`] before operation
+#'   translation. Validation runs locally and uploads nothing. Plans expose reports
+#'   in `validation` and blockers in existing diagnostics; apply and check refuse
+#'   validation blockers. Located errors block affected operations. Shared or
+#'   unlocated errors and unsupported coverage block the source document, even when
+#'   its operations were policy-excluded. Explicit request mappings and retained
+#'   implementations cannot bypass this gate.
+#'
+#'   Plans and checks do not write client output. Schemas with external references
+#'   must be bundled first. An explicit `validation = FALSE` is an auditable escape
+#'   for reviewed legacy workflows, not a declaration that the schema is compliant.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/maintenance.html).
+#' @export
 generate_client <- function(
   root,
   spec = NULL,
@@ -3327,6 +3423,10 @@ generate_client <- function(
   )
 }
 
+#' @rdname generate_client
+#' @param x A generation result.
+#' @param ... Unused additional print arguments.
+#' @export
 print.specmill_generation <- function(x, ...) {
   for (change in x$schema_changes) {
     cat(format_schema_change(change), '\n\n')
@@ -3410,6 +3510,29 @@ print.specmill_generation <- function(x, ...) {
 }
 
 # Fixed expectations are supplied by the client, independently of wrapper parsing.
+#' Check a fixed request and successful result
+#'
+#' Call a wrapper and require exact equality with independently supplied captured
+#' request and result expectations.
+#'
+#' @param call Zero-argument function that calls the wrapper.
+#' @param expected Independent fixed expected request records.
+#' @param capture Zero-argument function returning captured requests.
+#' @param result Expected successful result.
+#' @return Invisibly TRUE on success; raises an error on a request/result mismatch or a failing call.
+#' @details The call executes first; errors propagate. Both the captured request
+#'   and final result use identical() semantics, including types and classes.
+#'   Supply a recorder or mock so an offline check does not contact a service.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/testing.html).
+#' @examples
+#' captured <- NULL
+#' call <- function() {
+#'   captured <<- list(method = 'GET', path = '/items')
+#'   list(count = 0L)
+#' }
+#' check_requests(call, list(method = 'GET', path = '/items'),
+#'   function() captured, list(count = 0L))
+#' @export
 check_requests <- function(call, expected, capture, result) {
   actual <- call()
   stopifnot(identical(capture(), expected), identical(actual, result))

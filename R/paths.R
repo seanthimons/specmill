@@ -12,7 +12,7 @@
 #' @return A character vector of cleaned endpoint paths.
 #' @examples
 #' strip_curly_params(c("/hazard/{id}/"))
-#' @export
+#' @noRd
 strip_curly_params <- function(
   paths,
   keep_trailing_slash = TRUE,

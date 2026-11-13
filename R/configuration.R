@@ -184,6 +184,18 @@ read_service_operations <- function(service) {
   parsed
 }
 
+#' Load and validate a YAML project
+#'
+#' Resolve local schemas and service policies from an explicit client root without generating output.
+#'
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root. Defaults to specmill.yml.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param absent_overrides `"error"` (default) or `"warn"`; see \code{\link{generate_client}}.
+#' @return A list containing named services, input file paths, normalized root, package name, and optional formatter policy. Each service contains resolved schema files and validated generation policy.
+#' @details Paths inside project and service YAML resolve against root. Services require unique IDs, local schema selectors, and a client helper name. Unknown fields, invalid types, unsafe paths, executable YAML tags, unresolved callbacks, and invalid selectors fail. callback_files are fingerprinted inputs, not sourced scripts.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/configuration.html).
+#' @export
 load_project <- function(
   root,
   config = 'specmill.yml',

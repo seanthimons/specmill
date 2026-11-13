@@ -59,6 +59,9 @@ recovery_journals <- function(root) {
 }
 
 # Recovery validates the entire journal before restoring the first destination.
+#' @rdname apply_files
+#' @name apply_files
+#' @export
 recover_client <- function(root, mode = c('plan', 'apply')) {
   mode <- match.arg(mode)
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
@@ -135,6 +138,32 @@ recover_client <- function(root, mode = c('plan', 'apply')) {
   invisible(stats::setNames(plans, journals))
 }
 
+#' Apply owned output and recover interrupted changes
+#'
+#' Plan or apply contained file changes with ownership checks, backups, an
+#' exclusive lock, and recovery validation.
+#'
+#' @param root Explicit existing client root directory.
+#' @param mode Check or plan without writes; apply validated output.
+#' @param desired Named list of relative paths and generated text.
+#' @param remove Relative paths to remove only if owned.
+#' @param headers Reserved compatibility argument; headers alone never establish ownership.
+#' @param owned Optional client ownership predicate for existing files.
+#' @param validate Optional zero-argument input revalidation called after acquiring the apply lock and before any file changes.
+#' @return apply_files() returns file/path/action records, including manifest changes. recover_client() returns journal-keyed restoration plans (invisibly for apply), with path, backup, and existed fields. Invalid recovery data or failed restoration raises an error and retains the journal.
+#' @details Most callers should use generate_client() for reconciliation.
+#'   apply_files() parses R output before mutation and checks manifest ownership;
+#'   headers alone do not authorize replacement. A custom owned predicate is an
+#'   advanced client trust boundary. Apply refuses conflicting protected writes.
+#'   Recovery plan validates journals and returns restoration actions; recovery
+#'   apply restores backups and removes completed journals. Confirm no live writer
+#'   before resolving a stale lock. Never delete journals to bypass recovery.
+#'   There is no cross-file filesystem transaction.
+#' @note Ownership is recorded in .specmill/manifest.json. Locks and transaction
+#'   journals use the .specmill- prefix.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/troubleshooting.html).
+#' @name apply_files
+#' @export
 apply_files <- function(
   root,
   desired,

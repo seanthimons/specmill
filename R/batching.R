@@ -1,28 +1,25 @@
 #' Call a function in batches
 #'
 #' Splits items into requests of at most `size` and calls `fn` once per batch.
-#' Input values and order are preserved unless an explicit policy changes them.
 #'
 #' @param fn Function called with each batch as its first argument.
 #' @param items Vector or list of items to split.
 #' @param size Positive integer maximum number of items per batch.
-#' @param ... Additional arguments passed to `fn` on every call.
-#' @param policy Named list of explicit client choices. `normalize(items)` runs
-#'   before splitting; `build(chunk, index)` constructs the argument for `fn`;
-#'   `merge(results)` formats the collected results after all calls. These are
-#'   functions, and default to preserving their inputs. `on_error` is `"stop"`
-#'   by default; `"drop"` warns and discards failures, and `"keep"` warns and
-#'   retains `error_result` (default NULL) in the failed chunk's position.
-#'   Errors in normalization, construction, and merging always propagate.
-#'   `first_batch_only = TRUE` sends only the first chunk, for explicit legacy
-#'   first-batch pagination compatibility. The default sends every chunk.
-#' @return A list of unmerged results, one per batch, unless `merge` is selected.
-#' @details The companion performs no HTTP or response decoding itself. Every
-#'   chunk calls the supplied single-request function with the same fixed
-#'   arguments, preserving its authentication, query, retry, and response policy.
-#'   Client normalization may explicitly use `unique()` and remove missing or
-#'   empty values. Client construction may retain singleton JSON arrays with
-#'   `as.list(chunk)` or explicitly join raw text with `paste(chunk, collapse)`.
+#' @param ... Additional arguments passed unchanged to `fn`.
+#' @param policy Named list of explicit client choices: `normalize(items)`,
+#'   `build(chunk, index)`, and `merge(results)` functions; `on_error` set to
+#'   `stop` by default, or `drop`/`keep` for recovery with warnings;
+#'   `error_result` retained by keep; and `first_batch_only = TRUE` for explicit
+#'   legacy pagination compatibility. Normalization, construction and merging
+#'   errors always propagate.
+#' @return A named list of unmerged results, one per batch, unless a merge
+#'   function is selected.
+#' @details Inputs and order are preserved by default. Every chunk calls the
+#'   supplied function through its existing authentication, query, retry and
+#'   response policy. The companion performs no HTTP or response decoding.
+#'   Optional normalization may remove duplicates, missing and empty values.
+#'   Optional construction may preserve singleton JSON arrays with as.list or
+#'   join raw text explicitly.
 #' @examples
 #' batched(sum, 1:5, 2)
 #' batched(identity, c('a', 'a', NA, ''), 2,

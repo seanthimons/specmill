@@ -21,6 +21,20 @@ definition_name <- function(expr) {
 
 # Verify configured operations against the hand-written wrappers they would replace.
 # Generation runs on a temporary copy, so the check covers exactly what apply writes.
+#' Verify configured operations against hand-written wrappers
+#'
+#' Check that each configured operation would replace its existing hand-written wrapper without changing formals, helper calls, results, or documentation.
+#'
+#' @param root Explicit existing client root directory.
+#' @param config Project YAML path relative to root.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param wrappers Optional wrapper names to check. By default every configured, generated operation with a hand-written definition outside manifest-owned files is checked.
+#' @return A list with `operations` (per wrapper: `file`, `status` `"verified"` or `"failed"`, and `reason`), `contracts` (fixed contracts for verified wrappers, in the `contracts_file` format), and `files` (SHA-256 hashes of source files whose every definition verified).
+#' @details Nothing in `root` is written. Generation runs on a temporary copy with the candidate definitions removed, so the check covers exactly the code `generate_client()` would write. Both wrappers run with the configured helper replaced by a recording stub: with required inputs only, with every input explicit, with each optional input explicit, `FALSE`, and `0`, and with no arguments. Helper calls, arguments, and results (or error messages) must be identical. Documentation is compared as Rd rendered by `roxygen2::roc_proc_text()`, ignoring the source-file header.
+#'
+#' To adopt verified wrappers, save the contracts to the service `contracts_file`, delete the listed `files`, and apply. Adoption hashes do not lift lifecycle protection, so deletion is the adoption step. A file with other code or unverified wrappers fails; separate it first.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/existing-clients.html).
+#' @export
 verify_adoption <- function(
   root,
   config = 'specmill.yml',
@@ -257,6 +271,52 @@ verify_adoption <- function(
 
 # Propose explicit operation mappings for hand-written wrappers. Only proposals that
 # verify_adoption() confirms as equivalent are returned; the project is never written.
+#' Propose operation mappings for hand-written wrappers
+#'
+#' Screen hand-written wrappers, propose explicit `inputs`, `request`, and `docs` mappings for one service, and keep only the proposals that `verify_adoption()` confirms are equivalent.
+#'
+#' @param root Explicit existing client root directory.
+#' @param files Source files to screen, relative to root.
+#' @param service ID of the service whose helper and selected operations the wrappers map to. The service must be defined in its own service file.
+#' @param config Project YAML path relative to root.
+#' @param callbacks Explicit environment containing named development callbacks.
+#' @param route Optional \code{function(name, call)} returning the operation key, such as `"GET /items/{item_id}"`, for a wrapper's helper call. By default, literal `method` and `path` helper arguments must match a selected operation exactly.
+#' @param bindings Optional \code{function(expr)} returning a request binding (for example `list(callback = "batch_limit")`) for a helper argument expression, or `NULL` when it does not apply.
+#' @param prelude Optional \code{function(code)} receiving the wrapper's body statements. It returns `NULL`, or a list with `statements` (how many leading statements it accounts for) and `arguments` (request bindings for the helper arguments those statements build).
+#' @return A list with `operations` (per wrapper: `file`, `status` `"proposed"` or `"retained"`, `reason`, and the matched operation `key`), `proposals` (verified mappings keyed by operation), `yaml` (the proposals as a service \code{operations:} map), and `contracts` and `files` as returned by `verify_adoption()`.
+#' @details Nothing in `root` is written. A wrapper is proposed when its body is a single call to the service helper (optionally \code{result <- helper(...); result} or `return(result)`), after any statements the `prelude` callback accounts for. Its defaults must be plain data literals, and its roxygen block may use only a title, a lifecycle badge and description, \code{@param}, \code{@return}, \code{@export}, and \code{@examples} that call the wrapper with literal inputs. Helper arguments bind a formal to `from`, a data literal to `value`, and a `list()` of those to `object` or `array`; the `bindings` callback handles anything else. Every other wrapper is retained with a reason, as is any proposal that fails verification against the staged service configuration.
+#'
+#' Review `yaml`, copy it into the service file, and adopt as described in `verify_adoption()`.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/existing-clients.html).
+#' @examples
+#' # Recognize `query <- list(); if (!is.null(x)) query$key <- x; ...` before the helper call.
+#' # The optional values it collects are exactly a compact_object binding.
+#' query_prelude <- function(code) {
+#'   if (!length(code) || !identical(code[[1L]], quote(query <- list()))) {
+#'     return(NULL)
+#'   }
+#'   fields <- list()
+#'   for (statement in code[-1L]) {
+#'     assignment <- if (is.call(statement) && identical(statement[[1L]], as.name('if'))) statement[[3L]]
+#'     target <- if (is.call(assignment) && identical(assignment[[1L]], as.name('<-'))) assignment[[2L]]
+#'     value <- if (!is.null(target)) assignment[[3L]]
+#'     if (
+#'       !is.call(target) || !identical(target[[1L]], as.name('$')) ||
+#'         !identical(target[[2L]], as.name('query')) || !is.symbol(value) ||
+#'         !identical(statement[[2L]], call('!', call('is.null', value)))
+#'     ) {
+#'       break
+#'     }
+#'     fields[[as.character(target[[3L]])]] <- list(from = list('params', as.character(value)))
+#'   }
+#'   list(statements = 1L + length(fields), arguments = list(query = list(compact_object = fields)))
+#' }
+#' \dontrun{
+#' proposal <- specmill::propose_mappings(root, 'R/items.R', 'catalogue', prelude = query_prelude)
+#' proposal$operations
+#' cat(proposal$yaml)
+#' }
+#' @export
 propose_mappings <- function(
   root,
   files,
