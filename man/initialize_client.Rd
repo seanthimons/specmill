@@ -17,7 +17,8 @@ initialize_client(
   name_case = c("asis", "snake_case", "camel_case", "pascal_case",
     "screaming_snake_case", "dot_case"),
   companions = character(),
-  naming_options = NULL
+  naming_options = NULL,
+  origin = NULL
 )
 }
 \arguments{
@@ -44,6 +45,8 @@ initialize_client(
 \item{companions}{Optional selection of \code{batching}, \code{pagination}, \code{arcgis}, \code{discovery}, \code{graphql} and/or \code{cache}. ArcGIS captures, Google API Discovery documents and GraphQL introspection results automatically include their protocol callbacks, and the first two include pagination. Batching and pagination emit reusable, exported helper-prefixed companions; arcgis, discovery and graphql add internal protocol callbacks. cache adds the response cache functions that the \code{response_cache} setting needs and puts cachem and rlang in new-client Imports; an existing DESCRIPTION must declare them. Their client-owned baseline is recorded. Empty by default. Pagination adds digest to new-client Imports; an existing DESCRIPTION must declare it.}
 
 \item{naming_options}{Options for naming = 'path': prefix, drop_segments, strip_stem, collision_suffix, by_param. See configure_client.}
+
+\item{origin}{Optional reviewed absolute HTTP(S) URL the OpenAPI or Swagger schema was downloaded from, such as \verb{https://example.org/api/docs/openapi.json}. Relative root, path and operation servers resolve against it (RFC 3986), keeping their precedence, so operations with their own relative servers keep their own paths. It is written to each service YAML as \code{schemas.origin} and recorded in \code{dev/init.R}; the schema copy is unchanged. Unlike \code{base_url}, it does not override schema servers. Without it, relative servers keep their server diagnostics.}
 }
 \value{
 A list of applied file records, each containing file, path, and action. The configuration attribute contains proposed files, operation assignments, and diagnostics. Stops before application for invalid metadata, tag filename collisions, or conflicting scaffold paths.

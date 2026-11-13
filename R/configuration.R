@@ -375,9 +375,18 @@ load_project <- function(
     }
     config_fields(
       service$schemas,
-      c('files', 'patterns', 'exclude'),
+      c('files', 'patterns', 'exclude', 'origin'),
       paste(id, 'schemas')
     )
+    # Reviewed download origin: resolves relative schema servers only.
+    origin <- service$schemas$origin
+    if (!is.null(origin) && !valid_server_url(origin)) {
+      stop(
+        id,
+        ': schemas origin must be an absolute HTTP(S) URL without ',
+        'credentials, query, or fragment'
+      )
+    }
     schema_files <- character()
     if ('files' %in% names(service$schemas)) {
       literal <- config_sequence(service$schemas$files, 'schema files')
@@ -679,6 +688,7 @@ load_project <- function(
       hook_callback = hook_callback,
       policy = list(
         service = id,
+        origin = origin,
         methods = intersect(
           intersect(project_methods, entry$methods %or% project_methods),
           methods
@@ -757,7 +767,11 @@ load_project <- function(
     any(vapply(services, function(x) isTRUE(x$policy$unclaimed), logical(1)))
   ) {
     lapply(services, function(x) {
-      unique(unlist(lapply(x$files, importer_servers), use.names = FALSE))
+      urls <- unique(unlist(
+        lapply(x$files, importer_servers),
+        use.names = FALSE
+      ))
+      origin_servers(urls, x$policy$origin)
     })
   }
   for (i in seq_along(services)) {
@@ -975,5 +989,25 @@ load_project <- function(
     formatter = project$formatter,
     authentication = project$authentication,
     validation = schema_validation_policy(project$validation %or% TRUE)
+  )
+}
+
+# Resolve rooted relative server URLs against a reviewed origin, matching
+# effective_server(), so services compare the hosts they actually call.
+origin_servers <- function(urls, origin) {
+  if (is.null(origin) || !requireNamespace('httr2', quietly = TRUE)) {
+    return(urls)
+  }
+  vapply(
+    urls,
+    function(url) {
+      if (!startsWith(url, '/')) {
+        return(url)
+      }
+      resolved <- httr2::url_build(httr2::url_parse(url, base_url = origin))
+      sub('(?<=.)/+$', '', resolved, perl = TRUE)
+    },
+    character(1),
+    USE.NAMES = FALSE
   )
 }

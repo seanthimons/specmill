@@ -13,7 +13,8 @@ configure_client(
   mode = c("plan", "apply"),
   name_case = c("asis", "snake_case", "camel_case", "pascal_case",
     "screaming_snake_case", "dot_case"),
-  naming_options = NULL
+  naming_options = NULL,
+  origin = NULL
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ configure_client(
 \item{name_case}{Case convention applied to proposed names: preserve them as-is, or use snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, or dot.case. Exact names already reviewed in service YAML are preserved.}
 
 \item{naming_options}{Only with \code{naming = 'path'}; a named list, all fields optional. \code{prefix}: a string, or a named list matched by exact API id, then by the API's family token (the part before the first underscore, which it replaces), then \code{default}, else the API id. A list rather than one string because a catalogue mixes families (for example \verb{ctx_*}, \verb{chemi_*}, \verb{epi_*}) that need different heads. \code{drop_segments}: route segments left out of names (default 'api'). \code{strip_stem}: drop a leading segment equal to the service id or its remainder after the family (default TRUE); the id is used, not the schema file name, which is arbitrary. \code{collision_suffix}: upper-case HTTP method to name fragment, e.g. \code{list(POST = 'bulk')}. \code{by_param}: qualify same-method collisions with path parameters, e.g. reports_by_id (default TRUE). Names still equal afterwards stay a name_collision diagnostic; each rename is reported as name_collision_resolved.}
+
+\item{origin}{Optional reviewed absolute HTTP(S) URL the schema was downloaded from; written to each service YAML as \code{schemas.origin} so relative servers resolve against it. When omitted, an origin already recorded in the existing service files is kept. Not for multiple APIs.}
 }
 \value{
 A list with named YAML/schema text in files, operation assignments in operations, diagnostics, and changes. Each change contains file, action (create, unchanged, conflict), before, and after. Schemas with security declarations get an authentication map from scheme names to proposed environment-variable names. It contains no tokens; names can be edited before generation. API keys and HTTP bearer tokens are supported; OAuth login and refresh are deferred.

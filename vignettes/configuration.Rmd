@@ -379,6 +379,30 @@ Only operation-scoped findings with a listed code are enrolled. Everything else
 still blocks. See [Routine maintenance](maintenance.html) for the lifecycle,
 manual enrollment, and recovery.
 
+### Relative schema servers and the source origin
+
+Some schemas name relative servers, such as a root server `/api/v1` and an
+operation-level server `/` for browser links. A local schema file has no
+download location, so these servers cannot be resolved and their wrappers
+report a server diagnostic. Record where the schema came from under the
+service's `schemas`:
+
+```yaml
+schemas:
+  files: [schema/openapi.json]
+  origin: https://example.org/api/docs/v1/openapi.json
+```
+
+Relative root, path and operation servers then resolve against the origin as a
+browser would (RFC 3986): `/api/v1` gives `https://example.org/api/v1`, and an
+operation's own `/` gives `https://example.org/`. Each operation keeps its own
+server, and absolute servers are unchanged. The schema copy is not edited.
+`initialize_client(origin = )` writes this setting for every service and
+records it in `dev/init.R`. Unlike the `base_url` override, the origin never
+replaces a server that the schema names; `base_url` still overrides every
+operation when given. With an origin, a server resolver (see below) treats
+the resolved servers as absolute and uses its returned URL as is.
+
 ### Per-service base URLs
 
 By default every wrapper uses the server URL recorded at generation, and the

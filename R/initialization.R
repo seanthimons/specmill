@@ -31,6 +31,7 @@
 #' @param author Named list with `given`, `family`, and `email` strings, required for a new package.
 #' @param license Explicit license string for a new package. \code{MIT + file LICENSE} also creates an MIT license metadata file.
 #' @param base_url Optional absolute HTTP(S) override for all operations in the new client-owned transport. Overrides schema servers; a runtime option can override it.
+#' @param origin Optional reviewed absolute HTTP(S) URL the OpenAPI or Swagger schema was downloaded from, such as `https://example.org/api/docs/openapi.json`. Relative root, path and operation servers resolve against it (RFC 3986), keeping their precedence, so operations with their own relative servers keep their own paths. It is written to each service YAML as `schemas.origin` and recorded in `dev/init.R`; the schema copy is unchanged. Unlike `base_url`, it does not override schema servers. Without it, relative servers keep their server diagnostics.
 #' @param naming Preserve operationId names by default, or propose tag-prefixed snake_case names. Or path, which derives names from the route. See configure_client.
 #' @param group_by Group operations by first tag (default), or use one default group with none. Multi-API initialization writes one YAML file per API with nested groups; single-schema initialization keeps flat group files.
 #' @param companions Optional selection of `batching`, `pagination`, `arcgis`, `discovery`, `graphql` and/or `cache`. ArcGIS captures, Google API Discovery documents and GraphQL introspection results automatically include their protocol callbacks, and the first two include pagination. Batching and pagination emit reusable, exported helper-prefixed companions; arcgis, discovery and graphql add internal protocol callbacks. cache adds the response cache functions that the `response_cache` setting needs and puts cachem and rlang in new-client Imports; an existing DESCRIPTION must declare them. Their client-owned baseline is recorded. Empty by default. Pagination adds digest to new-client Imports; an existing DESCRIPTION must declare it.
@@ -59,10 +60,19 @@ initialize_client <- function(
     'dot_case'
   ),
   companions = character(),
-  naming_options = NULL
+  naming_options = NULL,
+  origin = NULL
 ) {
   companions <- validate_companions(companions)
+  if (!is.null(origin) && !valid_server_url(origin)) {
+    stop(
+      'Supply an absolute HTTP(S) origin without credentials, query, or fragment'
+    )
+  }
   if (is.data.frame(schema)) {
+    if (!is.null(origin)) {
+      stop('Record origins for multiple APIs as schemas.origin in each API file')
+    }
     return(initialize_apis(
       root,
       schema,
@@ -90,8 +100,11 @@ initialize_client <- function(
       'Supply an absolute HTTP(S) base_url without credentials, query, or fragment'
     )
   }
+  if (!is.null(origin) && !isTRUE(source$origin)) {
+    stop('origin applies only to OpenAPI and Swagger schemas')
+  }
   if (is.null(base_url)) {
-    base_url <- source$server()
+    base_url <- if (is.null(origin)) source$server() else source$server(origin)
   }
   if (isTRUE(source$base_url_required) && !nzchar(base_url %or% '')) {
     stop(
@@ -198,7 +211,8 @@ initialize_client <- function(
     naming,
     group_by,
     name_case,
-    naming_options = naming_options
+    naming_options = naming_options,
+    origin = origin
   )
   if (
     any(vapply(
@@ -236,17 +250,23 @@ initialize_client <- function(
     output,
     initialization_scripts(
       grep(importer_artifact_pattern(), names(proposal$files), value = TRUE),
-      list(
-        package = package,
-        title = title,
-        author = author,
-        license = license,
-        base_url = base_url_override,
-        naming = naming,
-        group_by = group_by,
-        name_case = name_case,
-        companions = companions,
-        naming_options = naming_options
+      c(
+        list(
+          package = package,
+          title = title,
+          author = author,
+          license = license,
+          base_url = base_url_override
+        ),
+        # Recorded apart from base_url: it resolves servers, never overrides them.
+        if (!is.null(origin)) list(origin = origin),
+        list(
+          naming = naming,
+          group_by = group_by,
+          name_case = name_case,
+          companions = companions,
+          naming_options = naming_options
+        )
       )
     )
   )

@@ -327,6 +327,8 @@ operation_review_context <- function(policy) {
   service <- policy$service %or% 'default'
   list(
     service = service,
+    # Reviewed origin for relative schema servers; '' when none was recorded.
+    origin = policy$origin %or% '',
     # Reviewed opaque bodies replace verified recursive request schemas before
     # any operation is parsed.
     document = function(file) {

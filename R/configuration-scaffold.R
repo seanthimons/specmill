@@ -64,7 +64,8 @@ configuration_proposal <- function(
   name_case = 'asis',
   reviewed_names = list(),
   naming_options = NULL,
-  api = NULL
+  api = NULL,
+  origin = NULL
 ) {
   naming <- match.arg(naming, c('operation_id', 'tag_prefix', 'path'))
   naming_options <- validate_naming_options(naming, naming_options)
@@ -300,10 +301,10 @@ configuration_proposal <- function(
     selected <- members[[group]]
     service <- list(
       id = if (group == 'default' && length(services) == 1L) package else group,
-      schemas = list(
-        files = list(schema_file),
-        patterns = list(),
-        exclude = list()
+      schemas = c(
+        list(files = list(schema_file)),
+        if (!is.null(origin)) list(origin = origin),
+        list(patterns = list(), exclude = list())
       ),
       selection = list(
         methods = as.list(c(
@@ -460,6 +461,18 @@ reviewed_configuration_names <- function(root, proposal) {
   reviewed
 }
 
+# The one schemas.origin shared by a project's existing service files, if any.
+existing_schema_origin <- function(root, files) {
+  origins <- unique(unlist(lapply(
+    grep('^apis/.*[.]ya?ml$', files, value = TRUE),
+    function(file) {
+      path <- file.path(root, file)
+      if (file.exists(path)) read_config_yaml(path)$schemas$origin
+    }
+  )))
+  if (length(origins) == 1L && valid_server_url(origins)) origins
+}
+
 #' Propose editable configuration from a schema
 #'
 #' Discover every operation, group by its first tag, and propose project and service YAML without generating endpoint functions.
@@ -471,6 +484,7 @@ reviewed_configuration_names <- function(root, proposal) {
 #' @param group_by Group by first operation tag, or keep one default service. Missing tags use default. Untagged/default services keep per-function source files; other groups configure a shared R file and help family.
 #' @param name_case Case convention applied to proposed names: preserve them as-is, or use snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, or dot.case. Exact names already reviewed in service YAML are preserved.
 #' @param naming_options Only with `naming = 'path'`; a named list, all fields optional. `prefix`: a string, or a named list matched by exact API id, then by the API's family token (the part before the first underscore, which it replaces), then `default`, else the API id. A list rather than one string because a catalogue mixes families (for example `ctx_*`, `chemi_*`, `epi_*`) that need different heads. `drop_segments`: route segments left out of names (default 'api'). `strip_stem`: drop a leading segment equal to the service id or its remainder after the family (default TRUE); the id is used, not the schema file name, which is arbitrary. `collision_suffix`: upper-case HTTP method to name fragment, e.g. `list(POST = 'bulk')`. `by_param`: qualify same-method collisions with path parameters, e.g. reports_by_id (default TRUE). Names still equal afterwards stay a name_collision diagnostic; each rename is reported as name_collision_resolved.
+#' @param origin Optional reviewed absolute HTTP(S) URL the schema was downloaded from; written to each service YAML as `schemas.origin` so relative servers resolve against it. When omitted, an origin already recorded in the existing service files is kept. Not for multiple APIs.
 #' @param mode Preview by default. Apply creates absent files only; differing existing files or colliding tag filenames stop the entire write.
 #' @return A list with named YAML/schema text in files, operation assignments in operations, diagnostics, and changes. Each change contains file, action (create, unchanged, conflict), before, and after. Schemas with security declarations get an authentication map from scheme names to proposed environment-variable names. It contains no tokens; names can be edited before generation. API keys and HTTP bearer tokens are supported; OAuth login and refresh are deferred.
 #' @details The proposal includes a schema copy, specmill.yml, and apis/*.yml. Each service selects exact METHOD /path pairs through selection.include. Multiple tags use the first tag with a diagnostic. Names and tag filenames are checked for collisions; reserved runtime names are diagnosed. Name-collision diagnostics identify every contributing METHOD /path and use API-qualified names for multi-API proposals. Name collisions may be written for manual correction but block subsequent wrapper generation. Edit matching names entries in existing service YAML and rerun this function; reviewed names are reused across reruns and schema ordering. Noninteractive runs return diagnostics and never prompt or silently rename public functions. Unsupported operations stay in the configuration with their diagnostics. This does not supply transport implementations or resolve unsupported schema features.
@@ -498,9 +512,18 @@ configure_client <- function(
     'screaming_snake_case',
     'dot_case'
   ),
-  naming_options = NULL
+  naming_options = NULL,
+  origin = NULL
 ) {
   mode <- match.arg(mode)
+  if (!is.null(origin) && !valid_server_url(origin)) {
+    stop(
+      'Supply an absolute HTTP(S) origin without credentials, query, or fragment'
+    )
+  }
+  if (!is.null(origin) && is.data.frame(schema)) {
+    stop('Record origins for multiple APIs as schemas.origin in each API file')
+  }
   naming <- match.arg(naming)
   naming_options <- validate_naming_options(naming, naming_options)
   name_case <- match.arg(name_case)
@@ -530,8 +553,24 @@ configure_client <- function(
       naming,
       group_by,
       name_case,
-      naming_options = naming_options
+      naming_options = naming_options,
+      origin = origin
     )
+  }
+  if (is.null(origin) && !is.data.frame(schema)) {
+    # Keep a reviewed origin that initialization wrote, so reruns compare equal.
+    origin <- existing_schema_origin(root, names(proposal$files))
+    if (!is.null(origin)) {
+      proposal <- configuration_proposal(
+        schema,
+        package,
+        naming,
+        group_by,
+        name_case,
+        naming_options = naming_options,
+        origin = origin
+      )
+    }
   }
   reviewed <- reviewed_configuration_names(root, proposal)
   if (length(reviewed)) {
@@ -554,7 +593,8 @@ configure_client <- function(
         group_by,
         name_case,
         reviewed,
-        naming_options = naming_options
+        naming_options = naming_options,
+        origin = origin
       )
     }
   }

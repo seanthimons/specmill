@@ -785,7 +785,7 @@ importer_openapi <- function(files) {
 
 # Materialize the neutral view from native normalization. The same source
 # snapshot supplies request records, named types and provenance hashes.
-openapi_records_ir <- function(files, parsed, source_data) {
+openapi_records_ir <- function(files, parsed, source_data, origin = '') {
   sources <- list()
   contexts <- list()
   for (i in seq_along(files)) {
@@ -809,7 +809,7 @@ openapi_records_ir <- function(files, parsed, source_data) {
       importer_version = '1',
       file = context$file,
       hash = list(algorithm = 'md5', value = source_data[[i]]$hash),
-      servers = list(effective_server(document)),
+      servers = list(effective_server(document, origin = origin)),
       auth_schemes = openapi_ir_object(stats::setNames(
         lapply(names(schemes), function(name) {
           openapi_ir_auth(
@@ -1792,7 +1792,7 @@ openapi_read_records <- function(files, view) {
               ))
             }
             name <- review$name(candidate)
-            server <- effective_server(document, item, op)
+            server <- effective_server(document, item, op, view$origin %or% '')
             list(
               key = key,
               id = paste(view$service, key),
@@ -2032,7 +2032,12 @@ openapi_reviewed_records <- function(files, view) {
   # public result partitions them only after policy finalization.
   parsed$operations <- records$operations
   parsed$unsupported_operations <- list()
-  ir <- openapi_records_ir(files, parsed, records$source_data)
+  ir <- openapi_records_ir(
+    files,
+    parsed,
+    records$source_data,
+    view$origin %or% ''
+  )
   ir$service$id <- view$service
   ir_compatibility_records(ir, records)
 }
@@ -5344,7 +5349,12 @@ openapi_catalogue_source <- function(path, label) {
 
 openapi_initialization_source <- function(path) {
   document <- read_schema_document(path)
-  list(server = function() effective_server(document)$url)
+  list(
+    server = function(origin = '') {
+      effective_server(document, origin = origin)$url
+    },
+    origin = TRUE
+  )
 }
 
 openapi_reference_inputs <- function(path) {
@@ -5773,7 +5783,12 @@ openapi_import_description <- function(path, policy = list()) {
     records <- openapi_read_records(path, view)
     finish_operation_policy(records, prepared)
     parsed <- operation_records_result(records)
-    output <- openapi_records_ir(path, parsed, records$source_data)
+    output <- openapi_records_ir(
+      path,
+      parsed,
+      records$source_data,
+      view$origin %or% ''
+    )
     output$service$id <- view$service
     output
   }
