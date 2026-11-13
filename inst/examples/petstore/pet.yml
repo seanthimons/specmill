@@ -32,6 +32,7 @@ operations:
         path: {value: /pet/findByTags}
         path_params: {object: {}}
         query: {object: {tags: {from: [params, tags]}}}
+        query_serialization: {value: {tags: explode}}
         body: {value: null}
   DELETE /pet/{petId}:
     inputs:
@@ -45,8 +46,8 @@ operations:
         query: {object: {}}
         body: {value: null}
         headers: {compact_object: {api_key: {from: [params, api_key]}}}
-  # The native parser rejects these media types before mapping. Retain reviewed
-  # client implementations; keep the original limitations in the plan.
+  # The example keeps reviewed client-owned implementations for these
+  # operations to show implementation: existing.
   PUT /pet:
     implementation: existing
     file: R/pet_custom.R
@@ -85,5 +86,5 @@ operations:
         path_params: {object: {petId: {from: [params, pet_id]}}}
         query: {compact_object: {additionalMetadata: {from: [params, metadata]}}}
         body: {from: [params, image]}
-        raw_body: {value: true}
+        body_media: {value: application/octet-stream}
     docs: {title: Upload raw image bytes for a pet}

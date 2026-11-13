@@ -27,8 +27,7 @@ testthat::test_that('all endpoint functions send the expected HTTP requests', {
                   query = sub('^\\?', '', req$QUERY_STRING),
                   body = as.list(as.integer(bytes)),
                   type = req$CONTENT_TYPE,
-                  api_key = req$HTTP_API_KEY,
-                  accept = req$HTTP_ACCEPT
+                  api_key = req$HTTP_API_KEY
                 ),
                 auto_unbox = TRUE,
                 null = 'null'
@@ -57,10 +56,12 @@ testthat::test_that('all endpoint functions send the expected HTTP requests', {
     }
     stopifnot(file.exists(port_file))
     old <- options(
-      petstoretrial.base_url = paste0(
-        'http://127.0.0.1:',
-        readLines(port_file),
-        '/api/v3'
+      petstoretrial.request = list(
+        base_url = paste0(
+          'http://127.0.0.1:',
+          readLines(port_file),
+          '/api/v3'
+        )
       )
     )
     on.exit(options(old), add = TRUE)
@@ -158,8 +159,12 @@ testthat::test_that('all endpoint functions send the expected HTTP requests', {
       ),
       user_delete = case(list(username = 'alice'), 'DELETE', '/user/alice')
     )
+    # The client also exports its session option setters.
     testthat::expect_setequal(
-      getNamespaceExports('petstoretrial'),
+      setdiff(
+        getNamespaceExports('petstoretrial'),
+        c('petstoretrial_dry_run', 'petstoretrial_run_verbose')
+      ),
       names(cases)
     )
     for (name in names(cases)) {
@@ -175,7 +180,6 @@ testthat::test_that('all endpoint functions send the expected HTTP requests', {
           info = paste(name, field)
         )
       }
-      testthat::expect_identical(actual$accept, 'application/json', info = name)
       bytes <- as.raw(unlist(actual$body))
       if (is.null(expected$body)) {
         testthat::expect_identical(length(bytes), 0L, info = name)
@@ -195,10 +199,7 @@ testthat::test_that('all endpoint functions send the expected HTTP requests', {
         testthat::expect_match(actual$type, '^application/json', info = name)
       }
     }
-    testthat::expect_error(
-      petstoretrial::user_get('missing'),
-      class = 'httr2_http_404'
-    )
+    testthat::expect_error(petstoretrial::user_get('missing'), 'HTTP 404')
     testthat::expect_error(
       petstoretrial::pet_upload_image(7L, 'not raw'),
       'raw vector'

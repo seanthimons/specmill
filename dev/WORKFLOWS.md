@@ -108,8 +108,9 @@ database/schema schedules remain excluded.
 
 For the full 19-endpoint configuration demonstration, including pet/store/user
 names, parameter renaming, grouped source and help, explicit mappings, and
-retained client functions, see [petstore/README.md](petstore/README.md).
-Run source('dev/build_petstore.R') and build_petstore() for that example.
+retained client functions, see
+[inst/examples/petstore/README.md](../inst/examples/petstore/README.md).
+Build it with `specmill::petstore_example(path)`.
 The three-operation smoke trial below remains a smaller separate example.
 
 The Petstore trial downloads the [live service's schema](https://petstore3.swagger.io/api/v3/openapi.json),

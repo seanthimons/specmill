@@ -1,4 +1,4 @@
-# Client-owned implementations for media types the native parser rejects.
+# Client-owned implementations kept to demonstrate implementation: existing.
 #' Create a pet using JSON
 #' @param body Named list with name and photoUrls; arrays use unnamed lists.
 #' @return Decoded response from the service.
@@ -34,6 +34,6 @@ pet_upload_image <- function(pet_id, image = NULL, metadata = NULL) {
     list(petId = pet_id),
     list(additionalMetadata = metadata),
     image,
-    raw_body = TRUE
+    body_media = 'application/octet-stream'
   )
 }
