@@ -1,6 +1,7 @@
 # Source from the repository root, then call check_registry_output().
 # #230 deliberately adds importer provenance to ownership manifests. Every other
-# golden byte still has to match the #229 reference; never rebaseline a mismatch.
+# golden byte still has to match the #229 reference, plus the reviewed #4 OAuth
+# rows (see dev/audits/ir-golden/README.md); never rebaseline a mismatch.
 check_registry_output <- function() {
   source('dev/golden_output.R', local = TRUE)
   baseline <- utils::read.csv(golden_baseline_path, stringsAsFactors = FALSE)
