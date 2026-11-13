@@ -1474,7 +1474,8 @@ scifinder_endpoints <- function(credential, endpoints, base_url) {
 }
 ```
 
-Replayed tests never see the token: they use a dummy token and do not read the
+Replayed tests never see the token: a recording lists the OAuth credentials
+that were signed in, and replay gives those a dummy token without reading the
 cache. Before recording, a token that would expire within ten minutes is
 refreshed, so no token request is recorded; recordings drop the
 `Authorization` header and are scanned for the token values before they are

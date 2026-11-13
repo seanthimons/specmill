@@ -405,8 +405,10 @@ test_that('OAuth authorization-code login, refresh, scopes and logout', {
   Sys.unsetenv('OAUTH_TEST_KEY')
 
   # Replayed tests use a dummy token and leave the real one in place.
+  expect_identical(client$api_oauth_signed_in(), 'sfn')
   local({
-    client$api_oauth_replay(environment())
+    restore <- client$api_oauth_replay('sfn')
+    withr::defer(restore())
     withr::local_options(oauthclient.dry_run = TRUE)
     request <- client$items()
     expect_identical(
@@ -470,8 +472,19 @@ test_that('OAuth authorization-code login, refresh, scopes and logout', {
   # Tokens are offered to recording scans, and logout removes them.
   expect_true(client$api_login())
   expect_true(all(c('at-4', 'rt-4') %in% client$api_oauth_secrets()))
+  # Replaying a recording made without signing in: no token, even though a
+  # real one is cached, and the cache is left alone.
+  before <- tools::md5sum(cache())
+  restore <- client$api_oauth_replay(character())
+  expect_length(client$api_oauth_signed_in(), 0L)
+  error <- tryCatch(client$items(), error = identity)
+  expect_match(conditionMessage(error), 'api_login("sfn")', fixed = TRUE)
+  restore()
+  expect_identical(tools::md5sum(cache()), before)
+  expect_identical(client$api_oauth_signed_in(), 'sfn')
   client$api_logout()
   expect_false(file.exists(cache()))
+  expect_length(client$api_oauth_signed_in(), 0L)
   expect_length(client$api_oauth_secrets(), 0L)
 
   # Without an interactive session there is no browser sign-in.

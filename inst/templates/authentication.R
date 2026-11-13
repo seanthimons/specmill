@@ -142,7 +142,7 @@ api_oauth_file <- function(credential) {
 
 api_oauth_read <- function(credential) {
   stored <- api_oauth_tokens[[credential]]
-  if (is.null(stored)) {
+  if (is.null(stored) && !isTRUE(api_oauth_tokens[['.replay']])) {
     path <- api_oauth_file(credential)
     if (file.exists(path)) {
       stored <- tryCatch(readRDS(path), error = function(e) NULL)
@@ -286,39 +286,59 @@ api_oauth_bearer <- function(scheme, url) {
   stored$token$access_token
 }
 
-# Replayed tests: a dummy token for every OAuth credential, restored when
-# `frame` exits. The token cache is not read.
-api_oauth_replay <- function(frame) {
-  for (credential in names(AUTH_OAUTH)) {
-    local({
-      name <- credential
-      setting <- AUTH_OAUTH[[name]]
-      previous <- api_oauth_tokens[[name]]
-      scopes <- unlist(setting$scopes)
-      assign(
-        name,
-        list(
-          token = list(
-            access_token = 'replay-dummy',
-            token_type = 'bearer',
-            scope = paste(scopes, collapse = ' ')
-          ),
-          token_url = setting$token_url,
-          client_id = setting$client_id,
-          scopes = scopes,
-          replay = TRUE
+# OAuth credentials with a stored token; recordings list them as used.
+api_oauth_signed_in <- function() {
+  names(AUTH_OAUTH)[vapply(
+    names(AUTH_OAUTH),
+    function(credential) !is.null(api_oauth_read(credential)),
+    logical(1)
+  )]
+}
+
+# Replayed tests: a dummy token for each OAuth credential the recording used,
+# and none for the others. While replaying, the token cache is not read.
+# Returns a function that restores the session.
+api_oauth_replay <- function(credentials) {
+  credentials <- intersect(credentials, names(AUTH_OAUTH))
+  previous <- lapply(
+    stats::setNames(names(AUTH_OAUTH), names(AUTH_OAUTH)),
+    function(name) api_oauth_tokens[[name]]
+  )
+  assign('.replay', TRUE, envir = api_oauth_tokens)
+  for (name in names(AUTH_OAUTH)) {
+    if (exists(name, envir = api_oauth_tokens, inherits = FALSE)) {
+      rm(list = name, envir = api_oauth_tokens)
+    }
+  }
+  for (name in credentials) {
+    setting <- AUTH_OAUTH[[name]]
+    scopes <- unlist(setting$scopes)
+    assign(
+      name,
+      list(
+        token = list(
+          access_token = 'replay-dummy',
+          token_type = 'bearer',
+          scope = paste(scopes, collapse = ' ')
         ),
-        envir = api_oauth_tokens
-      )
-      withr::defer(
-        if (is.null(previous)) {
-          rm(list = name, envir = api_oauth_tokens)
-        } else {
-          assign(name, previous, envir = api_oauth_tokens)
-        },
-        envir = frame
-      )
-    })
+        token_url = setting$token_url,
+        client_id = setting$client_id,
+        scopes = scopes,
+        replay = TRUE
+      ),
+      envir = api_oauth_tokens
+    )
+  }
+  function() {
+    rm(list = '.replay', envir = api_oauth_tokens)
+    for (name in names(previous)) {
+      if (exists(name, envir = api_oauth_tokens, inherits = FALSE)) {
+        rm(list = name, envir = api_oauth_tokens)
+      }
+      if (!is.null(previous[[name]])) {
+        assign(name, previous[[name]], envir = api_oauth_tokens)
+      }
+    }
   }
 }
 
