@@ -1661,14 +1661,29 @@ render_operation <- function(operation, spec) {
     code <- order_wrapper_result(code, spec$result_order, operation$name)
   }
   if (isTRUE(spec$documentation)) {
-    paste(
+    code <- paste(
       operation_documentation(operation, spec$docs %or% list()),
       code,
       sep = '\n'
     )
-  } else {
-    code
   }
+  trim_line_ends(code)
+}
+
+# Drops end-of-line whitespace from rendered code, leaving lines that end inside
+# a multi-line string literal untouched.
+trim_line_ends <- function(code) {
+  lines <- strsplit(code, '\n', fixed = TRUE)[[1L]]
+  tokens <- utils::getParseData(parse(text = code, keep.source = TRUE))
+  open <- tokens[tokens$token == 'STR_CONST' & tokens$line2 > tokens$line1, ]
+  inside <- unlist(Map(
+    function(from, to) seq(from, to - 1L),
+    open$line1,
+    open$line2
+  ))
+  trim <- setdiff(seq_along(lines), inside)
+  lines[trim] <- sub('[ \t]+$', '', lines[trim])
+  paste(lines, collapse = '\n')
 }
 
 #' Plan, generate, and check client output
