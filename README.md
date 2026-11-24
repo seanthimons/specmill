@@ -317,7 +317,15 @@ Imports. See [response cache](https://seanthimons.github.io/specmill/articles/co
 
 Generated wrappers are synchronous. To keep a Shiny app responsive during a
 long request, run the wrapper in a worker process and take a promise for its
-result; see [non-blocking calls](https://seanthimons.github.io/specmill/articles/non-blocking.html).
+result. A single-request operation reviewed with `async: true` can instead
+return a promise in the session when the caller sets
+`options(<package>.request = list(async = TRUE))`; such a request is not
+throttled or retried. See [non-blocking calls](https://seanthimons.github.io/specmill/articles/non-blocking.html).
+
+A fan-out or split batch sends its requests one at a time unless reviewed YAML
+sets `batch.concurrency`. That value is a ceiling: a session can lower it with
+`options(<package>.<helper>.batching = list(concurrency = 1))` but never
+raise it. See [batching](https://seanthimons.github.io/specmill/articles/configuration.html#many-inputs-in-one-call-fan_out-and-split).
 
 <!-- lifecycle:start -->
 ## Typical Workflow

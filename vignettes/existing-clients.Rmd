@@ -269,6 +269,16 @@ outputs, opt in with [`prune`](maintenance.html#prune-retired-output).
    New arguments such as `server`, `request_controls`, `parameter_serialization`,
    or `form_schema` need their implementation too; adding `...` is insufficient.
    See [transport configuration](configuration.html#parameter-serialization).
+   Two reviewed settings need the current helper before generation accepts
+   them: `batch.concurrency` above 1 needs `<helper>_then()`, the `.prepare`
+   argument and the executor's `concurrency` argument and session option;
+   `async: true` needs `<helper>_then()` and the `.async` argument. Until
+   then generation stops and lists what the setting requires. Generation
+   cannot check two further `async` requirements, which fail only when a
+   promise is requested: `<helper>_async_notice()` from the same template,
+   and promises and later in the client's Suggests. See
+   [batching](configuration.html#many-inputs-in-one-call-fan_out-and-split) and
+   [promises without a worker](non-blocking.html#promises-without-a-worker).
 4. To add session controls, review the installed templates with
    `system.file('templates/options.R', package = 'specmill')` and
    `system.file('templates/request.R', package = 'specmill')`. Copy the options
