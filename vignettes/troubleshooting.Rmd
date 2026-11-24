@@ -171,21 +171,17 @@ root <- normalizePath('/path/to/client', winslash = '/', mustWork = TRUE)
 specmill::recover_client(root)
 ```
 
-When no live writer remains, remove only an empty stale lock, if present:
+When no live writer remains, clear the stale lock, if present:
 
 ```{r stale-lock, eval=FALSE}
-lock <- file.path(root, '.specmill-lock')
-if (dir.exists(lock)) {
-  stopifnot(
-    !fs::is_link(lock),
-    length(list.files(lock, all.files = TRUE, no.. = TRUE)) == 0L
-  )
-  unlink(lock, recursive = TRUE)
-}
+specmill::clear_generation_lock(root)
 ```
 
-The normalized `root` and literal `.specmill-lock` keep the target explicit. Do
-not remove a nonempty directory or use a broad wildcard cleanup. Restore the
+The lock records the process and machine that took it. Clearing refuses while
+that process is running, when the lock was taken on another machine, and when
+the directory holds anything besides the `owner` record. In those cases confirm
+by hand that no writer is running before removing `.specmill-lock` yourself; do
+not use a broad wildcard cleanup. Restore the
 reviewed journal, then replan:
 
 ```{r recovery-apply, eval=FALSE}

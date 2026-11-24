@@ -111,12 +111,12 @@ recover_client <- function(root, mode = c('plan', 'apply')) {
   if (mode == 'plan') {
     return(stats::setNames(plans, journals))
   }
-  lock <- file.path(root, '.specmill-lock')
-  if (!dir.create(lock, showWarnings = FALSE)) {
+  lock <- acquire_lock(root)
+  if (is.null(lock)) {
     stop(
       'Project apply lock exists; inspect the interrupted process before recovery. ',
-      'If no writer is running and the lock is empty, see the Troubleshooting guide, ',
-      '"Interrupted apply and recovery", to remove it.'
+      'If no writer is running, clear_generation_lock() removes it; see the ',
+      'Troubleshooting guide, "Interrupted apply and recovery".'
     )
   }
   on.exit(unlink(lock, recursive = TRUE), add = TRUE)
@@ -138,6 +138,95 @@ recover_client <- function(root, mode = c('plan', 'apply')) {
   invisible(stats::setNames(plans, journals))
 }
 
+# Takes the project lock and records its owner, or returns NULL when it is held.
+acquire_lock <- function(root) {
+  lock <- file.path(root, '.specmill-lock')
+  if (!dir.create(lock, showWarnings = FALSE)) {
+    return(NULL)
+  }
+  writeLines(
+    c(as.character(Sys.getpid()), Sys.info()[['nodename']]),
+    file.path(lock, 'owner')
+  )
+  lock
+}
+
+#' Clear a stale generation lock
+#'
+#' Removes the `.specmill-lock` directory an interrupted apply left behind. It
+#' refuses unless the lock holds nothing but its owner record and the recorded
+#' process is no longer running on this machine. A lock is never cleared
+#' implicitly.
+#'
+#' @param root Explicit existing client root directory.
+#' @return `TRUE` invisibly when a lock was removed, `FALSE` when none existed.
+#' @details A lock written before owner records existed is empty and is
+#'   removed after the same checks; confirm no writer is running first. A lock
+#'   recorded on another machine is refused, because its process cannot be
+#'   checked from here. Run [recover_client()] afterwards to restore any
+#'   journal.
+#' @seealso [Step-by-step guide](https://seanthimons.github.io/specmill/articles/troubleshooting.html).
+#' @export
+clear_generation_lock <- function(root) {
+  root <- normalizePath(root, winslash = '/', mustWork = TRUE)
+  lock <- file.path(root, '.specmill-lock')
+  if (!dir.exists(lock)) {
+    return(invisible(FALSE))
+  }
+  if (fs::is_link(lock)) {
+    cli::cli_abort('The lock at {.path {lock}} is a link; inspect it by hand.')
+  }
+  extra <- setdiff(list.files(lock, all.files = TRUE, no.. = TRUE), 'owner')
+  if (length(extra)) {
+    cli::cli_abort(
+      'The lock at {.path {lock}} holds unexpected files: {.file {extra}}.'
+    )
+  }
+  record <- file.path(lock, 'owner')
+  # ponytail: a lock with no owner record is cleared as a pre-owner-record
+  # leftover; a writer between creating the lock and recording itself looks
+  # the same for an instant. Add an age check if that ever bites.
+  if (file.exists(record)) {
+    owner <- readLines(record, warn = FALSE)
+    pid <- suppressWarnings(as.integer(owner[1L]))
+    if (length(owner) != 2L || is.na(pid)) {
+      cli::cli_abort('The lock owner record at {.path {record}} is unreadable.')
+    }
+    if (!identical(owner[2L], Sys.info()[['nodename']])) {
+      cli::cli_abort(
+        'The lock was taken on {.val {owner[2L]}}; clear it from that machine.'
+      )
+    }
+    # ponytail: a recycled process id reads as a live owner; the guide's manual
+    # removal covers that case.
+    alive <- if (.Platform$OS.type == 'windows') {
+      any(grepl(
+        paste0('\\b', pid, '\\b'),
+        suppressWarnings(system2(
+          'tasklist',
+          c('/FI', shQuote(paste('PID eq', pid)), '/NH'),
+          stdout = TRUE,
+          stderr = FALSE
+        ))
+      ))
+    } else {
+      status <- system2('ps', c('-p', pid), stdout = FALSE, stderr = FALSE)
+      # Only status 1 means no such process; anything else is a failed check.
+      if (!status %in% 0:1) {
+        cli::cli_abort(
+          'Could not check whether process {pid} is running; inspect {.path {lock}} by hand.'
+        )
+      }
+      status == 0L
+    }
+    if (alive) {
+      cli::cli_abort('Process {pid} still holds the lock at {.path {lock}}.')
+    }
+  }
+  unlink(lock, recursive = TRUE)
+  invisible(TRUE)
+}
+
 #' Apply owned output and recover interrupted changes
 #'
 #' Plan or apply contained file changes with ownership checks, backups, an
@@ -156,8 +245,8 @@ recover_client <- function(root, mode = c('plan', 'apply')) {
 #'   headers alone do not authorize replacement. A custom owned predicate is an
 #'   advanced client trust boundary. Apply refuses conflicting protected writes.
 #'   Recovery plan validates journals and returns restoration actions; recovery
-#'   apply restores backups and removes completed journals. Confirm no live writer
-#'   before resolving a stale lock. Never delete journals to bypass recovery.
+#'   apply restores backups and removes completed journals. Clear a stale lock
+#'   with [clear_generation_lock()]. Never delete journals to bypass recovery.
 #'   There is no cross-file filesystem transaction.
 #' @note Ownership is recorded in .specmill/manifest.json. Locks and transaction
 #'   journals use the .specmill- prefix.
@@ -374,12 +463,12 @@ apply_files <- function(
   if (!length(pending)) {
     return(entries)
   }
-  lock <- file.path(root, '.specmill-lock')
-  if (!dir.create(lock, showWarnings = FALSE)) {
+  lock <- acquire_lock(root)
+  if (is.null(lock)) {
     stop(
       'Another apply holds the project lock. If an earlier apply was interrupted ',
-      'and no writer is running, see the Troubleshooting guide, ',
-      '"Interrupted apply and recovery".'
+      'and no writer is running, clear_generation_lock() removes it; see the ',
+      'Troubleshooting guide, "Interrupted apply and recovery".'
     )
   }
   on.exit(unlink(lock, recursive = TRUE), add = TRUE)

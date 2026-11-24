@@ -45,8 +45,8 @@ apply_files() parses R output before mutation and checks manifest ownership;
 headers alone do not authorize replacement. A custom owned predicate is an
 advanced client trust boundary. Apply refuses conflicting protected writes.
 Recovery plan validates journals and returns restoration actions; recovery
-apply restores backups and removes completed journals. Confirm no live writer
-before resolving a stale lock. Never delete journals to bypass recovery.
+apply restores backups and removes completed journals. Clear a stale lock
+with \code{\link[=clear_generation_lock]{clear_generation_lock()}}. Never delete journals to bypass recovery.
 There is no cross-file filesystem transaction.
 }
 \note{

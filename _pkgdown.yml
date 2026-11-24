@@ -31,6 +31,7 @@ reference:
   - setup_client
   - configure_client
   - configure_hooks
+  - configure_lifecycle
   - configure_apis
   - load_project
   - generate_client
@@ -60,6 +61,7 @@ reference:
 - title: File safety and advanced integration
   contents:
   - apply_files
+  - clear_generation_lock
   - render_operation
   - bind_tools
   - batched

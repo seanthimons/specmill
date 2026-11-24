@@ -35,7 +35,7 @@ generation_command() invisibly returns the generation result, or NULL for help, 
 Adapt the shared generator to existing wrapper/test command flags and locate a client root from a maintenance script.
 }
 \details{
-Unlike generate_client(), generation_command() defaults to apply. For stubs use --plan or --check; for tests use --dry-run, --check, or --generate. --help prints usage. Legacy --rebuild prefixes are accepted but selection remains in YAML. --force never bypasses ownership. Test check/apply requires fixed contracts for every selected operation. Summary values are written to GITHUB_OUTPUT when set. script_root() walks upward from the matching script to DESCRIPTION.
+Unlike generate_client(), generation_command() defaults to apply. For stubs use --plan or --check; for tests use --dry-run, --check, or --generate. --help prints usage. Test check/apply requires fixed contracts for every selected operation. Summary values are written to GITHUB_OUTPUT when set. script_root() walks upward from the matching script to DESCRIPTION.
 }
 \seealso{
 \href{https://seanthimons.github.io/specmill/articles/maintenance.html}{Step-by-step guide}.

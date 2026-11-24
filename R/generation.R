@@ -788,7 +788,21 @@ render_operation <- function(operation, spec) {
   if (!is.null(pg)) {
     lines <- c(
       lines,
-      '  if (!base::is.logical(all_pages) || base::length(all_pages) != 1L || base::is.na(all_pages)) base::stop("all_pages must be TRUE or FALSE", call. = FALSE)'
+      '  if (!base::is.logical(all_pages) || base::length(all_pages) != 1L || base::is.na(all_pages)) base::stop("all_pages must be TRUE or FALSE", call. = FALSE)',
+      # Per-item paging repeats this check; fail once for the whole call first.
+      if (!is.null(operation$iterate) && !identical(pg$mode, 'cursor')) {
+        paste0(
+          '  if (base::isTRUE(all_pages) && base::is.null(',
+          deparse(as.name(page_formal), backtick = TRUE),
+          ')) base::stop(',
+          r_literal(paste0(
+            'Supply ',
+            page_formal,
+            ' to start paging, or set all_pages = FALSE'
+          )),
+          ', call. = FALSE)'
+        )
+      }
     )
   }
   for (i in seq_along(params)) {

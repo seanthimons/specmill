@@ -63,7 +63,8 @@ initialization_scripts <- function(schema, settings) {
 #' Set up a client interactively
 #'
 #' Prompt for a local schema, a new client directory and package metadata, preview
-#' configuration, then initialize only after confirmation. No HTTP calls are made.
+#' configuration, then initialize only after confirmation, and offer the
+#' [configure_lifecycle()] stubs. No HTTP calls are made.
 #' @return Applied initialization records, invisibly, or NULL when cancelled.
 #' @export
 setup_client <- function() {
@@ -115,6 +116,14 @@ setup_client <- function() {
     initialize_client,
     c(list(root = root, schema = schema), settings)
   )
+  if (
+    tolower(trimws(base::readline(
+      'Add load and attach stubs in R/zzz.R? [y/N]: '
+    ))) ==
+      'y'
+  ) {
+    configure_lifecycle(root, 'apply')
+  }
   cli::cli_alert_success(
     'Client created. Review YAML, then run dev/generate.R with --plan.'
   )

@@ -11,5 +11,6 @@ Applied initialization records, invisibly, or NULL when cancelled.
 }
 \description{
 Prompt for a local schema, a new client directory and package metadata, preview
-configuration, then initialize only after confirmation. No HTTP calls are made.
+configuration, then initialize only after confirmation, and offer the
+\code{\link[=configure_lifecycle]{configure_lifecycle()}} stubs. No HTTP calls are made.
 }
