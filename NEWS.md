@@ -1,3 +1,65 @@
+## specmill 0.5.0 (2026-11-24)
+
+#### Breaking changes
+
+- add configure_lifecycle() and clear_generation_lock(), drop legacy
+  generation flags (#329)
+  ([cba8d7e](https://github.com/seanthimons/specmill/tree/cba8d7e86e4c0037a31f950fcdf44b511a6b9069))
+- add configure_lifecycle() and clear_generation_lock(), drop legacy
+  generation flags
+  ([0a8dcc8](https://github.com/seanthimons/specmill/tree/0a8dcc80077f2df2d5d348b23775eef23930fda9))
+
+#### New features
+
+- add runtime concurrency ceiling and opt-in promise return (#328)
+  ([e380f43](https://github.com/seanthimons/specmill/tree/e380f43a8d282f3c72235397dd1cdb1f4bb34ae6))
+- report RFC 9457 problem details in request error messages (#327)
+  ([98eba5c](https://github.com/seanthimons/specmill/tree/98eba5ce056efa82b643e246de8784b5e1dcea19))
+- announce the skipped throttle once and document promise errors
+  ([2926ee3](https://github.com/seanthimons/specmill/tree/2926ee3c9196ef4c4f87754ea63351484ce64a34))
+- report RFC 9457 problem details in request error messages
+  ([8006357](https://github.com/seanthimons/specmill/tree/80063575a616d92510025b9e61c3a6f2db65d14a))
+- add runtime concurrency ceiling and opt-in promise return (#325)
+  ([00414ca](https://github.com/seanthimons/specmill/tree/00414ca00af1856abdb1835c3f72dab09ab2a269))
+
+#### Bug fixes
+
+- keep the lifecycle helpers while the client’s R/zzz.R exists
+  ([71c6b44](https://github.com/seanthimons/specmill/tree/71c6b44ebea561aefda206625040382d5370817a))
+- strip trailing whitespace from generated wrapper files
+  ([814a18e](https://github.com/seanthimons/specmill/tree/814a18e96cdd2322b5bbbdddc147c5a3ffffc00a))
+
+#### Build
+
+- declare openssl and pkgload as suggested test dependencies
+  ([6038ccc](https://github.com/seanthimons/specmill/tree/6038ccc6a78007007049c053bc62b5dba115da06))
+
+#### CI
+
+- track baseline releases (#321)
+  ([819b475](https://github.com/seanthimons/specmill/tree/819b475aea7ace6537a7e70c3d11c7f5e447fb36))
+- track baseline releases
+  ([add5e8e](https://github.com/seanthimons/specmill/tree/add5e8e1cf4b018d436607a826e5c52bda7459c9))
+- pin baseline callers to v2.2.0 and grant pull-requests read to
+  gitleaks (#320)
+  ([3142cb8](https://github.com/seanthimons/specmill/tree/3142cb878ca8fd9f945274f23c5d96ccba7be71e))
+- pin baseline callers to v2.2.0 and grant pull-requests read to
+  gitleaks
+  ([f7633f7](https://github.com/seanthimons/specmill/tree/f7633f7270fb7212ec6282747dad21892e2218ec))
+
+#### Docs
+
+- add troubleshooting entry and generated-client coverage for problem
+  details
+  ([3fd717b](https://github.com/seanthimons/specmill/tree/3fd717ba838029f3dcef673070448a2dd49733bb))
+- cover configure_lifecycle() and clear_generation_lock() in the guides
+  ([337d2b9](https://github.com/seanthimons/specmill/tree/337d2b91204d1adac9b7c5475ff3e4963d8a005b))
+- describe concurrency and promise return for existing clients
+  ([4a5ce37](https://github.com/seanthimons/specmill/tree/4a5ce379a5af6d90fe6d04dc68d2b133deaa455b))
+
+Full set of changes:
+[`v0.4.0...v0.5.0`](https://github.com/seanthimons/specmill/compare/v0.4.0...v0.5.0)
+
 ## specmill 0.4.0 (2026-11-13)
 
 #### New features
