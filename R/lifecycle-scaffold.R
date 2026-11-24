@@ -13,7 +13,9 @@
 #'   file is reported as `kept` and never changed, and regeneration and pruning
 #'   leave it alone. `R/client_lifecycle.R` holds three helpers and stays
 #'   specmill's: running this function again updates it to the current
-#'   template, and refuses if it was edited by hand.
+#'   template, and refuses if it was edited by hand. `prune = 'all'` keeps the
+#'   helper file while `R/zzz.R` exists, because your code there may call it;
+#'   delete `R/zzz.R` first to remove both.
 #'
 #'   The helpers set option defaults without replacing values the session
 #'   already set, emit a startup message through `packageStartupMessage()`

@@ -74,6 +74,27 @@ test_that('configure_lifecycle scaffolds client-owned load and attach stubs', {
   expect_identical(readLines(zzz), mine)
   expect_identical(readLines(helper), current)
 
+  # A full prune keeps the helpers while the client's zzz.R could call them.
+  purge <- function(mode = 'apply') {
+    specmill::generate_client(
+      root,
+      config = 'specmill.yml',
+      mode = mode,
+      validation = FALSE,
+      prune = 'all',
+      confirm = TRUE
+    )
+  }
+  kept <- tempfile()
+  file.copy(c(zzz, helper), c(kept, paste0(kept, '-helper')))
+  expect_message(purge(), 'Keeping')
+  expect_true(file.exists(helper))
+  expect_no_error(suppressMessages(purge('check')))
+  unlink(zzz)
+  suppressMessages(purge())
+  expect_false(file.exists(helper))
+  file.copy(c(kept, paste0(kept, '-helper')), c(zzz, helper))
+
   # The helpers: unset-only defaults, quiet under load_all, no values reported.
   runtime <- new.env(parent = baseenv())
   sys.source(helper, runtime)

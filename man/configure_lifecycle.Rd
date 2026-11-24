@@ -26,7 +26,9 @@ dependency.
 file is reported as \code{kept} and never changed, and regeneration and pruning
 leave it alone. \code{R/client_lifecycle.R} holds three helpers and stays
 specmill's: running this function again updates it to the current
-template, and refuses if it was edited by hand.
+template, and refuses if it was edited by hand. \code{prune = 'all'} keeps the
+helper file while \code{R/zzz.R} exists, because your code there may call it;
+delete \code{R/zzz.R} first to remove both.
 
 The helpers set option defaults without replacing values the session
 already set, emit a startup message through \code{packageStartupMessage()}

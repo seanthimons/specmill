@@ -222,6 +222,8 @@ project can be regenerated from scratch; unowned and edited files are untouched.
 It ignores `spec`, `config`, `validation`, `artifacts`, `adopt` and `deferrals`.
 Apply asks `Are you sure? [y/N]` (default no). Non-interactive sessions never
 prompt: pass `confirm = TRUE`, or the call aborts without writing.
+`R/client_lifecycle.R` is kept while your `R/zzz.R` exists, because that file
+may call it; delete `R/zzz.R` first to remove both.
 
 Limitations: a contract that stays broken needs a human decision; fingerprints
 cover local references only; a renamed source or removed operation is reported as
