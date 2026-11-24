@@ -633,7 +633,12 @@ request_controls_acceptance <- function() {
   project <- yaml::read_yaml(project_file, handlers = list(seq = function(x) x))
   stopifnot(identical(
     project$defaults$request_controls,
-    list(timeout = 30L, max_retries = 0L, retry_writes = FALSE)
+    list(
+      timeout = 30L,
+      max_retries = 0L,
+      retry_writes = FALSE,
+      throttle = list(capacity = 5L, fill_time_s = 1L)
+    )
   ))
   project$defaults$request_controls <- list(
     timeout = 9,

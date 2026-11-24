@@ -236,7 +236,7 @@ operation_documentation <- function(op, policy = list()) {
     docs,
     paste0(
       '@return ',
-      prose(
+      prose(paste0(
         policy$return %or%
           paste0(
             'Decoded response returned by the client request helper.',
@@ -253,8 +253,15 @@ operation_documentation <- function(op, policy = list()) {
                 }
               )
             }
+          ),
+        if (isTRUE(op$async)) {
+          paste0(
+            ' When the request option async is TRUE, a promise of that result is returned instead.',
+            ' Invalid arguments and missing credentials still stop the call at once; HTTP and transport failures reject the promise.',
+            ' A promise request is not throttled and not retried.'
           )
-      )
+        }
+      ))
     ),
     vapply(
       names(policy$tags),

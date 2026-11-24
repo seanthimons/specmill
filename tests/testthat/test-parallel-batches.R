@@ -281,6 +281,43 @@ parallel_batches_acceptance <- function() {
   )
   result <- suppressWarnings(runtime$item(c('bad', 'rate')))
   stopifnot(length(result) == 0L, length(attr(result, 'failed')) == 2L)
+  # The session option lowers the reviewed ceiling and can never raise it.
+  reset()
+  withr::with_options(
+    list(parallelclient.api_request.batching = list(concurrency = 1)),
+    {
+      stopifnot(
+        identical(ids(runtime$item(c('a', 'b', 'c'))), c('a', 'b', 'c')),
+        history()$peak == 1L
+      )
+    }
+  )
+  # The option is client-wide: above this wrapper's ceiling, the ceiling holds.
+  reset()
+  withr::with_options(
+    list(parallelclient.api_request.batching = list(concurrency = 3)),
+    {
+      stopifnot(
+        identical(ids(runtime$item(c('a', 'b', 'c'))), c('a', 'b', 'c')),
+        history()$peak <= 2L
+      )
+    }
+  )
+  reset()
+  for (value in list(0, 1.5, NA, '2')) {
+    withr::with_options(
+      list(parallelclient.api_request.batching = list(concurrency = value)),
+      {
+        stopifnot(
+          grepl(
+            'whole number of at least 1',
+            conditionMessage(capture(runtime$item(c('a', 'b'))))
+          ),
+          length(history()$history) == 0L
+        )
+      }
+    )
+  }
   # Parallel preflight rejects unsupported controls before sending any request.
   reset()
   withr::with_options(list(parallelclient.request = list(max_retries = 1)), {
@@ -443,6 +480,64 @@ parallel_batches_acceptance <- function() {
   service$operations[['GET /items/{id}']]$pagination <- list(parameter = 'id')
   yaml::write_yaml(service, path)
   stopifnot(inherits(capture(generate()), 'error'))
+  # A ceiling above 1 needs a reviewed throttle and no retries.
+  service <- original
+  service$defaults$request_controls <- NULL
+  yaml::write_yaml(service, path)
+  # The scaffolded project default carries a throttle; remove it for this check.
+  project_file <- file.path(root, 'specmill.yml')
+  project <- readLines(project_file)
+  scaffolded <- yaml::read_yaml(
+    project_file,
+    handlers = list(seq = function(x) x)
+  )
+  scaffolded$defaults$request_controls$throttle <- NULL
+  yaml::write_yaml(scaffolded, project_file)
+  stopifnot(grepl(
+    'requires request_controls.throttle',
+    conditionMessage(capture(generate()))
+  ))
+  writeLines(project, project_file)
+  service <- original
+  service$defaults$request_controls$max_retries <- 1L
+  yaml::write_yaml(service, path)
+  stopifnot(grepl('max_retries = 0', conditionMessage(capture(generate()))))
+  wrappers <- function() {
+    files <- setdiff(
+      list.files(file.path(root, 'R'), full.names = TRUE),
+      file.path(root, c('R/api_request.R', 'R/hooks.R'))
+    )
+    code <- parse(text = unlist(lapply(files, readLines)), keep.source = FALSE)
+    names(code) <- vapply(code, function(x) as.character(x[[2L]]), character(1))
+    vapply(
+      code[c('item', 'bulk')],
+      function(x) any(grepl('concurrency = ', deparse(x), fixed = TRUE)),
+      logical(1)
+    )
+  }
+  # A ceiling under defaults reaches the operations it fits and names the rest;
+  # an operation-level 1 renders the plain sequential wrapper.
+  service <- original
+  service$defaults$batch <- list(concurrency = 2L)
+  service$operations[['GET /items/{id}']]$batch$concurrency <- NULL
+  service$operations[['GET /items/{id}']]$request_controls <- list(
+    max_retries = 1L
+  )
+  service$operations[['POST /bulk']]$batch$concurrency <- NULL
+  yaml::write_yaml(service, path)
+  skipped <- tryCatch(generate(), warning = conditionMessage)
+  stopifnot(grepl(
+    'batch.concurrency from defaults was not applied to parallelclient GET /items/{id} (max_retries)',
+    skipped,
+    fixed = TRUE
+  ))
+  suppressWarnings(generate())
+  stopifnot(identical(unname(wrappers()), c(FALSE, TRUE)))
+  service$operations[['GET /items/{id}']]$request_controls <- NULL
+  service$operations[['POST /bulk']]$batch$concurrency <- 1L
+  yaml::write_yaml(service, path)
+  generate()
+  stopifnot(identical(unname(wrappers()), c(TRUE, FALSE)))
   yaml::write_yaml(original, path)
   helper <- file.path(root, 'R/api_request.R')
   before <- readLines(helper)

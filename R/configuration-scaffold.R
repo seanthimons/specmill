@@ -256,7 +256,9 @@ configuration_proposal <- function(
       request_controls = list(
         timeout = 30L,
         max_retries = 0L,
-        retry_writes = FALSE
+        retry_writes = FALSE,
+        # A polite default; batch.concurrency requires a reviewed throttle.
+        throttle = list(capacity = 5L, fill_time_s = 1L)
       ),
       batch = list(max_items = NULL, max_bytes = NULL)
     )

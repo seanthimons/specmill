@@ -35,6 +35,21 @@ pagination_wrapper_acceptance <- function() {
             } else {
               NA_integer_
             }
+            if (req$PATH_INFO == '/search') {
+              # A paged POST: page 1 echoes the posted ids, page 2 is empty.
+              ids <- jsonlite::fromJSON(rawToChar(req$rook.input$read()))
+              history[[length(history) + 1L]] <<- list(
+                kind = paste(ids, collapse = '+'),
+                page = page
+              )
+              return(json(
+                if (page == 1L) {
+                  lapply(ids, function(id) list(id = id))
+                } else {
+                  list()
+                }
+              ))
+            }
             kind <- sub('^/items/', '', req$PATH_INFO)
             history[[length(history) + 1L]] <<- list(kind = kind, page = page)
             switch(
@@ -140,6 +155,25 @@ pagination_wrapper_acceptance <- function() {
             responses = list('200' = list(description = 'OK'))
           )
         ),
+        '/search' = list(
+          post = list(
+            operationId = 'find_items',
+            parameters = list(list(
+              name = 'pageNumber',
+              `in` = 'query',
+              schema = list(type = 'integer')
+            )),
+            requestBody = list(
+              required = TRUE,
+              content = list(
+                'application/json' = list(
+                  schema = list(type = 'array', items = list(type = 'string'))
+                )
+              )
+            ),
+            responses = list('200' = list(description = 'OK'))
+          )
+        ),
         '/plain' = list(
           get = list(
             operationId = 'get_plain',
@@ -205,6 +239,7 @@ pagination_wrapper_acceptance <- function() {
       '  if (envelope) attr(table, "paging") <- body[c("pageNumber", "totalPages")]',
       '  table',
       '}',
+      'search_policy <- function(response, context, decode) api_request_table(api_request_records(decode()))',
       'stop_when_last <- function(response, state) {',
       '  paging <- attr(response, "paging")',
       '  any(response$last) || (!is.null(paging) && paging$pageNumber >= paging$totalPages)',
@@ -633,6 +668,18 @@ pagination_wrapper_acceptance <- function() {
     identical(unique(both$query), 'a'),
     identical(names(attr(both, 'failed')), 'missing')
   )
+  # A missing start page stops the whole call once, before any item is tried.
+  seen <- sent()
+  error <- tryCatch(
+    fan$get_items(c('a', 'typed'), pageNumber = NULL),
+    error = identity,
+    warning = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('Supply pageNumber', conditionMessage(error)),
+    sent() == seen
+  )
   # Dry runs return one request per element and are not combined into a table.
   dry <- withr::with_envvar(
     c(PAGEWRAP_DRY_RUN = 'true'),
@@ -642,6 +689,30 @@ pagination_wrapper_acceptance <- function() {
     is.list(dry),
     length(dry) == 2L,
     all(vapply(dry, inherits, logical(1), 'httr2_request'))
+  )
+
+  # --- Pagination inside split batches (#119) ---------------------------------------
+  service <- paged()
+  service$operations[['POST /search']] <- list(
+    batch = list(split = TRUE, max_items = 2L),
+    pagination = list(metadata = FALSE),
+    # A chunk is several ids, so its policy leaves the query column out.
+    response_policy = 'search_policy'
+  )
+  yaml::write_yaml(service, service_path)
+  run()
+  chunked <- new.env(parent = baseenv())
+  for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
+    sys.source(file, chunked)
+  }
+  seen <- sent()
+  result <- chunked$find_items(body = c('x', 'y', 'z'))
+  now <- history()
+  stopifnot(
+    # Each chunk pages to completion before the next chunk starts.
+    identical(result$id, c('x', 'y', 'z')),
+    identical(tail(now$kind, -seen), c('x+y', 'x+y', 'z', 'z')),
+    identical(tail(now$page, -seen), c(1L, 2L, 1L, 2L))
   )
 
   # post_combine runs once on the combined result of a paged fan-out, and the

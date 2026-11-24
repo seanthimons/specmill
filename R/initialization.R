@@ -39,7 +39,7 @@
 #' @param name_case Case convention for proposed names. Choices are as-is, snake_case, camelCase, PascalCase, SCREAMING_SNAKE_CASE, and dot.case. See configure_client.
 #' @return A list of applied file records, each containing file, path, and action. The configuration attribute contains proposed files, operation assignments, and diagnostics. Stops before application for invalid metadata, tag filename collisions, or conflicting scaffold paths.
 #' @note Service YAML includes explicit operation allowlists and editable names, including unsupported operations. Name collisions and unsupported transports require review before wrapper generation; initialization does not resolve them. Inspect attr(result, 'configuration')$diagnostics, or preview with configure_client() before initialization.
-#' @seealso `configure_hooks` for optional client-owned pre/post execution. [Step-by-step guide](https://seanthimons.github.io/specmill/articles/specmill.html).
+#' @seealso `configure_hooks` for optional client-owned pre/post execution. `configure_lifecycle` for optional `.onLoad()` and `.onAttach()` stubs; this function does not write them. [Step-by-step guide](https://seanthimons.github.io/specmill/articles/specmill.html).
 #' @export
 initialize_client <- function(
   root,
@@ -157,8 +157,8 @@ initialize_client <- function(
         collapse = ', '
       ),
       # Cassette scenario tests need these (vcr 2 for local cassettes); hooks
-      # move yaml to Imports.
-      Suggests = 'testthat, vcr (>= 2.0.0), withr, yaml'
+      # move yaml to Imports. The async request option needs later and promises.
+      Suggests = 'later, promises, testthat, vcr (>= 2.0.0), withr, yaml'
     )
   }
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {

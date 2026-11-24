@@ -269,6 +269,16 @@ outputs, opt in with [`prune`](maintenance.html#prune-retired-output).
    New arguments such as `server`, `request_controls`, `parameter_serialization`,
    or `form_schema` need their implementation too; adding `...` is insufficient.
    See [transport configuration](configuration.html#parameter-serialization).
+   Two reviewed settings need the current helper before generation accepts
+   them: `batch.concurrency` above 1 needs `<helper>_then()`, the `.prepare`
+   argument and the executor's `concurrency` argument and session option;
+   `async: true` needs `<helper>_then()` and the `.async` argument. Until
+   then generation stops and lists what the setting requires. Generation
+   cannot check two further `async` requirements, which fail only when a
+   promise is requested: `<helper>_async_notice()` from the same template,
+   and promises and later in the client's Suggests. See
+   [batching](configuration.html#many-inputs-in-one-call-fan_out-and-split) and
+   [promises without a worker](non-blocking.html#promises-without-a-worker).
 4. To add session controls, review the installed templates with
    `system.file('templates/options.R', package = 'specmill')` and
    `system.file('templates/request.R', package = 'specmill')`. Copy the options
@@ -277,7 +287,14 @@ outputs, opt in with [`prune`](maintenance.html#prune-retired-output).
    name with punctuation replaced by `_`, and merge the helper's option handling.
    Generate documentation to export the setters. Existing clients do not receive
    either change through regeneration alone.
-5. Replan, apply reviewed changes, check, and run contract and transport tests.
+5. If the client has load and attach stubs, run
+   `specmill::configure_lifecycle(root)`. An `update` action for
+   `R/client_lifecycle.R` means the file differs from the current helpers;
+   `mode = 'apply'` writes them and leaves your `R/zzz.R` alone. Apply
+   refuses if that file was edited by hand, or if `.onLoad()` or
+   `.onAttach()` is defined outside `R/zzz.R` (see `collisions` in the
+   result). A client without stubs can add them the same way.
+6. Replan, apply reviewed changes, check, and run contract and transport tests.
    Exercise dry-run and verbose controls if adopted, including turning them off.
    Compare public names, arguments, exports, and results with the baseline.
    Commit the toolkit pin, policy, helper edits, output, and manifest together.

@@ -109,7 +109,45 @@ output error.
   promise fits the same recipe, for example `promises::future_promise()` with
   the future package. mizu has not been tried here.
 
-The alternative to workers is a request helper that performs the request
-asynchronously inside the session, with `httr2::req_perform_promise()`. It
-needs no second process, but paging, batching and retries would each need a
-promise-aware version, so generated clients do not offer it.
+## Promises without a worker
+
+A single-request operation can instead return a promise from inside the
+session, with no second process. The maintainer reviews it in YAML and the
+session switches it on:
+
+~~~yaml
+operations:
+  GET /items/{id}:
+    async: true
+~~~
+
+```{r in-process}
+options(myclient.request = list(async = TRUE))
+task <- myclient::get_item('a')
+promises::then(task, function(item) message(item$id))
+```
+
+With the option off, which is the default, the wrapper returns its value as
+usual. With it on, only operations marked `async: true` return a promise; every
+other wrapper is unchanged. The promise resolves to the same value the plain
+call returns, after the same post-response hooks. HTTP and transport failures
+reject it. Invalid arguments and missing credentials still stop the call
+before a promise exists. A dry run returns the request.
+
+`async: true` is the maintainer's acceptance of what
+`httr2::req_perform_promise()` leaves out: the request is not throttled and not
+retried, whatever `request_controls` says. The first such call in a session
+says so in a message when the client has a throttle or retries configured.
+Space out calls yourself. For the
+same reason it belongs under operations only, and generation rejects it
+together with `batch.fan_out`, `batch.split`, pagination, a cache (including
+an inherited `response_cache` default, until the operation sets
+`response_cache: null`), a route guard, visibility preservation,
+`post_on_skip`, a result formatter, result ordering, combined post-response
+hooks or an OAuth sign-in. Use a worker for those.
+
+The client needs promises and later installed; new clients list both in
+Suggests, and an existing client adds them by hand after adopting the current
+request helper (`.async` and `<helper>_then()`). Each call is still one
+request, so a batch of calls is as many promises as items. For a batch, prefer
+`batch.concurrency` inside a worker.

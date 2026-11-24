@@ -94,6 +94,75 @@ typed_errors_acceptance <- function() {
     decoder(response, response_policy = policy),
     list(ok = TRUE)
   ))
+  # RFC 9457 problem details reach the message; anything else keeps the bare one.
+  problem <- function(
+    body,
+    status = 404L,
+    media = 'application/problem+json',
+    headers = list(),
+    ...
+  ) {
+    conditionMessage(capture(decoder(
+      httr2::response(
+        status,
+        headers = c(list('content-type' = media), headers),
+        body = charToRaw(body)
+      ),
+      ...
+    )))
+  }
+  bare <- 'HTTP 404 application/problem+json response'
+  stopifnot(
+    identical(
+      problem('{"title":"Not Found","detail":"Not Found","request_id":"abc"}'),
+      paste0(bare, ': Not Found (request id abc)')
+    ),
+    identical(
+      problem(
+        '{"title":"Bad Request","detail":"smiles is required"}',
+        400L,
+        'application/problem+json; charset=utf-8',
+        list('X-Request-ID' = 'hdr')
+      ),
+      'HTTP 400 application/problem+json response: Bad Request: smiles is required (request id hdr)'
+    ),
+    identical(problem('{"title":["a","b"],"detail":7,"request_id":""}'), bare),
+    # A request id alone is still reported.
+    identical(
+      problem('{}', headers = list('X-Request-ID' = 'hdr')),
+      paste0(bare, ' (request id hdr)')
+    ),
+    identical(problem('[1]'), bare),
+    # Members match exactly, a bare URL body is never fetched, and control
+    # characters cannot restyle the console.
+    identical(problem('{"detailed":"x","request_identifier":"y"}'), bare),
+    identical(problem('http://127.0.0.1:1/x.json'), bare),
+    identical(
+      problem('{"detail":"a\\n\\u001b[31mb"}'),
+      paste0(bare, ': a [31mb')
+    ),
+    identical(problem('"text"'), bare),
+    identical(problem('{not json'), bare),
+    identical(problem(''), bare),
+    identical(
+      problem('{"detail":"missing"}', media = 'application/json'),
+      'HTTP 404 application/json response'
+    ),
+    identical(
+      problem('{"detail":"down"}', 503L, error_hint = 'Check status.'),
+      'HTTP 503 application/problem+json response: down Check status.'
+    ),
+    nchar(problem(paste0('{"detail":"', strrep('x', 900L), '"}'))) ==
+      nchar(bare) + 2L + 500L,
+    inherits(
+      capture(decoder(httr2::response(
+        401L,
+        headers = list('content-type' = 'application/problem+json'),
+        body = charToRaw('{"detail":"expired"}')
+      ))),
+      'specmill_call_error'
+    )
+  )
   # Real received HTTP responses, not req_perform mocks that bypass httr2 handling.
   port_file <- tempfile()
   on.exit(unlink(port_file), add = TRUE)

@@ -105,6 +105,19 @@ purge_client <- function(root, mode, confirm) {
     list(files = list())
   }
   owned <- names(manifest$files)
+  # The client's own R/zzz.R may call the lifecycle helpers, so they stay
+  # until that file is gone.
+  helpers <- 'R/client_lifecycle.R'
+  if (
+    helpers %in% owned &&
+      file.exists(project_path(root, helpers)) &&
+      file.exists(project_path(root, 'R/zzz.R'))
+  ) {
+    owned <- setdiff(owned, helpers)
+    cli::cli_alert_info(
+      'Keeping {.file {helpers}}: {.file R/zzz.R} may use it. Delete {.file R/zzz.R} first to remove both.'
+    )
+  }
   run <- function(mode) {
     apply_files(root, list(), remove = owned, mode = mode)
   }

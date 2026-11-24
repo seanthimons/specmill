@@ -504,6 +504,7 @@ load_project <- function(
         'security_correction',
         'body_media_correction',
         'preserve_visibility',
+        'async',
         'private_params',
         'post_result_null',
         'cache',
@@ -527,9 +528,6 @@ load_project <- function(
       names(defaults)
     )) {
       stop(id, ': ', field, ' belongs under operations, not defaults')
-    }
-    if (!is.null(defaults$batch$concurrency)) {
-      stop(id, ': batch.concurrency belongs under operations, not defaults')
     }
     if (!is.null(defaults$batch$input)) {
       stop(id, ': batch.input belongs under operations, not defaults')
