@@ -408,6 +408,7 @@ example above for the full form of `generate_client()`.
 |---|---|---|
 | `configure_client()` | Start | Previews configuration; `mode = 'apply'` creates absent files only |
 | `initialize_client()` | New package | Writes the package, YAML, and client-owned helpers |
+| `configure_lifecycle()` | Any package | Previews load and attach stubs; `mode = 'apply'` writes your `R/zzz.R` once and keeps `R/client_lifecycle.R` current |
 | `propose_mappings()` | Existing package | Proposes mappings for existing functions; never writes the project |
 | `verify_adoption()` | Existing package | Compares proposed wrappers with the originals on a temporary copy |
 | `generate_client(mode = 'plan')` | Loop | Reports files, validation, and diagnostics without writing |
@@ -425,9 +426,12 @@ example above for the full form of `generate_client()`.
 | `recover_client()` | An apply was interrupted | Plans by default; `mode = 'apply'` restores the journaled state | Yes: restores backed-up files, deletes files the apply created, removes the journal |
 | `inspect_client()` | Upgrading the toolkit on a configured client | Reports client-owned helper and protected-source state | No |
 | `validate_schema()` | `plan$validation` reports schema errors | Reports status and findings for one schema file | No |
+| `clear_generation_lock()` | A stopped apply left `.specmill-lock` behind | Removes the lock; refuses unless it can show the owner is gone (a running owner, another machine, an unreadable record) | Yes: deletes the lock directory |
 
-If `recover_client()` stops on an existing `.specmill-lock` directory, no command
-clears it; follow the Troubleshooting guide.
+If `recover_client()` stops on an existing `.specmill-lock` directory,
+`clear_generation_lock()` removes it when it can show no writer holds it, for
+example when the recorded owner is a process on this machine that is no longer
+running. When it refuses, follow the Troubleshooting guide.
 <!-- lifecycle:end -->
 
 ## Learn the workflow

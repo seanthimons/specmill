@@ -82,5 +82,5 @@ manual adoption; regeneration never overwrites client-owned runtime files.
 Service YAML includes explicit operation allowlists and editable names, including unsupported operations. Name collisions and unsupported transports require review before wrapper generation; initialization does not resolve them. Inspect attr(result, 'configuration')$diagnostics, or preview with configure_client() before initialization.
 }
 \seealso{
-\code{configure_hooks} for optional client-owned pre/post execution. \href{https://seanthimons.github.io/specmill/articles/specmill.html}{Step-by-step guide}.
+\code{configure_hooks} for optional client-owned pre/post execution. \code{configure_lifecycle} for optional \code{.onLoad()} and \code{.onAttach()} stubs; this function does not write them. \href{https://seanthimons.github.io/specmill/articles/specmill.html}{Step-by-step guide}.
 }

@@ -14,6 +14,9 @@ fixtures, output, `.specmill/helpers/`, and `.specmill/manifest.json` form one
 reviewed change. For a toolkit upgrade, follow the
 [existing-client upgrade workflow](existing-clients.html#update-an-already-configured-client).
 Normal generation does not update client-owned request helpers or session controls.
+After a toolkit upgrade, a client that uses the load and attach stubs runs
+`specmill::configure_lifecycle(root)` to see whether `R/client_lifecycle.R`
+changed and `mode = 'apply'` to update it; `R/zzz.R` is never touched.
 
 ## 1. Review schema changes
 
