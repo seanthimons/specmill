@@ -242,7 +242,7 @@ stopifnot(
   identical(captured, list(
     method = 'GET', path = '/items/{item_id}',
     path_params = list(item_id = 'item-1'), query = list(language = 'en'), body = NULL,
-        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE),
+        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE, throttle = list(capacity = 5L, fill_time_s = 1L)),
         server = list(diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override')
   ))
 )

@@ -56,7 +56,7 @@ contracts <- list(
         method = 'GET', path = '/items/{item_id}',
         path_params = list(item_id = 'item-1'),
         query = list(language = 'en'), body = NULL,
-        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE),
+        request_controls = list(timeout = 30L, max_retries = 0L, retry_writes = FALSE, throttle = list(capacity = 5L, fill_time_s = 1L)),
         server = list(diagnostic = 'Relative server URL requires a recorded origin or explicit base URL override')
       ),
       response = list(id = 'item-1', title = 'Example item')
@@ -160,7 +160,7 @@ contracts:
       path_params: {item_id: item-1}
       query: {language: en}
       body: null
-      request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+      request_controls: {timeout: 30, max_retries: 0, retry_writes: false, throttle: {capacity: 5, fill_time_s: 1}}
       server:
         diagnostic: Relative server URL requires a recorded origin or explicit base URL override
     result: {id: item-1}
@@ -189,7 +189,7 @@ GET /items/{item_id}:
         path_params: {item_id: item-1}
         query: {language: en}
         body: null
-        request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+        request_controls: {timeout: 30, max_retries: 0, retry_writes: false, throttle: {capacity: 5, fill_time_s: 1}}
         server:
           diagnostic: Relative server URL requires a recorded origin or explicit base URL override
       response: {id: item-1}
@@ -595,7 +595,7 @@ hook_integrations:
           path_params: []
           query: {page: 1}
           body: null
-          request_controls: {timeout: 30, max_retries: 0, retry_writes: false}
+          request_controls: {timeout: 30, max_retries: 0, retry_writes: false, throttle: {capacity: 5, fill_time_s: 1}}
           server: {url: 'https://api.example.org'}
         response: [{id: a}]
       # one entry per further page, ending with the empty page

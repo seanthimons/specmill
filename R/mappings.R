@@ -49,6 +49,7 @@ validate_settings <- function(
       'request',
       'post_on_skip',
       'preserve_visibility',
+      'async',
       'result_formatter',
       'result_order',
       'post_state',
@@ -236,6 +237,15 @@ validate_settings <- function(
     }
     if (identical(settings$implementation, 'existing')) {
       stop(field, ' requires a generated implementation')
+    }
+  }
+  if ('async' %in% names(settings)) {
+    value <- settings$async
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      stop('async must be true or false')
+    }
+    if (isTRUE(value) && identical(settings$implementation, 'existing')) {
+      stop('async requires a generated implementation')
     }
   }
   if ('preserve_visibility' %in% names(settings)) {
@@ -1151,7 +1161,10 @@ configure_operation <- function(operation, service) {
       'route_guard'
     } else if (isTRUE(settings$preserve_visibility)) {
       'preserve_visibility'
-    } else if (!is.null(settings$batch$concurrency)) {
+    } else if (
+      isTRUE(service$operations[[operation$key]]$batch$concurrency > 1)
+    ) {
+      # An inherited ceiling yields to the cache instead (see generation).
       'batch.concurrency'
     } else if (!is.null(operation$server_resolver)) {
       'a server resolver'

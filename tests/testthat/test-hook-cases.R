@@ -152,7 +152,7 @@ hook_cases_acceptance <- function() {
       paste0('        path_params: ', path_params),
       paste0('        query: ', query),
       '        body: null',
-      '        request_controls: {timeout: 30, max_retries: 0, retry_writes: false}',
+      '        request_controls: {timeout: 30, max_retries: 0, retry_writes: false, throttle: {capacity: 5, fill_time_s: 1}}',
       "        server: {url: 'http://127.0.0.1:1'}",
       paste0('      response: ', response)
     )

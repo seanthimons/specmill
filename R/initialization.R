@@ -157,8 +157,8 @@ initialize_client <- function(
         collapse = ', '
       ),
       # Cassette scenario tests need these (vcr 2 for local cassettes); hooks
-      # move yaml to Imports.
-      Suggests = 'testthat, vcr (>= 2.0.0), withr, yaml'
+      # move yaml to Imports. The async request option needs later and promises.
+      Suggests = 'later, promises, testthat, vcr (>= 2.0.0), withr, yaml'
     )
   }
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {

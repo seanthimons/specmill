@@ -236,7 +236,7 @@ operation_documentation <- function(op, policy = list()) {
     docs,
     paste0(
       '@return ',
-      prose(
+      prose(paste0(
         policy$return %or%
           paste0(
             'Decoded response returned by the client request helper.',
@@ -253,8 +253,11 @@ operation_documentation <- function(op, policy = list()) {
                 }
               )
             }
-          )
-      )
+          ),
+        if (isTRUE(op$async)) {
+          ' When the request option async is TRUE, a promise of that result is returned instead.'
+        }
+      ))
     ),
     vapply(
       names(policy$tags),

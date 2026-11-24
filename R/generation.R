@@ -1242,7 +1242,7 @@ render_operation <- function(operation, spec) {
         !is.null(request_paging) ||
         !is.null(spec$cache) ||
         preserve_visibility ||
-        !is.null(spec$route_guard)
+        (!is.null(spec$route_guard) && !isFALSE(spec$route_guard))
     ) {
       stop(
         'batch.concurrency requires native unpaged requests without cache, route_guard or preserve_visibility: ',
@@ -1262,6 +1262,38 @@ render_operation <- function(operation, spec) {
       substr(request[assigned], 1L, nchar(request[assigned]) - 1L),
       ', .prepare = .specmill_prepare)'
     )
+  }
+  promise <- isTRUE(spec$async)
+  if (promise) {
+    if (
+      !is.null(operation$iterate) ||
+        !is.null(pg) ||
+        !is.null(request_paging) ||
+        !is.null(spec$cache) ||
+        !is.null(operation$response_cache) ||
+        preserve_visibility ||
+        (!is.null(spec$route_guard) && !isFALSE(spec$route_guard)) ||
+        isTRUE(spec$post_on_skip) ||
+        !is.null(spec$result_formatter) ||
+        !is.null(spec$result_order) ||
+        combined_post ||
+        any(grepl('^oauth2', unlist(lapply(operation$auth, lapply, `[[`, 'type'))))
+    ) {
+      stop(
+        'async requires one native request without batch, pagination, cache, route_guard, preserve_visibility, post_on_skip, result_formatter, result_order, combined post_response or OAuth: ',
+        operation$id
+      )
+    }
+    if ('.async' %in% names(spec[['request']]$arguments)) {
+      stop('async reserves request.arguments..async: ', operation$id)
+    }
+    assigned <- which(startsWith(trimws(request), 'result <- '))
+    stopifnot(length(assigned) == 1L)
+    request[assigned] <- paste0(
+      substr(request[assigned], 1L, nchar(request[assigned]) - 1L),
+      ', .async = TRUE)'
+    )
+    operation$async <- TRUE
   }
   lines <- c(lines, request)
   completion_start <- length(lines)
@@ -1319,7 +1351,7 @@ render_operation <- function(operation, spec) {
   if (!preserve_visibility) {
     lines <- c(lines, '  result')
   }
-  if (parallel_batch) {
+  if (parallel_batch || promise) {
     lines <- c(
       head(lines, completion_start),
       paste0('  ', helper, '_then(result, function(result) {'),
@@ -2172,6 +2204,7 @@ generate_client <- function(
   previous <- baseline$files %or% list()
   testing_entries <- list()
   uncached <- list()
+  sequential <- list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
@@ -2369,6 +2402,57 @@ generate_client <- function(
           '. Compare the helper with the current template and adopt them.'
         )
       }
+      # A ceiling of 1 is the plain sequential wrapper, which no option can raise.
+      if (isTRUE(op$iterate$concurrency == 1)) {
+        op$iterate$concurrency <- NULL
+      }
+      if (!is.null(op$iterate$concurrency)) {
+        # Inherited ceilings apply only where they fit; operation-level ones must fit.
+        blocker <- if (
+          !is.null(service$operations[[op$key]]$batch$concurrency)
+        ) {
+          NULL
+        } else if (
+          !is.null(
+            pagination_settings(
+              op,
+              operation_spec[['pagination']] %or% list(),
+              service$operations[[op$key]][['pagination']] %or% list()
+            )
+          ) ||
+            !is.null(operation_spec$request$pagination)
+        ) {
+          'pagination'
+        } else if (
+          !is.null(operation_spec$cache) || !is.null(op$response_cache)
+        ) {
+          'cache'
+        } else if (
+          !is.null(operation_spec$route_guard) &&
+            !isFALSE(operation_spec$route_guard)
+        ) {
+          'route_guard'
+        } else if (isTRUE(operation_spec$preserve_visibility)) {
+          'preserve_visibility'
+        } else if (isTRUE(op$request_controls$max_retries > 0)) {
+          'max_retries'
+        }
+        if (!is.null(blocker)) {
+          sequential[[op$id]] <- blocker
+          op$iterate$concurrency <- NULL
+        }
+      }
+      if (!is.null(op$iterate$concurrency)) {
+        if (is.null(op$request_controls$throttle)) {
+          stop(
+            'batch.concurrency requires request_controls.throttle: ',
+            op$id
+          )
+        }
+        if (isTRUE(op$request_controls$max_retries > 0)) {
+          stop('batch.concurrency requires max_retries = 0: ', op$id)
+        }
+      }
       if (!is.null(op$iterate$concurrency) && !is.null(config)) {
         runner <- runtime_definitions[[paste0(operation_spec$helper, '_each')]]
         native <- runtime_definitions[[operation_spec$helper]]
@@ -2376,10 +2460,26 @@ generate_client <- function(
           !paste0(operation_spec$helper, '_then') %in%
             names(runtime_definitions) ||
             !'concurrency' %in% names(formals(eval(runner$expr, baseenv()))) ||
+            # The session kill switch: an older helper would ignore it silently.
+            !any(grepl('policy$concurrency', deparse(runner$expr), fixed = TRUE)) ||
             !'.prepare' %in% names(formals(eval(native$expr, baseenv())))
         ) {
           stop(
-            'batch.concurrency needs the current client helper with _then(), .prepare and concurrency support: ',
+            'batch.concurrency needs the current client helper with _then(), .prepare and concurrency option support: ',
+            op$id,
+            '. Compare the helper with the current template and adopt it.'
+          )
+        }
+      }
+      if (isTRUE(operation_spec$async) && !is.null(config)) {
+        native <- runtime_definitions[[operation_spec$helper]]
+        if (
+          !paste0(operation_spec$helper, '_then') %in%
+            names(runtime_definitions) ||
+            !'.async' %in% names(formals(eval(native$expr, baseenv())))
+        ) {
+          stop(
+            'async needs the current client helper with _then() and .async support: ',
             op$id,
             '. Compare the helper with the current template and adopt it.'
           )
@@ -2803,6 +2903,13 @@ generate_client <- function(
     warning(
       'response_cache from defaults was not applied to ',
       paste0(names(uncached), ' (', unlist(uncached), ')', collapse = '; '),
+      call. = FALSE
+    )
+  }
+  if (length(sequential)) {
+    warning(
+      'batch.concurrency from defaults was not applied to ',
+      paste0(names(sequential), ' (', unlist(sequential), ')', collapse = '; '),
       call. = FALSE
     )
   }
