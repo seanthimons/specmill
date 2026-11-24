@@ -143,15 +143,16 @@ commands_acceptance <- function() {
   )
   cat('\n# User edit\n', file = test_path, append = TRUE)
   before <- hashes()
-  warned <- character()
-  withCallingHandlers(
-    fails(specmill::generation_command(root, '--force', 'tests'), 'Protected'),
-    message = function(m) {
-      warned <<- c(warned, conditionMessage(m))
-      invokeRestart('muffleMessage')
-    }
+  fails(specmill::generation_command(root, character(), 'tests'), 'Protected')
+  # The former legacy flags are unknown arguments now.
+  fails(
+    specmill::generation_command(root, '--force', 'tests'),
+    'Unknown generation argument'
   )
-  stopifnot(any(grepl('Ignoring legacy flag', warned, fixed = TRUE)))
+  fails(
+    specmill::generation_command(root, '--rebuild=pet', 'stubs'),
+    'Unknown generation argument'
+  )
   stopifnot(identical(before, hashes()))
   writeLines('note <- "test_that(fake)"', test_path)
   stopifnot(

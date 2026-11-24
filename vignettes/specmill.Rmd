@@ -76,6 +76,15 @@ It asks for a local schema, destination and package metadata, previews names and
 diagnostics, and writes only after you answer `y`. Pressing Enter at confirmation
 cancels. Scripted setup uses `initialize_client()` below.
 
+After creation it offers load and attach stubs. `configure_lifecycle(root)`
+previews the same thing for any client and `mode = 'apply'` writes it: an
+`R/zzz.R` with empty `.onLoad()` and `.onAttach()`, which is yours and is never
+regenerated, and `R/client_lifecycle.R`, three helpers that specmill keeps
+current when you run the function again. The helpers set option defaults
+without replacing a session's own values, emit a startup message that
+`suppressPackageStartupMessages()` silences, and report which credential
+variables are set without their values. None of it makes an HTTP call.
+
 Preview names, selection, and diagnostics before writing the package:
 
 ```{r configuration-preview}

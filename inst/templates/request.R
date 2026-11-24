@@ -299,6 +299,8 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     if (base::inherits(response, 'httr2_failure')) {
       if (preserve_errors) base::stop(response)
       if (base::is.finite(timeout) && base::inherits(response$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: timeout of ', timeout, ' s reached (raise request_controls.timeout, or use Inf for no limit)', hint, call. = FALSE)
+      # timeout = Inf lifts the response limit only; curl keeps its own connect timeout.
+      if (base::inherits(response$parent, 'curl_error_operation_timedout')) base::stop('HTTP request failed before a response was received: the connection was not established within curl\'s connect timeout, which timeout = Inf does not lift', hint, call. = FALSE)
       base::stop('HTTP request failed before a response was received (connection, TLS, or timeout failure)', hint, call. = FALSE)
     }
     if (base::inherits(response, 'error')) base::stop(response)

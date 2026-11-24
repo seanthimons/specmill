@@ -16,7 +16,7 @@ write_github_outputs <- function(values) {
 #'
 #' Adapt the shared generator to existing wrapper/test command flags and locate a client root from a maintenance script.
 #'
-#' Unlike generate_client(), generation_command() defaults to apply. For stubs use --plan or --check; for tests use --dry-run, --check, or --generate. --help prints usage. Legacy --rebuild prefixes are accepted but selection remains in YAML. --force never bypasses ownership. Test check/apply requires fixed contracts for every selected operation. Summary values are written to GITHUB_OUTPUT when set. script_root() walks upward from the matching script to DESCRIPTION.
+#' Unlike generate_client(), generation_command() defaults to apply. For stubs use --plan or --check; for tests use --dry-run, --check, or --generate. --help prints usage. Test check/apply requires fixed contracts for every selected operation. Summary values are written to GITHUB_OUTPUT when set. script_root() walks upward from the matching script to DESCRIPTION.
 #'
 #' @param root Explicit existing client root directory.
 #' @param args Character vector of command flags. Use explicit values when calling from a sourced interactive script.
@@ -37,9 +37,9 @@ generation_command <- function(
   if (any(args %in% c('--help', '-h'))) {
     cat(
       if (kind == 'tests') {
-        'Generate fixed offline contracts: --generate (default), --check, --dry-run, --force (legacy, ignored).\n'
+        'Generate fixed offline contracts: --generate (default), --check, --dry-run.\n'
       } else {
-        'Generate wrappers and documentation: apply (default), --check, --plan, --rebuild=<prefix> (legacy, ignored).\n'
+        'Generate wrappers and documentation: apply (default), --check, --plan.\n'
       }
     )
     return(invisible(NULL))
@@ -56,24 +56,14 @@ generation_command <- function(
     stop('Choose only one generation mode')
   }
   allowed <- if (kind == 'tests') {
-    c('--generate', '--check', '--dry-run', '--force')
+    c('--generate', '--check', '--dry-run')
   } else {
-    c(
-      '--check',
-      '--plan',
-      grep('^--rebuild=[a-z][a-z0-9_]*$', args, value = TRUE)
-    )
+    c('--check', '--plan')
   }
   if (length(setdiff(args, allowed))) {
     stop(
       'Unknown generation argument: ',
       paste(setdiff(args, allowed), collapse = ', ')
-    )
-  }
-  ignored <- grep('^--(rebuild=|force$)', args, value = TRUE)
-  if (length(ignored)) {
-    cli::cli_alert_warning(
-      'Ignoring legacy flag{?s} {.val {ignored}}: YAML controls selection and ownership is never overridden.'
     )
   }
   mode <- if ('--check' %in% args) {

@@ -263,15 +263,25 @@ reconciliation_acceptance <- function() {
     length(specmill::recover_client(fault_root)) == 1L
   )
   fails(specmill::recover_client(fault_root, 'apply'), 'lock exists')
-  lock <- file.path(
-    normalizePath(fault_root, winslash = '/', mustWork = TRUE),
-    '.specmill-lock'
-  )
+  lock <- file.path(fault_root, '.specmill-lock')
+  # The killed worker's lock clears; a live owner, another machine's lock and
+  # unexpected contents do not. An empty lock predates owner records.
+  owner <- readLines(file.path(lock, 'owner'))
+  writeLines(c(as.character(Sys.getpid()), owner[2L]), file.path(lock, 'owner'))
+  fails(specmill::clear_generation_lock(fault_root), 'still holds the lock')
+  writeLines(c(owner[1L], 'elsewhere'), file.path(lock, 'owner'))
+  fails(specmill::clear_generation_lock(fault_root), 'from that machine')
+  writeLines(owner, file.path(lock, 'owner'))
+  writeLines('x', file.path(lock, 'stray'))
+  fails(specmill::clear_generation_lock(fault_root), 'unexpected files')
+  unlink(file.path(lock, 'stray'))
   stopifnot(
-    !fs::is_link(lock),
-    length(list.files(lock, all.files = TRUE, no.. = TRUE)) == 0L
+    isTRUE(specmill::clear_generation_lock(fault_root)),
+    !dir.exists(lock),
+    isFALSE(specmill::clear_generation_lock(fault_root)),
+    dir.create(lock),
+    isTRUE(specmill::clear_generation_lock(fault_root))
   )
-  unlink(lock, recursive = TRUE)
   specmill::recover_client(fault_root, 'apply')
   stopifnot(identical(
     unname(originals),

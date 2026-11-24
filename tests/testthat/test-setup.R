@@ -110,7 +110,9 @@ setup_acceptance <- function() {
       'test@example.org',
       'MIT',
       '',
-      confirm
+      confirm,
+      # Reached only after a confirmed creation: accept the lifecycle stubs.
+      'y'
     )
     testthat::local_mocked_bindings(
       interactive = function() TRUE,
@@ -127,7 +129,9 @@ setup_acceptance <- function() {
   interactive_setup(cancelled, 'y')
   stopifnot(
     file.exists(file.path(cancelled, 'dev/init.R')),
-    file.exists(file.path(cancelled, 'dev/generate.R'))
+    file.exists(file.path(cancelled, 'dev/generate.R')),
+    file.exists(file.path(cancelled, 'R/zzz.R')),
+    file.exists(file.path(cancelled, 'R/client_lifecycle.R'))
   )
   cat(
     'Setup: sourceable scripts, replay, maintenance, preservation, multi-API and interactive confirmation passed.\n'
