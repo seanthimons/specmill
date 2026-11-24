@@ -118,7 +118,7 @@ async_return_acceptance <- function() {
     sys.source(file, runtime)
   }
   stopifnot(any(grepl(
-    'a promise of that result is returned instead',
+    'HTTP and transport failures reject the promise',
     unlist(lapply(files, readLines)),
     fixed = TRUE
   )))
@@ -141,7 +141,21 @@ async_return_acceptance <- function() {
   stopifnot(identical(expected, list(id = 'a', hooked = TRUE)))
   withr::local_options(asyncclient.request = list(async = TRUE))
   # The first promise pays a one-time load cost, so measure the second.
-  stopifnot(identical(settle(runtime$item('a'))$value, expected))
+  notices <- character()
+  noted <- function(expr) {
+    withCallingHandlers(expr, message = function(m) {
+      notices <<- c(notices, conditionMessage(m))
+      invokeRestart('muffleMessage')
+    })
+  }
+  stopifnot(identical(settle(noted(runtime$item('a')))$value, expected))
+  # The skipped throttle is announced on the first promise only.
+  stopifnot(
+    length(notices) == 1L,
+    grepl('not throttled or retried', notices),
+    identical(settle(noted(runtime$item('a')))$value, expected),
+    length(notices) == 1L
+  )
   started <- Sys.time()
   promise <- runtime$item('a')
   returned <- as.numeric(Sys.time() - started, units = 'secs')

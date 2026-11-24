@@ -136,7 +136,9 @@ before a promise exists. A dry run returns the request.
 
 `async: true` is the maintainer's acceptance of what
 `httr2::req_perform_promise()` leaves out: the request is not throttled and not
-retried, whatever `request_controls` says. Space out calls yourself. For the
+retried, whatever `request_controls` says. The first such call in a session
+says so in a message when the client has a throttle or retries configured.
+Space out calls yourself. For the
 same reason it belongs under operations only, and generation rejects it
 together with `batch.fan_out`, `batch.split`, pagination, a cache (including
 an inherited `response_cache` default, until the operation sets

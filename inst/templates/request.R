@@ -314,6 +314,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
   # httr2 applies neither the throttle nor retries to promise requests.
   if (base::isTRUE(.async) && base::isTRUE(controls$async)) {
     if (!base::requireNamespace('promises', quietly = TRUE)) call_error('The async request option requires the promises package')
+    if (!base::is.null(throttle) || retries > 0) api_request_async_notice()
     base::return(promises::then(httr2::req_perform_promise(request), complete, complete))
   }
   # Only transport failures are rewritten; mock, replay and other errors pass through unchanged.
@@ -443,6 +444,16 @@ api_request_build <- function(records, type_convert = TRUE, names_to = NULL, as_
   result <- base::structure(stats::setNames(columns, fields), class = 'data.frame', row.names = base::seq_along(rows))
   as_table(result)
 }
+
+# Says once per session that promise requests skip the throttle and retries.
+api_request_async_notice <- base::local({
+  shown <- FALSE
+  function() {
+    if (!shown) base::message('Promise requests are not throttled or retried: request_controls.throttle and max_retries do not apply to them. Space out calls yourself. This message is shown once per session.')
+    shown <<- TRUE
+    base::invisible()
+  }
+})
 
 # Attach the wrapper continuation without running response hooks during preparation.
 api_request_then <- function(result, finish) {

@@ -2162,14 +2162,14 @@ generate_client <- function(
   ) {
     stop('Operation collides with a client companion; supply a name override')
   }
-  # The batch flag and the cache stores are environments, so they never appear
-  # among function definitions.
+  # The batch flag, the cache stores and the async notice are not plain function
+  # definitions, so they never appear among them.
   if (
     any(
       operation_names %in%
         outer(
           vapply(services, function(x) x$helper %or% '', character(1)),
-          c('_batch_state', '_cache_state'),
+          c('_batch_state', '_cache_state', '_async_notice'),
           paste0
         )
     )

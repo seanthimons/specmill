@@ -255,7 +255,11 @@ operation_documentation <- function(op, policy = list()) {
             }
           ),
         if (isTRUE(op$async)) {
-          ' When the request option async is TRUE, a promise of that result is returned instead.'
+          paste0(
+            ' When the request option async is TRUE, a promise of that result is returned instead.',
+            ' Invalid arguments and missing credentials still stop the call at once; HTTP and transport failures reject the promise.',
+            ' A promise request is not throttled and not retried.'
+          )
         }
       ))
     ),
