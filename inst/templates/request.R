@@ -327,8 +327,19 @@ api_request_decode <- function(response, method = 'GET', response_policy = NULL,
     if (!base::is.logical(check_status) || base::length(check_status) != 1L || base::is.na(check_status)) base::stop('check_status must be TRUE or FALSE', call. = FALSE)
     if (check_status && status >= 400L) {
       if (preserve_errors && status != 401L) httr2::resp_check_status(response)
+      failure <- base::paste0(diagnostic, ' response')
+      # RFC 9457 problem details carry the server's own explanation; other error bodies are not guessed at.
+      problem <- if (media == 'application/problem+json') base::tryCatch(jsonlite::parse_json(httr2::resp_body_string(response)), error = function(e) NULL)
+      if (base::is.list(problem)) {
+        # Server text is untrusted in shape, size and content: one nonempty string, control characters blanked, capped.
+        member <- function(value) if (base::is.character(value) && base::length(value) == 1L && !base::is.na(value) && base::nzchar(value)) base::substr(base::gsub('[[:cntrl:]]+', ' ', value), 1L, 500L)
+        explanation <- base::unique(base::c(member(problem[['title']]), member(problem[['detail']])))
+        request_id <- member(problem[['request_id']])
+        if (base::is.null(request_id)) request_id <- member(httr2::resp_header(response, 'x-request-id'))
+        failure <- base::paste0(failure, if (base::length(explanation)) base::paste0(': ', base::paste(explanation, collapse = ': ')), if (!base::is.null(request_id)) base::paste0(' (request id ', request_id, ')'))
+      }
       # A rejected credential applies to every item of a batch, so it stops the call rather than being dropped per item.
-      base::stop(if (status == 401L) base::errorCondition(base::paste0(diagnostic, ' response'), class = 'specmill_call_error', call = NULL) else base::simpleError(base::paste0(diagnostic, ' response', if (status >= 500L && !base::is.null(error_hint)) base::paste0(' ', error_hint))))
+      base::stop(if (status == 401L) base::errorCondition(failure, class = 'specmill_call_error', call = NULL) else base::simpleError(base::paste0(failure, if (status >= 500L && !base::is.null(error_hint)) base::paste0(' ', error_hint))))
     }
     delimited <- format == 'delimited' && media %in% base::c('text/csv', 'application/csv', 'text/tab-separated-values', 'text/tsv')
     if (!httr2::resp_has_body(response) || !base::length(httr2::resp_body_raw(response))) {

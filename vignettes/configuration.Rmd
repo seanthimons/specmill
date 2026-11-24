@@ -481,6 +481,25 @@ The `<package>.request` session option can set or override `error_hint`.
 Generation rejects a client request helper that predates this control; adopt
 the released template first (see `inspect_client()`).
 
+### Problem details in error messages
+
+When a failed response has the media type `application/problem+json`
+(RFC 9457), the default message adds the server's `title` and `detail` and a
+request id, taken from the body's `request_id` member or the `X-Request-ID`
+header:
+
+~~~
+HTTP 404 application/problem+json response: Substance not found (request id 78d59eba)
+~~~
+
+Each value must be one nonempty string; control characters become spaces and
+the value is cut at 500 characters. A `title` equal to the `detail` appears
+once. This is the only server text the default message carries. Error bodies of
+any other media type, and problem bodies that do not parse, keep the bare
+`HTTP <status> <media> response` message. A configured `error_hint` follows the
+problem text. Clients generated before this change need the upstream template
+change (see `inspect_client()`).
+
 The scaffold also includes a client-owned `api_request_decode()` companion:
 `api_request_decode(response, method = 'GET', response_policy = NULL, policy_query = NULL, preserve_errors = FALSE, error_hint = NULL)` decodes an
 already-received response without performing transport. Its defaults preserve
