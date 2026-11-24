@@ -118,6 +118,7 @@ full schema validity or live-service correctness.
 | Unsafe documentation tag | Put executable/custom roxygen handlers in client code, and use `docs` fields for policy |
 | Plan/input changed during generation | Stop concurrent edits/writers, make callbacks deterministic, then replan |
 | HTTP failure | Diagnose authentication, input, request construction, schema drift, runtime behavior, and service status separately |
+| An error stops at `HTTP <status> application/problem+json response`, without the server's explanation | The client's request helper predates [problem details in error messages](configuration.html#problem-details-in-error-messages); `inspect_client()` reports the upstream template change to adopt. A current helper also stops there when the response has no usable `title`, `detail` or request id |
 
 When upstream operation IDs collide, `read_operations()` lists each conflicting
 name and every method/path using it. Its `policy = list(names = list(...))`

@@ -98,6 +98,32 @@ error_hint_contract <- function() {
     identical(call(401L), 'HTTP 401 response'),
     endsWith(call(), 'failure) Run hintclient_sitrep().')
   )
+  # An initialized client reports RFC 9457 problem details, then the hint.
+  problem <- function(status) {
+    function(req) {
+      httr2::response(
+        status_code = status,
+        headers = list('content-type' = 'application/problem+json'),
+        body = charToRaw(
+          '{"title":"Not Found","detail":"No such item","request_id":"abc"}'
+        )
+      )
+    }
+  }
+  reported <- function(status) {
+    tryCatch(
+      httr2::with_mocked_responses(problem(status), runtime$list_items()),
+      error = conditionMessage
+    )
+  }
+  explained <- ' application/problem+json response: Not Found: No such item (request id abc)'
+  stopifnot(
+    identical(reported(404L), paste0('HTTP 404', explained)),
+    identical(
+      reported(503L),
+      paste0('HTTP 503', explained, ' Run hintclient_sitrep().')
+    )
+  )
   # Session options override the configured hint; typed errors omit it.
   options(hintclient.request = list(error_hint = 'Check the status page.'))
   stopifnot(identical(call(500L), 'HTTP 500 response Check the status page.'))
