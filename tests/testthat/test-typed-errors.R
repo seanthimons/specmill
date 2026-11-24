@@ -127,6 +127,11 @@ typed_errors_acceptance <- function() {
       'HTTP 400 application/problem+json response: Bad Request: smiles is required (request id hdr)'
     ),
     identical(problem('{"title":["a","b"],"detail":7,"request_id":""}'), bare),
+    # A request id alone is still reported.
+    identical(
+      problem('{}', headers = list('X-Request-ID' = 'hdr')),
+      paste0(bare, ' (request id hdr)')
+    ),
     identical(problem('[1]'), bare),
     # Members match exactly, a bare URL body is never fetched, and control
     # characters cannot restyle the console.
