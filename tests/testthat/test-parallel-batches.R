@@ -42,6 +42,7 @@ parallel_batches_acceptance <- function() {
             }
           }
           label <- paste(id, collapse = ',')
+          first_attempt <- !label %in% history
           history <<- c(history, label)
           active <<- active + 1L
           peak <<- max(peak, active)
@@ -59,7 +60,12 @@ parallel_batches_acceptance <- function() {
                 } else {
                   200L
                 }
-                resolve(json(lapply(id, function(x) list(id = x)), status))
+                response <- json(lapply(id, function(x) list(id = x)), status)
+                if (identical(id, 'retry') && first_attempt) {
+                  response$status <- 503L
+                  response$headers[['Retry-After']] <- '0'
+                }
+                resolve(response)
               },
               if ('slow' %in% id) 1 else 0.3
             )
@@ -292,6 +298,26 @@ parallel_batches_acceptance <- function() {
       )
     }
   )
+  # A session retry policy uses the ordinary sequential path, even for one item.
+  withr::with_options(list(parallelclient.request = list(max_retries = 1L)), {
+    reset()
+    testthat::expect_message(
+      one <- runtime$item('retry'),
+      'parallelclient.request',
+      fixed = TRUE
+    )
+    stopifnot(
+      identical(ids(one), 'retry'),
+      identical(unlist(history()$history), c('retry', 'retry'))
+    )
+    reset()
+    testthat::expect_no_message(many <- runtime$item(c('retry', 'fast')))
+    stopifnot(
+      identical(ids(many), c('retry', 'fast')),
+      identical(unlist(history()$history), c('retry', 'retry', 'fast')),
+      history()$peak == 1L
+    )
+  })
   # The option is client-wide: above this wrapper's ceiling, the ceiling holds.
   reset()
   withr::with_options(
@@ -320,13 +346,22 @@ parallel_batches_acceptance <- function() {
   }
   # Parallel preflight rejects unsupported controls before sending any request.
   reset()
-  withr::with_options(list(parallelclient.request = list(max_retries = 1)), {
-    error <- capture(runtime$item(c('a', 'b')))
-    stopifnot(
-      grepl('max_retries = 0', conditionMessage(error)),
-      length(history()$history) == 0L
+  for (value in list(1.5, NA, '1')) {
+    withr::with_options(
+      list(parallelclient.request = list(max_retries = value)),
+      {
+        error <- capture(runtime$item(c('a', 'b')))
+        stopifnot(
+          inherits(error, 'specmill_call_error'),
+          grepl(
+            'max_retries must be a nonnegative integer',
+            conditionMessage(error)
+          ),
+          length(history()$history) == 0L
+        )
+      }
     )
-  })
+  }
   withr::with_options(
     list(
       parallelclient.request = list(
@@ -628,6 +663,41 @@ parallel_batches_acceptance <- function() {
   service$operations[['POST /bulk']]$request <- list(
     arguments = native_arguments
   )
+  # Defaults cover the ceiling, but only mapped controls reach the helper.
+  with_missing_throttle <- service
+  with_missing_throttle$defaults$batch <- list(concurrency = 2L)
+  mapped_item <- with_missing_throttle$operations[['GET /items/{id}']]
+  mapped_item$batch$concurrency <- NULL
+  mapped_item$request$arguments$request_controls <- list(
+    value = list(preserve_errors = TRUE)
+  )
+  with_missing_throttle$operations[['GET /items/{id}']] <- mapped_item
+  yaml::write_yaml(with_missing_throttle, path)
+  skipped <- tryCatch(generate(), warning = conditionMessage)
+  stopifnot(grepl(
+    'batch.concurrency from defaults was not applied to parallelclient GET /items/{id} (mapped request_controls.throttle)',
+    skipped,
+    fixed = TRUE
+  ))
+  suppressWarnings(generate())
+  stopifnot(identical(unname(wrappers()), c(FALSE, TRUE)))
+
+  mapped_item$batch$concurrency <- 2L
+  with_missing_throttle$operations[['GET /items/{id}']] <- mapped_item
+  yaml::write_yaml(with_missing_throttle, path)
+  stopifnot(grepl(
+    'request.arguments.request_controls.value: parallelclient GET /items/{id}',
+    conditionMessage(capture(generate())),
+    fixed = TRUE
+  ))
+  mapped_item$request$arguments$request_controls$value <- c(
+    service$defaults$request_controls,
+    list(max_retries = 1L)
+  )
+  with_missing_throttle$operations[['GET /items/{id}']] <- mapped_item
+  yaml::write_yaml(with_missing_throttle, path)
+  stopifnot(grepl('max_retries = 0', conditionMessage(capture(generate()))))
+
   yaml::write_yaml(service, path)
   generate()
   mapped <- new.env(parent = baseenv())

@@ -2436,6 +2436,16 @@ generate_client <- function(
         op$iterate$concurrency <- NULL
       }
       if (!is.null(op$iterate$concurrency)) {
+        request_mapping <- operation_spec[['request']]
+        parallel_controls <- op$request_controls
+        if (!is.null(request_mapping)) {
+          # A complete mapping replaces the generated call, including its controls.
+          binding <- request_mapping$arguments[['request_controls']]
+          parallel_controls <- binding$value
+          if (!is.null(parallel_controls)) {
+            validate_settings(list(request_controls = parallel_controls), op$id)
+          }
+        }
         # Inherited ceilings apply only where they fit; operation-level ones must fit.
         blocker <- if (
           !is.null(service$operations[[op$key]]$batch$concurrency)
@@ -2463,7 +2473,11 @@ generate_client <- function(
           'route_guard'
         } else if (isTRUE(operation_spec$preserve_visibility)) {
           'preserve_visibility'
-        } else if (isTRUE(op$request_controls$max_retries > 0)) {
+        } else if (
+          !is.null(request_mapping) && is.null(parallel_controls$throttle)
+        ) {
+          'mapped request_controls.throttle'
+        } else if (isTRUE(parallel_controls$max_retries > 0)) {
           'max_retries'
         }
         if (!is.null(blocker)) {
@@ -2472,13 +2486,17 @@ generate_client <- function(
         }
       }
       if (!is.null(op$iterate$concurrency)) {
-        if (is.null(op$request_controls$throttle)) {
+        if (is.null(parallel_controls$throttle)) {
           stop(
-            'batch.concurrency requires request_controls.throttle: ',
+            'batch.concurrency requires request_controls.throttle',
+            if (!is.null(request_mapping)) {
+              ' in request.arguments.request_controls.value'
+            },
+            ': ',
             op$id
           )
         }
-        if (isTRUE(op$request_controls$max_retries > 0)) {
+        if (isTRUE(parallel_controls$max_retries > 0)) {
           stop('batch.concurrency requires max_retries = 0: ', op$id)
         }
       }

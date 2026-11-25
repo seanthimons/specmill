@@ -1133,12 +1133,18 @@ a ceiling, edit the YAML and regenerate.
 options(comptoxr.api_request.batching = list(concurrency = 1))
 ```
 
+Setting a positive `max_retries` in the `<package>.request` session option
+runs batches with a concurrency ceiling sequentially so eligible requests
+can retry. This also applies to single-item calls. The helper reports the
+switch once per session. Existing clients should adopt the current request
+helper to get this behavior.
+
 New clients declare `httr2 (>= 1.3.0)` in Imports; existing clients must update
 that declaration before distributing parallel wrappers.
-The runtime checks this version before sending requests. The parallel httr2
-executor does not honor per-request retry counts, so enabled retries are rejected
-before any network activity. Timeouts still apply to each request. Requests are submitted in groups no larger
-than the concurrency limit, and each group finishes before the next starts.
+The runtime checks this version before sending parallel requests. The parallel
+httr2 executor does not honor per-request retry counts. Timeouts still apply to
+each request. Requests are submitted in groups no larger than the concurrency
+limit, and each group finishes before the next starts.
 
 All pre-request hooks and request preparation run in input order before sending.
 Each prepared request retains its own state. Responses are decoded and
@@ -1150,7 +1156,11 @@ Every request must target the same service origin. Complete `request.arguments`
 mappings are supported when the client helper implements the preparation and
 completion contract below. Bindings run for each chunk after pre-request hooks;
 include the desired media type, headers, authentication, server selection,
-request controls and response policy in the mapping. The executor supplies
+request controls and response policy in the mapping. To enable concurrency,
+declare a literal throttle in `request.arguments.request_controls.value`.
+Without it, an inherited ceiling stays sequential and generation names the
+operation in a warning. An explicit ceiling above 1 is a generation error.
+The executor supplies
 `.prepare`; mapping that argument explicitly is rejected. Pagination, caches,
 route guards and visibility preservation cannot combine with `concurrency` in
 this version. This setting does not make calls return immediately
