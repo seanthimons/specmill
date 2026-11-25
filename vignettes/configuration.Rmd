@@ -429,7 +429,7 @@ Services resolve independently, so changing one key leaves the others in place.
 A relative schema server joins the resolver's host: `/api/chet` gives
 `https://example.org/api/chet` and replaces any path the resolver returned, and
 an empty server keeps the returned URL unchanged. Absolute schema servers use
-the returned URL as is. The `<package>.request` `base_url` option still takes
+the returned URL as is. The `<prefix>.request` `base_url` option still takes
 precedence; the initialization override applies only to services without a
 resolver. Generation fails if the function is missing. It also fails if the
 client's request helper does not accept `server_resolver`; helpers created
@@ -477,7 +477,7 @@ The message becomes `HTTP 503 response Run mypackage_sitrep() to check service s
 4xx statuses, including 401, and typed `preserve_errors` errors are unchanged. A
 response policy that calls `decode(check_status = FALSE)` builds its own
 messages. With batch `on_error: drop`, each per-item warning repeats the hint.
-The `<package>.request` session option can set or override `error_hint`.
+The `<prefix>.request` session option can set or override `error_hint`.
 Generation rejects a client request helper that predates this control; adopt
 the released template first (see `inspect_client()`).
 
@@ -530,7 +530,7 @@ timeout, for endpoints that legitimately take longer than the 30 s default. A re
 that hits its timeout says so in the error. `max_retries: 2` permits three total attempts.
 These values use the same inheritance as other defaults: project, API, group or
 service, then operation. After editing YAML, regenerate wrappers to update their
-helper calls. Runtime `<package>.request` options override individual YAML fields.
+helper calls. Runtime `<prefix>.request` options override individual YAML fields.
 The client-owned helper must accept `request_controls` and apply those defaults;
 normal generation never overwrites it. Complete request mappings own their helper
 arguments and must pass any controls explicitly. Write retries still require
@@ -550,7 +550,7 @@ Both numbers must be positive and finite; capacity must be an integer. The
 same realm shares a token bucket across calls and batch chunks in the R process.
 Choose identical capacity and fill time for operations sharing a realm. Only
 the throttle written in YAML applies; clients configured before the default
-throttle existed have none until one is added. Runtime `<package>.request` options can
+throttle existed have none until one is added. Runtime `<prefix>.request` options can
 replace the complete `throttle` list. Existing clients must adopt the current
 official request scaffold through the helper-provenance workflow before using
 this control; generation does not overwrite client-owned helpers.
@@ -577,7 +577,7 @@ retry_server_errors <- function(response) {
 This selection excludes 408 and includes 501 and 505. A service can select a
 narrower predicate. With no selection, native statuses remain 408, 429, 500,
 502, 503 and 504, and retries remain disabled by default. Runtime
-`<package>.request` options also accept `retry_policy` as a client function name
+`<prefix>.request` options also accept `retry_policy` as a client function name
 or function. YAML accepts names only, never executable code. Invalid selections
 fail before HTTP; predicates that fail or return invalid values abort safely.
 Write replay still requires `retry_writes`, and httr2 still handles Retry-After
@@ -927,7 +927,7 @@ response policy returns the raw response, in a list or as an attribute, such as
 `list(response = response, result = decode())`: its URL and headers can carry a
 credential.
 
-Set `options(<package>.response_cache = FALSE)` to bypass the cache for a
+Set `options(<prefix>.response_cache = FALSE)` to bypass the cache for a
 session. The client's internal `<helper>_cache_clear()` function, called as
 `<package>:::api_request_cache_clear()`, empties the memory and disk stores of
 that helper. Generated request and replay tests switch the cache off themselves.
@@ -1068,11 +1068,13 @@ option overrides it for every fan-out and split wrapper of that helper, for
 example to fail fast while debugging:
 
 ```r
-options(comptoxr.api_request.batching = list(on_error = 'stop'))
+options(comptoxr_native.ct_request.batching = list(on_error = 'stop'))
 ```
 
-The option prefix follows the package request-option prefix, as described under
-[Pagination](#pagination). Only `stop` and `drop` are accepted here. The
+`<prefix>` means the lowercase value of `DRY_RUN_ENV` with the trailing
+`_DRY_RUN` removed, not necessarily the package name. For example,
+`COMPTOXR_NATIVE_DRY_RUN` gives `comptoxr_native`. `<helper>` is the request
+helper name without its leading dot: `.ct_request` gives `ct_request`. Only `stop` and `drop` are accepted here. The
 companion's `keep` mode does not apply, because combining would discard its
 placeholders.
 
@@ -1083,7 +1085,7 @@ before any request. To raise the cap, edit the YAML and regenerate. Fan-out
 wrappers always send one item per request and ignore it.
 
 ```r
-options(comptoxr.api_request.batching = list(max_items = 50))
+options(comptoxr_native.ct_request.batching = list(max_items = 50))
 ```
 
 The batching companion's `api_request_batched()` reads the same option and
@@ -1130,10 +1132,11 @@ value above a wrapper's own ceiling leaves that wrapper at its ceiling. To raise
 a ceiling, edit the YAML and regenerate.
 
 ```r
-options(comptoxr.api_request.batching = list(concurrency = 1))
+options(comptoxr_native.ct_request.batching = list(concurrency = 1))
 ```
 
-Setting a positive `max_retries` in the `<package>.request` session option
+Setting a positive `max_retries` in the `<prefix>.request` session option
+(for example `options(comptoxr_native.request = list(max_retries = 2))`)
 runs batches with a concurrency ceiling sequentially so eligible requests
 can retry. This also applies to single-item calls. The helper reports the
 switch once per session. Existing clients should adopt the current request
@@ -1166,7 +1169,7 @@ route guards and visibility preservation cannot combine with `concurrency` in
 this version. This setting does not make calls return immediately
 or parallelize unrelated wrapper calls. For that, a single-request operation can
 set `async: true`; with the session option
-`options(<package>.request = list(async = TRUE))` its wrapper returns a promise.
+`options(<prefix>.request = list(async = TRUE))` its wrapper returns a promise.
 Fixed request contracts and hook cases for such an operation list
 `.async = TRUE` among the helper arguments. See `vignette('non-blocking')`.
 
@@ -2552,9 +2555,8 @@ to a new client's Imports; an existing DESCRIPTION must declare it first.
 A third companion, `cache`, is described under [response cache](#response-cache).
 
 Use a shared policy list in retained client code, or the package/helper-scoped
-options `<package>.<helper>.batching`, `<package>.<helper>.pagination`, and
-`<package>.<helper>.pagination_links`. The package prefix uses the lowercase
-dry-run prefix. For example `catalogueclient.api_request.pagination` applies to
+options `<prefix>.<helper>.batching`, `<prefix>.<helper>.pagination`, and
+`<prefix>.<helper>.pagination_links`. The option prefix is derived from `DRY_RUN_ENV`, as defined above. For example `catalogueclient.api_request.pagination` applies to
 that helper only. A leading dot in the helper name is dropped, so helper
 `.ct_request` reads `comptoxr_native.ct_request.batching`. Multi-API helper prefixes keep service policies separate.
 Explicit pagination arguments override policy fields; a supplied batching policy
@@ -2688,7 +2690,7 @@ and `<helper>_pages()` in the client-owned helper file. Initialize a new client 
 the pagination companion. For an existing client, compare the helper with the
 current template and adopt them; generation stops with a message naming what is
 missing, and also when `<helper>_paginated()` is an older version that needs a
-page size. The runtime option `<package>.<helper>.pagination` cannot change the
+page size. The runtime option `<prefix>.<helper>.pagination` cannot change the
 shape of these wrappers' results, because the wrapper fixes the controls that
 would. Hitting `max_pages` warns, as the emitted companion's `warn_limits` is
 `TRUE`.
