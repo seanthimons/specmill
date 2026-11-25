@@ -628,6 +628,41 @@ parallel_batches_acceptance <- function() {
   service$operations[['POST /bulk']]$request <- list(
     arguments = native_arguments
   )
+  # Defaults cover the ceiling, but only mapped controls reach the helper.
+  with_missing_throttle <- service
+  with_missing_throttle$defaults$batch <- list(concurrency = 2L)
+  mapped_item <- with_missing_throttle$operations[['GET /items/{id}']]
+  mapped_item$batch$concurrency <- NULL
+  mapped_item$request$arguments$request_controls <- list(
+    value = list(preserve_errors = TRUE)
+  )
+  with_missing_throttle$operations[['GET /items/{id}']] <- mapped_item
+  yaml::write_yaml(with_missing_throttle, path)
+  skipped <- tryCatch(generate(), warning = conditionMessage)
+  stopifnot(grepl(
+    'batch.concurrency from defaults was not applied to parallelclient GET /items/{id} (mapped request_controls.throttle)',
+    skipped,
+    fixed = TRUE
+  ))
+  suppressWarnings(generate())
+  stopifnot(identical(unname(wrappers()), c(FALSE, TRUE)))
+
+  mapped_item$batch$concurrency <- 2L
+  with_missing_throttle$operations[['GET /items/{id}']] <- mapped_item
+  yaml::write_yaml(with_missing_throttle, path)
+  stopifnot(grepl(
+    'request.arguments.request_controls.value: parallelclient GET /items/{id}',
+    conditionMessage(capture(generate())),
+    fixed = TRUE
+  ))
+  mapped_item$request$arguments$request_controls$value <- c(
+    service$defaults$request_controls,
+    list(max_retries = 1L)
+  )
+  with_missing_throttle$operations[['GET /items/{id}']] <- mapped_item
+  yaml::write_yaml(with_missing_throttle, path)
+  stopifnot(grepl('max_retries = 0', conditionMessage(capture(generate()))))
+
   yaml::write_yaml(service, path)
   generate()
   mapped <- new.env(parent = baseenv())
