@@ -487,7 +487,8 @@ api_request_then <- function(result, finish) {
 # When drop leaves no successes, `empty()` (the batch.empty client function) supplies the result instead of list().
 api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL, warning = NULL, concurrency = 1L) {
   if (!base::is.numeric(concurrency) || base::length(concurrency) != 1L || !base::is.finite(concurrency) || concurrency < 1 || concurrency != base::floor(concurrency) || concurrency > base::.Machine$integer.max) base::stop('batch.concurrency must be a positive R integer', call. = FALSE)
-  policy <- base::getOption(base::paste0(base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV)), '.api_request.batching'), base::list())
+  option_prefix <- base::tolower(base::sub('_DRY_RUN$', '', DRY_RUN_ENV))
+  policy <- base::getOption(base::paste0(option_prefix, '.api_request.batching'), base::list())
   if (!base::is.null(policy$on_error)) on_error <- policy$on_error
   if (!base::is.null(policy$empty)) empty <- policy$empty
   # max_items lowers a split wrapper's chunk size; the generated max_items is the cap. Fan-out (size 1) is unaffected.
@@ -510,6 +511,19 @@ api_request_each <- function(send, items, size, on_error = 'stop', empty = NULL,
   chunks <- if (base::length(items) > size) base::unname(base::split(items, base::ceiling(base::seq_along(items) / size))) else base::list(items)
   if (base::is.list(on_error)) on_error <- on_error[[if (base::length(chunks) == 1L) 'single' else 'multiple']]
   if (!base::is.null(warning) && !base::isFALSE(warning) && !base::is.function(warning)) base::stop(base::errorCondition('batch.warning must be a function or FALSE', class = 'specmill_call_error', call = NULL))
+  if (concurrency > 1L) {
+    request_option <- base::paste0(option_prefix, '.request')
+    controls <- base::getOption(request_option)
+    retries <- if (base::is.list(controls)) controls[['max_retries']]
+    # Leave invalid values for the request helper to report as call errors.
+    if (base::is.numeric(retries) && base::length(retries) == 1L && base::is.finite(retries) && retries > 0 && retries == base::trunc(retries) && retries < base::.Machine$integer.max) {
+      concurrency <- 1L
+      if (!base::isTRUE(api_request_batch_state$retry_notice_shown)) {
+        api_request_batch_state$retry_notice_shown <- TRUE
+        base::message('Running batches sequentially because ', request_option, ' enables max_retries.')
+      }
+    }
+  }
   failed <- base::character()
   run <- function(chunk, prepare = FALSE) {
     outer <- api_request_batch_state$active

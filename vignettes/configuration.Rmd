@@ -1133,12 +1133,18 @@ a ceiling, edit the YAML and regenerate.
 options(comptoxr.api_request.batching = list(concurrency = 1))
 ```
 
+Setting a positive `max_retries` in the `<package>.request` session option
+runs batches with a concurrency ceiling sequentially so eligible requests
+can retry. This also applies to single-item calls. The helper reports the
+switch once per session. Existing clients should adopt the current request
+helper to get this behavior.
+
 New clients declare `httr2 (>= 1.3.0)` in Imports; existing clients must update
 that declaration before distributing parallel wrappers.
-The runtime checks this version before sending requests. The parallel httr2
-executor does not honor per-request retry counts, so enabled retries are rejected
-before any network activity. Timeouts still apply to each request. Requests are submitted in groups no larger
-than the concurrency limit, and each group finishes before the next starts.
+The runtime checks this version before sending parallel requests. The parallel
+httr2 executor does not honor per-request retry counts. Timeouts still apply to
+each request. Requests are submitted in groups no larger than the concurrency
+limit, and each group finishes before the next starts.
 
 All pre-request hooks and request preparation run in input order before sending.
 Each prepared request retains its own state. Responses are decoded and
