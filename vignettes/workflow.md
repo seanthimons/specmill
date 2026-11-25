@@ -212,12 +212,12 @@ retained operation can keep its original limitation classification.
 | Name, argument, default or output file differs | Inspect resolved defaults and the operation's `names`, `parameters`, `inputs`, `request` and `file` settings. Later defaults/operation settings override earlier ones. `drift` reports public-formal differences. |
 | Schema parameter is absent | Check per-operation `exclude_parameters`, inventory `excluded_parameters`, and public input/parameter overrides. Schema exclusions happen before detailed parameter validation; path parameters cannot use `exclude_parameters`. |
 | Hook calls another endpoint | Inspect inventory `routes`, manifest route provenance, request bindings and pre-hook state. Declare reviewed targets and opt into `route_guard` if final method/path must be checked. |
-| Request goes to another server | Check runtime `<package>.request$base_url`, initialization/catalogue override, then operation/path/root schema servers and `server_diagnostics`. A method/path guard does not control the server. |
+| Request goes to another server | Check runtime `<prefix>.request$base_url`, initialization/catalogue override, then operation/path/root schema servers and `server_diagnostics`. A method/path guard does not control the server. |
 | Timeout or retry behavior differs | Runtime request options override YAML defaults per field. Inspect `max_retries`, `retry_writes` and the selected client `retry_policy`; a predicate does not grant write replay permission. |
 | Result type or HTTP-error handling differs | Inspect actual response Content-Type, generated `response_policy` selection, helper option/default, and post hooks. A policy runs after retries, may replace decoding/status handling, and is separate from post-response hooks. |
 | One page or one oversized body is returned/rejected | Wrappers do not infer iteration. Select `batch.fan_out`, `batch.split`, or `pagination` in YAML for repeated requests, or use client-owned companions. Plain body `batch` limits only validate size. |
 | Row or column order differs between identical calls | The service returns fields or rows in a varying order, and a wrapper returns what it received. Add `result_order` with explicit row keys and leading columns to the operation; see [stable result order](configuration.html#stable-result-order). |
-| A repeated call returns an earlier result, or still reaches the service | Check the operation's `response_cache` policy and the `<package>.response_cache` option. An entry is reused only for the same inputs, credential and request options. Generation warns about operations that inherit the setting but cannot use it. `<package>:::<helper>_cache_clear()` empties the stores. |
+| A repeated call returns an earlier result, or still reaches the service | Check the operation's `response_cache` policy and the `<prefix>.response_cache` option. An entry is reused only for the same inputs, credential and request options. Generation warns about operations that inherit the setting but cannot use it. `<package>:::<helper>_cache_clear()` empties the stores. |
 | Plan reports protected or retained files | Compare local content and manifest ownership; use reviewed adoption or keep a manual implementation. Protected replacement/removal and retained implementation are separate concepts. |
 | Fresh output still behaves like the old client | Install/reload the generated client, then inspect its actual helper/hooks/options. `inspect_client(root)$helpers` compares helper baselines when known; generation never silently updates those files. |
 
@@ -225,3 +225,8 @@ For detailed examples, use [configuration](https://seanthimons.github.io/specmil
 [runtime hooks](https://seanthimons.github.io/specmill/articles/hooks.html),
 [testing](https://seanthimons.github.io/specmill/articles/testing.html), and
 [troubleshooting](https://seanthimons.github.io/specmill/articles/troubleshooting.html).
+
+Session option names use the client helper prefix. `<prefix>` means the lowercase value of `DRY_RUN_ENV` with the trailing
+`_DRY_RUN` removed, not necessarily the package name. For example,
+`COMPTOXR_NATIVE_DRY_RUN` gives `comptoxr_native`. `<helper>` is the request
+helper name without its leading dot: `.ct_request` gives `ct_request`.

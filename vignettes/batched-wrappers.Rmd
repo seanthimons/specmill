@@ -90,12 +90,16 @@ any request, whichever way failures are set.
 ## Choose how failures behave
 
 The client's default can be overridden for the current session. The option name
-is your package's option prefix, the request helper's name and `.batching`; ask
-the client's maintainer for the exact name:
+is `<prefix>.<helper>.batching`. `<prefix>` means the lowercase value of `DRY_RUN_ENV` with the trailing
+`_DRY_RUN` removed, not necessarily the package name. For example,
+`COMPTOXR_NATIVE_DRY_RUN` gives `comptoxr_native`. `<helper>` is the request
+helper name without its leading dot: `.ct_request` gives `ct_request`.
+
+For that client:
 
 ```{r option}
-options(mypackage.api_request.batching = list(on_error = 'stop'))  # fail fast
-options(mypackage.api_request.batching = list(on_error = 'drop'))  # keep going
+options(comptoxr_native.ct_request.batching = list(on_error = 'stop'))  # fail fast
+options(comptoxr_native.ct_request.batching = list(on_error = 'drop'))  # keep going
 ```
 
 ## Wrappers that return many pages

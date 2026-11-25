@@ -139,8 +139,10 @@ options(catalogueclient.request = list(
 ))
 ```
 
-The option prefix is the lowercase dry-run prefix: punctuation in package names
-becomes `_`. All helpers in a multi-API package share this option; setting
+`<prefix>` means the lowercase value of `DRY_RUN_ENV` with the trailing
+`_DRY_RUN` removed, not necessarily the package name. For example,
+`COMPTOXR_NATIVE_DRY_RUN` gives `comptoxr_native`. `<helper>` is the request
+helper name without its leading dot: `.ct_request` gives `ct_request`. All helpers in a multi-API package share this option; setting
 `base_url` overrides every API, so omit it unless that is intended. Omitted fields
 use the generated YAML defaults, falling back to 30 seconds per attempt, zero
 retries, and no permission to retry non-idempotent writes when YAML controls are
@@ -319,12 +321,12 @@ Generated wrappers are synchronous. To keep a Shiny app responsive during a
 long request, run the wrapper in a worker process and take a promise for its
 result. A single-request operation reviewed with `async: true` can instead
 return a promise in the session when the caller sets
-`options(<package>.request = list(async = TRUE))`; such a request is not
+`options(<prefix>.request = list(async = TRUE))`; such a request is not
 throttled or retried. See [non-blocking calls](https://seanthimons.github.io/specmill/articles/non-blocking.html).
 
 A fan-out or split batch sends its requests one at a time unless reviewed YAML
 sets `batch.concurrency`. That value is a ceiling: a session can lower it with
-`options(<package>.<helper>.batching = list(concurrency = 1))` but never
+`options(<prefix>.<helper>.batching = list(concurrency = 1))` but never
 raise it. See [batching](https://seanthimons.github.io/specmill/articles/configuration.html#many-inputs-in-one-call-fan_out-and-split).
 
 <!-- lifecycle:start -->
