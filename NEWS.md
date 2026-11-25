@@ -1,3 +1,18 @@
+## specmill 0.5.1 (2026-11-25)
+
+#### Bug fixes
+
+- validate mapped concurrency and honor session retries (#335)
+  ([964a905](https://github.com/seanthimons/specmill/tree/964a905b495e966eb59796a5b9ad2bdfd2ae83f8))
+
+#### CI
+
+- add new issues to the Tooling project (#334)
+  ([4477473](https://github.com/seanthimons/specmill/tree/44774730448b8cd18d5894b512198b676c51faef))
+
+Full set of changes:
+[`v0.5.0...v0.5.1`](https://github.com/seanthimons/specmill/compare/v0.5.0...v0.5.1)
+
 ## specmill 0.5.0 (2026-11-24)
 
 #### Breaking changes
